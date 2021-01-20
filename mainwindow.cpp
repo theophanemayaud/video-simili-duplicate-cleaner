@@ -6,6 +6,7 @@
 
 int main(int argc, char *argv[])
 {
+    qDebug() << "Hello Théophane";
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
@@ -73,7 +74,11 @@ void MainWindow::dropEvent(QDropEvent *event)
 
 void MainWindow::loadExtensions()
 {
-    QFile file(QStringLiteral("%1/extensions.ini").arg(QApplication::applicationDirPath()));
+    //DEBUGTHEO for winddows QFile file(QStringLiteral("%1/extensions.ini").arg(QApplication::applicationDirPath()));
+    //But for mac here it is
+    //Working on mac : QFile file(QStringLiteral("%1/../Frameworks/extensions.ini").arg(QApplication::applicationDirPath()));
+    //Test witth qrc file with extensions.ini at / :
+    QFile file(QStringLiteral(":/extensions.ini")); //using qrc ressource path ! This works on mac at least !
     if(!file.open(QIODevice::ReadOnly))
     {
         addStatusMessage(QStringLiteral("Error: extensions.ini not found. No video file will be searched."));
@@ -96,12 +101,12 @@ bool MainWindow::detectffmpeg() const
 {
     QProcess ffmpeg;
     ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
-    ffmpeg.start(QStringLiteral("ffmpeg"));
+    ffmpeg.start(QStringLiteral("/Applications/ffmpeg"));
     ffmpeg.waitForFinished();
 
     if(ffmpeg.readAllStandardOutput().isEmpty())
     {
-        addStatusMessage(QStringLiteral("Error: FFmpeg not found. Download it from https://ffmpeg.org/"));
+        addStatusMessage(QStringLiteral("Error: FFmpeg not found at /Applications/ffmpeg . Download it from https://ffmpeg.org/ Théophane 22"));
         return false;
     }
     return true;
@@ -122,7 +127,7 @@ void MainWindow::calculateThreshold(const int &value)
 
 void MainWindow::on_browseFolders_clicked() const
 {
-    const QString dir = QFileDialog::getExistingDirectory(nullptr, QByteArrayLiteral("Open folder"), QStringLiteral("/"),
+    const QString dir = QFileDialog::getExistingDirectory(nullptr, QByteArrayLiteral("Open folder"), nullptr /*DEBUGTHEO changed from QString... "/" to nullptr to regain default (last used) location*/,
                         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty())
         return;

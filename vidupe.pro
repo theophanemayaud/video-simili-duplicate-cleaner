@@ -3,7 +3,7 @@ TEMPLATE = app
 
 QT += core gui widgets sql
 
-QMAKE_LFLAGS += -Wl,--large-address-aware
+QMAKE_LFLAGS += -Wl#,--large-address-aware
 QMAKE_CXXFLAGS_RELEASE -= -O
 QMAKE_CXXFLAGS_RELEASE -= -O1
 QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -29,10 +29,29 @@ FORMS += \
     comparison.ui
 
 LIBS += \
-    $$PWD/bin/libopencv_core347.dll \
-    $$PWD/bin/libopencv_imgproc347.dll
+    $$PWD/bin/libopencv_core.3.4.dylib \
+    $$PWD/bin/libopencv_imgproc.3.4.dylib
+
+#macx: LIBS += -L$$PWD/bin/libopencv_core.3.4.11/ -lbin/libopencv_core.3.4.11
+#INCLUDEPATH += $$PWD/bin/libopencv_core.3.4.11
+#DEPENDPATH += $$PWD/libopencv_core.3.4.11
+
+#MediaFiles.files += \
+#    bin/libopencv_core.3.4.11.dylib \
+#    bin/libopencv_imgproc.3.4.11.dylib
+#MediaFiles.path = Contents/MacOS
+#QMAKE_BUNDLE_DATA += MediaFiles
+
 
 RC_ICONS = vidupe16.ico
+ICON = AppIcon.icns
+
+APP_QML_FILES.files = \
+    $$PWD/bin/libopencv_core.3.4.dylib \
+    $$PWD/bin/libopencv_imgproc.3.4.dylib #\
+    #$$PWD/extensions.ini
+APP_QML_FILES.path = Contents/Frameworks
+QMAKE_BUNDLE_DATA += APP_QML_FILES
 
 VERSION = 1.211
 QMAKE_TARGET_PRODUCT = "Vidupe"
@@ -61,3 +80,6 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
     #ffmpeg.exe must be in same folder where Vidupe.exe is generated (or any folder in %PATH%)
 
     #extensions.ini must be in folder where Vidupe.exe is generated (\build-Vidupe-Desktop_Qt_5___MinGW_32bit-Debug\debug)
+
+RESOURCES += \
+    vidupe.qrc

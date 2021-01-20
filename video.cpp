@@ -4,11 +4,14 @@
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
 
+//DEBUGTHEO
+QString ffmpeg_output="Uninitialized";
+
 Video::Video(const Prefs &prefsParam, const QString &filenameParam) : filename(filenameParam)
 {
     _prefs = prefsParam;
-    if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
-        _jpegQuality = _lowJpegQuality;
+    //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
+    //   _jpegQuality = _lowJpegQuality;
 
     QObject::connect(this, SIGNAL(rejectVideo(Video *)), _prefs._mainwPtr, SLOT(removeVideo(Video *)));
     QObject::connect(this, SIGNAL(acceptVideo(Video *)), _prefs._mainwPtr, SLOT(addVideo(Video *)));
@@ -18,42 +21,51 @@ void Video::run()
 {
     if(!QFileInfo::exists(filename))
     {
+        qDebug() << "Rejected : file doesn't seem to exist : "+ filename;
         emit rejectVideo(this);
         return;
     }
 
     Db cache(filename);
-    if(!cache.readMetadata(*this))      //check first if video properties are cached
-    {
+    // DDEBUGTHEO removed the cheking whether it was cached as it generated errors with all seemingly cached with height width and duration == 0
+    /*if(!cache.readMetadata(*this))      //check first if video properties are cached
+    {*/
         getMetadata(filename);          //if not, read them with ffmpeg
         cache.writeMetadata(*this);
-    }
+    //}
     if(width == 0 || height == 0 || duration == 0)
     {
+        qDebug() << "Height width duration = 0 : rejected "+ filename;
         emit rejectVideo(this);
         return;
     }
 
     const int ret = takeScreenCaptures(cache);
-    if(ret == _failure)
+    if(ret == _failure){
+        qDebug() << "Rejected : failed to take capture : "+ filename;
         emit rejectVideo(this);
+    }
     else if((_prefs._thumbnails != cutEnds && hash[0] == 0 ) ||
-            (_prefs._thumbnails == cutEnds && hash[0] == 0 && hash[1] == 0))   //all screen captures black
+            (_prefs._thumbnails == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
+        qDebug() << "Rejected : all screen captures black : "+ filename;
         emit rejectVideo(this);
-    else
+    }
+    else{
+        //qDebug() << "Accepted video "+ filename;
         emit acceptVideo(this);
+    }
 }
 
 void Video::getMetadata(const QString &filename)
 {
     QProcess probe;
     probe.setProcessChannelMode(QProcess::MergedChannels);
-    probe.start(QStringLiteral("ffmpeg -hide_banner -i \"%1\"").arg(QDir::toNativeSeparators(filename)));
+    probe.start(QStringLiteral("/Applications/ffmpeg -hide_banner -i \"%1\"").arg(QDir::toNativeSeparators(filename)));
     probe.waitForFinished();
 
     bool rotatedOnce = false;
     const QString analysis(probe.readAllStandardOutput());
-    const QStringList analysisLines = analysis.split(QStringLiteral("\r\n"));
+    const QStringList analysisLines = analysis.split(QStringLiteral("\n")); //DEBUGTHEO changed /n/r to /n (or /r/n ? Don't remember) because ffmpeg seemed only to put a \n
     for(auto line : analysisLines)
     {
         if(line.contains(QStringLiteral(" Duration:")))
@@ -270,7 +282,7 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
 
     const QString screenshot = QStringLiteral("%1/vidupe%2.bmp").arg(tempDir.path()).arg(percent);
     QProcess ffmpeg;
-    const QString ffmpegCommand = QStringLiteral("ffmpeg -ss %1 -i \"%2\" -an -frames:v 1 -pix_fmt rgb24 %3")
+    const QString ffmpegCommand = QStringLiteral("/Applications/ffmpeg -ss %1 -i \"%2\" -an -frames:v 1 -pix_fmt rgb24 %3")
                                   .arg(msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)),
                                   QDir::toNativeSeparators(filename), QDir::toNativeSeparators(screenshot));
     ffmpeg.start(ffmpegCommand);
