@@ -400,7 +400,7 @@ void Comparison::deleteVideo(const int &side)
     if(QMessageBox::question(this, "Delete file", QString("Are you sure you want to delete this file?\n\n%1")
                              .arg(onlyFilename), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
     {
-        if(!QFile::remove(filename))
+        if(!QFile::remove(filename))//moveToTrash(filename)) only on qt5.15 or >
             QMessageBox::information(this, "", "Could not delete file. Check file permissions.");
         else
         {

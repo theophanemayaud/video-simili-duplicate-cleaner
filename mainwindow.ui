@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
+    <width>666</width>
     <height>642</height>
    </rect>
   </property>
@@ -297,7 +297,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>30</width>
+              <width>50</width>
               <height>16777215</height>
              </size>
             </property>
@@ -313,7 +313,7 @@
            <widget class="QComboBox" name="differentDurationCombo">
             <property name="maximumSize">
              <size>
-              <width>30</width>
+              <width>50</width>
               <height>16777215</height>
              </size>
             </property>
@@ -360,8 +360,8 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>15</width>
-          <height>15</height>
+          <width>40</width>
+          <height>16777215</height>
          </size>
         </property>
         <property name="text">
@@ -425,8 +425,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>600</width>
-     <height>21</height>
+     <width>666</width>
+     <height>22</height>
     </rect>
    </property>
   </widget>
