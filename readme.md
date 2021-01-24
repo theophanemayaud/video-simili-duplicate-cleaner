@@ -1,25 +1,25 @@
-Vidupe 1.211
-------------
+# Vidupe : video duplicate/similar finder
 
-Source code: https://github.com/kristiankoskimaki/vidupe  
-Windows exe: https://github.com/kristiankoskimaki/vidupe/releases
-
+Compiled releases : https://github.com/theophanemayaud/vidupe/releases
 
 Vidupe is a program that can find duplicate and similar video files.
-Normal duplicate file software only finds identical files. Vidupe looks at the actual video content
-regardless of different format and compression used (digital video fingerprinting).
+Normal duplicate file software only finds identical files. Vidupe looks at the actual video content regardless of different format and compression used (digital video fingerprinting).
 
-In order for Vidupe to work, FFmpeg (http://ffmpeg.org/) must be installed:
-Place ffmpeg.exe in the same folder as Vidupe.exe or in any system directory.
+ffmpeg and all other libraries are packaged all within the app file. You can change ffmpeg executable by right clicking on the app, then "Show Package Contents", then navigate to where ffmpeg is located and replace it.
 
+## Features
 
-
-Features:
  - Simple, easy to use graphical user interface for comparing videos.
  - Supports all widely used video formats.
  - Multithreaded operation, makes full use of all available CPU threads.
  - Employs two powerful image comparison methods: pHash (perceptual hashing) and SSIM (structural similarity).
  - Cross-platform development: source code available for compiling on Windows/Linux/macOS.
+
+## Changelog
+
+Vidupe 0.1.0 : branch and release for mac from fork of windows
+- FEATURE : add option to disable delete confirmations (when needing to delete a lot of files, it's one less step !).
+- FEATURE : moves files to trash instead of deleting them outright.
 
 
 Vidupe 1.211 (released 2019-09-18) changelog:
@@ -46,8 +46,8 @@ Vidupe 1.1 (released 2019-05-05) changelog:
  - Improved zoom
 
 
-<!---
-Usage:  
+## Usage
+ 
 After starting Vidupe you must enter which folders to scan for video files. Folders can be added by typing them in,
 dragging and dropping a folder onto the window or using the folder browser button next to the input box.
 All folders must be separated by a semicolon ( ; ).
@@ -57,8 +57,8 @@ A lengthy search for videos can be aborted by pressing the button again (that no
 Note: some videos may be too broken for FFmpeg to read and will be rejected.
 
 
+## Settings
 
-Settings:  
 The default settings have been chosen to get best results with a minimum amount of false positives.  
 Thumbnails:      How many image captures are taken from each video. The larger the number of thumbnails, the slower the scanning of video files is.
                  After deleting all duplicate videos, some additional matching ones may still be found by scanning again with a different thumbnail size.
@@ -73,7 +73,8 @@ Lower threshold: (meaning very likely that they match even if the computer algor
 
 
 
-Disk cache:  
+## Disk cache
+
 Searching for videos the first time using Vidupe will be slow. All screen captures are taken one by one with FFmpeg and are saved in the file
 cache.db in Vidupe's folder. When you search for videos again, those screen captures are already taken and Vidupe loads them much faster.
 Different thumbnail modes share some of the screen captures, so searching in 3x4 mode will be faster if you have already done so using 2x2 mode.
@@ -81,7 +82,8 @@ A cache.db made with an older version of Vidupe is not guaranteed to to be compa
 
 
 
-Comparison window:  
+## Comparison window
+
 If matching videos are found, they will be displayed in a separate window side by side, with the thumbnail on top and file properties on bottom.  
 Clicking on the thumbnail will launch the video in the default video player installed.  
 Scrolling on the thumbnail with the mouse wheel will load a full size screen capture and zoom it, allowing a visual comparison of image quality,  
@@ -97,15 +99,12 @@ Move: Move the video to folder of opposite side.
 Swap filenames: Change filenames between videos.
 
 
-
 Beware that a poor quality video can be encoded to seem better than a good quality video.  
 Trust your eyes, watch both videos in a video player before deleting.
--->
 
+![Main window](/samples/MainWindow.png "Main window")
+![Comparison window](/samples/ComparisonWindow.png "Comparison window")
 
-![](https://user-images.githubusercontent.com/46446783/64857475-520d8180-d62d-11e9-9dc6-36889a3e3218.jpg)
-![](https://user-images.githubusercontent.com/46446783/64857483-58036280-d62d-11e9-839c-79e2863adfd8.jpg)
-
-Vidupe Copyright (C) 2018-2019 Kristian Koskimäki  
+Vidupe Copyright (C) 2018-2019 Kristian Koskimâ€°ki  
 Vidupe is a free software distributed under the GNU GPL.  
 Read LICENSE.txt for more information.

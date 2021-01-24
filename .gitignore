@@ -3,3 +3,5 @@ Vidupe.pro.user
 *.autosave
 *.db
 ffmpeg.exe
+
+builds/
