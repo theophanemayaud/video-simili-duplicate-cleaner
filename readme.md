@@ -102,8 +102,15 @@ Swap filenames: Change filenames between videos.
 Beware that a poor quality video can be encoded to seem better than a good quality video.  
 Trust your eyes, watch both videos in a video player before deleting.
 
+## Examples
+
+In the samples folder, you will find two videos with different sizes and compression levels, which result in the following two windows of the app :
+
 ![Main window](/samples/MainWindow.png "Main window")
+
 ![Comparison window](/samples/ComparisonWindow.png "Comparison window")
+
+## Credits
 
 Vidupe Copyright (C) 2018-2019 Kristian Koskim‰ki  
 Vidupe is a free software distributed under the GNU GPL.  
