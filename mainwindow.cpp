@@ -6,7 +6,8 @@
 
 int main(int argc, char *argv[])
 {
-    qDebug() << "Hello Théophane";
+    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
+    qDebug() << "Program start by Théophane with path :" << QDir::currentPath();
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
@@ -74,7 +75,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 
 void MainWindow::loadExtensions()
 {
-    //DEBUGTHEO for winddows QFile file(QStringLiteral("%1/extensions.ini").arg(QApplication::applicationDirPath()));
+    //DEBUGTHEO for windows QFile file(QStringLiteral("%1/extensions.ini").arg(QApplication::applicationDirPath()));
     //But for mac here it is
     //Working on mac : QFile file(QStringLiteral("%1/../Frameworks/extensions.ini").arg(QApplication::applicationDirPath()));
     //Test witth qrc file with extensions.ini at / :
@@ -97,16 +98,22 @@ void MainWindow::loadExtensions()
     file.close();
 }
 
-bool MainWindow::detectffmpeg() const
+bool MainWindow::detectffmpeg()
 {
+    _ffmpegPath = QCoreApplication::applicationDirPath() + "/../Frameworks/ffmpeg";
+
     QProcess ffmpeg;
     ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
-    ffmpeg.start(QStringLiteral("/Applications/ffmpeg"));
+//    ffmpeg.start(QStringLiteral("/Applications/ffmpeg"));
+    // THEO seems with 5.15 start requires program and arguments seperately
+//    ffmpeg.setProgram("/Applications/ffmpeg");
+    ffmpeg.setProgram(_ffmpegPath);
+    ffmpeg.start();
     ffmpeg.waitForFinished();
 
     if(ffmpeg.readAllStandardOutput().isEmpty())
     {
-        addStatusMessage(QStringLiteral("Error: FFmpeg not found at /Applications/ffmpeg . Download it from https://ffmpeg.org/ Théophane 22"));
+        addStatusMessage("Error: FFmpeg not found at " + _ffmpegPath);
         return false;
     }
     return true;
@@ -263,7 +270,7 @@ void MainWindow::processVideos()
         while(threadPool.activeThreadCount() == threadPool.maxThreadCount())
             QApplication::processEvents();          //avoid blocking signals in event loop
 
-        auto *videoTask = new Video(_prefs, filename);
+        auto *videoTask = new Video(_prefs, _ffmpegPath, filename);
         videoTask->setAutoDelete(false);
         threadPool.start(videoTask);
     }

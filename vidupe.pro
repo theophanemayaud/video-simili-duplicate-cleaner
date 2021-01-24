@@ -48,7 +48,8 @@ ICON = AppIcon.icns
 
 APP_QML_FILES.files = \
     $$PWD/bin/libopencv_core.3.4.dylib \
-    $$PWD/bin/libopencv_imgproc.3.4.dylib #\
+    $$PWD/bin/libopencv_imgproc.3.4.dylib \
+    $$PWD/bin/ffmpeg #\
     #$$PWD/extensions.ini
 APP_QML_FILES.path = Contents/Frameworks
 QMAKE_BUNDLE_DATA += APP_QML_FILES
@@ -83,3 +84,5 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
 
 RESOURCES += \
     vidupe.qrc
+
+DISTFILES +=
