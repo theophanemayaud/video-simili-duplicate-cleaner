@@ -7,7 +7,7 @@ int Video::_jpegQuality = _okJpegQuality;
 //DEBUGTHEO
 QString ffmpeg_output="Uninitialized";
 
-Video::Video(const Prefs &prefsParam, const QString &filenameParam) : filename(filenameParam)
+Video::Video(const Prefs &prefsParam, const QString &ffmpegPathParam, const QString &filenameParam) : filename(filenameParam), _ffmpegPath(ffmpegPathParam)
 {
     _prefs = prefsParam;
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
@@ -60,7 +60,12 @@ void Video::getMetadata(const QString &filename)
 {
     QProcess probe;
     probe.setProcessChannelMode(QProcess::MergedChannels);
-    probe.start(QStringLiteral("/Applications/ffmpeg -hide_banner -i \"%1\"").arg(QDir::toNativeSeparators(filename)));
+//    probe.start(QStringLiteral("/Applications/ffmpeg -hide_banner -i \"%1\"").arg(QDir::toNativeSeparators(filename)));
+    // THEO seems with 5.15 start requires program and arguments seperately
+    probe.setProgram(_ffmpegPath);
+    probe.setArguments(QStringList() << "-hide_banner" << "-i" << QDir::toNativeSeparators(filename));
+    probe.start();
+
     probe.waitForFinished();
 
     bool rotatedOnce = false;
@@ -282,10 +287,17 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
 
     const QString screenshot = QStringLiteral("%1/vidupe%2.bmp").arg(tempDir.path()).arg(percent);
     QProcess ffmpeg;
-    const QString ffmpegCommand = QStringLiteral("/Applications/ffmpeg -ss %1 -i \"%2\" -an -frames:v 1 -pix_fmt rgb24 %3")
-                                  .arg(msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)),
-                                  QDir::toNativeSeparators(filename), QDir::toNativeSeparators(screenshot));
-    ffmpeg.start(ffmpegCommand);
+//    const QString ffmpegCommand = QStringLiteral("/Applications/ffmpeg -ss %1 -i \"%2\" -an -frames:v 1 -pix_fmt rgb24 %3")
+//                                  .arg(msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)),
+//                                  QDir::toNativeSeparators(filename), QDir::toNativeSeparators(screenshot));
+//    ffmpeg.start(ffmpegCommand);
+    // THEO : Qt 5.15 needs seperate program and arguments
+    ffmpeg.setProgram(_ffmpegPath);
+    ffmpeg.setArguments(QStringList() <<
+                        "-ss" << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) <<
+                        "-i" << QDir::toNativeSeparators(filename) << "-an" << "-frames:v" << "1" <<
+                        "-pix_fmt" << "rgb24" <<  QDir::toNativeSeparators(screenshot) );
+    ffmpeg.start();
     ffmpeg.waitForFinished(10000);
 
     const QImage img(screenshot, "BMP");

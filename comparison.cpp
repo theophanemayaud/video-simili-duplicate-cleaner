@@ -378,7 +378,9 @@ void Comparison::openFileManager(const QString &filename) const
         QProcess::startDetached(QStringLiteral("explorer /select, \"%1\"").arg(QDir::toNativeSeparators(filename)));
     #endif
     #if defined(Q_OS_MACX)
-        QProcess::startDetached(QStringLiteral("open -R \"%1\"").arg(filename));
+//        QProcess::startDetached(QStringLiteral("open -R \"%1\"").arg(filename));
+        // THEO seems with 5.15 start requires program and arguments seperately
+        QProcess::startDetached("open", QStringList() << "-R" << filename);
     #endif
     #if defined(Q_OS_X11)
         QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(filename.left(filename.lastIndexOf("/"))));
@@ -397,10 +399,13 @@ void Comparison::deleteVideo(const int &side)
         _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         return;
     }
-    if(QMessageBox::question(this, "Delete file", QString("Are you sure you want to delete this file?\n\n%1")
-                             .arg(onlyFilename), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
+    if(ui->disableDeleteConfirmationCheckbox->isChecked() ||
+            QMessageBox::question(this, "Delete file",
+                                  QString("Are you sure you want to delete this file?\n\n%1")
+                                  .arg(onlyFilename), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
     {
-        if(!QFile::remove(filename))//moveToTrash(filename)) only on qt5.15 or >
+//        if(!QFile::remove(filename)) // THEO moveToTrash(filename)) only on qt5.15 or >
+        if(!QFile::moveToTrash(filename))
             QMessageBox::information(this, "", "Could not delete file. Check file permissions.");
         else
         {
@@ -521,14 +526,15 @@ void Comparison::wheelEvent(QWheelEvent *event)
     else
         return;
 
-    const int wmax = imagePtr->mapToGlobal(QPoint(imagePtr->pixmap()->width(), 0)).x();         //image right edge
-    const int hmax = imagePtr->mapToGlobal(QPoint(0, imagePtr->pixmap()->height())).y();        //image bottom edge
-    const double ratiox = 1-static_cast<double>(wmax-pos.x()) / imagePtr->pixmap()->width();    //mouse pos inside image
-    const double ratioy = 1-static_cast<double>(hmax-pos.y()) / imagePtr->pixmap()->height();
+    // THEO : pixmap()->xxx didn't seem to work, as imagePtr is a pointer but imagePtr->pixmap() returns the object directly and not a pointer
+    const int wmax = imagePtr->mapToGlobal(QPoint(imagePtr->pixmap().width(), 0)).x();         //image right edge
+    const int hmax = imagePtr->mapToGlobal(QPoint(0, imagePtr->pixmap().height())).y();        //image bottom edge
+    const double ratiox = 1-static_cast<double>(wmax-pos.x()) / imagePtr->pixmap().width();    //mouse pos inside image
+    const double ratioy = 1-static_cast<double>(hmax-pos.y()) / imagePtr->pixmap().height();
 
-    const int widescreenBlack = (imagePtr->height() - imagePtr->pixmap()->height()) / 2;
+    const int widescreenBlack = (imagePtr->height() - imagePtr->pixmap().height()) / 2;
     const int imgTop = imagePtr->mapToGlobal(QPoint(0,0)).y() + widescreenBlack;
-    const int imgBtm = imgTop + imagePtr->pixmap()->height();
+    const int imgBtm = imgTop + imagePtr->pixmap().height();
     if(pos.x() > wmax || pos.y() < imgTop || pos.y() > imgBtm)      //image is smaller than label underneath
         return;
 
@@ -556,9 +562,10 @@ void Comparison::wheelEvent(QWheelEvent *event)
         return;
     }
 
-    if(event->delta() > 0 && _zoomLevel < 10)   //mouse wheel up
+    // THEO : event.delta() stopped working as of QT 5.15, need to use either pixel or angleDelta (check later if y is the correct logic to do here)
+    if(event->angleDelta().y() > 0 && _zoomLevel < 10)   //mouse wheel up
         _zoomLevel = _zoomLevel * 2;
-    if(event->delta() < 0 && _zoomLevel > 1)    //mouse wheel down
+    if(event->angleDelta().y() < 0 && _zoomLevel > 1)    //mouse wheel down
         _zoomLevel = _zoomLevel / 2;
 
     QPixmap pix;

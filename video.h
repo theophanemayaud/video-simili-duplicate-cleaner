@@ -15,7 +15,7 @@ class Video : public QObject, public QRunnable
     Q_OBJECT
 
 public:
-    Video(const Prefs &prefsParam, const QString &filenameParam);
+    Video(const Prefs &prefsParam, const QString &ffmpegPathParam, const QString &filenameParam);
     void run();
 
     QString filename;
@@ -48,6 +48,8 @@ signals:
     void rejectVideo(Video *deleteMe) const;
 
 private:
+    QString _ffmpegPath;
+
     static Prefs _prefs;
     static int _jpegQuality;
 
