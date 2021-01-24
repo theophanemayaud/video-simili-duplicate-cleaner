@@ -29,8 +29,8 @@ FORMS += \
     comparison.ui
 
 LIBS += \
-    $$PWD/bin/libopencv_core.3.4.dylib \
-    $$PWD/bin/libopencv_imgproc.3.4.dylib
+    $$PWD/deps/libopencv_core.3.4.dylib \
+    $$PWD/deps/libopencv_imgproc.3.4.dylib
 
 #macx: LIBS += -L$$PWD/bin/libopencv_core.3.4.11/ -lbin/libopencv_core.3.4.11
 #INCLUDEPATH += $$PWD/bin/libopencv_core.3.4.11
@@ -47,9 +47,9 @@ RC_ICONS = vidupe16.ico
 ICON = AppIcon.icns
 
 APP_QML_FILES.files = \
-    $$PWD/bin/libopencv_core.3.4.dylib \
-    $$PWD/bin/libopencv_imgproc.3.4.dylib \
-    $$PWD/bin/ffmpeg #\
+    $$PWD/deps/libopencv_core.3.4.dylib \
+    $$PWD/deps/libopencv_imgproc.3.4.dylib \
+    $$PWD/deps/ffmpeg #\
     #$$PWD/extensions.ini
 APP_QML_FILES.path = Contents/Frameworks
 QMAKE_BUNDLE_DATA += APP_QML_FILES
