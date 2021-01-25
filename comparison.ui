@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>890</width>
-    <height>602</height>
+    <height>603</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -221,6 +221,9 @@
            </property>
            <property name="text">
             <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
            </property>
           </widget>
          </item>
@@ -537,6 +540,9 @@
            <property name="text">
             <string/>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
           </widget>
          </item>
         </layout>
@@ -789,19 +795,6 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="leftDelete">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Delete</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="leftMove">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -831,9 +824,38 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="swapFilenames">
+      <widget class="QPushButton" name="leftDelete">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
-        <string>Swap filenames</string>
+        <string>Trash</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_10">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Maximum</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>10</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="rightDelete">
+       <property name="text">
+        <string>Trash</string>
        </property>
       </widget>
      </item>
@@ -857,13 +879,6 @@
       <widget class="QPushButton" name="rightMove">
        <property name="text">
         <string>&lt;- Move</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="rightDelete">
-       <property name="text">
-        <string>Delete</string>
        </property>
       </widget>
      </item>
@@ -933,6 +948,13 @@
       <widget class="QProgressBar" name="progressBar">
        <property name="value">
         <number>24</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="swapFilenames">
+       <property name="text">
+        <string>Swap filenames</string>
        </property>
       </widget>
      </item>
