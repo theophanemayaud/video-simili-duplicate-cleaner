@@ -406,13 +406,13 @@ void Comparison::deleteVideo(const int &side)
     {
 //        if(!QFile::remove(filename)) // THEO moveToTrash(filename)) only on qt5.15 or >
         if(!QFile::moveToTrash(filename))
-            QMessageBox::information(this, "", "Could not delete file. Check file permissions.");
+            QMessageBox::information(this, "", "Could move file to trash. Check file permissions.");
         else
         {
             _videosDeleted++;
             _spaceSaved = _spaceSaved + _videos[side]->size;
             cache.removeVideo(id);
-            emit sendStatusMessage(QString("Deleted %1").arg(QDir::toNativeSeparators(filename)));
+            emit sendStatusMessage(QString("Moved %1 to trash").arg(QDir::toNativeSeparators(filename)));
             _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
     }
