@@ -196,7 +196,8 @@ void MainWindow::on_findDuplicates_clicked()
 
     if(_videoList.count() > 1)
     {
-        Comparison comparison(_videoList, _prefs);
+
+        Comparison comparison(sortVideosBySize(), _prefs);
         if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
         {
             QFuture<void> future = QtConcurrent::run(&comparison, &Comparison::reportMatchingVideos);   //run in background
@@ -240,6 +241,32 @@ void MainWindow::findVideos(QDir &dir)
         QApplication::processEvents();
     }
 }
+
+QVector<Video *> MainWindow::sortVideosBySize() const {
+    QVector<Video *> sortedVideosList;
+
+    if(_prefs._numberOfVideos <= 0) //no videos to sort
+        return sortedVideosList;
+
+    QMultiMap<int64_t, int> mappedVideos; // key is video size, value is index in video QVector (maps are sorted automagically by key)
+    for(int i=0; i<_videoList.size(); i++){
+        mappedVideos.insert(_videoList[i]->size, i);
+    }
+
+    QMap<int64_t, int>::const_iterator mappedVidSize = mappedVideos.constBegin();
+    while (mappedVidSize != mappedVideos.constEnd()) { // iterating from smaller size to bigger sizes
+        QList<int> videoValuesList = mappedVideos.values(mappedVidSize.key());
+        for (int i = 0; i < videoValuesList.size(); ++i)
+            sortedVideosList.insert(0, _videoList[videoValuesList.at(i)]);
+        mappedVidSize++;
+    }
+
+    if(sortedVideosList.size()!=_videoList.size())
+        qDebug() << "Problem sorting through videos, sorted size=" << sortedVideosList.size() << ", but unsorted size=" << _videoList.size();
+
+    return sortedVideosList;
+}
+
 
 void MainWindow::processVideos()
 {

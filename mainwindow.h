@@ -54,6 +54,7 @@ private slots:
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
     void findVideos(QDir &dir);
+    QVector<Video *> sortVideosBySize() const;
     void processVideos();
     void videoSummary();
 
