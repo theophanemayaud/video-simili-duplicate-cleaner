@@ -1,0 +1,28 @@
+{
+  "name": "vidupe",
+  "version": "0.1.1",
+  "description": "Vidupe is a program that can find duplicate and similar video files.",
+  "main": "vidupe.pro",
+  "devDependencies": {
+    "husky": "^4.3.8",
+    "standard-version": "^9.1.0"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theophanemayaud/vidupe.git"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/theophanemayaud/vidupe/issues"
+  },
+  "homepage": "https://github.com/theophanemayaud/vidupe#readme"
+}
