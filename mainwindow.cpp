@@ -134,8 +134,10 @@ void MainWindow::calculateThreshold(const int &value)
 
 void MainWindow::on_browseFolders_clicked() const
 {
-    const QString dir = QFileDialog::getExistingDirectory(nullptr, QByteArrayLiteral("Open folder"), nullptr /*DEBUGTHEO changed from QString... "/" to nullptr to regain default (last used) location*/,
-                        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    const QString dir = QFileDialog::getExistingDirectory(nullptr,
+                                                          QByteArrayLiteral("Open folder"),
+                                                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).last() /*defines where the chooser opens at*/,
+                                                          QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty())
         return;
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(dir)));
@@ -165,7 +167,7 @@ void MainWindow::on_findDuplicates_clicked()
     const QString foldersToSearch = ui->directoryBox->text();   //search only if folder or thumbnail settings have changed
     if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
     {
-        ui->statusBox->append(QStringLiteral("\nSearching for videos..."));
+        ui->statusBox->append(QStringLiteral("\n\rSearching for videos..."));
         ui->statusBar->setVisible(true);
 
         for(const auto &video : _videoList)                     //new search: delete videos from previous search
@@ -222,8 +224,10 @@ void MainWindow::findVideos(QDir &dir)
     QDirIterator iter(dir, QDirIterator::Subdirectories);
     while(iter.hasNext())
     {
-        if(_userPressedStop)
+        if(_userPressedStop){
+            _userPressedStop=false; //user needs to press 2x to stop the find videos process, then process videos process.
             return;
+        }
         const QFile file(iter.next());
         const QString filename = file.fileName();
 
@@ -253,11 +257,9 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
         mappedVideos.insert(_videoList[i]->size, i);
     }
 
-    QMap<int64_t, int>::const_iterator mappedVidSize = mappedVideos.constBegin();
+    QMap<int64_t, int>::const_iterator mappedVidSize = mappedVideos.constBegin(); //video size, then video index
     while (mappedVidSize != mappedVideos.constEnd()) { // iterating from smaller size to bigger sizes
-        QList<int> videoValuesList = mappedVideos.values(mappedVidSize.key());
-        for (int i = 0; i < videoValuesList.size(); ++i)
-            sortedVideosList.insert(0, _videoList[videoValuesList.at(i)]);
+        sortedVideosList.insert(0, _videoList[mappedVidSize.value()]);
         mappedVidSize++;
     }
 
@@ -271,7 +273,7 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
 void MainWindow::processVideos()
 {
     _prefs._numberOfVideos = _everyVideo.count();
-    ui->statusBox->append(QStringLiteral("Found %1 video file(s):").arg(_prefs._numberOfVideos));
+    ui->statusBox->append(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
     if(_prefs._numberOfVideos > 0)
     {
         ui->selectThumbnails->setDisabled(true);
@@ -315,15 +317,16 @@ void MainWindow::processVideos()
 void MainWindow::videoSummary()
 {
     if(_rejectedVideos.empty())
-        addStatusMessage(QStringLiteral("%1 intact video(s) found").arg(_prefs._numberOfVideos));
+        addStatusMessage(QStringLiteral("\n\r%1 intact video(s) found").arg(_prefs._numberOfVideos));
     else
     {
-        addStatusMessage(QStringLiteral("%1 intact video(s) out of %2 total").arg(_prefs._numberOfVideos)
+        addStatusMessage(QStringLiteral("\n\r%1 intact video(s) out of %2 total").arg(_prefs._numberOfVideos)
                                                                              .arg(_everyVideo.count()));
-        addStatusMessage(QStringLiteral("\nThe following %1 video(s) could not be added due to errors:")
-                         .arg(_rejectedVideos.count()));
-        for(const auto &filename : _rejectedVideos)
-            addStatusMessage(filename);
+        //Following prints are not necessary as it already prints each error as it happens.
+//        addStatusMessage(QStringLiteral("\nThe following %1 video(s) could not be added due to errors:")
+//                         .arg(_rejectedVideos.count()));
+//        for(const auto &filename : _rejectedVideos)
+//            addStatusMessage(filename);
     }
     _rejectedVideos.clear();
 }
@@ -336,8 +339,10 @@ void MainWindow::addStatusMessage(const QString &message) const
 
 void MainWindow::addVideo(Video *addMe)
 {
-    addStatusMessage(QStringLiteral("[%1] %2").arg(QTime::currentTime().toString(),
-                                                   QDir::toNativeSeparators(addMe->filename)));
+    if(ui->verboseCheckbox->isChecked()){
+        addStatusMessage(QStringLiteral("[%1] %2").arg(QTime::currentTime().toString(),
+                                                       QDir::toNativeSeparators(addMe->filename)));
+    }
     ui->progressBar->setValue(ui->progressBar->value() + 1);
     ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
     _videoList << addMe;
