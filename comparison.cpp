@@ -3,6 +3,8 @@
 #include "comparison.h"
 #include "ui_comparison.h"
 
+const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
+
 Comparison::Comparison(const QVector<Video *> &videosParam, const Prefs &prefsParam) :
     QDialog(prefsParam._mainwPtr, Qt::Window), _videos(videosParam), _prefs(prefsParam)
 {
@@ -62,7 +64,7 @@ void Comparison::confirmToExit()
     if(confirm == QMessageBox::Yes)
     {
         if(_videosDeleted)
-            emit sendStatusMessage(QStringLiteral("\n%1 file(s) deleted, %2 freed")
+            emit sendStatusMessage(QStringLiteral("\n%1 file(s) moved to trash, %2 freed")
                                    .arg(_videosDeleted).arg(readableFileSize(_spaceSaved)));
         if(!ui->leftFileName->text().isEmpty())
             emit sendStatusMessage(QStringLiteral("\nPressing Find duplicates button opens comparison window "
@@ -340,6 +342,18 @@ void Comparison::highlightBetterProperties() const
     else if(_videos[_leftVideo]->width * _videos[_leftVideo]->height <
             _videos[_rightVideo]->width * _videos[_rightVideo]->height)
         ui->rightResolution->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+
+    // show if video codecs are the same
+    if(_videos[_leftVideo]->codec.localeAwareCompare(_videos[_rightVideo]->codec)==0){
+        ui->leftCodec->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightCodec->setStyleSheet(TEXT_STYLE_ORANGE);
+    }
+
+    // show if audio codecs are the same
+    if(_videos[_leftVideo]->audio.localeAwareCompare(_videos[_rightVideo]->audio)==0){
+        ui->leftAudio->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightAudio->setStyleSheet(TEXT_STYLE_ORANGE);
+    }
 }
 
 void Comparison::updateUI()
