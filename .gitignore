@@ -6,3 +6,6 @@ ffmpeg.exe
 builds/
 
 deps/
+
+# Node things
+node_modules
