@@ -1,6 +1,6 @@
 TARGET = Vidupe
 TEMPLATE = app
-VERSION = 0.1.1
+VERSION = 0.1.2
 
 QT += core gui widgets sql
 
