@@ -85,7 +85,7 @@ void MainWindow::loadExtensions()
         addStatusMessage(QStringLiteral("Error: extensions.ini not found. No video file will be searched."));
         return;
     }
-    addStatusMessage(QStringLiteral("Supported file extensions:"));
+    addStatusMessage(QStringLiteral("Currently supported file extensions:"));
     QTextStream text(&file);
     while(!text.atEnd())
     {
