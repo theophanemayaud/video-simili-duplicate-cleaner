@@ -3,9 +3,9 @@ Vidupe.pro.user
 *.db
 ffmpeg.exe
 
-builds/
+QtProject/builds/
 
-deps/
+QtProject/deps/
 
 # Node things
 node_modules
