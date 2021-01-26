@@ -1,5 +1,6 @@
 TARGET = Vidupe
 TEMPLATE = app
+VERSION = 0.1.1
 
 QT += core gui widgets sql
 
@@ -54,7 +55,6 @@ APP_QML_FILES.files = \
 APP_QML_FILES.path = Contents/Frameworks
 QMAKE_BUNDLE_DATA += APP_QML_FILES
 
-VERSION = 0.1.1
 QMAKE_TARGET_PRODUCT = "Vidupe"
 QMAKE_TARGET_DESCRIPTION = "Vidupe"
 QMAKE_TARGET_COPYRIGHT = "Copyright \\251 2018-2019 Kristian Koskim\\344ki"
