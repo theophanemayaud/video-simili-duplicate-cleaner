@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>671</width>
+    <width>677</width>
     <height>642</height>
    </rect>
   </property>
@@ -242,7 +242,7 @@ Errors will be listed in any case.</string>
              <number>8</number>
             </property>
             <property name="value">
-             <number>89</number>
+             <number>100</number>
             </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -413,8 +413,8 @@ Errors will be listed in any case.</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>671</width>
-     <height>24</height>
+     <width>677</width>
+     <height>22</height>
     </rect>
    </property>
   </widget>

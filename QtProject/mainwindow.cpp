@@ -126,9 +126,10 @@ void MainWindow::calculateThreshold(const int &value)
     _prefs._thresholdPhash = matchingBitsOf64;
 
     const QString thresholdMessage = QStringLiteral(
-                "Threshold: %1% (%2/64 bits = match)   Default: 89%\n"
+                "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
                 "Smaller: less strict, can match different videos (false positive)\n"
-                "Larger: more strict, can miss identical videos (false negative)").arg(value).arg(matchingBitsOf64);
+                "Larger: more strict, can miss identical videos (false negative)")
+            .arg(value).arg(matchingBitsOf64).arg((int)(100*SSIM_THRESHOLD+0.5));
     ui->thresholdSlider->setToolTip(thresholdMessage);
 }
 
