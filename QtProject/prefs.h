@@ -4,6 +4,8 @@
 #include <QWidget>
 #include "thumbnail.h"
 
+#define SSIM_THRESHOLD 1.0
+
 class Prefs
 {
 public:
@@ -16,7 +18,7 @@ public:
     int _numberOfVideos = 0;
     int _ssimBlockSize = 16;
 
-    double _thresholdSSIM = 0.89;
+    double _thresholdSSIM = SSIM_THRESHOLD;
     int _thresholdPhash = 57;
 
     int _differentDurationModifier = 4;
