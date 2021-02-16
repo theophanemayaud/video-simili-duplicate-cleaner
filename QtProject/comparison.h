@@ -72,7 +72,7 @@ private slots:
 
     void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
     void on_rightDelete_clicked() { deleteVideo(_rightVideo); }
-    void deleteVideo(const int &side);
+    void deleteVideo(const int &side, const bool auto_trash_mode = false);
 
     void on_leftMove_clicked() { moveVideo(_videos[_leftVideo]->filename, _videos[_rightVideo]->filename); }
     void on_rightMove_clicked() { moveVideo(_videos[_rightVideo]->filename, _videos[_leftVideo]->filename); }
@@ -86,6 +86,8 @@ private slots:
     double sigma(const cv::Mat &m, const int &i, const int &j, const int &block_size) const;
     double covariance(const cv::Mat &m0, const cv::Mat &m1, const int &i, const int &j, const int &block_size) const;
     double ssim(const cv::Mat &m0, const cv::Mat &m1, const int &block_size) const;
+
+    void on_identicalFilesAutoTrash_clicked();
 
 signals:
     void sendStatusMessage(const QString &message) const;

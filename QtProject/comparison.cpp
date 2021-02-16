@@ -20,6 +20,9 @@ Comparison::Comparison(const QVector<Video *> &videosParam, const Prefs &prefsPa
     ui->thresholdSlider->setValue(QVariant(_prefs._thresholdSSIM * 100).toInt());
     ui->progressBar->setMaximum(_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2);
 
+    ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
+    ui->totalVideos->setNum(_videos.size() * (_videos.size() - 1) / 2 ); // all possible combinations
+
     on_nextVideo_clicked();
 }
 
@@ -401,12 +404,17 @@ void Comparison::openFileManager(const QString &filename) const
     #endif
 }
 
-void Comparison::deleteVideo(const int &side)
+void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
 {
     const QString filename = _videos[side]->filename;
     const QString onlyFilename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
     const Db cache(filename);                       //generate unique id before file has been deleted
     const QString id = cache.uniqueId();
+
+    // find if it is the elft or right video in ui to tell used in trash confirmation
+    QString videoSide = "left";
+    if(side == _rightVideo)
+        videoSide = "right";
 
     if(!QFileInfo::exists(filename))                //video was already manually deleted, skip to next
     {
@@ -415,19 +423,24 @@ void Comparison::deleteVideo(const int &side)
     }
     if(ui->disableDeleteConfirmationCheckbox->isChecked() ||
             QMessageBox::question(this, "Delete file",
-                                  QString("Are you sure you want to move this file to trash?\n\n%1")
-                                  .arg(onlyFilename), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
+                                  QString("Are you sure you want to move the %1 file to trash?\n\n%2") //show if it is the left or right file
+                                  .arg(videoSide).arg(onlyFilename),
+                                  QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
     {
 //        if(!QFile::remove(filename)) // THEO moveToTrash(filename)) only on qt5.15 or >
         if(!QFile::moveToTrash(filename))
-            QMessageBox::information(this, "", "Could move file to trash. Check file permissions.");
+            QMessageBox::information(this, "", "Could not move file to trash. Check file permissions.");
         else
         {
             _videosDeleted++;
             _spaceSaved = _spaceSaved + _videos[side]->size;
+            ui->trashedFiles->setVisible(true);
+            ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
+
             cache.removeVideo(id);
             emit sendStatusMessage(QString("Moved %1 to trash").arg(QDir::toNativeSeparators(filename)));
-            _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
+            if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
+                _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
     }
 }
@@ -596,3 +609,93 @@ void Comparison::wheelEvent(QWheelEvent *event)
     ui->rightImage->setPixmap(pix.scaled(ui->rightImage->width(), ui->rightImage->height(),
                                          Qt::KeepAspectRatio, Qt::FastTransformation));
 }
+
+// ------------------------------------------------------------------------
+// ------------------ Automatic video deletion functions ------------------
+
+void Comparison::on_identicalFilesAutoTrash_clicked()
+{
+    // Loop through all files
+    // If both files have all equal parameters, except name and path.
+    // Keep the left one (just a random choice but either could be kept).
+
+    int initialDeletedNumber = _videosDeleted;
+    int64_t initialSpaceSaved = _spaceSaved;
+    bool userWantsToStop = false;
+
+    // Go over all videos from begin to end
+    _leftVideo = 0; // reset to first video
+    _rightVideo = 0;
+
+    ui->tabWidget->setCurrentIndex(0); // switch to manual tab so that user can see progress and details if confirmation is still on
+
+    QVector<Video*>::const_iterator left, right, begin = _videos.cbegin(), end = _videos.cend();
+    for(left=begin+_leftVideo; left<end; left++, _leftVideo++)
+    {
+        for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
+        {
+            if(bothVideosMatch(*left, *right) && QFileInfo::exists((*left)->filename) && QFileInfo::exists((*right)->filename))
+            {
+                showVideo(QStringLiteral("left"));
+                showVideo(QStringLiteral("right"));
+                highlightBetterProperties();
+                updateUI();
+
+                // TODO : Check if params are equal and perform deletion, then go to next
+                if(_videos[_leftVideo]->size != _videos[_rightVideo]->size)
+                    continue;
+                if(_videos[_leftVideo]->modified != _videos[_rightVideo]->modified)
+                    continue;
+                if(_videos[_leftVideo]->duration != _videos[_rightVideo]->duration)
+                    continue;
+                if(_videos[_leftVideo]->height != _videos[_rightVideo]->height)
+                    continue;
+                if(_videos[_leftVideo]->width != _videos[_rightVideo]->width)
+                    continue;
+                if(_videos[_leftVideo]->bitrate != _videos[_rightVideo]->bitrate)
+                    continue;
+                if(_videos[_leftVideo]->framerate != _videos[_rightVideo]->framerate)
+                    continue;
+                if(_videos[_leftVideo]->codec != _videos[_rightVideo]->codec)
+                    continue;
+                if(_videos[_leftVideo]->audio != _videos[_rightVideo]->audio)
+                    continue;
+                deleteVideo(_rightVideo, true);
+
+                // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
+                if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
+                    QMessageBox message;
+                    message.setWindowTitle("Auto trash confirmation");
+                    message.setText("Do you want to continue the auto deletion, and maybe disable confirmations ?");
+                    message.addButton(tr("Continue"), QMessageBox::AcceptRole);
+                    QPushButton *stopButton = message.addButton(tr("Stop"), QMessageBox::RejectRole);
+                    QPushButton *disableConfirmationsButton = message.addButton(tr("Disable"), QMessageBox::ActionRole);
+                    message.exec();
+                    if (message.clickedButton() == stopButton) {
+                        userWantsToStop = true;
+                        break;
+                    } else if (message.clickedButton() == disableConfirmationsButton)
+                        ui->disableDeleteConfirmationCheckbox->setCheckState(Qt::Checked);
+                }
+            }
+        }
+        ui->progressBar->setValue(comparisonsSoFar());
+        _rightVideo = _leftVideo + 1;
+        if(userWantsToStop)
+            break;
+    }
+
+    ui->tabWidget->setCurrentIndex(1); // switch back to auto tab
+    // display statistics of deletions
+    QMessageBox::information(this, "Auto identical files deletion complete",
+                             QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
+                             .arg(_videosDeleted-initialDeletedNumber).arg(readableFileSize(_spaceSaved-initialSpaceSaved)));
+
+    _leftVideo = 0;       //finished going through all videos, check if there are still some matches from beginning
+    _rightVideo = 0;
+    on_nextVideo_clicked();
+}
+
+// ------------------ End of : Automatic video deletion functions ------------------
+// ---------------------------------------------------------------------------------
+
