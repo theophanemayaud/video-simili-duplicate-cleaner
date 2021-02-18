@@ -13,7 +13,7 @@ Video::Video(const Prefs &prefsParam, const QString &ffmpegPathParam, const QStr
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
     //   _jpegQuality = _lowJpegQuality;
 
-    QObject::connect(this, SIGNAL(rejectVideo(Video *)), _prefs._mainwPtr, SLOT(removeVideo(Video *)));
+    QObject::connect(this, SIGNAL(rejectVideo(Video *, QString)), _prefs._mainwPtr, SLOT(removeVideo(Video *, QString)));
     QObject::connect(this, SIGNAL(acceptVideo(Video *)), _prefs._mainwPtr, SLOT(addVideo(Video *)));
 }
 
@@ -22,7 +22,7 @@ void Video::run()
     if(!QFileInfo::exists(filename))
     {
         qDebug() << "Rejected : file doesn't seem to exist : "+ filename;
-        emit rejectVideo(this);
+        emit rejectVideo(this, "file doesn't seem to exist");
         return;
     }
 
@@ -36,19 +36,19 @@ void Video::run()
     if(width == 0 || height == 0 || duration == 0)
     {
         qDebug() << "Height width duration = 0 : rejected "+ filename;
-        emit rejectVideo(this);
+        emit rejectVideo(this, "Height width duration = 0");
         return;
     }
 
     const int ret = takeScreenCaptures(cache);
     if(ret == _failure){
         qDebug() << "Rejected : failed to take capture : "+ filename;
-        emit rejectVideo(this);
+        emit rejectVideo(this, "failed to take capture");
     }
     else if((_prefs._thumbnails != cutEnds && hash[0] == 0 ) ||
             (_prefs._thumbnails == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
         qDebug() << "Rejected : all screen captures black : "+ filename;
-        emit rejectVideo(this);
+        emit rejectVideo(this, "all screen captures black");
     }
     else{
         //qDebug() << "Accepted video "+ filename;

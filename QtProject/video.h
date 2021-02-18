@@ -45,7 +45,7 @@ public slots:
 
 signals:
     void acceptVideo(Video *addMe) const;
-    void rejectVideo(Video *deleteMe) const;
+    void rejectVideo(Video *deleteMe, QString errorMsg) const;
 
 private:
     QString _ffmpegPath;

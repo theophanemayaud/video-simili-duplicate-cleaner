@@ -60,7 +60,7 @@ private slots:
 
     void addStatusMessage(const QString &message) const;
     void addVideo(Video *addMe);
-    void removeVideo(Video *deleteMe);
+    void removeVideo(Video *deleteMe, QString errorMsg);
 };
 
 #endif // MAINWINDOW_H
