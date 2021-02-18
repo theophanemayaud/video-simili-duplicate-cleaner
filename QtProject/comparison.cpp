@@ -3,6 +3,13 @@
 #include "comparison.h"
 #include "ui_comparison.h"
 
+enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
+{
+    NOT_CONTAINED,
+    LEFT_CONTAINS_RIGHT,
+    RIGHT_CONTAINS_LEFT
+};
+
 const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 
 Comparison::Comparison(const QVector<Video *> &videosParam, const Prefs &prefsParam) :
@@ -641,7 +648,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                 highlightBetterProperties();
                 updateUI();
 
-                // TODO : Check if params are equal and perform deletion, then go to next
+                // Check if params are equal and perform deletion, then go to next
                 if(_videos[_leftVideo]->size != _videos[_rightVideo]->size)
                     continue;
                 if(_videos[_leftVideo]->modified != _videos[_rightVideo]->modified)
@@ -660,7 +667,21 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     continue;
                 if(_videos[_leftVideo]->audio != _videos[_rightVideo]->audio)
                     continue;
-                deleteVideo(_rightVideo, true);
+                bool mustBreakAsLeftWasDeleted = false;
+                if(ui->autoIdenticalFilesNamesMustBeContainedCheckbox->isChecked()){
+                    int containedStatus = whichFilenameContainsTheOther((*left)->filename, (*right)->filename);
+                    if(containedStatus == RIGHT_CONTAINS_LEFT)
+                        deleteVideo(_rightVideo, true);
+                    else if(containedStatus == LEFT_CONTAINS_RIGHT){
+                        deleteVideo(_leftVideo, true);
+                        mustBreakAsLeftWasDeleted = true;
+                    }
+                    else
+                        continue; // the file names were not contained in one another : we go to the next comparison
+                }
+                else{
+                    deleteVideo(_rightVideo, true);
+                }
 
                 // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
                 if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
@@ -676,7 +697,13 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                         break;
                     } else if (message.clickedButton() == disableConfirmationsButton)
                         ui->disableDeleteConfirmationCheckbox->setCheckState(Qt::Checked);
+
+                    //after prompting the user, if the left video was deleted we must break out of the
+                    // inner for loop to go to the next left/reference video
+                    if(mustBreakAsLeftWasDeleted)
+                        break;
                 }
+
             }
         }
         ui->progressBar->setValue(comparisonsSoFar());
@@ -696,6 +723,24 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     on_nextVideo_clicked();
 }
 
+int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath){
+    const QFileInfo leftVideoFile(leftFileNamepath);
+    const QString leftFilename = leftVideoFile.fileName();
+    const QString leftNoExtension = leftFilename.left(leftFilename.lastIndexOf("."));
+
+    const QFileInfo rightVideoFile(rightFileNamepath);
+    const QString rightFilename = rightVideoFile.fileName();
+    const QString rightNoExtension = rightFilename.left(rightFilename.lastIndexOf("."));
+
+    int containedStatus = NOT_CONTAINED;
+
+    if(rightNoExtension.contains(leftNoExtension))
+        containedStatus = RIGHT_CONTAINS_LEFT;
+    else if(leftNoExtension.contains(rightNoExtension))
+        containedStatus = LEFT_CONTAINS_RIGHT;
+
+    return containedStatus;
+}
 // ------------------ End of : Automatic video deletion functions ------------------
 // ---------------------------------------------------------------------------------
 

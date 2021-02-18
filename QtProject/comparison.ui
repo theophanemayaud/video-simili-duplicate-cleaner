@@ -991,9 +991,7 @@
             <item>
              <widget class="QLabel" name="label_4">
               <property name="text">
-               <string>If both files have all equal parameters, except name and path.  
-
-Randomly keeps one of the two.</string>
+               <string>If both files have all equal parameters, except name and path : randomly keep one of the two and trash the other.</string>
               </property>
               <property name="wordWrap">
                <bool>true</bool>
@@ -1001,12 +999,38 @@ Randomly keeps one of the two.</string>
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="checkBox_2">
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>10</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="autoIdenticalFilesNamesMustBeContainedCheckbox">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>Names must be contained in one another</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_8">
+              <property name="text">
+               <string>If this option is enabled, the file with the shortest name will be kept (and none will be moved to trash is one name isn't contained in the other).</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
