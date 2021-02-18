@@ -353,7 +353,7 @@ void MainWindow::addVideo(Video *addMe)
 
 void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
 {
-    addStatusMessage(QStringLiteral("[%1] ERROR with %2 because %3")
+    addStatusMessage(QStringLiteral("[%1] ERROR with %2 : %3")
                      .arg(QTime::currentTime().toString())
                      .arg(QDir::toNativeSeparators(deleteMe->filename))
                      .arg(errorMsg));
