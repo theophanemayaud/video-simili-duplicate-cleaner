@@ -667,21 +667,18 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     continue;
                 if(_videos[_leftVideo]->audio != _videos[_rightVideo]->audio)
                     continue;
+
                 bool mustBreakAsLeftWasDeleted = false;
-                if(ui->autoIdenticalFilesNamesMustBeContainedCheckbox->isChecked()){
-                    int containedStatus = whichFilenameContainsTheOther((*left)->filename, (*right)->filename);
-                    if(containedStatus == RIGHT_CONTAINS_LEFT)
-                        deleteVideo(_rightVideo, true);
-                    else if(containedStatus == LEFT_CONTAINS_RIGHT){
-                        deleteVideo(_leftVideo, true);
-                        mustBreakAsLeftWasDeleted = true;
-                    }
-                    else
-                        continue; // the file names were not contained in one another : we go to the next comparison
-                }
-                else{
+                int containedStatus = whichFilenameContainsTheOther((*left)->filename, (*right)->filename);
+
+                if(ui->autoIdenticalFilesNamesMustBeContainedCheckbox->isChecked()
+                        && containedStatus == NOT_CONTAINED)
+                    continue; // the file names were not contained in one another : we go to the next comparison
+
+                if(containedStatus == LEFT_CONTAINS_RIGHT)
+                    deleteVideo(_leftVideo, true);
+                else // by default and in specific name contained case : delete right video
                     deleteVideo(_rightVideo, true);
-                }
 
                 // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
                 if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
@@ -698,9 +695,9 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     } else if (message.clickedButton() == disableConfirmationsButton)
                         ui->disableDeleteConfirmationCheckbox->setCheckState(Qt::Checked);
 
-                    //after prompting the user, if the left video was deleted we must break out of the
+                    // after prompting the user, if the left video was deleted we must break out of the
                     // inner for loop to go to the next left/reference video
-                    if(mustBreakAsLeftWasDeleted)
+                    if(containedStatus == LEFT_CONTAINS_RIGHT)
                         break;
                 }
 
