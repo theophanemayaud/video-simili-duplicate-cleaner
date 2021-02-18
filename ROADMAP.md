@@ -27,3 +27,6 @@
 
 - Close windows with cmd w
 
+- Clear up variable names for files : paths vs name vs namepath/pathname (eg Video.filename)
+
+- Make error reading file more clear, and look into how to avoid them (see removeVideo slot from mainwindow.cpp connected to signal rejectVideo from video.cpp). Maybe manually review black files, and add open to file location in finder link in the mainwindow error message ?
