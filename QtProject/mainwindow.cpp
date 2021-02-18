@@ -351,10 +351,12 @@ void MainWindow::addVideo(Video *addMe)
     _videoList << addMe;
 }
 
-void MainWindow::removeVideo(Video *deleteMe)
+void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
 {
-    addStatusMessage(QStringLiteral("[%1] ERROR reading %2").arg(QTime::currentTime().toString(),
-                                                                 QDir::toNativeSeparators(deleteMe->filename)));
+    addStatusMessage(QStringLiteral("[%1] ERROR with %2 because %3")
+                     .arg(QTime::currentTime().toString())
+                     .arg(QDir::toNativeSeparators(deleteMe->filename))
+                     .arg(errorMsg));
     ui->progressBar->setValue(ui->progressBar->value() + 1);
     ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
     _rejectedVideos << QDir::toNativeSeparators(deleteMe->filename);
