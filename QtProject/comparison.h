@@ -40,6 +40,8 @@ private:
     int _rightW = 0;
     int _rightH = 0;
 
+    int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath);
+
 public slots:
     void reportMatchingVideos();
 
