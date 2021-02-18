@@ -668,7 +668,6 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                 if(_videos[_leftVideo]->audio != _videos[_rightVideo]->audio)
                     continue;
 
-                bool mustBreakAsLeftWasDeleted = false;
                 int containedStatus = whichFilenameContainsTheOther((*left)->filename, (*right)->filename);
 
                 if(ui->autoIdenticalFilesNamesMustBeContainedCheckbox->isChecked()
