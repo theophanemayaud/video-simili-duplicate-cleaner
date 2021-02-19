@@ -30,3 +30,5 @@
 - Clear up variable names for files : paths vs name vs namepath/pathname (eg Video.filename)
 
 - Look into how to avoid errors. Maybe manually review black files, and add open to file location in finder link in the mainwindow error message ?
+
+- Auto trash functions : handle computation times better (noo spinning wheel !)
