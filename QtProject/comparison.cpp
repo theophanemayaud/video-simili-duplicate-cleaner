@@ -708,14 +708,16 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
             break;
     }
 
-    ui->tabWidget->setCurrentIndex(1); // switch back to auto tab
+    if(!userWantsToStop) //finished going through all videos, check if there are still some matches from beginning
+    {
+        ui->tabWidget->setCurrentIndex(1); // switch back to auto tab
+        _leftVideo = 0;
+        _rightVideo = 0;
+    }
     // display statistics of deletions
     QMessageBox::information(this, "Auto identical files deletion complete",
                              QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
                              .arg(_videosDeleted-initialDeletedNumber).arg(readableFileSize(_spaceSaved-initialSpaceSaved)));
-
-    _leftVideo = 0;       //finished going through all videos, check if there are still some matches from beginning
-    _rightVideo = 0;
     on_nextVideo_clicked();
 }
 
@@ -805,14 +807,17 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
             break;
     }
 
-    ui->tabWidget->setCurrentIndex(1); // switch back to auto tab
+    if(!userWantsToStop) //finished going through all videos, check if there are still some matches from beginning
+    {
+        ui->tabWidget->setCurrentIndex(1); // switch back to auto tab
+        _leftVideo = 0;
+        _rightVideo = 0;
+    }
     // display statistics of deletions
     QMessageBox::information(this, "Auto trash smaller file sizes complete",
                              QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
                              .arg(_videosDeleted-initialDeletedNumber).arg(readableFileSize(_spaceSaved-initialSpaceSaved)));
 
-    _leftVideo = 0;       //finished going through all videos, check if there are still some matches from beginning
-    _rightVideo = 0;
     on_nextVideo_clicked();
 }
 
