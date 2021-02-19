@@ -946,6 +946,12 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Take care,  the following use the comparison threshold,  so be careful to set it as wanted.</string>
           </property>
@@ -956,13 +962,6 @@
         </item>
         <item>
          <widget class="Line" name="line_4">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="Line" name="line_3">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -1080,7 +1079,9 @@
               </property>
               <property name="text">
                <string>If both have : 
- - same time duration 
+ - max 1 second time duration difference
+ - same resolution
+ - same FPS
  - different file sizes 
 
 Keeps the bigger file.</string>
@@ -1088,21 +1089,31 @@ Keeps the bigger file.</string>
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="checkBox">
+             <widget class="QCheckBox" name="autoOnlySizeDiffNamesCheckbox">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="text">
                <string>Names must be contained in one another</string>
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QCheckBox" name="autoOnlySizeDontCheckResFpsCheckbox">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="text">
+               <string>Don't check resolution and FPS</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_2">
+           <widget class="QPushButton" name="autoDelOnlySizeDiffersButton">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="text">
              <string>Move all smaller to trash</string>

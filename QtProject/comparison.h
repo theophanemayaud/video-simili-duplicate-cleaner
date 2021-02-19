@@ -91,6 +91,8 @@ private slots:
 
     void on_identicalFilesAutoTrash_clicked();
 
+    void on_autoDelOnlySizeDiffersButton_clicked();
+
 signals:
     void sendStatusMessage(const QString &message) const;
     void switchComparisonMode(const int &mode) const;
