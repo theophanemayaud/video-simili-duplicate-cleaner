@@ -719,6 +719,103 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     on_nextVideo_clicked();
 }
 
+void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
+{
+    // Loop through all files
+    // If both have :
+    // - same time duration
+    // - same resolution
+    // - same FPS
+    // - different file sizes
+    // Keeps the bigger file.
+
+    int initialDeletedNumber = _videosDeleted;
+    int64_t initialSpaceSaved = _spaceSaved;
+    bool userWantsToStop = false;
+
+    // Go over all videos from begin to end
+    _leftVideo = 0; // reset to first video
+    _rightVideo = 0;
+
+    ui->tabWidget->setCurrentIndex(0); // switch to manual tab so that user can see progress and details if confirmation is on
+    QCoreApplication::processEvents(); //next operations are blocking, might need to find a way to make it work nicer !
+
+    QVector<Video*>::const_iterator left, right, begin = _videos.cbegin(), end = _videos.cend();
+    for(left=begin+_leftVideo; left<end; left++, _leftVideo++)
+    {
+        for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
+        {
+            if(bothVideosMatch(*left, *right) && QFileInfo::exists((*left)->filename) && QFileInfo::exists((*right)->filename))
+            {
+                ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
+
+                // Check if params are as required and perform deletion, then go to next
+                if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) > 1000) // video durations more than 1 second length difference
+                    continue;
+                if(!ui->autoOnlySizeDontCheckResFpsCheckbox->isChecked())
+                {
+                    if(_videos[_leftVideo]->height != _videos[_rightVideo]->height)
+                        continue;
+                    if(_videos[_leftVideo]->width != _videos[_rightVideo]->width)
+                        continue;
+                    if(qAbs(_videos[_leftVideo]->framerate - _videos[_rightVideo]->framerate) > 0.1) //both framerates more than 0.1 fps different
+                        continue;
+                }
+                if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) < 100*1024) // When sizes are identical, results are treated in specific other functionality
+                    continue;
+                if(ui->autoOnlySizeDiffNamesCheckbox->isChecked()
+                        && whichFilenameContainsTheOther((*left)->filename, (*right)->filename) == NOT_CONTAINED)
+                    continue; // the file names were not contained in one another : we go to the next comparison
+
+                showVideo(QStringLiteral("left"));
+                showVideo(QStringLiteral("right"));
+                highlightBetterProperties();
+                updateUI();
+
+                if(_videos[_leftVideo]->size > _videos[_rightVideo]->size)
+                    deleteVideo(_rightVideo, true);
+                else
+                    deleteVideo(_leftVideo, true);
+
+                // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
+                if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
+                    QMessageBox message;
+                    message.setWindowTitle("Auto trash smaller file sizes confirmation");
+                    message.setText("Do you want to continue the auto deletion of smaller file sizes, and maybe disable confirmations ?");
+                    message.addButton(tr("Continue"), QMessageBox::AcceptRole);
+                    QPushButton *stopButton = message.addButton(tr("Stop"), QMessageBox::RejectRole);
+                    QPushButton *disableConfirmationsButton = message.addButton(tr("Disable confirmations"), QMessageBox::ActionRole);
+                    message.exec();
+                    if (message.clickedButton() == stopButton) {
+                        userWantsToStop = true;
+                        break;
+                    } else if (message.clickedButton() == disableConfirmationsButton)
+                        ui->disableDeleteConfirmationCheckbox->setCheckState(Qt::Checked);
+                }
+
+                // when left video was deleted (i.e. right video size is bigger), we need to break
+                // out of the inner for loop to go to the next left/reference video
+                if(!(_videos[_leftVideo]->size > _videos[_rightVideo]->size))
+                    break;
+            }
+        }
+        ui->progressBar->setValue(comparisonsSoFar());
+        _rightVideo = _leftVideo + 1;
+        if(userWantsToStop)
+            break;
+    }
+
+    ui->tabWidget->setCurrentIndex(1); // switch back to auto tab
+    // display statistics of deletions
+    QMessageBox::information(this, "Auto trash smaller file sizes complete",
+                             QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
+                             .arg(_videosDeleted-initialDeletedNumber).arg(readableFileSize(_spaceSaved-initialSpaceSaved)));
+
+    _leftVideo = 0;       //finished going through all videos, check if there are still some matches from beginning
+    _rightVideo = 0;
+    on_nextVideo_clicked();
+}
+
 int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath){
     const QFileInfo leftVideoFile(leftFileNamepath);
     const QString leftFilename = leftVideoFile.fileName();
@@ -739,4 +836,3 @@ int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString 
 }
 // ------------------ End of : Automatic video deletion functions ------------------
 // ---------------------------------------------------------------------------------
-
