@@ -1,6 +1,6 @@
 {
   "name": "Similiar and duplicate video finder",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Similiar and duplicate video finder is a program that can find duplicate and similar video files.",
   "main": "QtProject/similiar-and-duplicate-vids-finder.pro",
   "devDependencies": {
