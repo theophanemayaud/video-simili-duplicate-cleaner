@@ -4,10 +4,10 @@
   "description": "Similiar and duplicate video finder is a program that can find duplicate and similar video files.",
   "main": "QtProject/similiar-and-duplicate-vids-finder.pro",
   "devDependencies": {
-    "husky": "^4.3.8",
-    "standard-version": "^9.1.0",
     "@commitlint/cli": "^11.0.0",
-    "@commitlint/config-conventional": "^11.0.0"
+    "@commitlint/config-conventional": "^11.0.0",
+    "husky": "^4.3.8",
+    "standard-version": "^9.1.0"
   },
   "husky": {
     "hooks": {
