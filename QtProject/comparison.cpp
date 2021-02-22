@@ -499,7 +499,7 @@ void Comparison::on_swapFilenames_clicked() const
 
     QFile leftFile(_videos[_leftVideo]->filename);                  //rename files
     QFile rightFile(_videos[_rightVideo]->filename);
-    leftFile.rename(QStringLiteral("%1/VidupeRenamedVideo.avi").arg(leftPathname));
+    leftFile.rename(QStringLiteral("%1/DuplicateRenamedVideo.avi").arg(leftPathname));
     rightFile.rename(newRightPathAndFilename);
     leftFile.rename(newLeftPathAndFilename);
 

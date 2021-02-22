@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>Vidupe</string>
+   <string>Similiar and duplicate video finder</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -414,7 +414,7 @@ Errors will be listed in any case.</string>
      <x>0</x>
      <y>0</y>
      <width>677</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>

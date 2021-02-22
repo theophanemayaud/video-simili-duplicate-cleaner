@@ -285,7 +285,7 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
     if(!tempDir.isValid())
         return QImage();
 
-    const QString screenshot = QStringLiteral("%1/vidupe%2.bmp").arg(tempDir.path()).arg(percent);
+    const QString screenshot = QStringLiteral("%1/duplicate%2.bmp").arg(tempDir.path()).arg(percent);
     QProcess ffmpeg;
 //    const QString ffmpegCommand = QStringLiteral("/Applications/ffmpeg -ss %1 -i \"%2\" -an -frames:v 1 -pix_fmt rgb24 %3")
 //                                  .arg(msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)),
