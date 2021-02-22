@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Vidupe</string>
+   <string>Similiar and duplicate video finder</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

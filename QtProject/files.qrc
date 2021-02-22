@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>extensions.ini</file>
+        <file>version.txt</file>
     </qresource>
 </RCC>

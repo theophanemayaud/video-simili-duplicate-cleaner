@@ -19,10 +19,17 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->setupUi(this);
     _prefs._mainwPtr = this;
 
-    ui->statusBox->append(QStringLiteral("%1 %2").arg(APP_NAME, APP_VERSION));
-    ui->statusBox->append(QStringLiteral("%1").arg(APP_COPYRIGHT).replace("\xEF\xBF\xBD ", QStringLiteral("© "))
-                                                                 .replace("\xEF\xBF\xBD",  QStringLiteral("ä")));
-    ui->statusBox->append(QStringLiteral("Licensed under GNU General Public License\n"));
+    QFile file(":/version.txt");
+    QString appVersion = "undefined";
+    if (file.open(QIODevice::ReadOnly)){
+        appVersion = file.readLine();
+    }
+    file.close();
+
+    ui->statusBox->append(QStringLiteral("%1 v%2").arg(APP_NAME, appVersion));
+//    ui->statusBox->append(QStringLiteral("%1").arg(APP_COPYRIGHT).replace("\xEF\xBF\xBD ", QStringLiteral("© "))
+//                                                                 .replace("\xEF\xBF\xBD",  QStringLiteral("ä")));
+//    ui->statusBox->append(QStringLiteral("Licensed under GNU General Public License\n"));
 
     deleteTemporaryFiles();
     loadExtensions();
@@ -60,7 +67,7 @@ void MainWindow::deleteTemporaryFiles() const
     while(iter.hasNext())
     {
         QDir dir = iter.next();
-        if(dir.dirName().compare(QStringLiteral("Vidupe-")) == 1)
+        if(dir.dirName().compare(QStringLiteral("DupVids-")) == 1)
             dir.removeRecursively();
     }
 }

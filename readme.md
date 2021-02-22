@@ -1,11 +1,9 @@
-# Vidupe : video duplicate/similar finder
+# Similar and duplicate videos finder
 
-Compiled releases : https://github.com/theophanemayaud/vidupe/releases
+Compiled releases : https://github.com/theophanemayaud/similar-and-duplicate-videos-finder/releases
 
-Vidupe is a program that can find duplicate and similar video files.
-Normal duplicate file software only finds identical files. Vidupe looks at the actual video content regardless of different format and compression used (digital video fingerprinting).
-
-ffmpeg and all other libraries are packaged all within the app file. You can change ffmpeg executable by right clicking on the app, then "Show Package Contents", then navigate to where ffmpeg is located and replace it.
+Similar and duplicate videos finder is a program that can find duplicate or simply similar video files.
+Normal duplicate file software only finds identical files. Similar and duplicate videos finder looks at the actual video content regardless of different format and compression used (digital video fingerprinting).
 
 ## Features
 
@@ -13,48 +11,25 @@ ffmpeg and all other libraries are packaged all within the app file. You can cha
  - Supports all widely used video formats.
  - Multithreaded operation, makes full use of all available CPU threads.
  - Employs two powerful image comparison methods: pHash (perceptual hashing) and SSIM (structural similarity).
- - Cross-platform development: source code available for compiling on Windows/Linux/macOS.
+ - Cross-platform and open source development: source code available for compiling on Windows/Linux/macOS.
 
 ## Changelog
 
-Vidupe 0.1.0 : branch and release for mac from fork of windows
-- FEATURE : add option to disable delete confirmations (when needing to delete a lot of files, it's one less step !).
-- FEATURE : moves files to trash instead of deleting them outright.
-
-
-Vidupe 1.211 (released 2019-09-18) changelog:
- - Fix crash when scrolling mouse wheel outside program window
-
-Vidupe 1.21 (released 2019-09-13) changelog:
- - New thumbnail mode, CutEnds, for finding videos with modified beginning or end. This is default now.
- - Faster comparison
- - Threads won't hang on videos timing out as long as before
- - Tiny amount of videos wrongly marked as broken
-
-Vidupe 1.2 (released 2019-05-27) changelog:
- - Disk cache for screen captures, >10x faster loading once cached
- - Much faster comparison. Comparison window opens faster
- - Threshold modifiers for same/different video durations now work
- - More accurate interpolation
- - Much old C-style code rewritten
-
-Vidupe 1.1 (released 2019-05-05) changelog:
- - Partial disk cache (video metadata only)
- - Faster loading of videos
- - Removed delay between videos after move/delete
- - Videos kept in memory if comparison window accidentally closed
- - Improved zoom
-
+See CHANGELOG.md file.
 
 ## Usage
  
-After starting Vidupe you must enter which folders to scan for video files. Folders can be added by typing them in,
+After starting the program you must enter which folders to scan for video files. Folders can be added by typing them in,
 dragging and dropping a folder onto the window or using the folder browser button next to the input box.
 All folders must be separated by a semicolon ( ; ).
 
 Comparison is started by pressing the "Find duplicates" button and all video files in selected folders are scanned.
 A lengthy search for videos can be aborted by pressing the button again (that now reads Stop).
 Note: some videos may be too broken for FFmpeg to read and will be rejected.
+
+### Libraries
+
+ffmpeg and all other libraries are packaged all within the app file. You can change ffmpeg executable by right clicking on the app, then "Show Package Contents", then navigate to where ffmpeg is located and replace it.
 
 
 ## Settings
@@ -72,14 +47,12 @@ Raise threshold: These two options increase/decrease the selected threshold when
 Lower threshold: (meaning very likely that they match even if the computer algorithm does not think so).
 
 
-
 ## Disk cache
 
-Searching for videos the first time using Vidupe will be slow. All screen captures are taken one by one with FFmpeg and are saved in the file
-cache.db in Vidupe's folder. When you search for videos again, those screen captures are already taken and Vidupe loads them much faster.
+Searching for videos the first time using the program will be slow. All screen captures are taken one by one with FFmpeg and are saved in the file
+cache.db in the program's folder. When you search for videos again, those screen captures are already taken and the program loads them much faster.
 Different thumbnail modes share some of the screen captures, so searching in 3x4 mode will be faster if you have already done so using 2x2 mode.
-A cache.db made with an older version of Vidupe is not guaranteed to to be compatible with newer versions.
-
+A cache.db made with an older version of the program is not guaranteed to to be compatible with newer versions.
 
 
 ## Comparison window
@@ -112,6 +85,4 @@ In the samples folder, you will find two videos with different sizes and compres
 
 ## Credits
 
-Vidupe Copyright (C) 2018-2019 Kristian Koskim‰ki  
-Vidupe is a free software distributed under the GNU GPL.  
-Read LICENSE.txt for more information.
+See CREDITS.md file for more information.

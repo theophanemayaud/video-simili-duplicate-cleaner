@@ -1,8 +1,8 @@
 {
-  "name": "vidupe",
+  "name": "Similiar and duplicate video finder",
   "version": "0.3.0",
-  "description": "Vidupe is a program that can find duplicate and similar video files.",
-  "main": "vidupe.pro",
+  "description": "Similiar and duplicate video finder is a program that can find duplicate and similar video files.",
+  "main": "QtProject/similiar-and-duplicate-vids-finder.pro",
   "devDependencies": {
     "husky": "^4.3.8",
     "standard-version": "^9.1.0",
@@ -17,9 +17,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "release": "standard-version",
-    "release:minor": "standard-version --release-as minor",
-    "release:patch": "standard-version --release-as patch",
-    "release:major": "standard-version --release-as major"
+    "release:minor": "standard-version --release-as minor || build-binaries",
+    "release:patch": "standard-version --release-as patch || build-binaries",
+    "release:major": "standard-version --release-as major || build-binaries",
+    "update-build-version": "node -p -e \"require('./package.json').version\">>./QtProject/version.txt",
+    "build-binaries": "update-build-version"
   },
   "repository": {
     "type": "git",

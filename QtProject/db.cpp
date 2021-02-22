@@ -44,7 +44,16 @@ void Db::createTables() const
                               "at56 BLOB, at64 BLOB, at72 BLOB, at80 BLOB, at88 BLOB, at96 BLOB);"));
 
     query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS version (version TEXT PRIMARY KEY);"));
-    query.exec(QStringLiteral("INSERT OR REPLACE INTO version VALUES('%1');").arg(APP_VERSION));
+
+    QFile file(":/version.txt");
+    QString appVersion = "undefined";
+    if (file.open(QIODevice::ReadOnly)){
+        appVersion = file.readLine();
+        qDebug()<<"Read version " + appVersion;
+    }
+    file.close();
+
+    query.exec(QStringLiteral("INSERT OR REPLACE INTO version VALUES('%1');").arg(appVersion));
 }
 
 bool Db::readMetadata(Video &video) const
