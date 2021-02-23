@@ -7,5 +7,7 @@ QtProject/builds/
 
 QtProject/deps/
 
+QtProject/release-build
+
 # Node things
 node_modules
