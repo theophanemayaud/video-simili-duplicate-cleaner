@@ -16,22 +16,25 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "release": "standard-version",
-    "release:minor": "standard-version --release-as minor || build-binaries",
-    "release:patch": "standard-version --release-as patch || build-binaries",
-    "release:major": "standard-version --release-as major || build-binaries",
-    "update-build-version": "node -p -e \"require('./package.json').version\">>./QtProject/version.txt",
-    "build-binaries": "update-build-version"
+    "release": "standard-version --sign",
+    "release:minor": "standard-version --release-as minor --sign && npm run binaries",
+    "release:patch": "standard-version --release-as patch --sign && npm run binaries",
+    "release:major": "standard-version --release-as major --sign && npm run binaries",
+    "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/version.txt",
+    "build": "npm run update-build-version && npm run build-mac-binaries --prefix QtProject/release-build",
+    "clean": "npm run clean  --prefix QtProject/release-build",
+    "copy-dmg": "cp 'QtProject/release-build/Similiar and duplicate videos finder.dmg' '../Similiar and duplicate videos finder.dmg'",
+    "binaries": "npm run clean && npm run build && npm run copy-dmg && npm run clean"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theophanemayaud/vidupe.git"
+    "url": "git+https://github.com/theophanemayaud/similar-and-duplicate-videos-finder.git"
   },
-  "author": "",
+  "author": "Théophane Mayaud",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/theophanemayaud/vidupe/issues"
+    "url": "https://github.com/theophanemayaud/similar-and-duplicate-videos-finder/issues"
   },
-  "homepage": "https://github.com/theophanemayaud/vidupe#readme",
+  "homepage": "https://github.com/theophanemayaud/similar-and-duplicate-videos-finder#readme",
   "dependencies": {}
 }
