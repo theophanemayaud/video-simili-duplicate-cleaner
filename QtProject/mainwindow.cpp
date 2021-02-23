@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
 {
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
     qDebug() << "Program start by Théophane with path :" << QDir::currentPath();
+
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
@@ -30,6 +31,11 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
 //    ui->statusBox->append(QStringLiteral("%1").arg(APP_COPYRIGHT).replace("\xEF\xBF\xBD ", QStringLiteral("© "))
 //                                                                 .replace("\xEF\xBF\xBD",  QStringLiteral("ä")));
 //    ui->statusBox->append(QStringLiteral("Licensed under GNU General Public License\n"));
+
+    QString receiptLocation = QString("%1/../_MASReceipt/receipt").arg(QCoreApplication::applicationDirPath());
+    QString boolText = QFile::exists(receiptLocation) ? "true" : "false";
+    ui->statusBox->append("Receipt is found : " + boolText);
+    ui->statusBox->append("At location : " + receiptLocation);
 
     deleteTemporaryFiles();
     loadExtensions();
