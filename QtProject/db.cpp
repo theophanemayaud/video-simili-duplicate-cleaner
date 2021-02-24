@@ -49,7 +49,6 @@ void Db::createTables() const
     QString appVersion = "undefined";
     if (file.open(QIODevice::ReadOnly)){
         appVersion = file.readLine();
-        qDebug()<<"Read version " + appVersion;
     }
     file.close();
 
