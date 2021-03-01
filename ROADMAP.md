@@ -32,3 +32,5 @@
 - Look into how to avoid errors. Maybe manually review black files, and add open to file location in finder link in the mainwindow error message ?
 
 - Auto trash functions : handle computation times better (noo spinning wheel !)
+
+- Implement a dry run of auto deletes : enables you to know how many would be deleted before really deleting them (but it's not really necessary as it's already moved to trash, so if you want you can just retreive them !)
