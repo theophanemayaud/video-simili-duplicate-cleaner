@@ -70,9 +70,15 @@ void Video::getMetadata(const QString &filename)
 
     bool rotatedOnce = false;
     const QString analysis(probe.readAllStandardOutput());
+#ifdef QT_DEBUG
+    qDebug() << "ffmpeg gave following metadata for file "<< filename;
+#endif
     const QStringList analysisLines = analysis.split(QStringLiteral("\n")); //DEBUGTHEO changed /n/r to /n (or /r/n ? Don't remember) because ffmpeg seemed only to put a \n
     for(auto line : analysisLines)
     {
+#ifdef QT_DEBUG
+        qDebug() << line;
+#endif
         if(line.contains(QStringLiteral(" Duration:")))
         {
             const QString time = line.split(QStringLiteral(" ")).value(3);
@@ -130,6 +136,10 @@ void Video::getMetadata(const QString &filename)
             rotatedOnce = true;     //rotate only once (AUDIO metadata can contain rotate keyword)
         }
     }
+#ifdef QT_DEBUG
+    qDebug() << "";
+    qDebug() << "";
+#endif
 
     const QFileInfo videoFile(filename);
     size = videoFile.size();
