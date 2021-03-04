@@ -36,4 +36,4 @@ From ffmpeg folder
 
 ```./configure --prefix='/Users/theophanemayaud/Dev/ffmpeg-build' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat```
 
-Then make, then make install
+Then make (NB flag -j means parallel threads, sso -j8 will be much faster because of 8 threads !!!), then make install
