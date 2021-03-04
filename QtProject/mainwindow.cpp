@@ -285,7 +285,6 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
     return sortedVideosList;
 }
 
-
 void MainWindow::processVideos()
 {
     _prefs._numberOfVideos = _everyVideo.count();
@@ -374,4 +373,26 @@ void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
     ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
     _rejectedVideos << QDir::toNativeSeparators(deleteMe->filename);
     delete deleteMe;
+}
+
+void MainWindow::on_actionAbout_triggered()
+{
+    QFile file(":/CREDITS.md");
+    QString credits = "undefined";
+    if (file.open(QIODevice::ReadOnly)){
+        credits = file.readAll();
+    }
+    file.close();
+
+    QWidget *ui_credits = new QWidget;
+    ui_credits->setWindowTitle("Credits");
+    QVBoxLayout *layout = new QVBoxLayout(ui_credits);
+    QLabel *label = new QLabel(ui_credits);
+    label->setWordWrap(true);
+    label->setText(credits);
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    layout->addWidget(label);
+
+    ui_credits->setLayout(layout);
+    ui_credits->show();
 }

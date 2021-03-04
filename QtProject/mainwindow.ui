@@ -429,6 +429,13 @@ Errors will be listed in any case.</string>
      <height>24</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuGeneral">
+    <property name="title">
+     <string>General</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuGeneral"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -439,6 +446,16 @@ Errors will be listed in any case.</string>
    </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="actionCredits">
+   <property name="text">
+    <string>Credits</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
