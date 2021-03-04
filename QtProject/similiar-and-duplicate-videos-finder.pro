@@ -1,16 +1,10 @@
 TARGET = "Similiar and duplicate videos finder"
 TEMPLATE = app
-# VERSION = 0.3.0
 
 QT += core gui widgets sql
 
-#QMAKE_LFLAGS += -Wl#,--large-address-aware
-#QMAKE_CXXFLAGS_RELEASE -= -O
-#QMAKE_CXXFLAGS_RELEASE -= -O1
-#QMAKE_CXXFLAGS_RELEASE -= -O2
-#QMAKE_CXXFLAGS_RELEASE *= -O3
-
 HEADERS += \
+    ffmpeg.h \
     mainwindow.h \
     prefs.h \
     video.h \
@@ -29,28 +23,23 @@ FORMS += \
     mainwindow.ui \
     comparison.ui
 
-LIBS += \
-    $$PWD/deps/libopencv_core.3.4.dylib \
-    $$PWD/deps/libopencv_imgproc.3.4.dylib
+INCLUDEPATH += $$PWD/libraries/opencv/include
+DEPENDPATH += $$PWD/libraries/opencv/include
 
-#macx: LIBS += -L$$PWD/bin/libopencv_core.3.4.11/ -lbin/libopencv_core.3.4.11
-#INCLUDEPATH += $$PWD/bin/libopencv_core.3.4.11
-#DEPENDPATH += $$PWD/libopencv_core.3.4.11
+macx: LIBS += -L$$PWD/libraries/opencv/lib/ -lopencv_imgproc -lopencv_core
 
-#MediaFiles.files += \
-#    bin/libopencv_core.3.4.11.dylib \
-#    bin/libopencv_imgproc.3.4.11.dylib
-#MediaFiles.path = Contents/MacOS
-#QMAKE_BUNDLE_DATA += MediaFiles
+macx: PRE_TARGETDEPS += $$PWD/libraries/opencv/lib/libopencv_core.a \
+                        $$PWD/libraries/opencv/lib/libopencv_imgproc.a
+
+# OpenCV static libs dependencies
+macx: LIBS += -L$$PWD/libraries/opencv/lib/opencv4/3rdparty -lzlib -lippiw -lippicv -framework OpenCL
+macx: LIBS += -L/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk/System/Library/Frameworks -framework Accelerate -lm -ldl
 
 RC_ICONS = icon16.ico
 ICON = AppIcon.icns
 
 APP_QML_FILES.files = \
-    $$PWD/deps/libopencv_core.3.4.dylib \
-    $$PWD/deps/libopencv_imgproc.3.4.dylib \
-    $$PWD/deps/ffmpeg #\
-    #$$PWD/extensions.ini
+    $$PWD/deps/ffmpeg
 APP_QML_FILES.path = Contents/Frameworks
 QMAKE_BUNDLE_DATA += APP_QML_FILES
 
@@ -58,7 +47,6 @@ QMAKE_TARGET_PRODUCT = \"\\\"$$TARGET\\\"\"
 QMAKE_TARGET_DESCRIPTION = \"\\\"$$TARGET\\\"\"
 QMAKE_TARGET_COPYRIGHT = "Copyright \\251 2018-2019 Kristian Koskim\\344ki"
 
-# DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 DEFINES += APP_NAME=\"\\\"$$TARGET\\\"\"
 DEFINES += APP_COPYRIGHT=\"\\\"$$QMAKE_TARGET_COPYRIGHT\\\"\"
 
