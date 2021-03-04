@@ -1,7 +1,7 @@
 # OpenCV
 
 To build opencv, first follow :
-- https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html
+- [https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html](https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html)
 - We want a custom install directory to get all the dependencies in one place so use the cmake flag ```-DCMAKE_INSTALL_PREFIX=/Users/theophanemayaud/Dev/opencv_install```
 - If wanting static libraries use flag -DBUILD_SHARED_LIBS=OFF
 
@@ -29,6 +29,11 @@ macx: LIBS += -L/Users/theophanemayaud/Dev/opencv_install/lib/opencv4/3rdparty -
 
 macx: LIBS += -L/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk/System/Library/Frameworks -framework Accelerate -lm -ldl
 ```
+
+To Test :
+-DCMAKE_OSX_DEPLOYMENT_TARGET="10.13" to have builds for a little bit older versions, not only the last one !
+But this needs to have the following line in the terminal .zshrc file (or enter it in the terminal) :
+export MACOSX_DEPLOYMENT_TARGET=10.13
 
 # ffmpeg
 
