@@ -58,10 +58,22 @@ void Video::run()
 
 void Video::getMetadata(const QString &filename)
 {
+#ifdef QT_DEBUG
+//    ffmpeg::AVFormatContext *fmt_ctx = NULL;
+//    ffmpeg::AVDictionaryEntry *tag = NULL;
+//    int ret;
+//    ffmpeg::av_register_all();
+//    ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
+
+//    while ((tag = av_dict_get(fmt_ctx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+//        qDebug() << QStringLiteral("%1=%2").arg(tag->key, tag->value);
+//    avformat_close_input(&fmt_ctx);
+#endif
+
     QProcess probe;
     probe.setProcessChannelMode(QProcess::MergedChannels);
 //    probe.start(QStringLiteral("/Applications/ffmpeg -hide_banner -i \"%1\"").arg(QDir::toNativeSeparators(filename)));
-    // THEO seems with 5.15 start requires program and arguments seperately
+// THEO seems with 5.15 start requires program and arguments seperately
     probe.setProgram(_ffmpegPath);
     probe.setArguments(QStringList() << "-hide_banner" << "-i" << QDir::toNativeSeparators(filename));
     probe.start();
