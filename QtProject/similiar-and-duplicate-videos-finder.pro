@@ -32,8 +32,7 @@ macx: PRE_TARGETDEPS += $$PWD/libraries/opencv/lib/libopencv_core.a \
                         $$PWD/libraries/opencv/lib/libopencv_imgproc.a
 
 # OpenCV static libs dependencies
-macx: LIBS += -L$$PWD/libraries/opencv/lib/opencv4/3rdparty -lzlib -lippiw -lippicv -framework OpenCL
-macx: LIBS += -L/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk/System/Library/Frameworks -framework Accelerate -lm -ldl
+macx: LIBS += -L$$PWD/libraries/opencv/lib/opencv4/3rdparty -lzlib -lippiw -lippicv -framework OpenCL -framework Accelerate
 
 RC_ICONS = icon16.ico
 ICON = AppIcon.icns
