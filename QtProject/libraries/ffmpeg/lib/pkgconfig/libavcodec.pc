@@ -1,0 +1,14 @@
+prefix=/Users/theophanemayaud/Dev/ffmpeg-install
+exec_prefix=${prefix}
+libdir=/Users/theophanemayaud/Dev/ffmpeg-install/lib
+includedir=/Users/theophanemayaud/Dev/ffmpeg-install/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 58.126.100
+Requires: libswresample >= 3.8.100, libavutil >= 56.66.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavcodec -liconv -lm -llzma -lz -framework AudioToolbox -pthread -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Libs.private: 
+Cflags: -I${includedir}

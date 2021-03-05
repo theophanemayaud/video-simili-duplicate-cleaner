@@ -3,14 +3,16 @@
 
 #include <stdint.h>
 
+#define __STDC_CONSTANT_MACROS
+
 namespace ffmpeg {
 extern "C" {
 
-/*#define INT64_C
-#define __STDC_CONSTANT_MACROS
-*/
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
 
-
+//#include "libavformat/avformat.h"
+//#include "libavutil/dict.h"
 
 //#include "libavcodec/avcodec.h"
 //#include "libavformat/avformat.h"
@@ -26,10 +28,5 @@ extern "C" {
 //#include "libswscale/swscale.h"
 }
 }
-
-//extern "C" {
-//#include <ffmpeg/include/libavformat/avformat.h>
-//#include <ffmpeg/include/libavutil/dict.h>
-//}
 
 #endif // FFMPEG_H
