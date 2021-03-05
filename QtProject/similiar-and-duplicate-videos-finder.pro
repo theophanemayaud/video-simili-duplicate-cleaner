@@ -23,6 +23,7 @@ FORMS += \
     mainwindow.ui \
     comparison.ui
 
+# OpenCV libraries
 INCLUDEPATH += $$PWD/libraries/opencv/include
 DEPENDPATH += $$PWD/libraries/opencv/include
 
@@ -31,9 +32,23 @@ macx: LIBS += -L$$PWD/libraries/opencv/lib/ -lopencv_imgproc -lopencv_core
 macx: PRE_TARGETDEPS += $$PWD/libraries/opencv/lib/libopencv_core.a \
                         $$PWD/libraries/opencv/lib/libopencv_imgproc.a
 
-# OpenCV static libs dependencies
+## OpenCV static libs dependencies
 macx: LIBS += -L$$PWD/libraries/opencv/lib/opencv4/3rdparty -lzlib -littnotify -lippiw -lippicv -framework OpenCL -framework Accelerate
 
+# ffmpeg libraries
+INCLUDEPATH += $$PWD/libraries/ffmpeg/include
+
+## libavformat static libs dependencies (from pckgconfig file)
+macx: LIBS += -L$$PWD/libraries/ffmpeg/lib -lavutil -lavformat -lswresample -lavcodec \
+                                            -lbz2 -liconv -llzma -Wl,-no_compact_unwind \
+                                            -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
+
+macx: PRE_TARGETDEPS += $$PWD/libraries/ffmpeg/lib/libavutil.a \
+                        $$PWD/libraries/ffmpeg/lib/libavformat.a
+                        $$PWD/libraries/ffmpeg/lib/libswresample.a
+                        $$PWD/libraries/ffmpeg/lib/libavcodec.a
+
+# Other things
 RC_ICONS = icon16.ico
 ICON = AppIcon.icns
 

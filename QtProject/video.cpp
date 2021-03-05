@@ -59,15 +59,47 @@ void Video::run()
 void Video::getMetadata(const QString &filename)
 {
 #ifdef QT_DEBUG
-//    ffmpeg::AVFormatContext *fmt_ctx = NULL;
-//    ffmpeg::AVDictionaryEntry *tag = NULL;
-//    int ret;
-//    ffmpeg::av_register_all();
-//    ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
+    ffmpeg::AVFormatContext *fmt_ctx = NULL;
+    ffmpeg::AVDictionaryEntry *tag = NULL;
+    int ret;
+    ffmpeg::av_register_all();
+    ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
+    if (ret < 0) {
+        qDebug() << "Could not open input\n";
+    }
+    ret = avformat_find_stream_info(fmt_ctx, NULL);
+    if (ret < 0) {
+        fprintf(stderr, "Could not find stream information\n");
+    }
+//    av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
 
 //    while ((tag = av_dict_get(fmt_ctx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
 //        qDebug() << QStringLiteral("%1=%2").arg(tag->key, tag->value);
-//    avformat_close_input(&fmt_ctx);
+
+
+    // Get Duration and bitrate infos (code copied from ffmpeg helper function av_dump_format see https://ffmpeg.org/doxygen/3.2/group__lavf__misc.html#gae2645941f2dc779c307eb6314fd39f10
+    if (fmt_ctx->duration != AV_NOPTS_VALUE) {
+        int hours, mins, secs, us;
+        int64_t ffmpeg_duration = fmt_ctx->duration + (fmt_ctx->duration <= INT64_MAX - 5000 ? 5000 : 0);
+        secs  = ffmpeg_duration / AV_TIME_BASE;
+        us    = ffmpeg_duration % AV_TIME_BASE;
+        mins  = secs / 60;
+        secs %= 60;
+        hours = mins / 60;
+        mins %= 60;
+        duration = 1000*ffmpeg_duration/AV_TIME_BASE;
+    } else {
+        duration = 0;
+    }
+
+    if (fmt_ctx->bit_rate) {
+      bitrate = fmt_ctx->bit_rate / 1000;
+    }
+    else {
+        bitrate = 0;
+    }
+
+    avformat_close_input(&fmt_ctx);
 #endif
 
     QProcess probe;
@@ -83,28 +115,41 @@ void Video::getMetadata(const QString &filename)
     bool rotatedOnce = false;
     const QString analysis(probe.readAllStandardOutput());
 #ifdef QT_DEBUG
-    qDebug() << "ffmpeg gave following metadata for file "<< filename;
+//    qDebug() << "ffmpeg gave following metadata for file "<< filename;
 #endif
     const QStringList analysisLines = analysis.split(QStringLiteral("\n")); //DEBUGTHEO changed /n/r to /n (or /r/n ? Don't remember) because ffmpeg seemed only to put a \n
     for(auto line : analysisLines)
     {
 #ifdef QT_DEBUG
-        qDebug() << line;
+//        qDebug() << line;
 #endif
-        if(line.contains(QStringLiteral(" Duration:")))
+        if(line.contains(QStringLiteral(" Duration:"))) // Keeppping this tempporarily but now using library FFMPEG instead of executable
         {
+            int64_t exec_duration = 0;
+            int exec_bitrate = 0;
             const QString time = line.split(QStringLiteral(" ")).value(3);
             if(time == QLatin1String("N/A,"))
-                duration = 0;
+                exec_duration = 0;
             else
             {
                 const int h  = time.midRef(0,2).toInt();
                 const int m  = time.midRef(3,2).toInt();
                 const int s  = time.midRef(6,2).toInt();
                 const int ms = time.midRef(9,2).toInt();
-                duration = h*60*60*1000 + m*60*1000 + s*1000 + ms*10;
+                exec_duration = h*60*60*1000 + m*60*1000 + s*1000 + ms*10;
             }
-            bitrate = line.split(QStringLiteral("bitrate: ")).value(1).split(QStringLiteral(" ")).value(0).toInt();
+            exec_bitrate = line.split(QStringLiteral("bitrate: ")).value(1).split(QStringLiteral(" ")).value(0).toInt();
+
+            if(duration != exec_duration || bitrate != exec_bitrate){
+                qDebug() << "FFMPEG library resulting duration or bitrate is different from one found from executable : ";
+                qDebug() << QStringLiteral("Library duration : %1").arg(duration);
+                qDebug() << QStringLiteral("Library bitrate : %1 kb/s").arg(bitrate);
+
+                qDebug() << QStringLiteral("Executa duration : %1").arg(exec_duration);
+                qDebug() << QStringLiteral("Executa bitrate : %1 kb/s").arg(exec_bitrate);
+                qDebug() << " ";
+                qDebug() << " ";
+            }
         }
         if(line.contains(QStringLiteral(" Video:")) &&
           (line.contains(QStringLiteral("kb/s")) || line.contains(QStringLiteral(" fps")) || analysis.count(" Video:") == 1))
@@ -149,8 +194,8 @@ void Video::getMetadata(const QString &filename)
         }
     }
 #ifdef QT_DEBUG
-    qDebug() << "";
-    qDebug() << "";
+//    qDebug() << "";
+//    qDebug() << "";
 #endif
 
     const QFileInfo videoFile(filename);
