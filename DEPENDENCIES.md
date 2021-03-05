@@ -37,8 +37,8 @@ export MACOSX_DEPLOYMENT_TARGET=10.13
 
 # ffmpeg
 
-From ffmpeg folder
+Clone ffmpeg repository, then from this ffmpeg folder, run the following command or a similar, alternate one to configure the build options.
 
-```./configure --prefix='/Users/theophanemayaud/Dev/ffmpeg-build' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat```
+```./configure --prefix='/Users/theophanemayaud/Dev/ffmpeg-install' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat```
 
-Then make (NB flag -j means parallel threads, sso -j8 will be much faster because of 8 threads !!!), then make install
+Then make (NB flag -j means parallel threads, so -j8 will be much faster because of 8 threads !!!), then make install
