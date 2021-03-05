@@ -38,8 +38,9 @@ macx: LIBS += -L$$PWD/libraries/opencv/lib/opencv4/3rdparty -lzlib -littnotify -
 # ffmpeg libraries
 INCLUDEPATH += $$PWD/libraries/ffmpeg/include
 
-## libavformat static libs dependencies (from pckgconfig file)
-macx: LIBS += -L$$PWD/libraries/ffmpeg/lib -lavutil -lavformat -lswresample -lavcodec \
+## libavformat and libavutil static libs dependencies (from pckgconfig file)
+macx: LIBS += -L$$PWD/libraries/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
+                                            -lswresample -lavcodec \
                                             -lbz2 -liconv -llzma -Wl,-no_compact_unwind \
                                             -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
 

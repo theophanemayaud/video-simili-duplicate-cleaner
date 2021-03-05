@@ -73,10 +73,6 @@ void Video::getMetadata(const QString &filename)
     }
 //    av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
 
-//    while ((tag = av_dict_get(fmt_ctx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
-//        qDebug() << QStringLiteral("%1=%2").arg(tag->key, tag->value);
-
-
     // Get Duration and bitrate infos (code copied from ffmpeg helper function av_dump_format see https://ffmpeg.org/doxygen/3.2/group__lavf__misc.html#gae2645941f2dc779c307eb6314fd39f10
     if (fmt_ctx->duration != AV_NOPTS_VALUE) {
         int hours, mins, secs, us;
@@ -104,8 +100,6 @@ void Video::getMetadata(const QString &filename)
 
     QProcess probe;
     probe.setProcessChannelMode(QProcess::MergedChannels);
-//    probe.start(QStringLiteral("/Applications/ffmpeg -hide_banner -i \"%1\"").arg(QDir::toNativeSeparators(filename)));
-// THEO seems with 5.15 start requires program and arguments seperately
     probe.setProgram(_ffmpegPath);
     probe.setArguments(QStringList() << "-hide_banner" << "-i" << QDir::toNativeSeparators(filename));
     probe.start();
@@ -123,7 +117,7 @@ void Video::getMetadata(const QString &filename)
 #ifdef QT_DEBUG
 //        qDebug() << line;
 #endif
-        if(line.contains(QStringLiteral(" Duration:"))) // Keeppping this tempporarily but now using library FFMPEG instead of executable
+        if(line.contains(QStringLiteral(" Duration:"))) // Keeping this tempporarily but now using library FFMPEG instead of executable
         {
             int64_t exec_duration = 0;
             int exec_bitrate = 0;
@@ -140,7 +134,7 @@ void Video::getMetadata(const QString &filename)
             }
             exec_bitrate = line.split(QStringLiteral("bitrate: ")).value(1).split(QStringLiteral(" ")).value(0).toInt();
 
-            if(duration != exec_duration || bitrate != exec_bitrate){
+            if(abs(duration - exec_duration)>=10 || abs(bitrate - exec_bitrate)>=10){
                 qDebug() << "FFMPEG library resulting duration or bitrate is different from one found from executable : ";
                 qDebug() << QStringLiteral("Library duration : %1").arg(duration);
                 qDebug() << QStringLiteral("Library bitrate : %1 kb/s").arg(bitrate);
@@ -193,10 +187,6 @@ void Video::getMetadata(const QString &filename)
             rotatedOnce = true;     //rotate only once (AUDIO metadata can contain rotate keyword)
         }
     }
-#ifdef QT_DEBUG
-//    qDebug() << "";
-//    qDebug() << "";
-#endif
 
     const QFileInfo videoFile(filename);
     size = videoFile.size();
