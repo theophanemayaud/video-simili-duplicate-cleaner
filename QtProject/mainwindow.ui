@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>Similiar and duplicate videos finder</string>
+   <string>Video simili duplicate cleaner</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
