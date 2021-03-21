@@ -29,7 +29,7 @@ See [CHANGELOG.md](CHANGELOG.md) file.
 
 ## Roadmap
 
-To see what I want to implement next, see [ROADMAP.md](ROADMAP.md). These things may or may not happen, in no guaranteed time frame. You can suggest ideas on [the project's github issues page](https://github.com/theophanemayaud/similar-and-duplicate-videos-finder/issues).
+To see what I want to implement next, see [ROADMAP.md](ROADMAP.md). These things may or may not happen, in no guaranteed time frame. You can suggest ideas on [the project's github issues page](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues).
 
 ## Usage
  
