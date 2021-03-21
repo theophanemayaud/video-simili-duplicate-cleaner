@@ -28,14 +28,20 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     file.close();
 
     ui->statusBox->append(QStringLiteral("%1 v%2").arg(APP_NAME, appVersion));
-//    ui->statusBox->append(QStringLiteral("%1").arg(APP_COPYRIGHT).replace("\xEF\xBF\xBD ", QStringLiteral("© "))
-//                                                                 .replace("\xEF\xBF\xBD",  QStringLiteral("ä")));
-//    ui->statusBox->append(QStringLiteral("Licensed under GNU General Public License\n"));
 
+    // Check mac app store receipt
     QString receiptLocation = QString("%1/../_MASReceipt/receipt").arg(QCoreApplication::applicationDirPath());
-    QString boolText = QFile::exists(receiptLocation) ? "true" : "false";
+    bool foundReceipt = QFile::exists(receiptLocation);
+#ifdef QT_DEBUG
+    QString boolText = foundReceipt ? "true" : "false";
     ui->statusBox->append("Receipt is found : " + boolText);
     ui->statusBox->append("At location : " + receiptLocation);
+    ui->statusBox->append("   ");
+#else
+    if(foundReceipt==false){
+        exit(173); // error code as per apple guideline https://developer.apple.com/library/archive/releasenotes/General/ValidateAppStoreReceipt/Chapters/ValidateLocally.html#//apple_ref/doc/uid/TP40010573-CH1-SW21
+    }
+#endif
 
     deleteTemporaryFiles();
     loadExtensions();

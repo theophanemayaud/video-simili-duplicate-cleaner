@@ -30,6 +30,12 @@ Comparison::Comparison(const QVector<Video *> &videosParam, const Prefs &prefsPa
     ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
     ui->totalVideos->setNum(_videos.size() * (_videos.size() - 1) / 2 ); // all possible combinations
 
+// hide as not implemented yet
+    ui->label_20->setVisible(false);
+    ui->label_21->setVisible(false);
+    ui->pushButton_6->setVisible(false);
+
+
     on_nextVideo_clicked();
 }
 
