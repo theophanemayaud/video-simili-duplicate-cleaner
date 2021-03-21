@@ -1,7 +1,7 @@
 # Video simili duplicate cleaner
 
 Find and remove duplicates : *Video simili duplicate cleaner* is a program that can find duplicate or simply similar video files.
-The app compares the actual video content regardless of different format or compression used, while other software only find identical files (digital video fingerprinting).
+Video simili duplicate cleaner compares the actual video content regardless of different format or compression used, while other software only find identical files (digital video fingerprinting).
 
 [![Download from the Apple App Store](https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg)](https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308)
 
