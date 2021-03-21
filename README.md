@@ -1,11 +1,11 @@
-# Similar and duplicate videos finder
+# Video simili duplicate cleaner
 
-Find and remove duplicates : *similar and duplicate videos finder* is a program that can find duplicate or simply similar video files.
-Similar and duplicate videos finder compares the actual video content regardless of different format or compression used, while other software only find identical files (digital video fingerprinting).
+Find and remove duplicates : *Video simili duplicate cleaner* is a program that can find duplicate or simply similar video files.
+The app compares the actual video content regardless of different format or compression used, while other software only find identical files (digital video fingerprinting).
 
-[![Download from the Apple App Store](https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg)](https://apps.apple.com/us/app/similiar-duplicate-videos/id1557271308)
+[![Download from the Apple App Store](https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg)](https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308)
 
-This app is [made available via the App Store with a small cost](https://apps.apple.com/us/app/similiar-duplicate-videos/id1557271308), in order to support further development work. You are of course free to check out the source code on GitHub, report bugs, suggest new features, and contribute code ! But please support my work via the App Store purchase, and do not redistribute the binary, although of course you may use the code for you own projects, no problemo !
+This app is [made available via the App Store with a small cost](https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308), in order to support further development work. You are of course free to check out the source code on GitHub, report bugs, suggest new features, and contribute code ! But please support my work via the App Store purchase, and do not redistribute the binary, although of course you may use the code for you own projects, no problemo !
 
 ## Examples
 

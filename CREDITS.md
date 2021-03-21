@@ -1,8 +1,8 @@
 # Credits
 
-## Similar and duplicate videos finder
+## Video simili duplicate cleaner
 
-Similar and duplicate videos finder Copyright (C) 2020-2021 Théophane Mayaud
+Video simili duplicate cleaner Copyright (C) 2020-2021 Théophane Mayaud
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

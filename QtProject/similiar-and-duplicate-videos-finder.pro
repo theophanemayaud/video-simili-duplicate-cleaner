@@ -1,4 +1,4 @@
-TARGET = "Similiar and duplicate videos finder"
+TARGET = "Video simili duplicate cleaner"
 TEMPLATE = app
 
 QT += core gui widgets sql
