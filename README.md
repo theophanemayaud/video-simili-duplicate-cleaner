@@ -15,6 +15,11 @@ In the samples folder, you will find two videos with different sizes and compres
 
 ![Comparison window](samples/ComparisonWindow.png "Comparison window")
 
+![Comparison window auto options](samples/ComparisonWindowAutoOptions.png "Comparison window auto options")
+
+![Main window results](samples/MainWindowResults.png "Main window results")
+
+
 ## Features
 
  - Simple, easy to use graphical user interface for comparing videos.
