@@ -41,9 +41,6 @@ Clone ffmpeg repository, then from this ffmpeg folder, run the following command
 
 ```./configure --prefix='/Users/theophanemayaud/Dev/ffmpeg-install' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat```
 
-./configure --prefix='/Users/theophanemayaud/Dev/ffmpeg-install' --enable-gpl --disable-doc --disable-programs
-
-
 Then make (NB flag -j means parallel threads, so -j8 will be much faster because of 8 threads !!!), then make install
 
 I then needed to include a bunch of libraries, looking each time I got "undefined symbols for architecture x86_64" at the symbol name, looking it up on internet, and seeing what people said was the missing library. In the end I had to use :
