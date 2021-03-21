@@ -58,7 +58,6 @@ void Video::run()
 
 void Video::getMetadata(const QString &filename)
 {
-#ifdef QT_DEBUG
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
     ffmpeg::AVDictionaryEntry *tag = NULL;
     int ret;
@@ -98,7 +97,6 @@ void Video::getMetadata(const QString &filename)
     // for the other metadata values, should probably look at dump_stream_format function from ffmpeg to copy code
 
     avformat_close_input(&fmt_ctx);
-#endif
 
     QProcess probe;
     probe.setProcessChannelMode(QProcess::MergedChannels);
@@ -119,6 +117,7 @@ void Video::getMetadata(const QString &filename)
 #ifdef QT_DEBUG
 //        qDebug() << line;
 #endif
+#ifdef QT_DEBUG
         if(line.contains(QStringLiteral(" Duration:"))) // Keeping this tempporarily but now using library FFMPEG instead of executable
         {
             int64_t exec_duration = 0;
@@ -147,6 +146,7 @@ void Video::getMetadata(const QString &filename)
                 qDebug() << " ";
             }
         }
+#endif
         if(line.contains(QStringLiteral(" Video:")) &&
           (line.contains(QStringLiteral("kb/s")) || line.contains(QStringLiteral(" fps")) || analysis.count(" Video:") == 1))
         {

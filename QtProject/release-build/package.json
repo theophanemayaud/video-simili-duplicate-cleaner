@@ -1,11 +1,11 @@
 {
     "scripts": {
-    "qmake": "/Users/theophanemayaud/Qt/5.15.2/clang_64/bin/qmake '/Users/theophanemayaud/Dev/Programming videos dupplicates/similar-and-duplicate-videos-finder/QtProject/similiar-and-duplicate-videos-finder.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && /usr/bin/make qmake_all",
+    "qmake": "/Users/theophanemayaud/Qt/5.15.2/clang_64/bin/qmake '/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/video-simili-duplicate-cleaner.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && /usr/bin/make qmake_all",
     "make": "make -j8",
-    "macdeploy": "/Users/theophanemayaud/Qt/5.15.2/clang_64/bin/macdeployqt 'Similiar and duplicate videos finder.app' -dmg -always-overwrite -appstore-compliant",
+    "macdeploy": "/Users/theophanemayaud/Qt/5.15.2/clang_64/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
     "build-mac-binaries": "npm run qmake && npm run make && npm run macdeploy",
     "make-clean" : "make clean -j8 || exit 0",
-    "clean-leftovers" : "npm run make-clean&& rm -f 'Similiar and duplicate videos finder.dmg' && rm -f Makefile && rm -f .qmake.stash && rm -f -r 'Similiar and duplicate videos finder.app'",
+    "clean-leftovers" : "npm run make-clean&& rm -f 'Video simili duplicate cleaner.dmg' && rm -f Makefile && rm -f .qmake.stash && rm -f -r 'Video simili duplicate cleaner.app'",
     "clean" : "npm run make-clean && npm run clean-leftovers"
   }
 }

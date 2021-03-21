@@ -1,8 +1,8 @@
 {
-  "name": "Similiar and duplicate video finder",
+  "name": "Video simili duplicate cleaner",
   "version": "0.4.0",
-  "description": "Similiar and duplicate video finder is a program that can find duplicate and similar video files.",
-  "main": "QtProject/similiar-and-duplicate-vids-finder.pro",
+  "description": "Video simili duplicate cleaner is a program that can find duplicate and similar video files.",
+  "main": "QtProject/video-simili-duplicate-cleaner.pro",
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
@@ -23,18 +23,18 @@
     "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/version.txt",
     "build": "npm run update-build-version && npm run build-mac-binaries --prefix QtProject/release-build",
     "clean": "npm run clean  --prefix QtProject/release-build",
-    "copy-dmg": "cp 'QtProject/release-build/Similiar and duplicate videos finder.dmg' '../Similiar and duplicate videos finder.dmg'",
+    "copy-dmg": "cp 'QtProject/release-build/Video simili duplicate cleaner.dmg' '../Video simili duplicate cleaner.dmg'",
     "binaries": "npm run clean && npm run build && npm run copy-dmg && npm run clean"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theophanemayaud/similar-and-duplicate-videos-finder.git"
+    "url": "git+https://github.com/theophanemayaud/video-simili-duplicate-cleaner"
   },
   "author": "Théophane Mayaud",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/theophanemayaud/similar-and-duplicate-videos-finder/issues"
+    "url": "https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues"
   },
-  "homepage": "https://github.com/theophanemayaud/similar-and-duplicate-videos-finder#readme",
+  "homepage": "https://github.com/theophanemayaud/video-simili-duplicate-cleaner#readme",
   "dependencies": {}
 }
