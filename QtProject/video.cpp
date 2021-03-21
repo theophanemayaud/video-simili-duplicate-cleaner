@@ -95,6 +95,8 @@ void Video::getMetadata(const QString &filename)
         bitrate = 0;
     }
 
+    // for the other metadata values, should probably look at dump_stream_format function from ffmpeg to copy code
+
     avformat_close_input(&fmt_ctx);
 #endif
 
