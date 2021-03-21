@@ -2,7 +2,7 @@
 
 ## Similar and duplicate videos finder
 
-Similar and duplicate videos finder Copyright (C) 2020-2021 Théophpane Mayaud
+Similar and duplicate videos finder Copyright (C) 2020-2021 Théophane Mayaud
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

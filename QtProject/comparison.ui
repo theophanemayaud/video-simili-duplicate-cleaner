@@ -102,7 +102,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -1188,6 +1188,9 @@ Keeps the bigger file.</string>
           <layout class="QHBoxLayout" name="horizontalLayout_13">
            <item>
             <widget class="QLabel" name="label_20">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                <horstretch>0</horstretch>
@@ -1213,6 +1216,9 @@ Keeps the bigger file.</string>
            </item>
            <item>
             <widget class="QLabel" name="label_21">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="lineWidth">
               <number>2</number>
              </property>

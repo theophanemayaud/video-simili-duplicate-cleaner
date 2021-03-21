@@ -3,6 +3,9 @@ Vidupe.pro.user
 *.db
 ffmpeg.exe
 
+QtProject/similiar-and-duplicate-videos-finder.pro.user
+
+
 QtProject/builds/
 
 QtProject/deps/
