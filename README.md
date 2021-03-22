@@ -11,6 +11,8 @@ This app is [made available via the App Store with a small cost](https://apps.ap
 
 In the samples folder, you will find two videos with different sizes and compression levels, which result in the following two windows of the app :
 
+![Demo video](samples/Demo.mp4 "Demo video")
+
 ![Main window](samples/MainWindow.png "Main window")
 
 ![Comparison window](samples/ComparisonWindow.png "Comparison window")
@@ -100,6 +102,11 @@ A cache.db made with an older version of the program is not guaranteed to to be 
 ffmpeg and all other libraries are packaged all within the app file. You can change ffmpeg executable by right clicking on the app, then "Show Package Contents", then navigate to where ffmpeg is located and replace it.
 
 See [DEPENDENCIES.md](DEPENDENCIES.md) for more details.
+
+
+## Privacy Policy
+
+This app does not collect any personnal information, in fact no information is sent anywhere.
 
 
 ## Credits

@@ -55,7 +55,7 @@ ICON = AppIcon.icns
 
 APP_QML_FILES.files = \
     $$PWD/deps/ffmpeg
-APP_QML_FILES.path = Contents/Frameworks
+APP_QML_FILES.path = Contents/MacOS
 QMAKE_BUNDLE_DATA += APP_QML_FILES
 
 QMAKE_TARGET_PRODUCT = \"\\\"$$TARGET\\\"\"
