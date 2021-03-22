@@ -119,7 +119,7 @@ void MainWindow::loadExtensions()
 
 bool MainWindow::detectffmpeg()
 {
-    _ffmpegPath = QCoreApplication::applicationDirPath() + "/../Frameworks/ffmpeg";
+    _ffmpegPath = QCoreApplication::applicationDirPath() + "/ffmpeg";
 
     QProcess ffmpeg;
     ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
@@ -154,12 +154,13 @@ void MainWindow::calculateThreshold(const int &value)
 
 void MainWindow::on_browseFolders_clicked() const
 {
-    const QString dir = QFileDialog::getExistingDirectory(nullptr,
+    const QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
                                                           QByteArrayLiteral("Open folder"),
-                                                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).last() /*defines where the chooser opens at*/,
+                                                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
                                                           QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if(dir.isEmpty())
+    if(dir.isEmpty()){ //empty because error or none chosen in dialog
         return;
+    }
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(dir)));
     ui->directoryBox->setFocus();
 }
