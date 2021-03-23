@@ -28,7 +28,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     file.close();
 
     ui->statusBox->append(QStringLiteral("%1 v%2").arg(APP_NAME, appVersion));
-
+#ifdef Q_OS_MACOS
     // Check mac app store receipt
     QString receiptLocation = QString("%1/../_MASReceipt/receipt").arg(QCoreApplication::applicationDirPath());
     bool foundReceipt = QFile::exists(receiptLocation);
@@ -41,6 +41,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     if(foundReceipt==false){
         exit(173); // error code as per apple guideline https://developer.apple.com/library/archive/releasenotes/General/ValidateAppStoreReceipt/Chapters/ValidateLocally.html#//apple_ref/doc/uid/TP40010573-CH1-SW21
     }
+#endif
 #endif
 
     deleteTemporaryFiles();

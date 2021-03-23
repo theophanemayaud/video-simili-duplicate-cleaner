@@ -404,17 +404,17 @@ int Comparison::comparisonsSoFar() const
 
 void Comparison::openFileManager(const QString &filename) const
 {
-    #if defined(Q_OS_WIN)
+#ifdef Q_OS_WIN
         QProcess::startDetached(QStringLiteral("explorer /select, \"%1\"").arg(QDir::toNativeSeparators(filename)));
-    #endif
-    #if defined(Q_OS_MACX)
+#endif
+#ifdef Q_OS_MACOS
 //        QProcess::startDetached(QStringLiteral("open -R \"%1\"").arg(filename));
         // THEO seems with 5.15 start requires program and arguments seperately
         QProcess::startDetached("open", QStringList() << "-R" << filename);
-    #endif
-    #if defined(Q_OS_X11)
+#endif
+#if defined Q_OS_X11
         QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(filename.left(filename.lastIndexOf("/"))));
-    #endif
+#endif
 }
 
 void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
