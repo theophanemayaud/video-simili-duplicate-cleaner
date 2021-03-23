@@ -59,7 +59,7 @@ void Video::run()
 void Video::getMetadata(const QString &filename)
 {
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
-    ffmpeg::AVDictionaryEntry *tag = NULL;
+    //ffmpeg::AVDictionaryEntry *tag = NULL;
     int ret;
     ffmpeg::av_register_all();
     ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);

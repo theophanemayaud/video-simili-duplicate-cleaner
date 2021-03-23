@@ -1,0 +1,14 @@
+prefix=/Users/theophanemayaud/Dev/ffmpeg-install
+exec_prefix=${prefix}
+libdir=/Users/theophanemayaud/Dev/ffmpeg-install/lib
+includedir=/Users/theophanemayaud/Dev/ffmpeg-install/include
+
+Name: libavfilter
+Description: FFmpeg audio/video filtering library
+Version: 7.107.100
+Requires: libswscale >= 5.8.100, libpostproc >= 55.8.100, libavformat >= 58.68.100, libavcodec >= 58.126.100, libswresample >= 3.8.100, libavutil >= 56.66.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavfilter -framework OpenGL -framework OpenGL -pthread -lm -framework CoreImage -framework AppKit
+Libs.private: 
+Cflags: -I${includedir}
