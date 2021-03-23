@@ -9,6 +9,6 @@ Version: 58.126.100
 Requires: libswresample >= 3.8.100, libavutil >= 56.66.100
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavcodec -liconv -lm -llzma -lz -framework AudioToolbox -pthread -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Libs: -L${libdir}  -lavcodec -liconv -lm -lz -framework AudioToolbox -pthread -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
 Libs.private: 
 Cflags: -I${includedir}
