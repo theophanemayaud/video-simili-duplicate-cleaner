@@ -14,7 +14,7 @@ You can also support the project, or specific issues, via [BOUNTYSOURCE](https:/
 
 In the samples folder, you will find two videos with different sizes and compression levels, which result in the following two windows of the app :
 
-![Demo video](samples/Demo.mp4 "Demo video")
+![[Demo video](samples/Demo.mp4 "Demo video")](https://theophanemayaud.github.io/video-simili-duplicate-cleaner/samples/Demo.mp4)
 
 ![Main window](samples/MainWindow.png "Main window")
 
