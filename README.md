@@ -1,5 +1,3 @@
-<link rel="shortcut icon" type="image/x-icon" href="QtProject/Icon1024.png">
-
 [![Bountysource](https://www.bountysource.com/badge/team?team_id=599354&style=bounties_posted)](https://www.bountysource.com/teams/video-simili-duplicate-cleaner/issues)
 # Video simili duplicate cleaner
 
