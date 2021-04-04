@@ -1,3 +1,4 @@
+[![Bountysource](https://www.bountysource.com/badge/team?team_id=599354&style=bounties_posted)](https://www.bountysource.com/teams/video-simili-duplicate-cleaner/issues)
 # Video simili duplicate cleaner
 
 Find and remove duplicates : *Video simili duplicate cleaner* is a program that can find duplicate or simply similar video files.
@@ -6,6 +7,8 @@ Video simili duplicate cleaner compares the actual video content regardless of d
 [![Download from the Apple App Store](https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg)](https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308)
 
 This app is [made available via the App Store with a small cost](https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308), in order to support further development work. You are of course free to check out the source code on GitHub, report bugs, suggest new features, and contribute code ! But please support my work via the App Store purchase, and do not redistribute the binary, although of course you may use the code for you own projects, no problemo !
+
+You can also support the project, or specific issues, via [BOUNTYSOURCE](https://www.bountysource.com/teams/video-simili-duplicate-cleaner/issues). You can make donations for the project, or post a bounty as a "reward when a specific issue is completed". This helps identify which issues are important and should be done first.
 
 ## Examples
 
