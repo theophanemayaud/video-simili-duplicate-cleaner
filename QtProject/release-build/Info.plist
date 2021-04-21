@@ -9,7 +9,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>video-simili-duplicate-cleaner.theophanemayaud.github.io</string>
  	<key>CFBundleVersion</key>
- 	<string>1.0.1</string>
+ 	<string>1.0.2</string>
  	<key>CFBundleShortVersionString</key>
  	<string>1.0</string>
 	<key>LSApplicationCategoryType</key>
