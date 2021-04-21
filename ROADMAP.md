@@ -1,6 +1,12 @@
 # Ideas to implement next 
 (in approximate order of importance)
 
+## Critical things to do :
+
+- Document the new auto delete functions
+
+## Most interesting ideas
+
 - Similar auto delete (keep biggest if) : 
 
     - same duration

@@ -80,7 +80,7 @@ void MainWindow::deleteTemporaryFiles() const
     while(iter.hasNext())
     {
         QDir dir = iter.next();
-        if(dir.dirName().compare(QStringLiteral("DupVids-")) == 1)
+        if(dir.dirName().compare(QStringLiteral("DupVids-")) == 1) //TODO : temporary vids have new identifier...
             dir.removeRecursively();
     }
 }
