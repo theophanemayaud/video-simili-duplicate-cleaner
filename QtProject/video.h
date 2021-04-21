@@ -34,7 +34,7 @@ public:
     uint64_t hash [2] = { 0, 0 };
 
 private slots:
-    void getMetadata(const QString &filename);
+    bool getMetadata(const QString &filename); // return success=true or error=false. It handles video rejection on those with error
     int takeScreenCaptures(const Db &cache);
     void processThumbnail(QImage &thumbnail, const int &hashes);
     uint64_t computePhash(const cv::Mat &input) const;

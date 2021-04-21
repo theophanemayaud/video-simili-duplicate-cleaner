@@ -30,7 +30,8 @@ void Video::run()
     // DDEBUGTHEO removed the cheking whether it was cached as it generated errors with all seemingly cached with height width and duration == 0
     /*if(!cache.readMetadata(*this))      //check first if video properties are cached
     {*/
-        getMetadata(filename);          //if not, read them with ffmpeg
+        if(!getMetadata(filename))         //if not, read them with ffmpeg
+            return;
         cache.writeMetadata(*this);
     //}
     if(width == 0 || height == 0 || duration == 0)
@@ -56,7 +57,7 @@ void Video::run()
     }
 }
 
-void Video::getMetadata(const QString &filename)
+bool Video::getMetadata(const QString &filename)
 {
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
     //ffmpeg::AVDictionaryEntry *tag = NULL;
@@ -64,13 +65,17 @@ void Video::getMetadata(const QString &filename)
     ffmpeg::av_register_all();
     ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
     if (ret < 0) {
-        qDebug() << "Could not open input\n";
+        qDebug() << "Could not open input : " + filename;
+        emit rejectVideo(this, "Could not open input");
+        avformat_close_input(&fmt_ctx);
+        return false; // error
     }
     ret = avformat_find_stream_info(fmt_ctx, NULL);
     if (ret < 0) {
-        fprintf(stderr, "Could not find stream information\n");
+        qDebug() << "Could not find stream information : " + filename;
+        emit rejectVideo(this, "Could not find stream information");
     }
-//    av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
+//        av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
 
     // Get Duration and bitrate infos (code copied from ffmpeg helper function av_dump_format see https://ffmpeg.org/doxygen/3.2/group__lavf__misc.html#gae2645941f2dc779c307eb6314fd39f10
     if (fmt_ctx->duration != AV_NOPTS_VALUE) {
@@ -193,6 +198,8 @@ void Video::getMetadata(const QString &filename)
     const QFileInfo videoFile(filename);
     size = videoFile.size();
     modified = videoFile.lastModified();
+
+    return true; // success !
 }
 
 int Video::takeScreenCaptures(const Db &cache)
