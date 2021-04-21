@@ -17,9 +17,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "release": "standard-version --sign",
-    "release:minor": "standard-version --release-as minor --sign && npm run binaries",
-    "release:patch": "standard-version --release-as patch --sign && npm run binaries",
-    "release:major": "standard-version --release-as major --sign && npm run binaries",
+    "release:minor": "standard-version --release-as minor --sign && npm run binaries && npm run ammend-commit",
+    "release:patch": "standard-version --release-as patch --sign && npm run binaries && npm run ammend-commit",
+    "release:major": "standard-version --release-as major --sign && npm run binaries && npm run ammend-commit",
+    "ammend-commit": "git add -A && git commit --amend --no-edit && echo '\n\n Remember to push commits and tags with \n git push && git push --tags' ",
     "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/version.txt && npm run update-plist-version",
     "build": "npm run update-build-version && npm run build-mac-binaries --prefix QtProject/release-build",
     "clean": "npm run clean  --prefix QtProject/release-build",
