@@ -435,12 +435,88 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
         return QImage();
 
     const QString screenshot = QStringLiteral("%1/duplicate%2.bmp").arg(tempDir.path()).arg(percent);
+
+#ifdef QT_DEBUG
+    // new ffmpeg library code to capture an image
+
+    ffmpeg::AVFormatContext *fmt_ctx = NULL;
+
+    ffmpeg::av_register_all();
+
+    /* open input file, and allocate format context */
+    if (ffmpeg::avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL) < 0) {
+        qDebug() << "Could not open source file " << filename;
+        avformat_close_input(&fmt_ctx);
+        return QImage(NULL);
+    }
+
+    /* retrieve stream information */
+    if (ffmpeg::avformat_find_stream_info(fmt_ctx, NULL) < 0) {
+        qDebug() << "Could not find stream information" << filename;
+        avformat_close_input(&fmt_ctx);
+        return QImage(NULL);
+    }
+
+    const int string_index = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_VIDEO, -1 /* auto stream selection*/,
+                                      -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
+    if(string_index<0){ // Did not find a video stream
+        qDebug() << "Could not find a good video stream" << filename;
+        avformat_close_input(&fmt_ctx);
+        return QImage(NULL);
+    }
+    ffmpeg::AVStream *vs = fmt_ctx->streams[string_index];
+
+
+   /* find decoder for the stream */
+   ffmpeg::AVCodec *dec = NULL;
+   dec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id);
+   if (!dec) {
+        qDebug() << "Failed to find video codec for file " << filename;
+        avformat_close_input(&fmt_ctx);
+        return QImage(NULL);
+    }
+
+   /* Allocate a codec context for the decoder */
+   ffmpeg::AVCodecContext *dec_ctx;
+
+   dec_ctx = ffmpeg::avcodec_alloc_context3(dec);
+   if (!dec_ctx) {
+        qDebug() << "Failed to allocate the video codec context for file " << filename;
+        avformat_close_input(&fmt_ctx);
+        return QImage(NULL);
+   }
+
+   /* Copy codec parameters from input stream to codec context */
+    if (ffmpeg::avcodec_parameters_to_context(dec_ctx, vs->codecpar) < 0) {
+        qDebug() << "Failed to copy %s codec parameters to decoder context for file" << filename;
+        avformat_close_input(&fmt_ctx);
+        return QImage(NULL);
+    }
+
+   /* Init the decoders, without reference counting */
+   ffmpeg::AVDictionary *opts = NULL;
+   ffmpeg::av_dict_set(&opts, "refcounted_frames", "0", 0);
+   if(ffmpeg::avcodec_open2(dec_ctx, dec, &opts)<0){
+       qDebug() << "Failed to open video codec for file " << filename;
+       avformat_close_input(&fmt_ctx);
+       return QImage(NULL);
+   }
+
+   FILE *video_dst_file = NULL;
+   video_dst_file = fopen(screenshot.toStdString().c_str(), "wb");
+   if (!video_dst_file) {
+       qDebug() << "Could not open destination file " << screenshot;
+       avformat_close_input(&fmt_ctx);
+       return QImage(NULL);
+   }
+
+   avcodec_free_context(&dec_ctx);
+   avformat_close_input(&fmt_ctx);
+   fclose(video_dst_file);
+
+   // TODO : keep implementing here !
+#endif
     QProcess ffmpeg;
-//    const QString ffmpegCommand = QStringLiteral("/Applications/ffmpeg -ss %1 -i \"%2\" -an -frames:v 1 -pix_fmt rgb24 %3")
-//                                  .arg(msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)),
-//                                  QDir::toNativeSeparators(filename), QDir::toNativeSeparators(screenshot));
-//    ffmpeg.start(ffmpegCommand);
-    // THEO : Qt 5.15 needs seperate program and arguments
     ffmpeg.setProgram(_ffmpegPath);
     ffmpeg.setArguments(QStringList() <<
                         "-ss" << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) <<
@@ -451,5 +527,6 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
 
     const QImage img(screenshot, "BMP");
     QFile::remove(screenshot);
+
     return img;
 }
