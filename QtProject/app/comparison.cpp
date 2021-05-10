@@ -453,20 +453,33 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                                   .arg(videoSide).arg(onlyFilename),
                                   QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
     {
-//        if(!QFile::remove(filename)) // THEO moveToTrash(filename)) only on qt5.15 or >
-        if(!QFile::moveToTrash(filename))
-            QMessageBox::information(this, "", "Could not move file to trash. Check file permissions.");
-        else
-        {
-            _videosDeleted++;
-            _spaceSaved = _spaceSaved + _videos[side]->size;
-            ui->trashedFiles->setVisible(true);
-            ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
+        // check if file is in locked folder set by user
+        // TODO
+        if(isFileInProtectedFolder(filename)){
+            if(!auto_trash_mode)
+                QMessageBox::information(this, "", "This file is locked, cannot delete !");
+            else{
+                emit sendStatusMessage(QString("Skipped %1 as it is locked").arg(QDir::toNativeSeparators(filename)));
+                qDebug() << "Skipped  locked file "<< filename;
+            }
+            // no need to seek as in auto trash mode, the seeking is already handled, and manual will not want to seek
+            return;
+        }
+        else{
+            if(!QFile::moveToTrash(filename))
+                QMessageBox::information(this, "", "Could not move file to trash. Check file permissions.");
+            else
+            {
+                _videosDeleted++;
+                _spaceSaved = _spaceSaved + _videos[side]->size;
+                ui->trashedFiles->setVisible(true);
+                ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
 
-            cache.removeVideo(id);
-            emit sendStatusMessage(QString("Moved %1 to trash").arg(QDir::toNativeSeparators(filename)));
-            if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
-                _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
+                cache.removeVideo(id);
+                emit sendStatusMessage(QString("Moved %1 to trash").arg(QDir::toNativeSeparators(filename)));
+                if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
+                    _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
+            }
         }
     }
 }
@@ -636,6 +649,15 @@ void Comparison::wheelEvent(QWheelEvent *event)
                                          Qt::KeepAspectRatio, Qt::FastTransformation));
 }
 
+bool Comparison::isFileInProtectedFolder(const QString filePathName) const {
+    const QListWidget* list = ui->lockedFolderslistWidget;
+    for (int i = 0; i < list->count(); ++i) {
+        const QString folderPath = list->item(i)->text();
+        if(filePathName.contains(folderPath))
+            return true;
+    }
+    return false;
+}
 // ------------------------------------------------------------------------
 // ------------------ Automatic video deletion functions ------------------
 

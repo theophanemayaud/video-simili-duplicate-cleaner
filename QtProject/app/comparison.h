@@ -102,6 +102,7 @@ private slots:
     void clearImportantFolderList();
     void clearLockedFolderList();
 
+    bool isFileInProtectedFolder(const QString filePathName) const;
 
 signals:
     void sendStatusMessage(const QString &message) const;
