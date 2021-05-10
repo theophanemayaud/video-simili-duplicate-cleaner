@@ -93,6 +93,16 @@ private slots:
 
     void on_autoDelOnlySizeDiffersButton_clicked();
 
+    void on_importantFolderButton_clicked();
+    void on_lockedFolderButton_clicked();
+    void showImportantFolderContextMenu(const QPoint&);
+    void showLockedFolderContextMenu(const QPoint&);
+    void eraseImportantFolderItem();
+    void eraseLockedFolderItem();
+    void clearImportantFolderList();
+    void clearLockedFolderList();
+
+
 signals:
     void sendStatusMessage(const QString &message) const;
     void switchComparisonMode(const int &mode) const;
