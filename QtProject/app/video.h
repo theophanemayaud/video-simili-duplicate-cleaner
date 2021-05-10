@@ -22,7 +22,7 @@ public:
     QString filename;
     int64_t size = 0;
     QDateTime modified;
-    int64_t duration = 0;
+    int64_t duration = 0; // in miliseconds
     int bitrate = 0;
     double framerate = 0;
     QString codec;
@@ -40,6 +40,8 @@ private slots:
     uint64_t computePhash(const cv::Mat &input) const;
     QImage minimizeImage(const QImage &image) const;
     QString msToHHMMSS(const int64_t &time) const;
+    bool ffmpegLib_captureAt(const QString imgPathname, const int percent, const int ofDuration) const;   // new methods for capture of image, using ffmpeg library
+    bool saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname) const;
 
 public slots:
     QImage captureAt(const int &percent, const int &ofDuration=100) const;

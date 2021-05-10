@@ -29,7 +29,7 @@ public:
     QString modeName(const int mode) { return m_modeNames[mode]; }
     int cols() { return m_layout[m_mode][0]; }
     int rows() { return m_layout[m_mode][1]; }
-    QVector<int> percentages() { return m_capturePos[m_mode]; }
+    QVector<int> percentages() { return m_capturePos[m_mode]; } // percent from 1 to 100
 };
 
 #endif // THUMBNAIL_H

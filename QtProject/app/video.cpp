@@ -85,7 +85,12 @@ bool Video::getMetadata(const QString &filename)
     // Get Duration and bitrate infos (code copied from ffmpeg helper function av_dump_format see https://ffmpeg.org/doxygen/3.2/group__lavf__misc.html#gae2645941f2dc779c307eb6314fd39f10
     if (fmt_ctx->duration != AV_NOPTS_VALUE) {
         int64_t ffmpeg_duration = fmt_ctx->duration + (fmt_ctx->duration <= INT64_MAX - 5000 ? 5000 : 0);
+<<<<<<< HEAD
         duration = 1000*ffmpeg_duration/AV_TIME_BASE;
+=======
+        duration = 1000*ffmpeg_duration/AV_TIME_BASE; // ffmpeg duration is in AV_TIME_BASE fractional time base units of seconds
+        // duration is in ms, so we *1000 to go from secs to ms
+>>>>>>> dccd0cc (chore(dependencies): working on getting the frame capture with the library - not working yet)
     } else {
         duration = 0;
     }
@@ -154,6 +159,7 @@ bool Video::getMetadata(const QString &filename)
 
     avformat_close_input(&fmt_ctx);
 
+<<<<<<< HEAD
 //#ifdef QT_DEBUG
 //    QProcess probe;
 //    probe.setProcessChannelMode(QProcess::MergedChannels);
@@ -277,6 +283,124 @@ bool Video::getMetadata(const QString &filename)
 //                    "library- rotate="<< new_rotate << "\n";
 //    }
 //#endif
+=======
+#ifdef QT_DEBUG
+    QProcess probe;
+    probe.setProcessChannelMode(QProcess::MergedChannels);
+    probe.setProgram(_ffmpegPath);
+    probe.setArguments(QStringList() << "-hide_banner" << "-i" << QDir::toNativeSeparators(filename));
+    probe.start();
+
+    probe.waitForFinished();
+
+    bool rotatedOnce = false;
+    int old_rotate = 0;
+    const QString analysis(probe.readAllStandardOutput());
+//    qDebug() << "ffmpeg gave following metadata for file "<< filename;
+    const QStringList analysisLines = analysis.split(QStringLiteral("\n")); //DEBUGTHEO changed /n/r to /n (or /r/n ? Don't remember) because ffmpeg seemed only to put a \n
+    for(auto line : analysisLines)
+    {
+//        qDebug() << line;
+        if(line.contains(QStringLiteral(" Duration:"))) // Keeping this temporarily but now using library FFMPEG instead of executable
+        {
+            int64_t exec_duration = 0;
+            int exec_bitrate = 0;
+            const QString time = line.split(QStringLiteral(" ")).value(3);
+            if(time == QLatin1String("N/A,"))
+                exec_duration = 0;
+            else
+            {
+                const int h  = time.midRef(0,2).toInt();
+                const int m  = time.midRef(3,2).toInt();
+                const int s  = time.midRef(6,2).toInt();
+                const int ms = time.midRef(9,2).toInt();
+                exec_duration = h*60*60*1000 + m*60*1000 + s*1000 + ms*10; // why add ms*10 ?! s*1000 -> duration is in ms but... ?!!
+            }
+            exec_bitrate = line.split(QStringLiteral("bitrate: ")).value(1).split(QStringLiteral(" ")).value(0).toInt();
+
+            if(abs(duration - exec_duration)>=10 || abs(bitrate - exec_bitrate)>=10){
+                qDebug() << "FFMPEG library resulting duration or bitrate is different from one found from executable : ";
+                qDebug() << QStringLiteral("Library duration : %1").arg(duration);
+                qDebug() << QStringLiteral("Library bitrate : %1 kb/s").arg(bitrate);
+
+                qDebug() << QStringLiteral("Executa duration : %1").arg(exec_duration);
+                qDebug() << QStringLiteral("Executa bitrate : %1 kb/s").arg(exec_bitrate);
+                qDebug() << " ";
+                qDebug() << " ";
+            }
+        }
+
+        // Get Video stream metadata : looping through all streams, so last video stream info will be saved
+        // old methods using ffmpeg executable
+        if(line.contains(QStringLiteral(" Video:")) &&
+          (line.contains(QStringLiteral("kb/s")) || line.contains(QStringLiteral(" fps")) || analysis.count(" Video:") == 1))
+        {
+            line.replace(QRegExp(QStringLiteral("\\([^\\)]+\\)")), QStringLiteral(""));
+            QString tmp_codec = line.split(QStringLiteral(" ")).value(7).replace(QStringLiteral(","), QStringLiteral(""));
+            const QString resolution = line.split(QStringLiteral(",")).value(2);
+            short tmp_width = static_cast<short>(resolution.split(QStringLiteral("x")).value(0).toInt());
+            short tmp_height = static_cast<short>(resolution.split(QStringLiteral("x")).value(1).split(QStringLiteral(" ")).value(0).toInt());
+            const QStringList fields = line.split(QStringLiteral(","));
+            double tmp_framerate;
+            for(const auto &field : fields)
+                if(field.contains(QStringLiteral("fps")))
+                {
+                    tmp_framerate = QStringLiteral("%1").arg(field).remove(QStringLiteral("fps")).toDouble();
+                    tmp_framerate = round(tmp_framerate * 10) / 10;     //round to one decimal point
+                }
+            // check new vs old code results
+            if(codec!=tmp_codec || framerate!=tmp_framerate || width!=tmp_width || height!=tmp_height){
+                if(!(codec==tmp_codec && framerate==tmp_framerate && (new_rotate == 90 || new_rotate == 270) && width==tmp_height && height==tmp_width)){
+                    qDebug() << "DISCREPANCY between Video stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
+                                "executa- codec:"<< tmp_codec << ", framerate:" << tmp_framerate << "fps, width x height: " << tmp_width << "x" << tmp_height << "\n"
+                                "library- codec:"<< codec << ", framerate:" << framerate << "fps, width x height: " << width << "x" << height;
+                }
+            }
+        }
+        // end of video stream metadata code old methods (to be removed once new methods are working
+
+        // get audio stream info -> the old way, with the executable
+        if(line.contains(QStringLiteral(" Audio:")))
+        {
+            const QString audioCodec = line.split(QStringLiteral(" ")).value(7).remove(",");
+            const QString rate = line.split(QStringLiteral(",")).value(1);
+            QString channels = line.split(QStringLiteral(",")).value(2);
+            if(channels == QLatin1String(" 1 channels"))
+                channels = QStringLiteral(" mono");
+            else if(channels == QLatin1String(" 2 channels"))
+                channels = QStringLiteral(" stereo");
+            QString tmp_audio = QStringLiteral("%1%2%3").arg(audioCodec, rate, channels);
+            const QString kbps = line.split(QStringLiteral(",")).value(4).split(QStringLiteral("kb/s")).value(0);
+            if(!kbps.isEmpty() && kbps != QStringLiteral(" 0 "))
+                tmp_audio = QStringLiteral("%1%2kb/s").arg(tmp_audio, kbps);
+            if(tmp_audio!=audio){ // this test returns lots of discrepancies, but they shouldn't be a problem as it's just text written a bit differently
+                qDebug() << "DISCREPANCY between Audio stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
+                            "executa- :"<< tmp_audio << " from line "<< line << "\n"
+                            "library- :"<< audio << "\n";
+            }
+        }
+
+        // check if the video stream is rotated and how, old way with the executable
+        if(line.contains(QStringLiteral("rotate")) && !rotatedOnce)
+        {
+            const int rotate = line.split(QStringLiteral(":")).value(1).toInt();
+            if(rotate == 90 || rotate == 270)
+            {
+                const short temp = width;
+                width = height;
+                height = temp;
+            }
+            rotatedOnce = true;     //rotate only once (AUDIO metadata can contain rotate keyword)
+            old_rotate = rotate;
+        }
+    }
+    if(old_rotate != new_rotate){ // check with library result
+        qDebug() << "DISCREPANCY between rotate video stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
+                    "executa- rotate="<< old_rotate << "\n"
+                    "library- rotate="<< new_rotate << "\n";
+    }
+#endif
+>>>>>>> dccd0cc (chore(dependencies): working on getting the frame capture with the library - not working yet)
 
     const QFileInfo videoFile(filename);
     size = videoFile.size();
@@ -289,9 +413,9 @@ int Video::takeScreenCaptures(const Db &cache)
 {
     Thumbnail thumb(_prefs._thumbnails);
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
-    const QVector<int> percentages = thumb.percentages();
+    const QVector<int> percentages = thumb.percentages(); // percent from 1 to 100
     int capture = percentages.count();
-    int ofDuration = 100;
+    int ofDuration = 100; // used to "rescale" total duration... as duration*percent*ofDuration
 
     while(--capture >= 0)           //screen captures are taken in reverse order so errors are found early
     {
@@ -300,13 +424,14 @@ int Video::takeScreenCaptures(const Db &cache)
         QBuffer captureBuffer(&cachedImage);
         bool writeToCache = false;
 
-        if(!cachedImage.isNull())   //image was already in cache
-        {
-            frame.load(&captureBuffer, QByteArrayLiteral("JPG"));   //was saved in cache as small size, resize to original
-            frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        }
-        else
-        {
+        // TEMPORARILY DISABLE FRAME CACHE LOADING TO TEST LIBRARY
+//        if(!cachedImage.isNull())   //image was already in cache
+//        {
+//            frame.load(&captureBuffer, QByteArrayLiteral("JPG"));   //was saved in cache as small size, resize to original
+//            frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+//        }
+//        else
+//        {
             frame = captureAt(percentages[capture], ofDuration);
             if(frame.isNull())                                  //taking screen capture may fail if video is broken
             {
@@ -318,8 +443,8 @@ int Video::takeScreenCaptures(const Db &cache)
                 }
                 return _failure;
             }
-            writeToCache = true;
-        }
+//            writeToCache = true;
+//        }
         if(frame.width() > width || frame.height() > height)    //metadata parsing error or variable resolution
             return _failure;
 
@@ -406,7 +531,7 @@ QImage Video::minimizeImage(const QImage &image) const
     return image;
 }
 
-QString Video::msToHHMMSS(const int64_t &time) const
+QString Video::msToHHMMSS(const int64_t &time) const // miliseconds to user readable time string
 {
     const int hours   = time / (1000*60*60) % 24;
     const int minutes = time / (1000*60) % 60;
@@ -434,90 +559,26 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
     if(!tempDir.isValid())
         return QImage();
 
-    const QString screenshot = QStringLiteral("%1/duplicate%2.bmp").arg(tempDir.path()).arg(percent);
+    /*const*/ QString screenshot = QStringLiteral("%1/duplicate%2.bmp").arg(tempDir.path()).arg(percent);
 
 #ifdef QT_DEBUG
-    // new ffmpeg library code to capture an image
+    // test output path
+    screenshot = QStringLiteral("/Users/theophanemayaud/Downloads/Testvids/%1-%2prct-lib.jpg").arg(QFileInfo(filename).completeBaseName()).arg(percent);
 
-    ffmpeg::AVFormatContext *fmt_ctx = NULL;
+    qDebug() << "\n";
+    ffmpegLib_captureAt(screenshot, percent, ofDuration);
+//    if(!ffmpegLib_captureAt(screenshot, percent, ofDuration))
+//        qDebug() << "Failed to do caputre with library for " << filename;
+#endif
 
-    ffmpeg::av_register_all();
-
-    /* open input file, and allocate format context */
-    if (ffmpeg::avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL) < 0) {
-        qDebug() << "Could not open source file " << filename;
-        avformat_close_input(&fmt_ctx);
-        return QImage(NULL);
-    }
-
-    /* retrieve stream information */
-    if (ffmpeg::avformat_find_stream_info(fmt_ctx, NULL) < 0) {
-        qDebug() << "Could not find stream information" << filename;
-        avformat_close_input(&fmt_ctx);
-        return QImage(NULL);
-    }
-
-    const int string_index = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_VIDEO, -1 /* auto stream selection*/,
-                                      -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
-    if(string_index<0){ // Did not find a video stream
-        qDebug() << "Could not find a good video stream" << filename;
-        avformat_close_input(&fmt_ctx);
-        return QImage(NULL);
-    }
-    ffmpeg::AVStream *vs = fmt_ctx->streams[string_index];
-
-
-   /* find decoder for the stream */
-   ffmpeg::AVCodec *dec = NULL;
-   dec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id);
-   if (!dec) {
-        qDebug() << "Failed to find video codec for file " << filename;
-        avformat_close_input(&fmt_ctx);
-        return QImage(NULL);
-    }
-
-   /* Allocate a codec context for the decoder */
-   ffmpeg::AVCodecContext *dec_ctx;
-
-   dec_ctx = ffmpeg::avcodec_alloc_context3(dec);
-   if (!dec_ctx) {
-        qDebug() << "Failed to allocate the video codec context for file " << filename;
-        avformat_close_input(&fmt_ctx);
-        return QImage(NULL);
-   }
-
-   /* Copy codec parameters from input stream to codec context */
-    if (ffmpeg::avcodec_parameters_to_context(dec_ctx, vs->codecpar) < 0) {
-        qDebug() << "Failed to copy %s codec parameters to decoder context for file" << filename;
-        avformat_close_input(&fmt_ctx);
-        return QImage(NULL);
-    }
-
-   /* Init the decoders, without reference counting */
-   ffmpeg::AVDictionary *opts = NULL;
-   ffmpeg::av_dict_set(&opts, "refcounted_frames", "0", 0);
-   if(ffmpeg::avcodec_open2(dec_ctx, dec, &opts)<0){
-       qDebug() << "Failed to open video codec for file " << filename;
-       avformat_close_input(&fmt_ctx);
-       return QImage(NULL);
-   }
-
-   FILE *video_dst_file = NULL;
-   video_dst_file = fopen(screenshot.toStdString().c_str(), "wb");
-   if (!video_dst_file) {
-       qDebug() << "Could not open destination file " << screenshot;
-       avformat_close_input(&fmt_ctx);
-       return QImage(NULL);
-   }
-
-   avcodec_free_context(&dec_ctx);
-   avformat_close_input(&fmt_ctx);
-   fclose(video_dst_file);
-
-   // TODO : keep implementing here !
+#ifdef QT_DEBUG
+    // test output path
+    screenshot = QStringLiteral("/Users/theophanemayaud/Downloads/Testvids/%1-%2prct-exec.bmp").arg(QFileInfo(filename).completeBaseName()).arg(percent);
 #endif
     QProcess ffmpeg;
     ffmpeg.setProgram(_ffmpegPath);
+    qDebug() << "Executable seeking to timestamp : " << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) << " for percent="<< percent << " ofDuration="<< ofDuration;
+    qDebug() << "\n";
     ffmpeg.setArguments(QStringList() <<
                         "-ss" << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) <<
                         "-i" << QDir::toNativeSeparators(filename) << "-an" << "-frames:v" << "1" <<
@@ -526,7 +587,334 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
     ffmpeg.waitForFinished(10000);
 
     const QImage img(screenshot, "BMP");
-    QFile::remove(screenshot);
+    //QFile::remove(screenshot);
 
     return img;
 }
+
+bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, const int ofDuration) const
+{
+    // new ffmpeg library code to capture an image :
+    // inspired from http://blog.allenworkspace.net/2020/06/ffmpeg-decode-and-then-encode-frames-to.html
+    ffmpeg::AVFormatContext *fmt_ctx = NULL;
+
+    /* open input file, and allocate format context */
+    if (ffmpeg::avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL) < 0) {
+        qDebug() << "Could not open source file " << filename;
+        avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    /* retrieve stream information */
+    if (ffmpeg::avformat_find_stream_info(fmt_ctx, NULL) < 0) {
+        qDebug() << "Could not find stream information" << filename;
+        avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    // find best video stream
+    const int stream_index = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_VIDEO,
+                                                         -1 /* auto stream selection*/,
+                                                         -1 /* no related stream finding*/,
+                                                         NULL /*no decoder return*/,
+                                                         0 /* no flags*/);
+    if(stream_index<0){ // Did not find a video stream
+        qDebug() << "Could not find a good video stream" << filename;
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+    ffmpeg::AVStream *vs = fmt_ctx->streams[stream_index]; // set shorter reference to video stream of interest
+    if(vs->codecpar->codec_type!=ffmpeg::AVMEDIA_TYPE_VIDEO){
+        qDebug() << "Found stream was not video... !" << filename;
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+    /* find decoder for the stream */
+    ffmpeg::AVCodec *dec = NULL;
+    dec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
+    if (!dec) {
+        qDebug() << "Failed to find video codec for file " << filename;
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    /* Allocate a codec context for the decoder */
+    ffmpeg::AVCodecContext *dec_ctx;
+    dec_ctx = ffmpeg::avcodec_alloc_context3(dec);
+    if (!dec_ctx) {
+        qDebug() << "Failed to allocate the video codec context for file " << filename;
+        // NB here codec context failed to alloc, but next steps will need to free it !
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    /* Copy codec parameters from input stream to codec context */
+    if (ffmpeg::avcodec_parameters_to_context(dec_ctx, vs->codecpar) < 0) {
+        qDebug() << "Failed to copy codec parameters to decoder context for file" << filename;
+        ffmpeg::avcodec_free_context(&dec_ctx);
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    /* Open the codec */
+    if(ffmpeg::avcodec_open2(dec_ctx, dec, NULL /* no options*/)<0){
+       qDebug() << "Failed to open video codec for file " << filename;
+       ffmpeg::avcodec_free_context(&dec_ctx);
+       ffmpeg::avformat_close_input(&fmt_ctx);
+       return false;
+    }
+
+    /* Allocate a frame */
+    ffmpeg::AVFrame* vFrame = ffmpeg::av_frame_alloc();
+    if (!vFrame)
+    {
+        qDebug() << "failed to allocated memory for frame for file " << filename;
+        //ffmpeg::av_frame_free(&vFrame); // NB failed to alloc, so don't call yet but next time
+        ffmpeg::avcodec_free_context(&dec_ctx);
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    /* Allocate packet for storing decoded data */
+    ffmpeg::AVPacket* vPacket = ffmpeg::av_packet_alloc();
+    if (!vPacket)
+    {
+        qDebug() << "failed to allocated memory for AVPacket for file " << filename;
+        //ffmpeg::av_packet_free(&vPacket); //NB failed to alloc, so don't call yet but next time
+        ffmpeg::av_frame_free(&vFrame);
+        ffmpeg::avcodec_free_context(&dec_ctx);
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    bool readFrame = false;
+    // get timestamp, in units of stream time base. We have in miliseconds
+    long long at_ms_percent = duration * (percent * ofDuration) /(100 * 100 /*percents*/);
+    int64_t wanted_ts = vs->time_base.den * at_ms_percent / (1000 /*we have ms*/ * vs->time_base.num);
+    qDebug() << "Seeking to timestamp " << msToHHMMSS(duration * (percent * ofDuration) /
+                                                      (100 * 100))<< " for file (of duration " << msToHHMMSS(duration) << " ) " << filename;
+    qDebug() << "In terms of ffmpeg units : "<< wanted_ts << " for timebase den " << vs->time_base.den << " /  num" << vs->time_base.num ;
+
+//    if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, ffmpeg::AVSEEK_FLAG_ANY /*no flags*/) < 0){
+    if(ffmpeg::avformat_seek_file(fmt_ctx, stream_index, 0, wanted_ts, wanted_ts, 0/* no flags*/) < 0){
+        qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
+        ffmpeg::av_packet_free(&vPacket);
+        ffmpeg::av_frame_free(&vFrame);
+        ffmpeg::avcodec_free_context(&dec_ctx);
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+    while (readFrame == false){
+        if(ffmpeg::av_read_frame(fmt_ctx, vPacket) /* reads all stream frames, must check for when video*/ < 0){
+            qDebug() << "failed to read frame for file " << filename;
+            ffmpeg::av_packet_free(&vPacket);
+            ffmpeg::av_frame_free(&vFrame);
+            ffmpeg::avcodec_free_context(&dec_ctx);
+            ffmpeg::avformat_close_input(&fmt_ctx);
+            return false;
+        }
+
+        // if it's the video stream
+        if (vPacket->stream_index == stream_index) {
+            if (ffmpeg::avcodec_send_packet(dec_ctx, vPacket) < 0)
+            {
+                qDebug() << "failed to decode frame for file " << filename;
+                ffmpeg::av_packet_free(&vPacket);
+                ffmpeg::av_frame_free(&vFrame);
+                ffmpeg::avcodec_free_context(&dec_ctx);
+                ffmpeg::avformat_close_input(&fmt_ctx);
+                return false;
+            }
+            else
+            {
+                if(avcodec_receive_frame(dec_ctx, vFrame) == 0){ // should debug codes, 0 means success, otherwise just try again
+                    readFrame = true;
+                }
+                if(!saveToJPEG(vFrame, imgPathname )){
+                    qDebug() << "Failed to save img for file " << filename;
+                    ffmpeg::av_packet_free(&vPacket);
+                    ffmpeg::av_frame_free(&vFrame);
+                    ffmpeg::avcodec_free_context(&dec_ctx);
+                    ffmpeg::avformat_close_input(&fmt_ctx);
+                    return false;
+                }
+            }
+        }
+        av_packet_unref(vPacket);
+        // Limit the number of output frame to be 5.
+    }
+
+    ffmpeg::av_packet_free(&vPacket);
+    ffmpeg::av_frame_free(&vFrame);
+    ffmpeg::avcodec_free_context(&dec_ctx);
+    ffmpeg::avformat_close_input(&fmt_ctx);
+
+    qDebug() << "Library capture success at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
+    return true;
+}
+
+
+bool Video::saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname) const//const char * folderName, int index)
+{
+    ffmpeg::av_log_set_level(AV_LOG_VERBOSE);
+
+    ffmpeg::AVFormatContext* pFormatCtx = ffmpeg::avformat_alloc_context();
+    if(pFormatCtx == NULL){
+        qDebug() << "Couldn't allocate format context for output " << imgPathname;
+        return false;
+    }
+
+    // Setup the output format
+    pFormatCtx->oformat = ffmpeg::av_guess_format("mjpeg", NULL, NULL);
+    if(pFormatCtx->oformat == NULL){
+        qDebug() << "Couldn't find output format for pathname " << imgPathname;
+        ffmpeg::avformat_free_context(pFormatCtx);
+        return false;
+    }
+
+    // TODO : check if image file already exists and fail !
+    // Initialize output file
+    if (ffmpeg::avio_open(&pFormatCtx->pb, imgPathname.toStdString().c_str(), AVIO_FLAG_READ_WRITE) < 0) {
+        qDebug() << "Couldn't open output file with pathname " << imgPathname;
+        ffmpeg::avformat_free_context(pFormatCtx);
+        return false;
+    }
+
+    // Get a new Stream from the indicated format context
+    ffmpeg::AVStream* pAVStream = ffmpeg::avformat_new_stream(pFormatCtx, 0);
+    if (pAVStream == NULL) {
+        qDebug() << "Couldn't get new stream " << imgPathname;
+        ffmpeg::avformat_free_context(pFormatCtx);
+        ffmpeg::avio_close(pFormatCtx->pb);
+        return false;
+    }
+
+    // Find encoder from the codec identifier.
+    ffmpeg::AVCodec* pCodec = ffmpeg::avcodec_find_encoder(pFormatCtx->oformat->video_codec);
+    if (pCodec == NULL) {
+        qDebug() << "Codec not found for " << imgPathname;
+        ffmpeg::avformat_free_context(pFormatCtx);
+        return false;
+    }
+
+    // Setup the codec context
+    ffmpeg::AVCodecContext* codecCtx = ffmpeg::avcodec_alloc_context3(pCodec);
+    if(codecCtx == NULL){
+        ffmpeg::avformat_free_context(pFormatCtx);
+        qDebug() << "Couldn't allocate ouput codec " << imgPathname;
+        return false;
+    }
+    codecCtx->codec_id =  pFormatCtx->oformat->video_codec;
+    codecCtx->codec_type = ffmpeg::AVMEDIA_TYPE_VIDEO;
+    codecCtx->pix_fmt = ffmpeg::AV_PIX_FMT_YUVJ420P;
+    codecCtx->width = pFrame->width;
+    codecCtx->height = pFrame->height;
+    codecCtx->time_base = ffmpeg::AVRational{ 1, 25 };
+    qDebug() << "We have a video height="<<pFrame->height<<" width="<<pFrame->width;
+
+    // Open the codec
+//    ffmpeg::AVDictionary *options = NULL;
+//    ffmpeg::av_dict_set(&options, "pixel_format", "rgb24", 0); // try do do rgb24 as before
+    if (ffmpeg::avcodec_open2(codecCtx, pCodec, NULL) < 0) {
+        ffmpeg::avformat_free_context(pFormatCtx);
+        qDebug() << "Could not open output codec for " << imgPathname;
+        return false;
+    }
+
+    // assign the codec context to the stream parameters.
+    if(ffmpeg::avcodec_parameters_from_context(pAVStream->codecpar, codecCtx)<0){
+        qDebug() << "Could copy codec params for " << imgPathname;
+        return false;
+    }
+
+    //Write Header
+    if(ffmpeg::avformat_write_header(pFormatCtx, NULL)<0){
+        qDebug() << "Could not write output header for " << imgPathname;
+        return false;
+    }
+
+    int y_size = (codecCtx->width) * (codecCtx->height);
+
+    // assign large enough space
+    ffmpeg::AVPacket pkt;
+    if(ffmpeg::av_new_packet(&pkt, y_size)<0){
+        qDebug() << "Could not allocate packet for " << imgPathname;
+        return false;
+    }
+
+    // Send input video frame to the image encoder, read it, and write it
+    if (ffmpeg::avcodec_send_frame(codecCtx, pFrame) < 0) {
+        qDebug() << "Encode Error for output " << imgPathname;
+        return false;
+    }
+    if(ffmpeg::avcodec_receive_packet(codecCtx, &pkt)<0){
+        qDebug() << "Receive packet error for output " << imgPathname;
+        return false;
+    }
+    if(ffmpeg::av_write_frame(pFormatCtx, &pkt)<0){
+        qDebug() << "Write frame error for output " << imgPathname;
+        return false;
+    }
+
+    ffmpeg::av_packet_unref(&pkt);
+
+    //Write Trailer
+    if(ffmpeg::av_write_trailer(pFormatCtx)<0){
+        qDebug() << "Failed to write trailer for output " << imgPathname;
+        return false;
+    }
+
+    qDebug() << "Encode Successful for ouptut " << imgPathname;
+
+    ffmpeg::avcodec_close(codecCtx);
+
+    ffmpeg::avio_close(pFormatCtx->pb);
+
+    ffmpeg::avformat_free_context(pFormatCtx);
+    ffmpeg::avcodec_free_context(&codecCtx);
+
+    return true;
+}
+
+/*bool Video::saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname, const ffmpeg::AVPixelFormat pix_fmt) const//const char * folderName, int index)
+{
+    ffmpeg::AVCodec *jpegCodec = ffmpeg::avcodec_find_encoder(ffmpeg::AV_CODEC_ID_MJPEG);
+    if (!jpegCodec) {
+        qDebug() << "Error finding mjpeg encoder with output img "<< imgPathname;
+        return false;
+    }
+    ffmpeg::AVCodecContext *jpegContext = avcodec_alloc_context3(jpegCodec);
+    if (!jpegContext) {
+        qDebug() << "Error allocating context with output img "<< imgPathname;
+        return false;
+    }
+
+    qDebug() << "We have a video height="<<pFrame->height<<" width="<<pFrame->width;
+    jpegContext->pix_fmt = ffmpeg::AV_PIX_FMT_YUVJ420P;
+    jpegContext->height = pFrame->height;
+    jpegContext->width = pFrame->width;
+    jpegContext->time_base = ffmpeg::AVRational{ 1, 25 };
+
+    if (ffmpeg::avcodec_open2(jpegContext, jpegCodec, NULL) < 0) {
+        qDebug() << "Error opening codec with output img "<< imgPathname;
+        return false;
+    }
+    FILE *JPEGFile;
+
+    ffmpeg::AVPacket packet = {.data = NULL, .size = 0};
+    ffmpeg::av_init_packet(&packet);
+    int gotFrame;
+
+    if (ffmpeg::avcodec_encode_video2(jpegContext, &packet, pFrame, &gotFrame) < 0) {
+        qDebug() << "Error encoding mjpeg with output img "<< imgPathname;
+        return false;
+    }
+
+    JPEGFile = fopen(imgPathname.toStdString().c_str(), "wb");
+    fwrite(packet.data, 1, packet.size, JPEGFile);
+    fclose(JPEGFile);
+
+    ffmpeg::av_free_packet(&packet);
+    ffmpeg::avcodec_close(jpegContext);
+    return true;
+}*/
