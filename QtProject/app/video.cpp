@@ -596,6 +596,9 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
 {
     // new ffmpeg library code to capture an image :
     // inspired from http://blog.allenworkspace.net/2020/06/ffmpeg-decode-and-then-encode-frames-to.html
+    // general understanding https://github.com/leandromoreira/ffmpeg-libav-tutorial
+    // qImage from avframe : https://stackoverflow.com/questions/13088749/efficient-conversion-of-avframe-to-qimage
+
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
 
     /* open input file, and allocate format context */
@@ -616,7 +619,7 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
     const int stream_index = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_VIDEO,
                                                          -1 /* auto stream selection*/,
                                                          -1 /* no related stream finding*/,
-                                                         NULL /*no decoder return*/,
+                                                         NULL /*don't find decoder*/,
                                                          0 /* no flags*/);
     if(stream_index<0){ // Did not find a video stream
         qDebug() << "Could not find a good video stream" << filename;
@@ -624,24 +627,24 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
         return false;
     }
     ffmpeg::AVStream *vs = fmt_ctx->streams[stream_index]; // set shorter reference to video stream of interest
+#ifdef QT_DEBUG // av_find_best_stream should not return non video stream if video stream requested !
     if(vs->codecpar->codec_type!=ffmpeg::AVMEDIA_TYPE_VIDEO){
-        qDebug() << "Found stream was not video... !" << filename;
+        qDebug() << "FFMPEG returned stream was not video... !" << filename;
         ffmpeg::avformat_close_input(&fmt_ctx);
         return false;
     }
+#endif
     /* find decoder for the stream */
-    ffmpeg::AVCodec *dec = NULL;
-    dec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
-    if (!dec) {
-        qDebug() << "Failed to find video codec for file " << filename;
+    ffmpeg::AVCodec *codec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
+    if (!codec) {
+        qDebug() << "Failed to find video codec "<< ffmpeg::avcodec_get_name(vs->codecpar->codec_id) << " for file " << filename;
         ffmpeg::avformat_close_input(&fmt_ctx);
         return false;
     }
 
     /* Allocate a codec context for the decoder */
-    ffmpeg::AVCodecContext *dec_ctx;
-    dec_ctx = ffmpeg::avcodec_alloc_context3(dec);
-    if (!dec_ctx) {
+    ffmpeg::AVCodecContext *codec_ctx = ffmpeg::avcodec_alloc_context3(codec);
+    if (!codec_ctx) {
         qDebug() << "Failed to allocate the video codec context for file " << filename;
         // NB here codec context failed to alloc, but next steps will need to free it !
         ffmpeg::avformat_close_input(&fmt_ctx);
@@ -649,30 +652,19 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
     }
 
     /* Copy codec parameters from input stream to codec context */
-    if (ffmpeg::avcodec_parameters_to_context(dec_ctx, vs->codecpar) < 0) {
+    if (ffmpeg::avcodec_parameters_to_context(codec_ctx, vs->codecpar) < 0) {
         qDebug() << "Failed to copy codec parameters to decoder context for file" << filename;
-        ffmpeg::avcodec_free_context(&dec_ctx);
+        ffmpeg::avcodec_free_context(&codec_ctx);
         ffmpeg::avformat_close_input(&fmt_ctx);
         return false;
     }
 
     /* Open the codec */
-    if(ffmpeg::avcodec_open2(dec_ctx, dec, NULL /* no options*/)<0){
+    if(ffmpeg::avcodec_open2(codec_ctx, codec, NULL /* no options*/)<0){
        qDebug() << "Failed to open video codec for file " << filename;
-       ffmpeg::avcodec_free_context(&dec_ctx);
+       ffmpeg::avcodec_free_context(&codec_ctx);
        ffmpeg::avformat_close_input(&fmt_ctx);
        return false;
-    }
-
-    /* Allocate a frame */
-    ffmpeg::AVFrame* vFrame = ffmpeg::av_frame_alloc();
-    if (!vFrame)
-    {
-        qDebug() << "failed to allocated memory for frame for file " << filename;
-        //ffmpeg::av_frame_free(&vFrame); // NB failed to alloc, so don't call yet but next time
-        ffmpeg::avcodec_free_context(&dec_ctx);
-        ffmpeg::avformat_close_input(&fmt_ctx);
-        return false;
     }
 
     /* Allocate packet for storing decoded data */
@@ -681,12 +673,23 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
     {
         qDebug() << "failed to allocated memory for AVPacket for file " << filename;
         //ffmpeg::av_packet_free(&vPacket); //NB failed to alloc, so don't call yet but next time
-        ffmpeg::av_frame_free(&vFrame);
-        ffmpeg::avcodec_free_context(&dec_ctx);
+        ffmpeg::avcodec_free_context(&codec_ctx);
         ffmpeg::avformat_close_input(&fmt_ctx);
         return false;
     }
 
+    /* Allocate a frame */
+    ffmpeg::AVFrame* vFrame = ffmpeg::av_frame_alloc();
+    if (!vFrame){
+        qDebug() << "failed to allocated memory for frame for file " << filename;
+        //ffmpeg::av_frame_free(&vFrame); // NB failed to alloc, so don't call yet but next time
+        ffmpeg::av_packet_free(&vPacket);
+        ffmpeg::avcodec_free_context(&codec_ctx);
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+
+    // Now let's find and read the packets, then frame
     bool readFrame = false;
     // get timestamp, in units of stream time base. We have in miliseconds
     long long at_ms_percent = duration * (percent * ofDuration) /(100 * 100 /*percents*/);
@@ -695,12 +698,12 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
                                                       (100 * 100))<< " for file (of duration " << msToHHMMSS(duration) << " ) " << filename;
     qDebug() << "In terms of ffmpeg units : "<< wanted_ts << " for timebase den " << vs->time_base.den << " /  num" << vs->time_base.num ;
 
-//    if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, ffmpeg::AVSEEK_FLAG_ANY /*no flags*/) < 0){
-    if(ffmpeg::avformat_seek_file(fmt_ctx, stream_index, 0, wanted_ts, wanted_ts, 0/* no flags*/) < 0){
+    if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, 0 /*AVSEEK_FLAG_ANY no flags*/) < 0){
+//    if(ffmpeg::avformat_seek_file(fmt_ctx, stream_index, 0, wanted_ts, wanted_ts, 0/* no flags*/) < 0){
         qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
         ffmpeg::av_packet_free(&vPacket);
         ffmpeg::av_frame_free(&vFrame);
-        ffmpeg::avcodec_free_context(&dec_ctx);
+        ffmpeg::avcodec_free_context(&codec_ctx);
         ffmpeg::avformat_close_input(&fmt_ctx);
         return false;
     }
@@ -709,35 +712,39 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
             qDebug() << "failed to read frame for file " << filename;
             ffmpeg::av_packet_free(&vPacket);
             ffmpeg::av_frame_free(&vFrame);
-            ffmpeg::avcodec_free_context(&dec_ctx);
+            ffmpeg::avcodec_free_context(&codec_ctx);
             ffmpeg::avformat_close_input(&fmt_ctx);
             return false;
         }
 
         // if it's the video stream
         if (vPacket->stream_index == stream_index) {
-            if (ffmpeg::avcodec_send_packet(dec_ctx, vPacket) < 0)
+            if (ffmpeg::avcodec_send_packet(codec_ctx, vPacket) < 0)
             {
-                qDebug() << "failed to decode frame for file " << filename;
+                qDebug() << "failed to send raw packet to decoder for file " << filename;
                 ffmpeg::av_packet_free(&vPacket);
                 ffmpeg::av_frame_free(&vFrame);
-                ffmpeg::avcodec_free_context(&dec_ctx);
+                ffmpeg::avcodec_free_context(&codec_ctx);
                 ffmpeg::avformat_close_input(&fmt_ctx);
                 return false;
             }
-            else
-            {
-                if(avcodec_receive_frame(dec_ctx, vFrame) == 0){ // should debug codes, 0 means success, otherwise just try again
-                    readFrame = true;
-                }
+            if(ffmpeg::avcodec_receive_frame(codec_ctx, vFrame) == 0){ // should debug codes, 0 means success, otherwise just try again
+#ifdef QT_DEBUG
+                qDebug() << "Success reading frame " <<
+                            "type "<< av_get_picture_type_char(vFrame->pict_type) <<
+                            " frame number " << codec_ctx->frame_number <<
+                            " pts "<< vFrame->pts <<
+                            " for file " << filename;
+#endif
                 if(!saveToJPEG(vFrame, imgPathname )){
                     qDebug() << "Failed to save img for file " << filename;
                     ffmpeg::av_packet_free(&vPacket);
                     ffmpeg::av_frame_free(&vFrame);
-                    ffmpeg::avcodec_free_context(&dec_ctx);
+                    ffmpeg::avcodec_free_context(&codec_ctx);
                     ffmpeg::avformat_close_input(&fmt_ctx);
                     return false;
                 }
+                readFrame = true;
             }
         }
         av_packet_unref(vPacket);
@@ -746,14 +753,30 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
 
     ffmpeg::av_packet_free(&vPacket);
     ffmpeg::av_frame_free(&vFrame);
-    ffmpeg::avcodec_free_context(&dec_ctx);
+    ffmpeg::avcodec_free_context(&codec_ctx);
     ffmpeg::avformat_close_input(&fmt_ctx);
 
     qDebug() << "Library capture success at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
     return true;
 }
 
+bool Video::saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname) const//const char * folderName, int index)
+{
+    FILE *f;
+    int i;
+    f = fopen(imgPathname.toStdString().c_str(),"w");
+    // writing the minimal required header for a pgm file format
+    // portable graymap format -> https://en.wikipedia.org/wiki/Netpbm_format#PGM_example
+    fprintf(f, "P5\n%d %d\n%d\n", pFrame->width, pFrame->height, 255);
 
+    // writing line by line
+    for (i = 0; i < pFrame->height; i++)
+        fwrite(pFrame->data[0] + i * pFrame->linesize[0], 1, pFrame->width, f);
+    fclose(f);
+    return true;
+}
+
+/*
 bool Video::saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname) const//const char * folderName, int index)
 {
     ffmpeg::av_log_set_level(AV_LOG_VERBOSE);
@@ -875,7 +898,7 @@ bool Video::saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname)
 
     return true;
 }
-
+*/
 /*bool Video::saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname, const ffmpeg::AVPixelFormat pix_fmt) const//const char * folderName, int index)
 {
     ffmpeg::AVCodec *jpegCodec = ffmpeg::avcodec_find_encoder(ffmpeg::AV_CODEC_ID_MJPEG);
