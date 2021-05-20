@@ -102,7 +102,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -1193,9 +1193,9 @@
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_13">
+          <layout class="QHBoxLayout" name="autodeleteOnlyTimeDiffersHorizontalLayout">
            <item>
-            <widget class="QLabel" name="label_20">
+            <widget class="QLabel" name="label_onlyTimeDiffers">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -1225,7 +1225,7 @@
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_9">
              <item>
-              <widget class="QLabel" name="label_21">
+              <widget class="QLabel" name="label_label_onlyTimeDiffers_Descript">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1240,7 +1240,7 @@
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_11">
                <item>
-                <widget class="QRadioButton" name="radioButton_2">
+                <widget class="QRadioButton" name="radioButton_onlyTimeDiffers_trashEarlier">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -1250,7 +1250,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QRadioButton" name="radioButton">
+                <widget class="QRadioButton" name="radioButton_onlyTimeDiffers_trashLater">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -1264,7 +1264,7 @@
             </layout>
            </item>
            <item>
-            <widget class="QPushButton" name="pushButton_6">
+            <widget class="QPushButton" name="pushButton_onlyTimeDiffersAutoTrash">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -1288,9 +1288,9 @@
           </layout>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_9">
+          <layout class="QHBoxLayout" name="foldersAutodeleteHorizontalLayout">
            <item>
-            <widget class="QLabel" name="label_11">
+            <widget class="QLabel" name="label_folderSettingsChoice">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -1318,7 +1318,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="label_26">
+            <widget class="QLabel" name="label_folderSettingsChoice_Description">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -1332,7 +1332,7 @@ In each scenario where only one of the two files is either in a protected folder
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="autoTrashFolderSettings">
+            <widget class="QPushButton" name="pushButton_folderSettingsChoiceAutoTrash">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -1379,108 +1379,7 @@ In each scenario where only one of the two files is either in a protected folder
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_8">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_10">
-           <item>
-            <widget class="QLabel" name="label_13">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>150</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Important folders</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_17">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>320</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Duplicates in these folders will be kept first, keeping the one in the highest folder in the list.  However if two are placed within the same level folder, one of them will still be deleted. </string>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QListWidget" name="importantFolderslistWidget">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="contextMenuPolicy">
-              <enum>Qt::CustomContextMenu</enum>
-             </property>
-             <property name="horizontalScrollBarPolicy">
-              <enum>Qt::ScrollBarAlwaysOn</enum>
-             </property>
-             <property name="dragEnabled">
-              <bool>true</bool>
-             </property>
-             <property name="dragDropMode">
-              <enum>QAbstractItemView::InternalMove</enum>
-             </property>
-             <property name="defaultDropAction">
-              <enum>Qt::MoveAction</enum>
-             </property>
-             <property name="selectionMode">
-              <enum>QAbstractItemView::ExtendedSelection</enum>
-             </property>
-             <property name="textElideMode">
-              <enum>Qt::ElideLeft</enum>
-             </property>
-             <property name="horizontalScrollMode">
-              <enum>QAbstractItemView::ScrollPerPixel</enum>
-             </property>
-             <property name="sortingEnabled">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="importantFolderButton">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>40</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_12">
+          <layout class="QHBoxLayout" name="lockedFoldersHorizontalLayout">
            <item>
             <widget class="QLabel" name="label_24">
              <property name="minimumSize">
@@ -1509,7 +1408,7 @@ In each scenario where only one of the two files is either in a protected folder
               </size>
              </property>
              <property name="text">
-              <string>Duplicates in these folders will never be deleted. Note that if one of a duplicate pair is in a locked folder, and that the current choice of deletion would be the locked one, the software will not delete the other one, but keep both !</string>
+              <string>Duplicates in these folders will never be deleted. Note that if one of a duplicate pair is in a locked folder, and that the current choice of deletion would be the locked one,  the software will not delete the other one, but keep both !</string>
              </property>
              <property name="wordWrap">
               <bool>true</bool>
@@ -1555,6 +1454,107 @@ In each scenario where only one of the two files is either in a protected folder
            </item>
            <item>
             <widget class="QPushButton" name="lockedFolderButton">
+             <property name="maximumSize">
+              <size>
+               <width>40</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="importantFoldersHorizontalLayout">
+           <item>
+            <widget class="QLabel" name="label_importantFolders">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>150</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Important folders</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_importantFoldersDescript">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>320</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Duplicates in these folders will be kept first, keeping the one in the highest folder in the list.  However if two are placed within the same level folder, one of them will still be deleted. </string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QListWidget" name="importantFoldersListWidget">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="contextMenuPolicy">
+              <enum>Qt::CustomContextMenu</enum>
+             </property>
+             <property name="horizontalScrollBarPolicy">
+              <enum>Qt::ScrollBarAlwaysOn</enum>
+             </property>
+             <property name="dragEnabled">
+              <bool>true</bool>
+             </property>
+             <property name="dragDropMode">
+              <enum>QAbstractItemView::InternalMove</enum>
+             </property>
+             <property name="defaultDropAction">
+              <enum>Qt::MoveAction</enum>
+             </property>
+             <property name="selectionMode">
+              <enum>QAbstractItemView::ExtendedSelection</enum>
+             </property>
+             <property name="textElideMode">
+              <enum>Qt::ElideLeft</enum>
+             </property>
+             <property name="horizontalScrollMode">
+              <enum>QAbstractItemView::ScrollPerPixel</enum>
+             </property>
+             <property name="sortingEnabled">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_importantFoldersAdd">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="maximumSize">
               <size>
                <width>40</width>
@@ -1674,12 +1674,12 @@ In each scenario where only one of the two files is either in a protected folder
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>308</x>
-     <y>699</y>
+     <x>531</x>
+     <y>634</y>
     </hint>
     <hint type="destinationlabel">
-     <x>577</x>
-     <y>696</y>
+     <x>730</x>
+     <y>633</y>
     </hint>
    </hints>
   </connection>

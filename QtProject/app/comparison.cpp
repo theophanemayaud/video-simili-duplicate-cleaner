@@ -33,20 +33,32 @@ Comparison::Comparison(const QVector<Video *> &videosParam, const Prefs &prefsPa
     ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
     ui->totalVideos->setNum(_videos.size() * (_videos.size() - 1) / 2 ); // all possible combinations
 
-// hide as not implemented yet
-    ui->label_20->setVisible(false);
-    ui->label_21->setVisible(false);
-    ui->pushButton_6->setVisible(false);
+    // hide as not implemented yet
+    // Auto trash based on earlier/later dates
+    ui->label_onlyTimeDiffers->setVisible(false);
+    ui->label_label_onlyTimeDiffers_Descript->setVisible(false);
+    ui->radioButton_onlyTimeDiffers_trashEarlier->setVisible(false);
+    ui->radioButton_onlyTimeDiffers_trashLater->setVisible(false);
+    ui->pushButton_onlyTimeDiffersAutoTrash->setVisible(false);
+    // Auto trash based on folder settings
+    ui->label_folderSettingsChoice->setVisible(false);
+    ui->label_folderSettingsChoice_Description->setVisible(false);
+    ui->pushButton_folderSettingsChoiceAutoTrash->setVisible(false);
+    // Settings for important folders
+    ui->label_importantFolders->setVisible(false);
+    ui->label_importantFoldersDescript->setVisible(false);
+    ui->importantFoldersListWidget->setVisible(false);
+    ui->pushButton_importantFoldersAdd->setVisible(false);
 
     // important and locked folders list stuff
-    ui->importantFolderButton->setIcon(ui->importantFolderButton->style()->standardIcon(QStyle::SP_DirOpenIcon));
+    ui->pushButton_importantFoldersAdd->setIcon(ui->pushButton_importantFoldersAdd->style()->standardIcon(QStyle::SP_DirOpenIcon));
     ui->lockedFolderButton->setIcon(ui->lockedFolderButton->style()->standardIcon(QStyle::SP_DirOpenIcon));
-    connect(ui->importantFolderslistWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showImportantFolderContextMenu(QPoint)));
+    connect(ui->importantFoldersListWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showImportantFolderContextMenu(QPoint)));
     connect(ui->lockedFolderslistWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLockedFolderContextMenu(QPoint)));
     // (pressing DEL activates the slots only when list widget has focus)
-    QShortcut* importantFoldersShortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->importantFolderslistWidget); // doesn't seem to work...
+    QShortcut* importantFoldersShortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->importantFoldersListWidget); // doesn't seem to work...
     connect(importantFoldersShortcut, SIGNAL(activated()), this, SLOT(eraseImportantFolderItem()));
-    QShortcut* lockedFoldersShortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->importantFolderslistWidget);
+    QShortcut* lockedFoldersShortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->importantFoldersListWidget);
     connect(lockedFoldersShortcut, SIGNAL(activated()), this, SLOT(eraseLockedFolderItem()));
 
     on_nextVideo_clicked();
@@ -885,15 +897,15 @@ int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString 
 
 void Comparison::on_importantFolderButton_clicked()
 {
-    const QString dir = QFileDialog::getExistingDirectory(ui->importantFolderButton,
+    const QString dir = QFileDialog::getExistingDirectory(ui->pushButton_importantFoldersAdd,
                                                               QByteArrayLiteral("Open folder"),
                                                               QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
                                                               QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         return;
     }
-    ui->importantFolderslistWidget->addItem(dir);
-    ui->importantFolderslistWidget->setFocus();
+    ui->importantFoldersListWidget->addItem(dir);
+    ui->importantFoldersListWidget->setFocus();
 }
 
 void Comparison::on_lockedFolderButton_clicked()
@@ -912,9 +924,9 @@ void Comparison::on_lockedFolderButton_clicked()
 
 void Comparison::eraseImportantFolderItem(){
     // If multiple selection is on, we need to erase all selected items
-    for (int i = 0; i < ui->importantFolderslistWidget->selectedItems().size(); ++i) {
+    for (int i = 0; i < ui->importantFoldersListWidget->selectedItems().size(); ++i) {
         // Get curent item on selected row
-        QListWidgetItem *item = ui->importantFolderslistWidget->takeItem(ui->importantFolderslistWidget->currentRow());
+        QListWidgetItem *item = ui->importantFoldersListWidget->takeItem(ui->importantFoldersListWidget->currentRow());
         // And remove it
         delete item;
     }
@@ -929,12 +941,12 @@ void Comparison::eraseLockedFolderItem(){
     }
 }
 
-void Comparison::clearImportantFolderList(){ ui->importantFolderslistWidget->clear(); }
+void Comparison::clearImportantFolderList(){ ui->importantFoldersListWidget->clear(); }
 void Comparison:: clearLockedFolderList() { ui->lockedFolderslistWidget->clear(); }
 
 void Comparison::showImportantFolderContextMenu(const QPoint &pos){
     // Handle global position
-    QPoint globalPos = ui->importantFolderslistWidget->mapToGlobal(pos);
+    QPoint globalPos = ui->importantFoldersListWidget->mapToGlobal(pos);
 
     // Create menu and insert some actions
     QMenu myMenu;
