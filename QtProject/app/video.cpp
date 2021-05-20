@@ -1,6 +1,8 @@
 #include <QPainter>
 #include "video.h"
 
+#define FAIL_ON_FRAME_DECODE_NB_FAIL 10
+
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
 
@@ -691,15 +693,16 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
 
     // Now let's find and read the packets, then frame
     bool readFrame = false;
+    int failedFrames = 0;
     // get timestamp, in units of stream time base. We have in miliseconds
     long long at_ms_percent = duration * (percent * ofDuration) /(100 * 100 /*percents*/);
     int64_t wanted_ts = vs->time_base.den * at_ms_percent / (1000 /*we have ms*/ * vs->time_base.num);
     qDebug() << "Seeking to timestamp " << msToHHMMSS(duration * (percent * ofDuration) /
                                                       (100 * 100))<< " for file (of duration " << msToHHMMSS(duration) << " ) " << filename;
-    qDebug() << "In terms of ffmpeg units : "<< wanted_ts << " for timebase den " << vs->time_base.den << " /  num" << vs->time_base.num ;
+    qDebug() << "In terms of ffmpeg units : "<< wanted_ts << " for stream duration " << vs->duration ;
 
-    if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, 0 /*AVSEEK_FLAG_ANY no flags*/) < 0){
-//    if(ffmpeg::avformat_seek_file(fmt_ctx, stream_index, 0, wanted_ts, wanted_ts, 0/* no flags*/) < 0){
+    if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, AVSEEK_FLAG_BACKWARD /* 0 for no flags*/) < 0){ // will seek to closest previous keyframe
+//    if(ffmpeg::avformat_seek_file(fmt_ctx, stream_index, INT64_MIN, wanted_ts, wanted_ts, 0/* no flags*/) < 0){
         qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
         ffmpeg::av_packet_free(&vPacket);
         ffmpeg::av_frame_free(&vFrame);
@@ -709,13 +712,18 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
     }
     while (readFrame == false){
         if(ffmpeg::av_read_frame(fmt_ctx, vPacket) /* reads all stream frames, must check for when video*/ < 0){
-            qDebug() << "failed to read frame for file " << filename;
-            ffmpeg::av_packet_free(&vPacket);
-            ffmpeg::av_frame_free(&vFrame);
-            ffmpeg::avcodec_free_context(&codec_ctx);
-            ffmpeg::avformat_close_input(&fmt_ctx);
-            return false;
+            failedFrames++;
+            if(failedFrames>FAIL_ON_FRAME_DECODE_NB_FAIL){
+                qDebug() << "failed to read frame for file " << filename;
+                ffmpeg::av_packet_free(&vPacket);
+                ffmpeg::av_frame_free(&vFrame);
+                ffmpeg::avcodec_free_context(&codec_ctx);
+                ffmpeg::avformat_close_input(&fmt_ctx);
+                return false;
+            }
+            continue;
         }
+        failedFrames = 0;
 
         // if it's the video stream
         if (vPacket->stream_index == stream_index) {
@@ -736,15 +744,17 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
                             " pts "<< vFrame->pts <<
                             " for file " << filename;
 #endif
-                if(!saveToJPEG(vFrame, imgPathname )){
-                    qDebug() << "Failed to save img for file " << filename;
-                    ffmpeg::av_packet_free(&vPacket);
-                    ffmpeg::av_frame_free(&vFrame);
-                    ffmpeg::avcodec_free_context(&codec_ctx);
-                    ffmpeg::avformat_close_input(&fmt_ctx);
-                    return false;
+                if((wanted_ts-vFrame->pts)<=0){ // must read frames until we get frame at wanted timestamp
+                    if(!saveToJPEG(vFrame, imgPathname )){
+                        qDebug() << "Failed to save img for file " << filename;
+                        ffmpeg::av_packet_free(&vPacket);
+                        ffmpeg::av_frame_free(&vFrame);
+                        ffmpeg::avcodec_free_context(&codec_ctx);
+                        ffmpeg::avformat_close_input(&fmt_ctx);
+                        return false;
+                    }
+                    readFrame = true;
                 }
-                readFrame = true;
             }
         }
         av_packet_unref(vPacket);
