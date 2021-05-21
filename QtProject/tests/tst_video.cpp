@@ -5,6 +5,8 @@
 #include "../app/video.h"
 #include "../app/prefs.h"
 
+#include "../app/mainwindow.h"
+
 class TestVideo : public QObject
 {
     Q_OBJECT
@@ -18,6 +20,7 @@ private slots:
     void cleanupTestCase();
 //    void test_create_save_thumbnails();
     void test_check_thumbnails();
+    void test_whole_app();
 
 };
 
@@ -40,6 +43,27 @@ void TestVideo::cleanupTestCase()
 {
 
 }
+
+void TestVideo::test_whole_app(){
+    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
+    qDebug() << "Program start by Théophane with path :" << QDir::currentPath();
+
+//    QApplication a();
+    MainWindow w;
+    w.show();
+
+    qDebug() << w.height();
+    QVERIFY(w.detectffmpeg());
+
+    const QDir dir("/Users/theophanemayaud/Movies");
+    qDebug() << dir.absolutePath();
+    QVERIFY(dir.exists());
+    w.ui->directoryBox->insert(QStringLiteral(";%1").arg(dir.absolutePath()));
+    w.on_findDuplicates_clicked();
+
+    qDebug() << "found "<<w._prefs._numberOfVideos<<" videos";
+
+};
 
 void TestVideo::test_check_thumbnails(){
     QFileInfo ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");

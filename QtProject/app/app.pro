@@ -13,6 +13,7 @@ HEADERS += \
     comparison.h
 
 SOURCES += \
+    main.cpp \
     mainwindow.cpp \
     video.cpp \
     db.cpp \

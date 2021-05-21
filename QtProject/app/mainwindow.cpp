@@ -4,17 +4,6 @@
 #include "mainwindow.h"
 #include "comparison.h"
 
-int main(int argc, char *argv[])
-{
-    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
-    qDebug() << "Program start by Théophane with path :" << QDir::currentPath();
-
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
-    return a.exec();
-}
-
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
@@ -358,6 +347,9 @@ void MainWindow::addStatusMessage(const QString &message) const
 {
     ui->statusBox->append(message);
     ui->statusBox->repaint();
+#ifdef VID_SIMILI_IN_TESTS
+    qDebug() << message;
+#endif
 }
 
 void MainWindow::addVideo(Video *addMe)
