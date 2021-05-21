@@ -2,6 +2,7 @@
 #include <QCoreApplication>
 
 //#define CREATE_REFERENCE_TEST_DATA
+//#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // add necessary includes here
 #include "../app/video.h"
@@ -108,8 +109,16 @@ void TestVideo::test_check_thumbnails(){
     thumbnail2 = file2.readAll();
     file2.close();
 
-    QVERIFY(thumbnail1 == vid1->thumbnail || TestHelpers::doThumbnailsLookSameWindow(thumbnail1, vid1->thumbnail, "Thumbnail 1 vs 1"));
-    QVERIFY(thumbnail2 == vid2->thumbnail || TestHelpers::doThumbnailsLookSameWindow(thumbnail2, vid2->thumbnail, "Thumbnail 1 vs 1"));
+    QVERIFY(thumbnail1 == vid1->thumbnail
+        #ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
+            || TestHelpers::doThumbnailsLookSameWindow(thumbnail1, vid1->thumbnail, "Thumbnail 1 vs 1")
+        #endif
+            );
+    QVERIFY(thumbnail2 == vid2->thumbnail
+        #ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
+            || TestHelpers::doThumbnailsLookSameWindow(thumbnail2, vid2->thumbnail, "Thumbnail 1 vs 1")
+        #endif
+            );
 }
 
 #ifdef CREATE_REFERENCE_TEST_DATA
