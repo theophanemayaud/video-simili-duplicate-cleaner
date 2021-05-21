@@ -19,9 +19,14 @@ private slots:
     void initTestCase();
     void cleanupTestCase();
 //    void test_create_save_thumbnails();
-    void test_check_thumbnails();
     void test_whole_app();
+    void test_check_thumbnails();
 
+};
+
+class TestHelpers {
+public:
+    static bool doThumbnailsLookSameWindow(const QByteArray ref_thumb, const QByteArray new_thumb, const QString title);
 };
 
 TestVideo::TestVideo()
@@ -86,6 +91,7 @@ void TestVideo::test_check_thumbnails(){
     vid1->run();
     vid2->run();
 
+
     QByteArray thumbnail1;
     QByteArray thumbnail2;
     QFile file1("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/ressources/Nice_720p_1000kbps.thumbnail");
@@ -98,8 +104,8 @@ void TestVideo::test_check_thumbnails(){
     thumbnail2 = file2.readAll();
     file2.close();
 
-    QVERIFY(thumbnail1 == vid1->thumbnail);
-    QVERIFY(thumbnail2 == vid2->thumbnail);
+    QVERIFY(thumbnail1 == vid1->thumbnail || TestHelpers::doThumbnailsLookSameWindow(thumbnail1, vid1->thumbnail, "Thumbnail 1 vs 1"));
+    QVERIFY(thumbnail2 == vid2->thumbnail || TestHelpers::doThumbnailsLookSameWindow(thumbnail2, vid2->thumbnail, "Thumbnail 1 vs 1"));
 }
 
 /*void TestVideo::test_create_save_thumbnails()
@@ -144,6 +150,63 @@ void TestVideo::test_check_thumbnails(){
     file2.close();
 }
 */
+
+// -------------------------------------------------
+// ------------START TestHelpers -----------------
+bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const QByteArray new_thumb, const QString title){
+    QWidget *ui_image = new QWidget;
+    ui_image->setWindowTitle(title);
+    QVBoxLayout *layout = new QVBoxLayout(ui_image);
+
+    // Create two image labels
+    QLabel *label = new QLabel(ui_image);
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    QPixmap mPixmap;
+    mPixmap.loadFromData(ref_thumb,"JPG");
+    label->setPixmap(mPixmap);
+    label->setScaledContents(true);
+    QLabel *label2 = new QLabel(ui_image);
+    label2->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    QPixmap mPixmap2;
+    mPixmap2.loadFromData(new_thumb,"JPG");
+    label2->setPixmap(mPixmap2);
+    label2->setScaledContents(true);
+
+    // Create buttons and texts
+    QLabel *refText = new QLabel(ui_image);
+    refText->setText("Ref thumbnail");
+    QLabel *newText = new QLabel(ui_image);
+    newText->setText("New thumbnail");
+    QHBoxLayout *checkLayout = new QHBoxLayout(ui_image);
+    QCheckBox *accept = new QCheckBox(ui_image);
+    accept->setText("Identical looking");
+    QCheckBox *reject = new QCheckBox(ui_image);
+    reject->setText("Different looking");
+    checkLayout->addWidget(accept);
+    checkLayout->addWidget(reject);
+
+    //Put all together
+    layout->addWidget(refText);
+    layout->addWidget(label);
+    layout->addWidget(newText);
+    layout->addWidget(label2);
+    layout->addLayout(checkLayout);
+
+    ui_image->setLayout(layout);
+    ui_image->showMaximized();
+    while(ui_image->isVisible()){
+        QTest::qWait(100);
+        if(accept->isChecked())
+            return true;
+        if(reject->isChecked())
+            return false;
+    }
+
+    return false;
+}
+
+// --------------END TestHelpers -------------------------
+// -------------------------------------------------
 QTEST_MAIN(TestVideo)
 
 #include "tst_video.moc"
