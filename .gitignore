@@ -3,9 +3,6 @@ Vidupe.pro.user
 *.db
 ffmpeg.exe
 
-QtProject/*.pro.user
-
-
 QtProject/builds/
 
 QtProject/release-build
