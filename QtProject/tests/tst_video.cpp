@@ -1,6 +1,8 @@
 #include <QtTest>
 #include <QCoreApplication>
 
+//#define CREATE_REFERENCE_TEST_DATA
+
 // add necessary includes here
 #include "../app/video.h"
 #include "../app/prefs.h"
@@ -18,7 +20,9 @@ public:
 private slots:
     void initTestCase();
     void cleanupTestCase();
-//    void test_create_save_thumbnails();
+#ifdef CREATE_REFERENCE_TEST_DATA
+    void test_create_save_thumbnails();
+#endif
     void test_whole_app();
     void test_check_thumbnails();
 
@@ -108,7 +112,8 @@ void TestVideo::test_check_thumbnails(){
     QVERIFY(thumbnail2 == vid2->thumbnail || TestHelpers::doThumbnailsLookSameWindow(thumbnail2, vid2->thumbnail, "Thumbnail 1 vs 1"));
 }
 
-/*void TestVideo::test_create_save_thumbnails()
+#ifdef CREATE_REFERENCE_TEST_DATA
+void TestVideo::test_create_save_thumbnails()
 {
     QFileInfo ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");
     QVERIFY(ffmpegInfo.exists());
@@ -149,7 +154,7 @@ void TestVideo::test_check_thumbnails(){
     file2.write(vid2->thumbnail);
     file2.close();
 }
-*/
+#endif
 
 // -------------------------------------------------
 // ------------START TestHelpers -----------------
@@ -196,10 +201,14 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
     ui_image->showMaximized();
     while(ui_image->isVisible()){
         QTest::qWait(100);
-        if(accept->isChecked())
+        if(accept->isChecked()){
+            ui_image->close();
             return true;
-        if(reject->isChecked())
+        }
+        if(reject->isChecked()){
+            ui_image->close();
             return false;
+        }
     }
 
     return false;

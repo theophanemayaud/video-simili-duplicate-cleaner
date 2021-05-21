@@ -1,6 +1,6 @@
 {
   "name": "Video simili duplicate cleaner",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Video simili duplicate cleaner is a program that can find duplicate and similar video files.",
   "main": "QtProject/video-simili-duplicate-cleaner.pro",
   "devDependencies": {
@@ -21,7 +21,7 @@
     "release:patch": "standard-version --release-as patch --sign && npm run binaries && npm run ammend-commit",
     "release:major": "standard-version --release-as major --sign && npm run binaries && npm run ammend-commit",
     "ammend-commit": "git add -A && git commit --amend --no-edit && echo '\n\n Remember to push commits and tags with \n git push && git push --tags' ",
-    "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/version.txt && npm run update-plist-version",
+    "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/app/version.txt && npm run update-plist-version",
     "build": "npm run update-build-version && npm run build-mac-binaries --prefix QtProject/release-build",
     "clean": "npm run clean  --prefix QtProject/release-build",
     "copy-binaries": "cp 'QtProject/release-build/Video simili duplicate cleaner.dmg' '../Video simili duplicate cleaner.dmg' && cp -R 'QtProject/release-build/Video simili duplicate cleaner.app' '../' & cp 'QtProject/release-build/Video simili duplicate cleaner.pkg' '../Video simili duplicate cleaner.pkg'",
