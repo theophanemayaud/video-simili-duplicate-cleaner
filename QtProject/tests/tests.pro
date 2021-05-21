@@ -1,4 +1,6 @@
 TEMPLATE = app
+message("QMake tests")
+
 QT += testlib
 CONFIG += qt warn_on depend_includepath testcase
 
