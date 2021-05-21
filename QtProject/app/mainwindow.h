@@ -12,6 +12,8 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
+    friend class TestVideo;
+
 public:
     MainWindow();
     ~MainWindow() { deleteTemporaryFiles(); delete ui; }
