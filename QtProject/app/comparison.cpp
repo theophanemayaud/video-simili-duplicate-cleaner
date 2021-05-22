@@ -466,7 +466,6 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                                   QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
     {
         // check if file is in locked folder set by user
-        // TODO
         if(isFileInProtectedFolder(filename)){
             if(!auto_trash_mode)
                 QMessageBox::information(this, "", "This file is locked, cannot delete !");
