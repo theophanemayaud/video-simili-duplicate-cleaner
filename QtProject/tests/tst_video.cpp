@@ -1,7 +1,11 @@
 #include <QtTest>
 #include <QCoreApplication>
 
-#define ENABLE_MANUAL_THUMBNAIL_VERIF
+/* NB : sometimes, for some unknown reason, thumbnails don't come out the same.
+ * But if you re-run tests a few times, it should get fixed
+ * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF)
+ */
+//#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // add necessary includes here
 #include "../app/video.h"
@@ -29,16 +33,17 @@ private:
 
 private slots:
     void initTestCase();
-//    void cleanupTestCase();
 //    void test_create_save_thumbnails();
 //    void test_create_reference_video_params();
+
+    void test_check_samples_thumbnails();
 
     void test_check_reference_video_params();
     void test_check_reference_video_detection();
 
     void test_whole_app();
-    void test_check_thumbnails();
 
+    void cleanupTestCase();
 };
 
 TestVideo::TestVideo()
@@ -55,37 +60,27 @@ void TestVideo::initTestCase(){
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
 }
 
-//void TestVideo::cleanupTestCase()
-//{
+void TestVideo::cleanupTestCase()
+{
 
-//}
+}
 
 void TestVideo::test_whole_app(){
-    qDebug() << "Program start by Théophane with path :" << QDir::currentPath();
-
     MainWindow w;
     w.show();
 
     qDebug() << w.height();
     QVERIFY(w.detectffmpeg());
 
-    const QDir dir("/Users/theophanemayaud/Movies");
-    qDebug() << dir.absolutePath();
-    QVERIFY(dir.exists());
-    w.ui->directoryBox->insert(QStringLiteral(";%1").arg(dir.absolutePath()));
+    QVERIFY(_videoDir.exists());
+    w.ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
     w.on_findDuplicates_clicked();
 
-    qDebug() << "found "<<w._prefs._numberOfVideos<<" videos";
+    qDebug() << "found "<< w._prefs._numberOfVideos<<" videos";
 };
 
-void TestVideo::test_check_thumbnails(){
-    QVERIFY(_ffmpegInfo.exists());
-    QProcess ffmpeg;
-    ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
-    ffmpeg.setProgram(_ffmpegInfo.absoluteFilePath());
-    ffmpeg.start();
-    ffmpeg.waitForFinished();
-    QVERIFY(!ffmpeg.readAllStandardOutput().isEmpty());
+void TestVideo::test_check_samples_thumbnails(){
+    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
 
     QFileInfo vid1Info = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/samples/videos/Nice_720p_1000kbps.mp4");
     QFileInfo vid2Info = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/samples/videos/Nice_383p_500kbps.mp4");
@@ -250,14 +245,6 @@ void TestVideo::test_check_reference_video_params(){
 // ------------------------------------------------------------------------------------
 // ---------------------------- START : helper testing functions ---------------------
 void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const {
-    QVERIFY2(ref_thumbnail == vid->thumbnail
-        #ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
-            || TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
-                                                       vid->thumbnail,
-                                                       QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath()))
-        #endif
-            , QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData() );
-
     QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2").arg(videoParam.size).arg(vid->size).toUtf8().constData());
     QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
     QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2").arg(videoParam.duration).arg(vid->duration).toUtf8().constData());
@@ -267,8 +254,24 @@ void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const V
     QVERIFY2(videoParam.audio == vid->audio, QString("ref audio=%1 new audio=%2").arg(videoParam.audio).arg(vid->audio).toUtf8().constData());
     QVERIFY2(videoParam.width == vid->width, QString("ref width=%1 new width=%2").arg(videoParam.width).arg(vid->width).toUtf8().constData());
     QVERIFY2(videoParam.height == vid->height, QString("ref height=%1 new height=%2").arg(videoParam.height).arg(vid->height).toUtf8().constData());
-    QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2").arg(videoParam.hash1).arg(vid->hash[0]).toUtf8().constData());
-    QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
+
+    bool manuallyAccepted = false; // hash will be different anyways if thumbnails look different, so must skip these tests !
+    if(!(ref_thumbnail == vid->thumbnail)){
+#ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
+        if(TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
+                                           vid->thumbnail,
+                                           QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath())))
+            manuallyAccepted = true;
+        else
+            QVERIFY2(manuallyAccepted, QString("Different thumbnails for %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData());
+#endif
+
+    }
+    if(manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
+        QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2").arg(videoParam.hash1).arg(vid->hash[0]).toUtf8().constData());
+        QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
+    }
+
 }
 
 // ---------------------------- END : helper testing functions ---------------------
