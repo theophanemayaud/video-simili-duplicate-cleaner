@@ -1,14 +1,15 @@
 #include <QtTest>
 #include <QCoreApplication>
 
-//#define CREATE_REFERENCE_TEST_DATA
-//#define ENABLE_MANUAL_THUMBNAIL_VERIF
+#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // add necessary includes here
 #include "../app/video.h"
 #include "../app/prefs.h"
 
 #include "../app/mainwindow.h"
+
+#include "TestHelpers.cpp"
 
 class TestVideo : public QObject
 {
@@ -18,20 +19,26 @@ public:
     TestVideo();
     ~TestVideo();
 
+private:
+    const QFileInfo _ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");
+    QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
+    const QDir _thumbnailDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails/");
+    const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/tests.csv");
+
+    void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const;
+
 private slots:
     void initTestCase();
-    void cleanupTestCase();
-#ifdef CREATE_REFERENCE_TEST_DATA
-    void test_create_save_thumbnails();
-#endif
+//    void cleanupTestCase();
+//    void test_create_save_thumbnails();
+//    void test_create_reference_video_params();
+
+    void test_check_reference_video_params();
+    void test_check_reference_video_detection();
+
     void test_whole_app();
     void test_check_thumbnails();
 
-};
-
-class TestHelpers {
-public:
-    static bool doThumbnailsLookSameWindow(const QByteArray ref_thumb, const QByteArray new_thumb, const QString title);
 };
 
 TestVideo::TestVideo()
@@ -44,21 +51,18 @@ TestVideo::~TestVideo()
 
 }
 
-void TestVideo::initTestCase()
-{
-
+void TestVideo::initTestCase(){
+    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
 }
 
-void TestVideo::cleanupTestCase()
-{
+//void TestVideo::cleanupTestCase()
+//{
 
-}
+//}
 
 void TestVideo::test_whole_app(){
-    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
     qDebug() << "Program start by Théophane with path :" << QDir::currentPath();
 
-//    QApplication a();
     MainWindow w;
     w.show();
 
@@ -72,15 +76,13 @@ void TestVideo::test_whole_app(){
     w.on_findDuplicates_clicked();
 
     qDebug() << "found "<<w._prefs._numberOfVideos<<" videos";
-
 };
 
 void TestVideo::test_check_thumbnails(){
-    QFileInfo ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");
-    QVERIFY(ffmpegInfo.exists());
+    QVERIFY(_ffmpegInfo.exists());
     QProcess ffmpeg;
     ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
-    ffmpeg.setProgram(ffmpegInfo.absoluteFilePath());
+    ffmpeg.setProgram(_ffmpegInfo.absoluteFilePath());
     ffmpeg.start();
     ffmpeg.waitForFinished();
     QVERIFY(!ffmpeg.readAllStandardOutput().isEmpty());
@@ -91,11 +93,10 @@ void TestVideo::test_check_thumbnails(){
     QVERIFY(vid2Info.exists());
 
     Prefs prefs;
-    Video *vid1 = new Video(prefs, ffmpegInfo.absoluteFilePath(), vid1Info.absoluteFilePath());
-    Video *vid2 = new Video(prefs, ffmpegInfo.absoluteFilePath(), vid2Info.absoluteFilePath());
+    Video *vid1 = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vid1Info.absoluteFilePath());
+    Video *vid2 = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vid2Info.absoluteFilePath());
     vid1->run();
     vid2->run();
-
 
     QByteArray thumbnail1;
     QByteArray thumbnail2;
@@ -121,14 +122,95 @@ void TestVideo::test_check_thumbnails(){
             );
 }
 
-#ifdef CREATE_REFERENCE_TEST_DATA
-void TestVideo::test_create_save_thumbnails()
+void TestVideo::test_check_reference_video_detection(){
+
+}
+
+void TestVideo::test_check_reference_video_params(){
+    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
+
+    // read csv file
+    QVERIFY(_csvInfo.exists());
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_csvInfo);
+    QVERIFY(!videoParamList.isEmpty());
+
+    // compute params for all videos
+    QVERIFY(!_videoDir.isEmpty());
+    foreach(VideoParam videoParam, videoParamList){
+        QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
+        QVERIFY2(videoParam.thumbnailInfo.exists(), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
+
+        //read thumbnail from disk
+        QFile ref_thumbFile(videoParam.thumbnailInfo.absoluteFilePath());
+        QVERIFY2(ref_thumbFile.open(QIODevice::ReadOnly), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
+        QByteArray ref_thumbnail = ref_thumbFile.readAll();
+        ref_thumbFile.close();
+
+        Prefs prefs;
+        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), videoParam.videoInfo.absoluteFilePath());
+        vid->run();
+
+        compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
+    }
+
+}
+
+/* void TestVideo::test_create_reference_video_params()
 {
-    QFileInfo ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");
-    QVERIFY(ffmpegInfo.exists());
+    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
+
+    QVERIFY(!_videoDir.isEmpty());
+    MainWindow w;
+    w.loadExtensions();
+    QVERIFY(!w._extensionList.isEmpty());
+    _videoDir.setNameFilters(w._extensionList);
+    QDirIterator iter(_videoDir, QDirIterator::Subdirectories);
+
+    QList<VideoParam> videoParamList;
+
+    while(iter.hasNext())
+    {
+        const QFile vidFile(iter.next());
+        const QFileInfo vidInfo = QFileInfo(vidFile);
+
+        VideoParam videoParam;
+        videoParam.videoInfo = vidInfo;
+
+        Prefs prefs;
+        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vidInfo.absoluteFilePath());
+        vid->run();
+        QFile thumbFile(_thumbnailDir.path() + "/" + vidInfo.fileName() + ".thumbnail");
+        qDebug() << thumbFile.fileName();
+        QVERIFY(!thumbFile.exists()); // we don't want to overwrite !
+        thumbFile.open(QIODevice::WriteOnly);
+        thumbFile.write(vid->thumbnail);
+        thumbFile.close();
+        videoParam.thumbnailInfo = QFileInfo(thumbFile);
+        videoParam.size = vid->size;
+        videoParam.modified = vid->modified;
+        videoParam.duration = vid->duration;
+        videoParam.bitrate = vid->bitrate;
+        videoParam.framerate = vid->framerate;
+        videoParam.codec = vid->codec;
+        videoParam.audio = vid->audio;
+        videoParam.width = vid->width;
+        videoParam.height = vid->height;
+        videoParam.hash1 = vid->hash[0];
+        videoParam.hash2 = vid->hash[1];
+
+        videoParamList.append(videoParam);
+    }
+
+    QVERIFY(!videoParamList.isEmpty());
+    QVERIFY(TestHelpers::saveVideoParamQListToCSV(videoParamList, _csvInfo));
+}
+*/
+/* void TestVideo::test_create_save_thumbnails()
+{
+    QVERIFY(_ffmpegInfo.exists());
     QProcess ffmpeg;
     ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
-    ffmpeg.setProgram(ffmpegInfo.absoluteFilePath());
+    ffmpeg.setProgram(_ffmpegInfo.absoluteFilePath());
     ffmpeg.start();
     ffmpeg.waitForFinished();
     QVERIFY(!ffmpeg.readAllStandardOutput().isEmpty());
@@ -139,8 +221,8 @@ void TestVideo::test_create_save_thumbnails()
     QVERIFY(vid2Info.exists());
 
     Prefs prefs;
-    Video *vid1 = new Video(prefs, ffmpegInfo.absoluteFilePath(), vid1Info.absoluteFilePath());
-    Video *vid2 = new Video(prefs, ffmpegInfo.absoluteFilePath(), vid2Info.absoluteFilePath());
+    Video *vid1 = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vid1Info.absoluteFilePath());
+    Video *vid2 = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vid2Info.absoluteFilePath());
     vid1->run();
     vid2->run();
 
@@ -163,68 +245,34 @@ void TestVideo::test_create_save_thumbnails()
     file2.write(vid2->thumbnail);
     file2.close();
 }
-#endif
+*/
 
-// -------------------------------------------------
-// ------------START TestHelpers -----------------
-bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const QByteArray new_thumb, const QString title){
-    QWidget *ui_image = new QWidget;
-    ui_image->setWindowTitle(title);
-    QVBoxLayout *layout = new QVBoxLayout(ui_image);
+// ------------------------------------------------------------------------------------
+// ---------------------------- START : helper testing functions ---------------------
+void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const {
+    QVERIFY2(ref_thumbnail == vid->thumbnail
+        #ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
+            || TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
+                                                       vid->thumbnail,
+                                                       QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath()))
+        #endif
+            , QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData() );
 
-    // Create two image labels
-    QLabel *label = new QLabel(ui_image);
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    QPixmap mPixmap;
-    mPixmap.loadFromData(ref_thumb,"JPG");
-    label->setPixmap(mPixmap);
-    label->setScaledContents(true);
-    QLabel *label2 = new QLabel(ui_image);
-    label2->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    QPixmap mPixmap2;
-    mPixmap2.loadFromData(new_thumb,"JPG");
-    label2->setPixmap(mPixmap2);
-    label2->setScaledContents(true);
-
-    // Create buttons and texts
-    QLabel *refText = new QLabel(ui_image);
-    refText->setText("Ref thumbnail");
-    QLabel *newText = new QLabel(ui_image);
-    newText->setText("New thumbnail");
-    QHBoxLayout *checkLayout = new QHBoxLayout(ui_image);
-    QCheckBox *accept = new QCheckBox(ui_image);
-    accept->setText("Identical looking");
-    QCheckBox *reject = new QCheckBox(ui_image);
-    reject->setText("Different looking");
-    checkLayout->addWidget(accept);
-    checkLayout->addWidget(reject);
-
-    //Put all together
-    layout->addWidget(refText);
-    layout->addWidget(label);
-    layout->addWidget(newText);
-    layout->addWidget(label2);
-    layout->addLayout(checkLayout);
-
-    ui_image->setLayout(layout);
-    ui_image->showMaximized();
-    while(ui_image->isVisible()){
-        QTest::qWait(100);
-        if(accept->isChecked()){
-            ui_image->close();
-            return true;
-        }
-        if(reject->isChecked()){
-            ui_image->close();
-            return false;
-        }
-    }
-
-    return false;
+    QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2").arg(videoParam.size).arg(vid->size).toUtf8().constData());
+    QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
+    QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2").arg(videoParam.duration).arg(vid->duration).toUtf8().constData());
+    QVERIFY2(videoParam.bitrate == vid->bitrate, QString("ref bitrate=%1 new bitrate=%2").arg(videoParam.bitrate).arg(vid->bitrate).toUtf8().constData());
+    QVERIFY2(videoParam.framerate == vid->framerate, QString("ref framerate=%1 new framerate=%2").arg(videoParam.framerate).arg(vid->framerate).toUtf8().constData());
+    QVERIFY2(videoParam.codec == vid->codec, QString("ref codec=%1 new codec=%2").arg(videoParam.codec).arg(vid->codec).toUtf8().constData());
+    QVERIFY2(videoParam.audio == vid->audio, QString("ref audio=%1 new audio=%2").arg(videoParam.audio).arg(vid->audio).toUtf8().constData());
+    QVERIFY2(videoParam.width == vid->width, QString("ref width=%1 new width=%2").arg(videoParam.width).arg(vid->width).toUtf8().constData());
+    QVERIFY2(videoParam.height == vid->height, QString("ref height=%1 new height=%2").arg(videoParam.height).arg(vid->height).toUtf8().constData());
+    QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2").arg(videoParam.hash1).arg(vid->hash[0]).toUtf8().constData());
+    QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
 }
 
-// --------------END TestHelpers -------------------------
-// -------------------------------------------------
+// ---------------------------- END : helper testing functions ---------------------
+// ------------------------------------------------------------------------------------
 QTEST_MAIN(TestVideo)
 
 #include "tst_video.moc"
