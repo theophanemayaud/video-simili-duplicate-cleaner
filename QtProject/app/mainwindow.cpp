@@ -2,7 +2,6 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QScrollBar>
 #include "mainwindow.h"
-#include "comparison.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
@@ -209,18 +208,20 @@ void MainWindow::on_findDuplicates_clicked()
 
     if(_videoList.count() > 1)
     {
-
-        Comparison comparison(sortVideosBySize(), _prefs);
+        _comparison = new Comparison(sortVideosBySize(), _prefs);
         if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
         {
-            QFuture<void> future = QtConcurrent::run(&comparison, &Comparison::reportMatchingVideos);   //run in background
-            comparison.exec();          //open dialog, but if it is closed while reportMatchingVideos() still running...
+            QFuture<void> future = QtConcurrent::run(_comparison, &Comparison::reportMatchingVideos);   //run in background
+            _comparison->exec();          //open dialog, but if it is closed while reportMatchingVideos() still running...
             QApplication::setOverrideCursor(Qt::WaitCursor);
             future.waitForFinished();   //...must wait until finished (crash when going out of scope destroys instance)
             QApplication::restoreOverrideCursor();
         }
         else
-            comparison.exec();
+            _comparison->exec();
+
+        delete _comparison;
+        _comparison = nullptr;
 
         _previousRunFolders = foldersToSearch;                  //videos are still held in memory until
         _previousRunThumbnails = _prefs._thumbnails;            //folders to search or thumbnail mode are changed

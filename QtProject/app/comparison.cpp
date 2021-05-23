@@ -3,8 +3,10 @@
 #include <QFileDialog>
 #include <QMenu>
 #include <QShortcut>
+
 #include "comparison.h"
-#include "ui_comparison.h"
+
+#include "ui_comparison.h" // WARNING : for some reason, this has to be below the rest, and not in comparison.h -> TODO : figure out why !
 
 enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
 {
@@ -894,7 +896,7 @@ int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString 
 // ------------------ End of : Automatic video deletion functions ------------------
 // ---------------------------------------------------------------------------------
 
-void Comparison::on_importantFolderButton_clicked()
+void Comparison::on_pushButton_importantFoldersAdd_clicked()
 {
     const QString dir = QFileDialog::getExistingDirectory(ui->pushButton_importantFoldersAdd,
                                                               QByteArrayLiteral("Open folder"),

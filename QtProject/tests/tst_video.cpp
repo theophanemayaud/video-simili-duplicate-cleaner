@@ -1,5 +1,6 @@
 #include <QtTest>
 #include <QCoreApplication>
+#include <QtConcurrent/QtConcurrent>
 
 /* NB : sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
@@ -12,6 +13,7 @@
 #include "../app/prefs.h"
 
 #include "../app/mainwindow.h"
+#include "../app/comparison.h"
 
 #include "TestHelpers.cpp"
 
@@ -30,6 +32,7 @@ private:
     const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/tests.csv");
 
     void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const;
+    MainWindow *w = nullptr;
 
 private slots:
     void initTestCase();
@@ -42,8 +45,10 @@ private slots:
     void test_check_reference_video_detection();
 
     void test_whole_app();
+    void check_on_ui();
 
     void cleanupTestCase();
+
 };
 
 TestVideo::TestVideo()
@@ -65,18 +70,45 @@ void TestVideo::cleanupTestCase()
 
 }
 
-void TestVideo::test_whole_app(){
-    MainWindow w;
-    w.show();
+void TestVideo::check_on_ui(){
+//    w->_comparison->ui->tabWidget->currentIndex = 3; can't access ui for now, as header is not in comparison.h but in comparison.cpp... !
+    // TODO : test actions on the compaarison window, and see what files are auto deleted etc... !
+}
 
-    qDebug() << w.height();
-    QVERIFY(w.detectffmpeg());
+void TestVideo::test_whole_app(){
+    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
+
+    w = new MainWindow;
+    w->show();
+    QVERIFY(w->detectffmpeg());
 
     QVERIFY(_videoDir.exists());
-    w.ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
-    w.on_findDuplicates_clicked();
+//    w->ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
+    //w->on_findDuplicates_clicked();
 
-    qDebug() << "found "<< w._prefs._numberOfVideos<<" videos";
+    w->findVideos(_videoDir);
+    w->processVideos();
+    w->ui->blocksizeCombo->setAcceptDrops(true);
+
+    QVERIFY(w->_everyVideo.count()==190);
+    QVERIFY(w->_videoList.count()==184);
+
+    qDebug() << "Found "<<w->_everyVideo.count() << " videos";
+    qDebug() << "of which "<<w->_videoList.count() << " valid videos";
+
+    w->_comparison = new Comparison(w->sortVideosBySize(), w->_prefs);
+    w->_comparison->reportMatchingVideos();
+
+    QTimer::singleShot(500, w->_comparison, SLOT(on_nextVideo_clicked()));
+    QTimer::singleShot(1000, w->_comparison, SLOT(on_nextVideo_clicked()));
+    QTimer::singleShot(1000, w->_comparison, SLOT(on_nextVideo_clicked()));
+    QTimer::singleShot(2000, this, SLOT(check_on_ui()));
+    QTimer::singleShot(10000, w->_comparison, SLOT(close()));
+
+    w->_comparison->exec();
+
+//    w->on_findDuplicates_clicked();
+
 };
 
 void TestVideo::test_check_samples_thumbnails(){
@@ -156,9 +188,9 @@ void TestVideo::test_check_reference_video_params(){
 
     QVERIFY(!_videoDir.isEmpty());
     MainWindow w;
-    w.loadExtensions();
-    QVERIFY(!w._extensionList.isEmpty());
-    _videoDir.setNameFilters(w._extensionList);
+    w->loadExtensions();
+    QVERIFY(!w->_extensionList.isEmpty());
+    _videoDir.setNameFilters(w->_extensionList);
     QDirIterator iter(_videoDir, QDirIterator::Subdirectories);
 
     QList<VideoParam> videoParamList;

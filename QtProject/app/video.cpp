@@ -13,7 +13,7 @@ Video::Video(const Prefs &prefsParam, const QString &ffmpegPathParam, const QStr
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
     //   _jpegQuality = _lowJpegQuality;
 
-    if(_prefs._mainwPtr){
+    if(_prefs._mainwPtr){ // during testing, mainPtr is not always defined, giving warnings : here we supress them !
         QObject::connect(this, SIGNAL(rejectVideo(Video *, QString)), _prefs._mainwPtr, SLOT(removeVideo(Video *, QString)));
         QObject::connect(this, SIGNAL(acceptVideo(Video *)), _prefs._mainwPtr, SLOT(addVideo(Video *)));
     }

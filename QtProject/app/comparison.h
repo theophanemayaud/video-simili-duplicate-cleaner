@@ -5,6 +5,7 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QLabel>
+
 #include "video.h"
 
 namespace Ui { class Comparison; }
@@ -12,6 +13,7 @@ namespace Ui { class Comparison; }
 class Comparison : public QDialog
 {
     Q_OBJECT
+    friend class TestVideo;
 
 public:
     Comparison(const QVector<Video *> &videosParam, const Prefs &prefsParam);
@@ -93,7 +95,7 @@ private slots:
 
     void on_autoDelOnlySizeDiffersButton_clicked();
 
-    void on_importantFolderButton_clicked();
+    void on_pushButton_importantFoldersAdd_clicked();
     void on_lockedFolderButton_clicked();
     void showImportantFolderContextMenu(const QPoint&);
     void showLockedFolderContextMenu(const QPoint&);
