@@ -3,8 +3,11 @@
 
 #include <QDragEnterEvent>
 #include <QMimeData>
+
 #include "ui_mainwindow.h"
+
 #include "video.h"
+#include "comparison.h"
 
 namespace Ui { class MainWindow; }
 
@@ -20,6 +23,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    Comparison *_comparison = nullptr;
 
     QString _ffmpegPath;
 
