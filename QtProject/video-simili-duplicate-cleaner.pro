@@ -1,6 +1,9 @@
 TEMPLATE = subdirs
 
-SUBDIRS = app tests
+SUBDIRS = \
+    app \
+    tests/test_mainwindow \
+    tests/test_video
 
 #How to compile this program:
     #Qt5.xx (https://www.qt.io/) MingW-32 is the default compiler and was used for the development of the program

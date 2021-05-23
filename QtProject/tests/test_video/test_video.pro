@@ -4,10 +4,10 @@ message("QMake tests")
 QT += testlib
 CONFIG += qt warn_on depend_includepath testcase
 
-include(../app/common.pri)
+include(../../app/common.pri)
 
-SOURCES +=  TestHelpers.cpp \
-    tst_video.cpp
-
+SOURCES +=  \
+    tst_video.cpp \
+    video_test_helpers.cpp
 
 DEFINES += VID_SIMILI_IN_TESTS

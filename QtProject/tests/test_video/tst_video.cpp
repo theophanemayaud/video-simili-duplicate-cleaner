@@ -4,18 +4,18 @@
 
 /* NB : sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
- * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF)
- */
+ * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // add necessary includes here
-#include "../app/video.h"
-#include "../app/prefs.h"
+#include "../../app/video.h"
+#include "../../app/prefs.h"
 
-#include "../app/mainwindow.h"
-#include "../app/comparison.h"
+#include "../../app/mainwindow.h"
+#include "../../app/comparison.h"
+#include "../../app/ui_comparison.h"
 
-#include "TestHelpers.cpp"
+#include "video_test_helpers.cpp"
 
 class TestVideo : public QObject
 {
@@ -29,10 +29,10 @@ private:
     const QFileInfo _ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
     const QDir _thumbnailDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails/");
-    const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/tests.csv");
+    const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tests.csv");
 
     void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const;
-    MainWindow *w = nullptr;
+    TestMainWindow *w = nullptr;
 
 private slots:
     void initTestCase();
@@ -45,7 +45,6 @@ private slots:
     void test_check_reference_video_detection();
 
     void test_whole_app();
-    void check_on_ui();
 
     void cleanupTestCase();
 
@@ -70,15 +69,10 @@ void TestVideo::cleanupTestCase()
 
 }
 
-void TestVideo::check_on_ui(){
-//    w->_comparison->ui->tabWidget->currentIndex = 3; can't access ui for now, as header is not in comparison.h but in comparison.cpp... !
-    // TODO : test actions on the compaarison window, and see what files are auto deleted etc... !
-}
-
 void TestVideo::test_whole_app(){
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
 
-    w = new MainWindow;
+    w = new TestMainWindow;
     w->show();
     QVERIFY(w->detectffmpeg());
 
@@ -96,19 +90,15 @@ void TestVideo::test_whole_app(){
     qDebug() << "Found "<<w->_everyVideo.count() << " videos";
     qDebug() << "of which "<<w->_videoList.count() << " valid videos";
 
-    w->_comparison = new Comparison(w->sortVideosBySize(), w->_prefs);
-    w->_comparison->reportMatchingVideos();
+    Comparison comp(w->sortVideosBySize(), w->_prefs);
+    comp.reportMatchingVideos();
 
-    QTimer::singleShot(500, w->_comparison, SLOT(on_nextVideo_clicked()));
-    QTimer::singleShot(1000, w->_comparison, SLOT(on_nextVideo_clicked()));
-    QTimer::singleShot(1000, w->_comparison, SLOT(on_nextVideo_clicked()));
-    QTimer::singleShot(2000, this, SLOT(check_on_ui()));
-    QTimer::singleShot(10000, w->_comparison, SLOT(close()));
+    comp.show();
 
-    w->_comparison->exec();
-
-//    w->on_findDuplicates_clicked();
-
+    QTest::qWait(1000);
+    comp.on_nextVideo_clicked();
+    comp.ui->tabWidget->setCurrentIndex(2);
+    QTest::qWait(1000);
 };
 
 void TestVideo::test_check_samples_thumbnails(){
@@ -127,12 +117,12 @@ void TestVideo::test_check_samples_thumbnails(){
 
     QByteArray thumbnail1;
     QByteArray thumbnail2;
-    QFile file1("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/ressources/Nice_720p_1000kbps.thumbnail");
+    QFile file1("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/Nice_720p_1000kbps.thumbnail");
     QVERIFY(file1.exists());
     file1.open(QIODevice::ReadOnly);
     thumbnail1 = file1.readAll();
     file1.close();
-    QFile file2("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/ressources/Nice_383p_500kbps.thumbnail");
+    QFile file2("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/Nice_383p_500kbps.thumbnail");
     file2.open(QIODevice::ReadOnly);
     thumbnail2 = file2.readAll();
     file2.close();
