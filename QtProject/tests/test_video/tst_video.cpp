@@ -32,7 +32,7 @@ private:
     const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tests.csv");
 
     void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const;
-    TestMainWindow *w = nullptr;
+    MainWindow *w = nullptr;
 
 private slots:
     void initTestCase();
@@ -42,7 +42,6 @@ private slots:
     void test_check_samples_thumbnails();
 
     void test_check_reference_video_params();
-    void test_check_reference_video_detection();
 
     void test_whole_app();
 
@@ -60,10 +59,12 @@ TestVideo::~TestVideo()
 
 }
 
+// Run before all tests
 void TestVideo::initTestCase(){
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
 }
 
+// Run after all tests
 void TestVideo::cleanupTestCase()
 {
 
@@ -72,7 +73,7 @@ void TestVideo::cleanupTestCase()
 void TestVideo::test_whole_app(){
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
 
-    w = new TestMainWindow;
+    w = new MainWindow;
     w->show();
     QVERIFY(w->detectffmpeg());
 
@@ -137,10 +138,6 @@ void TestVideo::test_check_samples_thumbnails(){
             || TestHelpers::doThumbnailsLookSameWindow(thumbnail2, vid2->thumbnail, "Thumbnail 1 vs 1")
         #endif
             );
-}
-
-void TestVideo::test_check_reference_video_detection(){
-
 }
 
 void TestVideo::test_check_reference_video_params(){
