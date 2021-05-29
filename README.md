@@ -10,6 +10,12 @@ This app is [made available via the App Store with a small cost](https://apps.ap
 
 You can also support the project, or specific issues, via [BOUNTYSOURCE](https://www.bountysource.com/teams/video-simili-duplicate-cleaner/issues). You can make donations for the project, or post a bounty as a "reward when a specific issue is completed". This helps identify which issues are important and should be done first.
 
+
+## Contact
+
+Want to report a bug 🐞, suggest new ideas 💡, give general feedback 🧐 or have some specific question 🙋 ? That's what our [DISCUSSIONS PAGE](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions) is for 🚀 [Issues](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues) can also be used for bugs and feature suggestions, but it's often good to first chat about them in the discussions 💬
+
+
 ## Examples
 
 In the samples folder, you will find two videos with different sizes and compression levels, which result in the following two windows of the app :
@@ -23,7 +29,6 @@ In the samples folder, you will find two videos with different sizes and compres
 ![Comparison window auto options](samples/ComparisonWindowAutoOptions.png "Comparison window auto options")
 
 ![Main window results](samples/MainWindowResults.png "Main window results")
-
 
 ## Features
 
