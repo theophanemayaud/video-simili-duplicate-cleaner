@@ -309,7 +309,7 @@ void MainWindow::processVideos()
             threadPool.clear();
             break;
         }
-        while(threadPool.activeThreadCount() == 1 /* TEMP : disable multi threading : threadPool.maxThreadCount()*/)
+        while(threadPool.activeThreadCount() == 1 /* TEMP TODO restore : disable multi threading : threadPool.maxThreadCount()*/)
             QApplication::processEvents();          //avoid blocking signals in event loop
 
         auto *videoTask = new Video(_prefs, _ffmpegPath, filename);

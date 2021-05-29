@@ -41,7 +41,7 @@ private slots:
     QImage minimizeImage(const QImage &image) const;
     QString msToHHMMSS(const int64_t &time) const;
     bool ffmpegLib_captureAt(const QString imgPathname, const int percent, const int ofDuration) const;   // new methods for capture of image, using ffmpeg library
-    bool saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname) const;
+    bool saveToJPEG(const ffmpeg::AVCodecContext* codec_ctx, const ffmpeg::AVFrame* pFrame, const QString imgPathname) const;
 
 public slots:
     QImage captureAt(const int &percent, const int &ofDuration=100) const;

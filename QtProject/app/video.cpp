@@ -580,15 +580,15 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
     screenshot = QStringLiteral("/Users/theophanemayaud/Downloads/Testvids/%1-%2prct-ofdur%3-exec.bmp").arg(QFileInfo(filename).completeBaseName()).arg(percent).arg(ofDuration);
 #endif
     QProcess ffmpeg;
-//   TODO restore: ffmpeg.setProgram(_ffmpegPath);
-    ffmpeg.setProgram("/usr/local/bin/ffmpeg");
+    ffmpeg.setProgram(_ffmpegPath);
+//    ffmpeg.setProgram("/usr/local/bin/ffmpeg"); needed if wanting to output frame pts on the frame
     qDebug() << "Executable will capture at timestamp : " << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) << " for percent="<< percent << " ofDuration="<< ofDuration << " for file " <<filename;
     qDebug() << "\n";
     ffmpeg.setArguments(QStringList() <<
                         "-ss" << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) <<
                         "-i" << QDir::toNativeSeparators(filename) <<
 //                        "-vf" << "drawtext=fontsize=60:fontcolor=yellow:text='%{pts\\:hms}':x=(w-text_w)/2:y=(h-text_h)/2"<< // PUT AFTER -ss means seeking from beginning, not using keyframes : very slow !
-//                       "-ss" << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) <<
+//                        "-ss" << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) <<
                         "-an" << "-frames:v" << "1" <<
                         "-pix_fmt" << "rgb24" <<  QDir::toNativeSeparators(screenshot) );
     ffmpeg.start();
@@ -792,7 +792,7 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
                             " for file " << filename;
 #endif
                 if((wanted_ts-vFrame->pts)<=0){ // must read frames until we get just past frame at wanted timestamp
-                    if(!saveToJPEG(vFrame, imgPathname +  " pts" + msToHHMMSS(1000*vFrame->pts*vs->time_base.num/vs->time_base.den) + ".bmp")){
+                    if(!saveToJPEG(codec_ctx, vFrame, imgPathname +  " pts" + msToHHMMSS(1000*vFrame->pts*vs->time_base.num/vs->time_base.den) + ".bmp")){
                         qDebug() << "Failed to save img for file " << filename;
                         ffmpeg::av_packet_free(&vPacket);
                         ffmpeg::av_frame_free(&vFrame);
@@ -830,21 +830,51 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
     return true;
 }
 
-bool Video::saveToJPEG(const ffmpeg::AVFrame* pFrame, const QString imgPathname) const//const char * folderName, int index)
+bool Video::saveToJPEG(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AVFrame* pFrame, const QString imgPathname) const//const char * folderName, int index)
 {
     ffmpeg::av_log_set_level(AV_LOG_INFO);
 
-    FILE *f;
-    int i;
-    f = fopen(imgPathname.toStdString().c_str(),"w");
-    // writing the minimal required header for a pgm file format
-    // portable graymap format -> https://en.wikipedia.org/wiki/Netpbm_format#PGM_example
-    fprintf(f, "P5\n%d %d\n%d\n", pFrame->width, pFrame->height, 255);
+    // first convert frame to rgb24
+    ffmpeg::SwsContext* img_convert_ctx;
+    img_convert_ctx = sws_getContext(codec_ctx->width,
+                                     codec_ctx->height,
+                                     codec_ctx->pix_fmt,
+                                     codec_ctx->width,
+                                     codec_ctx->height,
+                                     ffmpeg::AV_PIX_FMT_RGB24,
+                                     SWS_BICUBIC, NULL, NULL, NULL);
+    ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
+    ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
+                    ffmpeg::AV_PIX_FMT_RGB24,
+                    codec_ctx->width,
+                    codec_ctx->height);
 
-    // writing line by line
-    for (i = 0; i < pFrame->height; i++)
-        fwrite(pFrame->data[0] + i * pFrame->linesize[0], 1, pFrame->width, f);
-    fclose(f);
+    sws_scale(img_convert_ctx,
+              pFrame->data,
+              pFrame->linesize, 0,
+              codec_ctx->height,
+              frameRGB->data,
+              frameRGB->linesize);
+
+    QImage image(frameRGB->data[0],
+                     codec_ctx->width,
+                     codec_ctx->height,
+                     frameRGB->linesize[0],
+                     QImage::Format_RGB888);
+    QString string = imgPathname + "-QTIMAGE.bmp";
+    image.save(string.toStdString().c_str());
+
+//    FILE *f;
+//    int i;
+//    f = fopen(imgPathname.toStdString().c_str(),"w");
+//    // writing the minimal required header for a pgm file format
+//    // portable graymap format -> https://en.wikipedia.org/wiki/Netpbm_format#PGM_example
+//    fprintf(f, "P5\n%d %d\n%d\n", pFrame->width, pFrame->height, 255);
+
+//    // writing line by line
+//    for (i = 0; i < pFrame->height; i++)
+//        fwrite(pFrame->data[0] + i * pFrame->linesize[0], 1, pFrame->width, f);
+//    fclose(f);
     return true;
 }
 

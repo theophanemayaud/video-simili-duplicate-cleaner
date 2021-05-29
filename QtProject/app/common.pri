@@ -51,6 +51,7 @@ INCLUDEPATH += $$PWD/libraries/ffmpeg/include
 ## libavformat and libavutil static libs dependencies (from pckgconfig file)
 LIBS += -L$$PWD/libraries/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
                                      -lswresample -lavcodec \
+                                     -lswscale \
                                      -lbz2 -liconv -Wl,-no_compact_unwind \
                                      -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
 
