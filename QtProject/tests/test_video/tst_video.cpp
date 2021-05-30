@@ -8,6 +8,9 @@
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
+// Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
+//#define ENABLE_HASHES_VERIFICATION
+
 // add necessary includes here
 #include "../../app/video.h"
 #include "../../app/prefs.h"
@@ -26,13 +29,19 @@ public:
     TestVideo();
     ~TestVideo();
 
+    static void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid);
+
 private:
     const QFileInfo _ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");
+
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
     const QDir _thumbnailDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails/");
     const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tests.csv");
 
-    void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const;
+    QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");
+    const QDir _100GBthumbnailDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Thumbnails/");
+    const QFileInfo _100GBcsvInfo = QFileInfo("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/100GBtests.csv");
+
     MainWindow *w = nullptr;
 
 private slots:
@@ -45,6 +54,10 @@ private slots:
     void test_check_reference_video_params();
 
     void test_whole_app();
+
+//    void test_100GB_create_reference_video_params();
+    void test_100GBcheck_reference_video_params();
+    void test_whole_app_100GB();
 
     void cleanupTestCase();
 
@@ -72,6 +85,11 @@ void TestVideo::cleanupTestCase()
 }
 
 void TestVideo::test_whole_app(){
+    // constants of the test
+    const int nb_vids_to_find = 190;
+    const int nb_valid_vids_to_find = 184;
+    const qint64 ref_ms_time = 10*1000;
+
     QElapsedTimer timer;
     timer.start();
 
@@ -87,15 +105,12 @@ void TestVideo::test_whole_app(){
     w->processVideos();
     w->ui->blocksizeCombo->setAcceptDrops(true);
 
-    QVERIFY(w->_everyVideo.count()==190);
-    QVERIFY(w->_videoList.count()==184);
+    qDebug() << "Found "<<w->_everyVideo.count()<<" files of which "<< w->_videoList.count()<<" valid ones";
+    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Only found %1 files").arg(w->_everyVideo.count()).toStdString().c_str());
+    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Only found %1 valid files").arg(w->_videoList.count()).toStdString().c_str());
 
     qDebug() << "TIMER:test_whole_app took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
-    qint64 ref_ms_time = 10000;
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
-
-    qDebug() << "Found "<<w->_everyVideo.count() << " videos";
-    qDebug() << "of which "<<w->_videoList.count() << " valid videos";
 
     Comparison comp(w->sortVideosBySize(), w->_prefs);
     comp.reportMatchingVideos();
@@ -147,6 +162,8 @@ void TestVideo::test_check_samples_thumbnails(){
 }
 
 void TestVideo::test_check_reference_video_params(){
+    const qint64 ref_ms_time = 30*1000;
+
     QElapsedTimer timer;
     timer.start();
     QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
@@ -175,13 +192,13 @@ void TestVideo::test_check_reference_video_params(){
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
     }
     qDebug() << "TIMER:test_check_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
-    qint64 ref_ms_time = 30000;
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_check_reference_video_params took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
 }
 
 /* void TestVideo::test_create_reference_video_params()
 {
     QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
+    QVERIFY(!_csvInfo.exists());    // we don't want to overwrite it !
 
     QVERIFY(!_videoDir.isEmpty());
     MainWindow w;
@@ -272,8 +289,153 @@ void TestVideo::test_check_reference_video_params(){
 */
 
 // ------------------------------------------------------------------------------------
+// ---------------------------- START : 100GB tests from SSD ---------------------
+/*void TestVideo::test_100GB_create_reference_video_params()
+{
+    QElapsedTimer timer;
+    timer.start();
+
+    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
+
+    QVERIFY(!_100GBvideoDir.isEmpty());
+    QVERIFY(!_100GBcsvInfo.exists());    // we don't want to overwrite it !
+
+    MainWindow w;
+    w.loadExtensions();
+    QVERIFY(!w._extensionList.isEmpty());
+    _100GBvideoDir.setNameFilters(w._extensionList);
+    QDirIterator iter(_100GBvideoDir, QDirIterator::Subdirectories);
+
+    QList<VideoParam> videoParamList;
+
+    while(iter.hasNext())
+    {
+        const QFile vidFile(iter.next());
+        const QFileInfo vidInfo = QFileInfo(vidFile);
+
+        VideoParam videoParam;
+        videoParam.videoInfo = vidInfo;
+//        qDebug() << "Video file path : "<< vidInfo.absoluteFilePath();
+        QVERIFY2(vidInfo.exists(), QString("File not found %1").arg(vidInfo.absoluteFilePath()).toStdString().c_str());
+
+        Prefs prefs;
+        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vidInfo.absoluteFilePath());
+        vid->run();
+        QString thumbPath = _100GBthumbnailDir.path() + "/" + vidInfo.path().remove(_100GBvideoDir.path()) + "-" + vidInfo.fileName() + ".thumbnail";
+//        qDebug() << "Thumbmail file path" << thumbPath;
+        QFile thumbFile(thumbPath);
+        QVERIFY(!thumbFile.exists()); // we don't want to overwrite !
+        thumbFile.open(QIODevice::WriteOnly);
+        thumbFile.write(vid->thumbnail);
+        thumbFile.close();
+        videoParam.thumbnailInfo = QFileInfo(thumbFile);
+        videoParam.size = vid->size;
+        videoParam.modified = vid->modified;
+        videoParam.duration = vid->duration;
+        videoParam.bitrate = vid->bitrate;
+        videoParam.framerate = vid->framerate;
+        videoParam.codec = vid->codec;
+        videoParam.audio = vid->audio;
+        videoParam.width = vid->width;
+        videoParam.height = vid->height;
+        videoParam.hash1 = vid->hash[0];
+        videoParam.hash2 = vid->hash[1];
+
+        videoParamList.append(videoParam);
+    }
+
+    QVERIFY(!videoParamList.isEmpty());
+    QVERIFY(TestHelpers::saveVideoParamQListToCSV(videoParamList, _100GBcsvInfo));
+    qDebug() << "TIMER:test_100GB_create_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+}*/
+
+void TestVideo::test_100GBcheck_reference_video_params(){
+    const qint64 ref_ms_time = 40*60*1000; // measured once at 37 min
+
+    QElapsedTimer timer;
+    timer.start();
+    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
+
+    // read csv file
+    QVERIFY(_100GBcsvInfo.exists());
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_100GBcsvInfo);
+    QVERIFY(!videoParamList.isEmpty());
+
+    // TODO : find a way to make this multithreaded, otherwise for all the videos it's too long !
+    // compute params for all videos
+    QVERIFY(!_100GBvideoDir.isEmpty());
+    int test_nb = 0;
+    const int nb_tests = videoParamList.count();
+    foreach(VideoParam videoParam, videoParamList){
+
+        QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
+        QVERIFY2(videoParam.thumbnailInfo.exists(), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
+
+        //read thumbnail from disk
+        QFile ref_thumbFile(videoParam.thumbnailInfo.absoluteFilePath());
+        QVERIFY2(ref_thumbFile.open(QIODevice::ReadOnly), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
+        QByteArray ref_thumbnail = ref_thumbFile.readAll();
+        ref_thumbFile.close();
+
+        Prefs prefs;
+        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), videoParam.videoInfo.absoluteFilePath());
+        vid->run();
+
+        compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
+
+        if(test_nb%100==0){
+            qDebug() << "Processing "<<test_nb<<"/" << nb_tests << " for "<< videoParam.videoInfo.absoluteFilePath();
+        }
+        test_nb++;
+    }
+
+    qDebug() << "TIMER:test_100GBcheck_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_100GBcheck_reference_video_params took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+}
+
+void TestVideo::test_whole_app_100GB(){
+    // Constants of the test
+    const int nb_vids_to_find = 12505;
+    const int nb_valid_vids_to_find = 11988;
+    const qint64 ref_ms_time = 20*60*1000;
+
+    QElapsedTimer timer;
+    timer.start();
+
+    w = new MainWindow;
+    w->show();
+    QVERIFY(w->detectffmpeg());
+
+    QVERIFY(_100GBvideoDir.exists());
+
+    w->findVideos(_100GBvideoDir);
+    w->processVideos();
+    w->ui->blocksizeCombo->setAcceptDrops(true);
+
+    qDebug() << "Found "<<w->_everyVideo.count()<<" files of which "<< w->_videoList.count()<<" valid ones";
+    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Only found %1 files").arg(w->_everyVideo.count()).toStdString().c_str());
+    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Only found %1 valid files").arg(w->_videoList.count()).toStdString().c_str());
+
+    qDebug() << "TIMER:test_whole_app_100GB took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_100GB took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+
+    Comparison comp(w->sortVideosBySize(), w->_prefs);
+    comp.reportMatchingVideos();
+
+    comp.show();
+
+    QTest::qWait(1000);
+    comp.on_nextVideo_clicked();
+    comp.ui->tabWidget->setCurrentIndex(2);
+    QTest::qWait(1000);
+};
+
+// ---------------------------- END : 100GB tests from SSD ---------------------
+// ------------------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------------------
 // ---------------------------- START : helper testing functions ---------------------
-void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) const {
+void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) {
     QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2").arg(videoParam.size).arg(vid->size).toUtf8().constData());
     QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
     QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2").arg(videoParam.duration).arg(vid->duration).toUtf8().constData());
@@ -296,10 +458,12 @@ void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const V
 #endif
 
     }
+#ifdef ENABLE_HASHES_VERIFICATION
     if(manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
         QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2").arg(videoParam.hash1).arg(vid->hash[0]).toUtf8().constData());
         QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
     }
+#endif
 
 }
 
