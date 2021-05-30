@@ -61,8 +61,9 @@ void Video::run()
 
 bool Video::getMetadata(const QString &filename)
 {
+    // Get Video stream metadata with new methods using ffmpeg library
+    ffmpeg::av_log_set_level(AV_LOG_INFO);
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
-    //ffmpeg::AVDictionaryEntry *tag = NULL;
     int ret;
     ffmpeg::av_register_all();
     ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
@@ -77,23 +78,18 @@ bool Video::getMetadata(const QString &filename)
         qDebug() << "Could not find stream information : " + filename;
         emit rejectVideo(this, "Could not find stream information");
     }
-//        av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
+    // Helpful for debugging : dumps as the executable would
+//    qDebug() << "ffmpeg dump format :";
+//    av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
+//    qDebug() << "\n\n";
 
     // Get Duration and bitrate infos (code copied from ffmpeg helper function av_dump_format see https://ffmpeg.org/doxygen/3.2/group__lavf__misc.html#gae2645941f2dc779c307eb6314fd39f10
     if (fmt_ctx->duration != AV_NOPTS_VALUE) {
-        int hours, mins, secs, us;
         int64_t ffmpeg_duration = fmt_ctx->duration + (fmt_ctx->duration <= INT64_MAX - 5000 ? 5000 : 0);
-        secs  = ffmpeg_duration / AV_TIME_BASE;
-        us    = ffmpeg_duration % AV_TIME_BASE;
-        mins  = secs / 60;
-        secs %= 60;
-        hours = mins / 60;
-        mins %= 60;
         duration = 1000*ffmpeg_duration/AV_TIME_BASE;
     } else {
         duration = 0;
     }
-
     if (fmt_ctx->bit_rate) {
       bitrate = fmt_ctx->bit_rate / 1000;
     }
@@ -101,15 +97,9 @@ bool Video::getMetadata(const QString &filename)
         bitrate = 0;
     }
 
-    // for the other metadata values, should probably look at dump_stream_format function from ffmpeg to copy code
-
-    // Get Video stream metadata with new methods using ffmpeg library
-    // Dump information about file onto standard error
-//    qDebug() << "ffmpeg dump format :";
-//    av_dump_format(fmt_ctx, 0, filename.toStdString().c_str(), false);
-//    qDebug() << "\n\n";
-
-    // previous code seemed to save last good video stream info if there were multiple, but now using ffmpeg find best stream
+    // Get video stream information
+    //      NB : previous (executable ffmpeg) code seemed to save last good video
+    //          stream info if there were multiple, but now using ffmpeg find best stream
     ret = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_VIDEO, -1 /* auto stream selection*/,
                                       -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
 #ifdef QT_DEBUG
@@ -176,6 +166,9 @@ bool Video::getMetadata(const QString &filename)
 
     bool rotatedOnce = false;
     int old_rotate = 0;
+    short tmp_width = 0;
+    short tmp_height = 0;
+
     const QString analysis(probe.readAllStandardOutput());
 //    qDebug() << "ffmpeg gave following metadata for file "<< filename;
     const QStringList analysisLines = analysis.split(QStringLiteral("\n")); //DEBUGTHEO changed /n/r to /n (or /r/n ? Don't remember) because ffmpeg seemed only to put a \n
@@ -219,8 +212,8 @@ bool Video::getMetadata(const QString &filename)
             line.replace(QRegExp(QStringLiteral("\\([^\\)]+\\)")), QStringLiteral(""));
             QString tmp_codec = line.split(QStringLiteral(" ")).value(7).replace(QStringLiteral(","), QStringLiteral(""));
             const QString resolution = line.split(QStringLiteral(",")).value(2);
-            short tmp_width = static_cast<short>(resolution.split(QStringLiteral("x")).value(0).toInt());
-            short tmp_height = static_cast<short>(resolution.split(QStringLiteral("x")).value(1).split(QStringLiteral(" ")).value(0).toInt());
+            tmp_width = static_cast<short>(resolution.split(QStringLiteral("x")).value(0).toInt());
+            tmp_height = static_cast<short>(resolution.split(QStringLiteral("x")).value(1).split(QStringLiteral(" ")).value(0).toInt());
             const QStringList fields = line.split(QStringLiteral(","));
             double tmp_framerate;
             for(const auto &field : fields)
@@ -267,13 +260,17 @@ bool Video::getMetadata(const QString &filename)
             const int rotate = line.split(QStringLiteral(":")).value(1).toInt();
             if(rotate == 90 || rotate == 270)
             {
-                const short temp = width;
-                width = height;
-                height = temp;
+                const short temp = tmp_width;
+                tmp_width = tmp_height;
+                tmp_height = temp;
             }
             rotatedOnce = true;     //rotate only once (AUDIO metadata can contain rotate keyword)
             old_rotate = rotate;
         }
+    }
+    if(tmp_width != width || tmp_height != height){
+        qDebug() << "DISCREPANCY in rotate between ffmpeg executable and library data : width height library="<<
+                    width << "x"<< height << " executable=" <<tmp_width<<"x"<<tmp_height<<"for file "<<filename;
     }
     if(old_rotate != new_rotate){ // check with library result
         qDebug() << "DISCREPANCY between rotate video stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
