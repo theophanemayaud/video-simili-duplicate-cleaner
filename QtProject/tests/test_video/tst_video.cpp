@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QCoreApplication>
 #include <QtConcurrent/QtConcurrent>
+#include <QElapsedTimer>
 
 /* NB : sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
@@ -71,7 +72,8 @@ void TestVideo::cleanupTestCase()
 }
 
 void TestVideo::test_whole_app(){
-    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
+    QElapsedTimer timer;
+    timer.start();
 
     w = new MainWindow;
     w->show();
@@ -87,6 +89,10 @@ void TestVideo::test_whole_app(){
 
     QVERIFY(w->_everyVideo.count()==190);
     QVERIFY(w->_videoList.count()==184);
+
+    qDebug() << "TIMER:test_whole_app took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    qint64 ref_ms_time = 10000;
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
 
     qDebug() << "Found "<<w->_everyVideo.count() << " videos";
     qDebug() << "of which "<<w->_videoList.count() << " valid videos";
@@ -141,6 +147,8 @@ void TestVideo::test_check_samples_thumbnails(){
 }
 
 void TestVideo::test_check_reference_video_params(){
+    QElapsedTimer timer;
+    timer.start();
     QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
 
     // read csv file
@@ -166,7 +174,9 @@ void TestVideo::test_check_reference_video_params(){
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
     }
-
+    qDebug() << "TIMER:test_check_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    qint64 ref_ms_time = 30000;
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_check_reference_video_params took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
 }
 
 /* void TestVideo::test_create_reference_video_params()
