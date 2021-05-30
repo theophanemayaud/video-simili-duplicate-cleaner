@@ -101,9 +101,9 @@ bool Video::getMetadata(const QString &filename)
     //          stream info if there were multiple, but now using ffmpeg find best stream
     ret = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_VIDEO, -1 /* auto stream selection*/,
                                       -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
-#ifdef QT_DEBUG
-    int new_rotate = 0;
-#endif
+//#ifdef QT_DEBUG
+//    int new_rotate = 0;
+//#endif
     if(ret>=0){ // Found a video stream
         ffmpeg::AVStream *vs = fmt_ctx->streams[ret]; // not necessary, but shorter for next calls
         codec = ffmpeg::avcodec_get_name(vs->codecpar->codec_id); //inspired from avcodec_string function
@@ -121,9 +121,9 @@ bool Video::getMetadata(const QString &filename)
                 width = height;
                 height = temp;
             }
-#ifdef QT_DEBUG
-            new_rotate = rotate; // to check with old code if equal
-#endif
+//#ifdef QT_DEBUG
+//            new_rotate = rotate; // to check with old code if equal
+//#endif
         }
     }
 
@@ -154,129 +154,129 @@ bool Video::getMetadata(const QString &filename)
 
     avformat_close_input(&fmt_ctx);
 
-#ifdef QT_DEBUG
-    QProcess probe;
-    probe.setProcessChannelMode(QProcess::MergedChannels);
-    probe.setProgram(_ffmpegPath);
-    probe.setArguments(QStringList() << "-hide_banner" << "-i" << QDir::toNativeSeparators(filename));
-    probe.start();
+//#ifdef QT_DEBUG
+//    QProcess probe;
+//    probe.setProcessChannelMode(QProcess::MergedChannels);
+//    probe.setProgram(_ffmpegPath);
+//    probe.setArguments(QStringList() << "-hide_banner" << "-i" << QDir::toNativeSeparators(filename));
+//    probe.start();
 
-    probe.waitForFinished();
+//    probe.waitForFinished();
 
-    bool rotatedOnce = false;
-    int old_rotate = 0;
-    short tmp_width = 0;
-    short tmp_height = 0;
+//    bool rotatedOnce = false;
+//    int old_rotate = 0;
+//    short tmp_width = 0;
+//    short tmp_height = 0;
 
-    const QString analysis(probe.readAllStandardOutput());
-//    qDebug() << "ffmpeg gave following metadata for file "<< filename;
-    const QStringList analysisLines = analysis.split(QStringLiteral("\n")); //DEBUGTHEO changed /n/r to /n (or /r/n ? Don't remember) because ffmpeg seemed only to put a \n
-    for(auto line : analysisLines)
-    {
-//        qDebug() << line;
-        if(line.contains(QStringLiteral(" Duration:"))) // Keeping this temporarily but now using library FFMPEG instead of executable
-        {
-            int64_t exec_duration = 0;
-            int exec_bitrate = 0;
-            const QString time = line.split(QStringLiteral(" ")).value(3);
-            if(time == QLatin1String("N/A,"))
-                exec_duration = 0;
-            else
-            {
-                const int h  = time.midRef(0,2).toInt();
-                const int m  = time.midRef(3,2).toInt();
-                const int s  = time.midRef(6,2).toInt();
-                const int ms = time.midRef(9,2).toInt();
-                exec_duration = h*60*60*1000 + m*60*1000 + s*1000 + ms*10;
-            }
-            exec_bitrate = line.split(QStringLiteral("bitrate: ")).value(1).split(QStringLiteral(" ")).value(0).toInt();
+//    const QString analysis(probe.readAllStandardOutput());
+////    qDebug() << "ffmpeg gave following metadata for file "<< filename;
+//    const QStringList analysisLines = analysis.split(QStringLiteral("\n")); //DEBUGTHEO changed /n/r to /n (or /r/n ? Don't remember) because ffmpeg seemed only to put a \n
+//    for(auto line : analysisLines)
+//    {
+////        qDebug() << line;
+//        if(line.contains(QStringLiteral(" Duration:"))) // Keeping this temporarily but now using library FFMPEG instead of executable
+//        {
+//            int64_t exec_duration = 0;
+//            int exec_bitrate = 0;
+//            const QString time = line.split(QStringLiteral(" ")).value(3);
+//            if(time == QLatin1String("N/A,"))
+//                exec_duration = 0;
+//            else
+//            {
+//                const int h  = time.midRef(0,2).toInt();
+//                const int m  = time.midRef(3,2).toInt();
+//                const int s  = time.midRef(6,2).toInt();
+//                const int ms = time.midRef(9,2).toInt();
+//                exec_duration = h*60*60*1000 + m*60*1000 + s*1000 + ms*10;
+//            }
+//            exec_bitrate = line.split(QStringLiteral("bitrate: ")).value(1).split(QStringLiteral(" ")).value(0).toInt();
 
-            if(abs(duration - exec_duration)>=10 || abs(bitrate - exec_bitrate)>=10){
-                qDebug() << "FFMPEG library resulting duration or bitrate is different from one found from executable : ";
-                qDebug() << QStringLiteral("Library duration : %1").arg(duration);
-                qDebug() << QStringLiteral("Library bitrate : %1 kb/s").arg(bitrate);
+//            if(abs(duration - exec_duration)>=10 || abs(bitrate - exec_bitrate)>=10){
+//                qDebug() << "FFMPEG library resulting duration or bitrate is different from one found from executable : ";
+//                qDebug() << QStringLiteral("Library duration : %1").arg(duration);
+//                qDebug() << QStringLiteral("Library bitrate : %1 kb/s").arg(bitrate);
 
-                qDebug() << QStringLiteral("Executa duration : %1").arg(exec_duration);
-                qDebug() << QStringLiteral("Executa bitrate : %1 kb/s").arg(exec_bitrate);
-                qDebug() << " ";
-                qDebug() << " ";
-            }
-        }
+//                qDebug() << QStringLiteral("Executa duration : %1").arg(exec_duration);
+//                qDebug() << QStringLiteral("Executa bitrate : %1 kb/s").arg(exec_bitrate);
+//                qDebug() << " ";
+//                qDebug() << " ";
+//            }
+//        }
 
-        // Get Video stream metadata : looping through all streams, so last video stream info will be saved
-        // old methods using ffmpeg executable
-        if(line.contains(QStringLiteral(" Video:")) &&
-          (line.contains(QStringLiteral("kb/s")) || line.contains(QStringLiteral(" fps")) || analysis.count(" Video:") == 1))
-        {
-            line.replace(QRegExp(QStringLiteral("\\([^\\)]+\\)")), QStringLiteral(""));
-            QString tmp_codec = line.split(QStringLiteral(" ")).value(7).replace(QStringLiteral(","), QStringLiteral(""));
-            const QString resolution = line.split(QStringLiteral(",")).value(2);
-            tmp_width = static_cast<short>(resolution.split(QStringLiteral("x")).value(0).toInt());
-            tmp_height = static_cast<short>(resolution.split(QStringLiteral("x")).value(1).split(QStringLiteral(" ")).value(0).toInt());
-            const QStringList fields = line.split(QStringLiteral(","));
-            double tmp_framerate;
-            for(const auto &field : fields)
-                if(field.contains(QStringLiteral("fps")))
-                {
-                    tmp_framerate = QStringLiteral("%1").arg(field).remove(QStringLiteral("fps")).toDouble();
-                    tmp_framerate = round(tmp_framerate * 10) / 10;     //round to one decimal point
-                }
-            // check new vs old code results
-            if(codec!=tmp_codec || framerate!=tmp_framerate || width!=tmp_width || height!=tmp_height){
-                if(!(codec==tmp_codec && framerate==tmp_framerate && (new_rotate == 90 || new_rotate == 270) && width==tmp_height && height==tmp_width)){
-                    qDebug() << "DISCREPANCY between Video stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
-                                "executa- codec:"<< tmp_codec << ", framerate:" << tmp_framerate << "fps, width x height: " << tmp_width << "x" << tmp_height << "\n"
-                                "library- codec:"<< codec << ", framerate:" << framerate << "fps, width x height: " << width << "x" << height;
-                }
-            }
-        }
-        // end of video stream metadata code old methods (to be removed once new methods are working
+//        // Get Video stream metadata : looping through all streams, so last video stream info will be saved
+//        // old methods using ffmpeg executable
+//        if(line.contains(QStringLiteral(" Video:")) &&
+//          (line.contains(QStringLiteral("kb/s")) || line.contains(QStringLiteral(" fps")) || analysis.count(" Video:") == 1))
+//        {
+//            line.replace(QRegExp(QStringLiteral("\\([^\\)]+\\)")), QStringLiteral(""));
+//            QString tmp_codec = line.split(QStringLiteral(" ")).value(7).replace(QStringLiteral(","), QStringLiteral(""));
+//            const QString resolution = line.split(QStringLiteral(",")).value(2);
+//            tmp_width = static_cast<short>(resolution.split(QStringLiteral("x")).value(0).toInt());
+//            tmp_height = static_cast<short>(resolution.split(QStringLiteral("x")).value(1).split(QStringLiteral(" ")).value(0).toInt());
+//            const QStringList fields = line.split(QStringLiteral(","));
+//            double tmp_framerate;
+//            for(const auto &field : fields)
+//                if(field.contains(QStringLiteral("fps")))
+//                {
+//                    tmp_framerate = QStringLiteral("%1").arg(field).remove(QStringLiteral("fps")).toDouble();
+//                    tmp_framerate = round(tmp_framerate * 10) / 10;     //round to one decimal point
+//                }
+//            // check new vs old code results
+//            if(codec!=tmp_codec || framerate!=tmp_framerate || width!=tmp_width || height!=tmp_height){
+//                if(!(codec==tmp_codec && framerate==tmp_framerate && (new_rotate == 90 || new_rotate == 270) && width==tmp_height && height==tmp_width)){
+//                    qDebug() << "DISCREPANCY between Video stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
+//                                "executa- codec:"<< tmp_codec << ", framerate:" << tmp_framerate << "fps, width x height: " << tmp_width << "x" << tmp_height << "\n"
+//                                "library- codec:"<< codec << ", framerate:" << framerate << "fps, width x height: " << width << "x" << height;
+//                }
+//            }
+//        }
+//        // end of video stream metadata code old methods (to be removed once new methods are working
 
-        // get audio stream info -> the old way, with the executable
-        if(line.contains(QStringLiteral(" Audio:")))
-        {
-            const QString audioCodec = line.split(QStringLiteral(" ")).value(7).remove(",");
-            const QString rate = line.split(QStringLiteral(",")).value(1);
-            QString channels = line.split(QStringLiteral(",")).value(2);
-            if(channels == QLatin1String(" 1 channels"))
-                channels = QStringLiteral(" mono");
-            else if(channels == QLatin1String(" 2 channels"))
-                channels = QStringLiteral(" stereo");
-            QString tmp_audio = QStringLiteral("%1%2%3").arg(audioCodec, rate, channels);
-            const QString kbps = line.split(QStringLiteral(",")).value(4).split(QStringLiteral("kb/s")).value(0);
-            if(!kbps.isEmpty() && kbps != QStringLiteral(" 0 "))
-                tmp_audio = QStringLiteral("%1%2kb/s").arg(tmp_audio, kbps);
-            if(tmp_audio!=audio){ // this test returns lots of discrepancies, but they shouldn't be a problem as it's just text written a bit differently
-                qDebug() << "DISCREPANCY between Audio stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
-                            "executa- :"<< tmp_audio << " from line "<< line << "\n"
-                            "library- :"<< audio << "\n";
-            }
-        }
+//        // get audio stream info -> the old way, with the executable
+//        if(line.contains(QStringLiteral(" Audio:")))
+//        {
+//            const QString audioCodec = line.split(QStringLiteral(" ")).value(7).remove(",");
+//            const QString rate = line.split(QStringLiteral(",")).value(1);
+//            QString channels = line.split(QStringLiteral(",")).value(2);
+//            if(channels == QLatin1String(" 1 channels"))
+//                channels = QStringLiteral(" mono");
+//            else if(channels == QLatin1String(" 2 channels"))
+//                channels = QStringLiteral(" stereo");
+//            QString tmp_audio = QStringLiteral("%1%2%3").arg(audioCodec, rate, channels);
+//            const QString kbps = line.split(QStringLiteral(",")).value(4).split(QStringLiteral("kb/s")).value(0);
+//            if(!kbps.isEmpty() && kbps != QStringLiteral(" 0 "))
+//                tmp_audio = QStringLiteral("%1%2kb/s").arg(tmp_audio, kbps);
+//            if(tmp_audio!=audio){ // this test returns lots of discrepancies, but they shouldn't be a problem as it's just text written a bit differently
+//                qDebug() << "DISCREPANCY between Audio stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
+//                            "executa- :"<< tmp_audio << " from line "<< line << "\n"
+//                            "library- :"<< audio << "\n";
+//            }
+//        }
 
-        // check if the video stream is rotated and how, old way with the executable
-        if(line.contains(QStringLiteral("rotate")) && !rotatedOnce)
-        {
-            const int rotate = line.split(QStringLiteral(":")).value(1).toInt();
-            if(rotate == 90 || rotate == 270)
-            {
-                const short temp = tmp_width;
-                tmp_width = tmp_height;
-                tmp_height = temp;
-            }
-            rotatedOnce = true;     //rotate only once (AUDIO metadata can contain rotate keyword)
-            old_rotate = rotate;
-        }
-    }
-    if(tmp_width != width || tmp_height != height){
-        qDebug() << "DISCREPANCY in rotate between ffmpeg executable and library data : width height library="<<
-                    width << "x"<< height << " executable=" <<tmp_width<<"x"<<tmp_height<<"for file "<<filename;
-    }
-    if(old_rotate != new_rotate){ // check with library result
-        qDebug() << "DISCREPANCY between rotate video stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
-                    "executa- rotate="<< old_rotate << "\n"
-                    "library- rotate="<< new_rotate << "\n";
-    }
-#endif
+//        // check if the video stream is rotated and how, old way with the executable
+//        if(line.contains(QStringLiteral("rotate")) && !rotatedOnce)
+//        {
+//            const int rotate = line.split(QStringLiteral(":")).value(1).toInt();
+//            if(rotate == 90 || rotate == 270)
+//            {
+//                const short temp = tmp_width;
+//                tmp_width = tmp_height;
+//                tmp_height = temp;
+//            }
+//            rotatedOnce = true;     //rotate only once (AUDIO metadata can contain rotate keyword)
+//            old_rotate = rotate;
+//        }
+//    }
+//    if(tmp_width != width || tmp_height != height){
+//        qDebug() << "DISCREPANCY in rotate between ffmpeg executable and library data : width height library="<<
+//                    width << "x"<< height << " executable=" <<tmp_width<<"x"<<tmp_height<<"for file "<<filename;
+//    }
+//    if(old_rotate != new_rotate){ // check with library result
+//        qDebug() << "DISCREPANCY between rotate video stream metadata found with ffmpeg library and executable (file "<<filename<<") \n"
+//                    "executa- rotate="<< old_rotate << "\n"
+//                    "library- rotate="<< new_rotate << "\n";
+//    }
+//#endif
 
     const QFileInfo videoFile(filename);
     size = videoFile.size();
