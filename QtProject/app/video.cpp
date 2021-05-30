@@ -65,7 +65,6 @@ bool Video::getMetadata(const QString &filename)
     ffmpeg::av_log_set_level(AV_LOG_INFO);
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
     int ret;
-    ffmpeg::av_register_all();
     ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
     if (ret < 0) {
         qDebug() << "Could not open input : " + filename;
