@@ -87,12 +87,8 @@ bool Video::getMetadata(const QString &filename)
     // Get Duration and bitrate infos (code copied from ffmpeg helper function av_dump_format see https://ffmpeg.org/doxygen/3.2/group__lavf__misc.html#gae2645941f2dc779c307eb6314fd39f10
     if (fmt_ctx->duration != AV_NOPTS_VALUE) {
         int64_t ffmpeg_duration = fmt_ctx->duration + (fmt_ctx->duration <= INT64_MAX - 5000 ? 5000 : 0);
-<<<<<<< HEAD
-        duration = 1000*ffmpeg_duration/AV_TIME_BASE;
-=======
         duration = 1000*ffmpeg_duration/AV_TIME_BASE; // ffmpeg duration is in AV_TIME_BASE fractional time base units of seconds
         // duration is in ms, so we *1000 to go from secs to ms
->>>>>>> dccd0cc (chore(dependencies): working on getting the frame capture with the library - not working yet)
     } else {
         duration = 0;
     }
@@ -122,14 +118,14 @@ bool Video::getMetadata(const QString &filename)
         ffmpeg::AVDictionaryEntry *tag = NULL;
         tag = ffmpeg::av_dict_get(vs->metadata, "rotate", NULL /* not wanting to specify any position*/, 0 /*no flags*/);
         if(tag){
-            const int rotate = QString(tag->value).toInt();
-            if(rotate == 90 || rotate == 270) {
+            _rotateAngle = QString(tag->value).toInt();
+            if(_rotateAngle == 90 || _rotateAngle == 270) {
                 const short temp = width;
                 width = height;
                 height = temp;
             }
 //#ifdef QT_DEBUG
-//            new_rotate = rotate; // to check with old code if equal
+//            new_rotate = _rotateAngle; // to check with old code if equal
 //#endif
         }
     }
@@ -324,7 +320,7 @@ int Video::takeScreenCaptures(const Db &cache)
                     capture = percentages.count();
                     continue;
                 }
-                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
+//                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
                 return _failure;
             }
 //            writeToCache = true;
@@ -449,11 +445,11 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
 
 #ifdef QT_DEBUG
     // test output path
-    screenshot = QStringLiteral("/Users/theophanemayaud/Downloads/Testvids/%1-%2prct-ofdur%3-lib.jpg").arg(QFileInfo(filename).completeBaseName()).arg(percent).arg(ofDuration);
+    const QString libScreenshotPath = QStringLiteral("/Users/theophanemayaud/Downloads/Testvids/%1-%2prct-ofdur%3-lib.bmp").arg(QFileInfo(filename).completeBaseName()).arg(percent).arg(ofDuration);
 
 //    qDebug() << "\n";
-//    ffmpegLib_captureAt(screenshot, percent, ofDuration);
-//    bool libSuccess = ffmpegLib_captureAt(screenshot, percent, ofDuration);
+    bool libSuccess = ffmpegLib_captureAt(libScreenshotPath, percent, ofDuration);
+    const QImage libImg(libScreenshotPath, "BMP");
 #endif
 
 #ifdef QT_DEBUG
@@ -462,7 +458,7 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
 #endif
     QProcess ffmpeg;
     ffmpeg.setProgram(_ffmpegPath);
-//    ffmpeg.setProgram("/usr/local/bin/ffmpeg"); needed if wanting to output frame pts on the frame
+//    ffmpeg.setProgram("/usr/local/bin/ffmpeg"); // needed if wanting to output frame pts on the frame
 //    qDebug() << "Executable will capture at timestamp : " << msToHHMMSS(duration * (percent * ofDuration) / (100 * 100)) << " for percent="<< percent << " ofDuration="<< ofDuration << " for file " <<filename;
 //    qDebug() << "\n";
     ffmpeg.setArguments(QStringList() <<
@@ -480,12 +476,18 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
     const QImage img(screenshot, "BMP");
 
 #ifdef QT_DEBUG
-//    if(!img.isNull() && libSuccess==false){
-//        qDebug() << "CRAPPPP !!! Library failed to capture something where exectuable succeeded : " << filename;
-//    }
-//    else if(img.isNull() && libSuccess){
+    if(img==libImg){
+        QFile::remove(libScreenshotPath);
+        QFile::remove(screenshot);
+    }
+    if(!img.isNull() && libSuccess==false){
+        qDebug() << "CRAPPPP !!! Library failed to capture something where exectuable succeeded : " << filename;
+    }
+    else if(img.isNull() && libSuccess){
 //        qDebug() << "Weird !!! Library captured something where exectuable didnt : " << filename;
-//    }
+        QFile::remove(libScreenshotPath);
+        QFile::remove(screenshot);
+    }
 //    else if(!img.isNull() && libSuccess){
 //        qDebug() << "GOOD : Library & executable succeeded : " << filename;
 //    }
@@ -502,7 +504,7 @@ QImage Video::captureAt(const int &percent, const int &ofDuration) const
 bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, const int ofDuration) const
 {
 //    qDebug() << "Library will try to capture at "<<percent<<"% ofduration "<<ofDuration<<"% for file "<< filename;
-    ffmpeg::av_log_set_level(AV_LOG_FATAL);
+    ffmpeg::av_log_set_level(AV_LOG_ERROR);
     // new ffmpeg library code to capture an image :
     // inspired from http://blog.allenworkspace.net/2020/06/ffmpeg-decode-and-then-encode-frames-to.html
     // general understanding https://github.com/leandromoreira/ffmpeg-libav-tutorial
@@ -578,8 +580,7 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
 
     /* Allocate packet for storing decoded data */
     ffmpeg::AVPacket* vPacket = ffmpeg::av_packet_alloc();
-    if (!vPacket)
-    {
+    if (!vPacket){
         qDebug() << "failed to allocated memory for AVPacket for file " << filename;
         //ffmpeg::av_packet_free(&vPacket); //NB failed to alloc, so don't call yet but next time
         ffmpeg::avcodec_free_context(&codec_ctx);
@@ -653,10 +654,10 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
             if (ffmpeg::avcodec_send_packet(codec_ctx, vPacket) < 0)
             {
                 if(ret == AVERROR_EOF){
-                    qDebug() << "Reached end of file but no matching frame for " << filename;
+//                    qDebug() << "Reached end of file but no matching frame for " << filename;
                 }
                 else{
-                    qDebug() << "Failed to send raw packet to decoder for file " << filename;
+//                    qDebug() << "Failed to send raw packet to decoder for file " << filename;
                 }
                 ffmpeg::av_packet_free(&vPacket);
                 ffmpeg::av_frame_free(&vFrame);
@@ -674,7 +675,7 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
 //                            " for file " << filename;
 #endif
                 if((wanted_ts-vFrame->pts)<=0){ // must read frames until we get just past frame at wanted timestamp
-                    if(!saveToJPEG(codec_ctx, vFrame, imgPathname +  " pts" + msToHHMMSS(1000*vFrame->pts*vs->time_base.num/vs->time_base.den) + ".bmp")){
+                    if(!saveToJPEG(codec_ctx, vFrame, imgPathname)){// +  " pts" + msToHHMMSS(1000*vFrame->pts*vs->time_base.num/vs->time_base.den) + ".bmp")){
                         qDebug() << "Failed to save img for file " << filename;
                         ffmpeg::av_packet_free(&vPacket);
                         ffmpeg::av_frame_free(&vFrame);
@@ -692,7 +693,7 @@ bool Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, co
         else{
 //            qDebug() << "Packet not of wanted stream for "<<filename;
             if(ret == AVERROR_EOF){
-                qDebug() << "Reached end of file, no more stream packets, found no matching frame for " << filename;
+//                qDebug() << "Reached end of file, no more stream packets, found no matching frame for " << filename;
                 ffmpeg::av_packet_free(&vPacket);
                 ffmpeg::av_frame_free(&vFrame);
                 ffmpeg::avcodec_free_context(&codec_ctx);
@@ -725,9 +726,9 @@ bool Video::saveToJPEG(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AV
                                      SWS_BICUBIC, NULL, NULL, NULL);
     ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
     ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
-                    ffmpeg::AV_PIX_FMT_RGB24,
-                    codec_ctx->width,
-                    codec_ctx->height);
+                            ffmpeg::AV_PIX_FMT_RGB24,
+                            codec_ctx->width,
+                            codec_ctx->height);
 
     sws_scale(img_convert_ctx,
               pFrame->data,
@@ -741,20 +742,21 @@ bool Video::saveToJPEG(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AV
                      codec_ctx->height,
                      frameRGB->linesize[0],
                      QImage::Format_RGB888);
+    // if the video had rotated metadata, it needs to be flipped !
+    if(_rotateAngle%360 == 90){
+        image = image.transformed(QTransform().rotate(90.0));
+    }
+    else if(_rotateAngle%360 == 180){
+        image = image.transformed(QTransform().rotate(180.0));
+    }
+    else if(_rotateAngle%360 == 270){
+        image = image.transformed(QTransform().rotate(270.0));
+    }
+
 //    QString string = imgPathname + "-QTIMAGE.bmp";
 //    image.save(string.toStdString().c_str());
+    image.save(imgPathname.toStdString().c_str());
 
-//    FILE *f;
-//    int i;
-//    f = fopen(imgPathname.toStdString().c_str(),"w");
-//    // writing the minimal required header for a pgm file format
-//    // portable graymap format -> https://en.wikipedia.org/wiki/Netpbm_format#PGM_example
-//    fprintf(f, "P5\n%d %d\n%d\n", pFrame->width, pFrame->height, 255);
-
-//    // writing line by line
-//    for (i = 0; i < pFrame->height; i++)
-//        fwrite(pFrame->data[0] + i * pFrame->linesize[0], 1, pFrame->width, f);
-//    fclose(f);
     return true;
 }
 

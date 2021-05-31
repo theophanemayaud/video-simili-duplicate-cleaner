@@ -52,6 +52,7 @@ signals:
 
 private:
     QString _ffmpegPath;
+    int _rotateAngle=0;
 
     static Prefs _prefs;
     static int _jpegQuality;
