@@ -13,7 +13,7 @@
 
 // When moving over to library, audio metadata sometimes changes but when manually checked, is actually identical
 // Disable following define to skip testing audio comparison
-#define ENABLE_AUDIO_COMPARISON
+//#define ENABLE_AUDIO_COMPARISON
 
 // add necessary includes here
 #include "../../app/video.h"
@@ -88,8 +88,10 @@ void TestVideo::test_whole_app(){
     const int nb_vids_to_find = 190;
     const int nb_valid_vids_to_find = 184;
 
-    // one example measure : 9.8 seconds
-    // cached thumbs, library(only) metadata, executable captures : 3 sec
+    // no cached thumbs, mix lib&exec metadata, exec captures : 31 sec
+    // cached thumbs, mix lib&exec metadata, exec captures : 9 sec
+    // no cached thumbs, lib(only) metadata, exec captures : 26 sec
+    // cached thumbs, lib(only) metadata, exec captures : 3 sec
     const qint64 ref_ms_time = 10*1000;
 
     QElapsedTimer timer;
@@ -127,9 +129,11 @@ void TestVideo::test_whole_app(){
 };
 
 void TestVideo::test_check_reference_video_params(){
-    // example measure 38s for only library metadata but captures executable
-    // cached thumbs, library(only) metadata, executable captures : 10 sec
-    const qint64 ref_ms_time = 40*1000;
+    // no cached thumbs, mix lib&exec metadata, exec captures : 110 sec
+    // cached thumbs, mix lib&exec metadata, exec captures : 26 sec
+    // no cached thumbs, lib(only) metadata, exec captures : 64 sec
+    // cached thumbs, library(only) metadata, executable captures : 9 sec
+    const qint64 ref_ms_time = 80*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -279,8 +283,9 @@ void TestVideo::test_check_reference_video_params(){
 }*/
 
 void TestVideo::test_100GBcheck_reference_video_params(){
-    // measured once at 37 min before only library metadata (no cached thumbs)
-    // cached thumbs, library(only) metadata, executable captures : 12 min
+    // cached thumbs, mix lib&exec metadata, exec captures : 39 min
+    // no cached thumbs, library(only) metadata, exec captures : 37
+    // cached thumbs, library(only) metadata, exec captures : 12 min
     const qint64 ref_ms_time = 40*60*1000;
 
     QElapsedTimer timer;
@@ -329,7 +334,10 @@ void TestVideo::test_whole_app_100GB(){
     const int nb_vids_to_find = 12505;
     const int nb_valid_vids_to_find = 11988;
 
-    // cached thumbs, library(only) metadata, executable captures : 6 min
+    // no cached thumbs, mix lib&exec metadata, exec captures : 36 min
+    // cached thumbs, mix lib&exec metadata, exec captures : 17 min
+    // no cached thumbs, lib(only) metadata, exec captures : 30 min
+    // cached thumbs, lib(only) metadata, exec captures : 6 min
     const qint64 ref_ms_time = 20*60*1000;
 
     QElapsedTimer timer;
