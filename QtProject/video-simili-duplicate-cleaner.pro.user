@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.14.2, 2021-05-30T17:07:35. -->
+<!-- Written by QtCreator 4.14.2, 2021-05-31T00:44:25. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -72,12 +72,10 @@
     <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:TestVideo">PartiallyChecked</value>
     <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:initTestCase">Unchecked</value>
-    <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheck_reference_video_params">Checked</value>
+    <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheck_reference_video_params">Unchecked</value>
     <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_reference_video_params">Unchecked</value>
-    <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_samples_thumbnails">Checked</value>
-    <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Unchecked</value>
+    <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Checked</value>
     <value type="Qt::CheckState" key="/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_100GB">Unchecked</value>
-    <value type="Qt::CheckState" key=":Qt Test">PartiallyChecked</value>
    </valuemap>
    <value type="int" key="AutoTest.RunAfterBuild">0</value>
    <value type="bool" key="AutoTest.UseGlobal">true</value>
@@ -162,7 +160,7 @@
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">QtProjectManager.QMakeBuildStep</value>
       <value type="QString" key="QtProjectManager.QMakeBuildStep.QMakeArguments"></value>
-      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">false</value>
+      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">true</value>
       <valuelist type="QVariantList" key="QtProjectManager.QMakeBuildStep.SelectedAbis"/>
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">

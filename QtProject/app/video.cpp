@@ -62,7 +62,7 @@ void Video::run()
 bool Video::getMetadata(const QString &filename)
 {
     // Get Video stream metadata with new methods using ffmpeg library
-    ffmpeg::av_log_set_level(AV_LOG_INFO);
+    ffmpeg::av_log_set_level(AV_LOG_ERROR);
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
     int ret;
     ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);

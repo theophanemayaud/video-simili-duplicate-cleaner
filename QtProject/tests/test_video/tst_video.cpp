@@ -9,7 +9,7 @@
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
-#define ENABLE_HASHES_VERIFICATION
+//#define ENABLE_HASHES_VERIFICATION
 
 // When moving over to library, audio metadata sometimes changes but when manually checked, is actually identical
 // Disable following define to skip testing audio comparison
@@ -87,7 +87,10 @@ void TestVideo::test_whole_app(){
     // constants of the test
     const int nb_vids_to_find = 190;
     const int nb_valid_vids_to_find = 184;
-    const qint64 ref_ms_time = 10*1000; // one example measure : 9.8 seconds
+
+    // one example measure : 9.8 seconds
+    // cached thumbs, library(only) metadata, executable captures : 3 sec
+    const qint64 ref_ms_time = 10*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -124,7 +127,9 @@ void TestVideo::test_whole_app(){
 };
 
 void TestVideo::test_check_reference_video_params(){
-    const qint64 ref_ms_time = 30*1000;
+    // example measure 38s for only library metadata but captures executable
+    // cached thumbs, library(only) metadata, executable captures : 10 sec
+    const qint64 ref_ms_time = 40*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -274,7 +279,9 @@ void TestVideo::test_check_reference_video_params(){
 }*/
 
 void TestVideo::test_100GBcheck_reference_video_params(){
-    const qint64 ref_ms_time = 40*60*1000; // measured once at 37 min
+    // measured once at 37 min before only library metadata (no cached thumbs)
+    // cached thumbs, library(only) metadata, executable captures : 12 min
+    const qint64 ref_ms_time = 40*60*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -321,6 +328,8 @@ void TestVideo::test_whole_app_100GB(){
     // Constants of the test
     const int nb_vids_to_find = 12505;
     const int nb_valid_vids_to_find = 11988;
+
+    // cached thumbs, library(only) metadata, executable captures : 6 min
     const qint64 ref_ms_time = 20*60*1000;
 
     QElapsedTimer timer;
