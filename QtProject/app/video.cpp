@@ -303,14 +303,13 @@ int Video::takeScreenCaptures(const Db &cache)
         QBuffer captureBuffer(&cachedImage);
         bool writeToCache = false;
 
-        // TODO (restore): TEMPORARILY DISABLE FRAME CACHE LOADING TO TEST LIBRARY
-//        if(!cachedImage.isNull())   //image was already in cache
-//        {
-//            frame.load(&captureBuffer, QByteArrayLiteral("JPG"));   //was saved in cache as small size, resize to original
-//            frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-//        }
-//        else
-//        {
+        if(!cachedImage.isNull())   //image was already in cache
+        {
+            frame.load(&captureBuffer, QByteArrayLiteral("JPG"));   //was saved in cache as small size, resize to original
+            frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        }
+        else
+        {
             frame = captureAt(percentages[capture], ofDuration);
             if(frame.isNull())                                  //taking screen capture may fail if video is broken
             {
@@ -320,11 +319,11 @@ int Video::takeScreenCaptures(const Db &cache)
                     capture = percentages.count();
                     continue;
                 }
-//                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
+                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
                 return _failure;
             }
-//            writeToCache = true;
-//        }
+            writeToCache = true;
+        }
         if(frame.width() > width || frame.height() > height){    //metadata parsing error or variable resolution
             qDebug() << "Failing because capture height="<<frame.height()<<",width="<<frame.width()<<" is different to vid metadata height="<<width<<",width="<<height<< "for file "<< filename;
             return _failure;
