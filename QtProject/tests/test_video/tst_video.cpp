@@ -196,11 +196,11 @@ void TestVideo::test_check_reference_video_params(){
         Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vidInfo.absoluteFilePath());
         vid->run();
         QFile thumbFile(_thumbnailDir.path() + "/" + vidInfo.fileName() + ".thumbnail");
-        qDebug() << thumbFile.fileName();
-        QVERIFY(!thumbFile.exists()); // we don't want to overwrite !
+        QVERIFY2(!thumbFile.exists(), QString("Thumnail already exists %1").arg(thumbFile.fileName()).toStdString().c_str()); // we don't want to overwrite !
         thumbFile.open(QIODevice::WriteOnly);
         thumbFile.write(vid->thumbnail);
         thumbFile.close();
+        QVERIFY2(thumbFile.exists(), QString("Thumnail couldn't be save for %1").arg(thumbFile.fileName()).toStdString().c_str());
         videoParam.thumbnailInfo = QFileInfo(thumbFile);
         videoParam.size = vid->size;
         videoParam.modified = vid->modified;
@@ -256,12 +256,12 @@ void TestVideo::test_check_reference_video_params(){
         Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vidInfo.absoluteFilePath());
         vid->run();
         QString thumbPath = _100GBthumbnailDir.path() + "/" + vidInfo.path().remove(_100GBvideoDir.path()) + "-" + vidInfo.fileName() + ".thumbnail";
-//        qDebug() << "Thumbmail file path" << thumbPath;
         QFile thumbFile(thumbPath);
-        QVERIFY(!thumbFile.exists()); // we don't want to overwrite !
+        QVERIFY2(!thumbFile.exists(), QString("Thumnail already exists %1").arg(thumbFile.fileName()).toStdString().c_str()); // we don't want to overwrite !
         thumbFile.open(QIODevice::WriteOnly);
         thumbFile.write(vid->thumbnail);
         thumbFile.close();
+        QVERIFY2(thumbFile.exists(), QString("Thumnail couldn't be save for %1").arg(thumbFile.fileName()).toStdString().c_str());
         videoParam.thumbnailInfo = QFileInfo(thumbFile);
         videoParam.size = vid->size;
         videoParam.modified = vid->modified;
@@ -397,23 +397,23 @@ void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const V
 //                                                vid->thumbnail,
 //                                                QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath()));
 //    }
-//    bool manuallyAccepted = false; // hash will be different anyways if thumbnails look different, so must skip these tests !
-//    if(ref_thumbnail != vid->thumbnail){
-//#ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
-//        if(TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
-//                                           vid->thumbnail,
-//                                           QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath())))
-//            manuallyAccepted = true;
-//        else
-//#endif
-//            QVERIFY2(manuallyAccepted, QString("Different thumbnails for %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData());
-//    }
-//#ifdef ENABLE_HASHES_VERIFICATION
-//    if(manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
-//        QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2").arg(videoParam.hash1).arg(vid->hash[0]).toUtf8().constData());
-//        QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
-//    }
-//#endif
+    bool manuallyAccepted = false; // hash will be different anyways if thumbnails look different, so must skip these tests !
+    if(ref_thumbnail != vid->thumbnail){
+#ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
+        if(TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
+                                           vid->thumbnail,
+                                           QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath())))
+            manuallyAccepted = true;
+        else
+#endif
+            QVERIFY2(manuallyAccepted, QString("Different thumbnails for %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData());
+    }
+#ifdef ENABLE_HASHES_VERIFICATION
+    if(manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
+        QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2").arg(videoParam.hash1).arg(vid->hash[0]).toUtf8().constData());
+        QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
+    }
+#endif
 
 }
 
