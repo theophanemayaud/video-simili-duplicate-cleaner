@@ -594,6 +594,7 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const 
                             codec_ctx->height);
 
     // TODO : migrate deprecated to something like below (NB it doesn't work yet)
+    // Maybe look at https://stackoverflow.com/questions/64428006/ffmpegs-sws-scale-for-converting-rgb-to-yuv420-image-is-extremely-slow
 //    if(ffmpeg::av_frame_get_buffer(frameRGB, 1)!=0){
 //        qDebug() << "Failed to get frame buffers for "<<filename;
 //        return QImage();
