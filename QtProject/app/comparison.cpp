@@ -623,14 +623,14 @@ void Comparison::wheelEvent(QWheelEvent *event)
         QApplication::setOverrideCursor(Qt::WaitCursor);
 
         QImage image;
-        image = _videos[_leftVideo]->captureAt(10);
+        image = _videos[_leftVideo]->ffmpegLib_captureAt(10);
         ui->leftImage->setPixmap(QPixmap::fromImage(image).scaled(
                                  ui->leftImage->width(), ui->leftImage->height(), Qt::KeepAspectRatio));
         _leftZoomed = QPixmap::fromImage(image);      //keep it in memory
         _leftW = image.width();
         _leftH = image.height();
 
-        image = _videos[_rightVideo]->captureAt(10);
+        image = _videos[_rightVideo]->ffmpegLib_captureAt(10);
         ui->rightImage->setPixmap(QPixmap::fromImage(image).scaled(
                                   ui->rightImage->width(), ui->rightImage->height(), Qt::KeepAspectRatio));
         _rightZoomed = QPixmap::fromImage(image);

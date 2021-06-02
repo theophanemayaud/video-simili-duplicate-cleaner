@@ -40,11 +40,11 @@ private slots:
     uint64_t computePhash(const cv::Mat &input) const;
     QImage minimizeImage(const QImage &image) const;
     QString msToHHMMSS(const int64_t &time) const;
-    QImage ffmpegLib_captureAt(const QString imgPathname, const int percent, const int ofDuration) const;   // new methods for capture of image, using ffmpeg library
-    QImage getQImageFromFrame(const ffmpeg::AVCodecContext* codec_ctx, const ffmpeg::AVFrame* pFrame, const QString imgPathname) const;
+    QImage getQImageFromFrame(const ffmpeg::AVCodecContext* codec_ctx, const ffmpeg::AVFrame* pFrame) const;
 
 public slots:
-    QImage captureAt(const int &percent, const int &ofDuration=100) const;
+    // returns empty image if ffmpegLib_captureAt failed and returned empty image
+    QImage ffmpegLib_captureAt(const int percent, const int ofDuration=100) const;   // new methods for capture of image, using ffmpeg library
 
 signals:
     void acceptVideo(Video *addMe) const;
