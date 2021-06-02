@@ -183,7 +183,7 @@ int Video::takeScreenCaptures(const Db &cache)
         }
         else
         {
-            frame = captureAt(percentages[capture], ofDuration);
+            frame = ffmpegLib_captureAt(percentages[capture], ofDuration);
             if(frame.isNull())                                  //taking screen capture may fail if video is broken
             {
                 ofDuration = ofDuration - _goBackwardsPercent;
@@ -314,20 +314,7 @@ QString Video::msToHHMMSS(const int64_t &time) const // miliseconds to user read
     return QStringLiteral("%1:%2:%3.%4").arg(paddedHours, paddedMinutes, paddedSeconds).arg(paddedMSeconds);
 }
 
-QImage Video::captureAt(const int &percent, const int &ofDuration) const
-{
-    const QTemporaryDir tempDir;
-    if(!tempDir.isValid())
-        return QImage();
-
-    const QString screenshotPath = QStringLiteral("%1/duplicate%2.bmp").arg(tempDir.path()).arg(percent);
-
-    const QImage libImg = ffmpegLib_captureAt(screenshotPath, percent, ofDuration);
-
-    return libImg;
-}
-
-QImage Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, const int ofDuration) const
+QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
 {
 //    // NB Here a lot of comments are kept as is, because they quickly enable diagnstics of new or problematic
 //    // video codecs/files/...
@@ -540,7 +527,7 @@ QImage Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, 
 //                }
 
                 if((curr_ts-wanted_ts)>=-ts_diff){ // must read frames until we get before wanted time stamp
-                    img = getQImageFromFrame(codec_ctx, vFrame, imgPathname);
+                    img = getQImageFromFrame(codec_ctx, vFrame);
                     if(img.isNull()){
                         qDebug() << "Failed to save img for file " << filename;
                         ffmpeg::av_packet_free(&vPacket);
@@ -585,7 +572,7 @@ QImage Video::ffmpegLib_captureAt(const QString imgPathname, const int percent, 
     return img;
 }
 
-QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AVFrame* pFrame, const QString imgPathname) const//const char * folderName, int index)
+QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AVFrame* pFrame) const//const char * folderName, int index)
 {
     // first convert frame to rgb24
     ffmpeg::SwsContext* img_convert_ctx;
@@ -597,22 +584,35 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const 
                                      ffmpeg::AV_PIX_FMT_RGB24,
                                      SWS_BICUBIC, NULL, NULL, NULL);
     ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
+    frameRGB->width = codec_ctx->width;
+    frameRGB->height = codec_ctx->height;
+    frameRGB->format = ffmpeg::AV_PIX_FMT_RGB24;
+
     ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
                             ffmpeg::AV_PIX_FMT_RGB24,
                             codec_ctx->width,
                             codec_ctx->height);
 
-    sws_scale(img_convert_ctx,
+    // TODO : migrate deprecated to something like below (NB it doesn't work yet)
+//    if(ffmpeg::av_frame_get_buffer(frameRGB, 1)!=0){
+//        qDebug() << "Failed to get frame buffers for "<<filename;
+//        return QImage();
+//    }
+
+    ffmpeg::sws_scale(img_convert_ctx,
               pFrame->data,
               pFrame->linesize, 0,
               codec_ctx->height,
               frameRGB->data,
               frameRGB->linesize);
+
     QImage image(frameRGB->data[0],
                      codec_ctx->width,
                      codec_ctx->height,
                      frameRGB->linesize[0],
                      QImage::Format_RGB888);
+
+    ffmpeg::av_frame_free(&frameRGB);
 
     // if the video had rotated metadata, it needs to be flipped !
     if(_rotateAngle%360 == 90){
