@@ -67,7 +67,7 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
     refText->setText("Ref thumbnail");
     QLabel *newText = new QLabel(ui_image);
     newText->setText("New thumbnail");
-    QHBoxLayout *checkLayout = new QHBoxLayout(ui_image);
+    QHBoxLayout *checkLayout = new QHBoxLayout();
     QCheckBox *accept = new QCheckBox(ui_image);
     accept->setText("Identical looking");
     QCheckBox *reject = new QCheckBox(ui_image);
@@ -96,6 +96,7 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
         }
     }
 
+    ui_image->close();
     return false;
 }
 
