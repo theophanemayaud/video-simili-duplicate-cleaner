@@ -276,15 +276,16 @@ void TestVideo::test_check_reference_video_params(){
         videoParamList.append(videoParam);
     }
 
+    qDebug() << "TIMER:test_100GB_create_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
     QVERIFY(!videoParamList.isEmpty());
     QVERIFY(TestHelpers::saveVideoParamQListToCSV(videoParamList, _100GBcsvInfo));
-    qDebug() << "TIMER:test_100GB_create_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
 }*/
 
 void TestVideo::test_100GBcheck_reference_video_params(){
     // cached thumbs, mix lib&exec metadata, exec captures : 39 min
     // no cached thumbs, library(only) metadata, exec captures : 37
     // cached thumbs, library(only) metadata, exec captures : 12 min
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 48 min
     // cached thumbs, lib(only) metadata, lib(only) captures : 12 min
     const qint64 ref_ms_time = 40*60*1000;
 
@@ -332,7 +333,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
 void TestVideo::test_whole_app_100GB(){
     // Constants of the test
     const int nb_vids_to_find = 12505;
-    const int nb_valid_vids_to_find = 12328;
+    const int nb_valid_vids_to_find = 12328; // when cached finds 12330 ?
     // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
     // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6551 videos with one or more matches
 
@@ -340,7 +341,7 @@ void TestVideo::test_whole_app_100GB(){
     // cached thumbs, mix lib&exec metadata, exec captures : 17 min
     // no cached thumbs, lib(only) metadata, exec captures : 30 min
     // cached thumbs, lib(only) metadata, exec captures : 6 min
-    // no cached thumbs, lib(only) metadata, lib(only) captures : 19 min
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 17 min
     // cached thumbs, lib(only) metadata, lib(only) captures : 6 min
     const qint64 ref_ms_time = 20*60*1000;
 
