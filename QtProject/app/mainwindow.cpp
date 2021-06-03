@@ -309,8 +309,8 @@ void MainWindow::processVideos()
             threadPool.clear();
             break;
         }
-        while(threadPool.activeThreadCount() == threadPool.maxThreadCount()) // TODO restore
-//        while(threadPool.activeThreadCount() == 1)
+        while(threadPool.activeThreadCount() == threadPool.maxThreadCount())
+//        while(threadPool.activeThreadCount() == 1) // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
 
         auto *videoTask = new Video(_prefs, _ffmpegPath, filename);

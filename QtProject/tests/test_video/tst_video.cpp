@@ -3,7 +3,8 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QElapsedTimer>
 
-/* NB : sometimes, for some unknown reason, thumbnails don't come out the same.
+/* NB : Thumbnails are generated without cache : must run test without cache (clean all before)
+ * Also sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
 //#define ENABLE_THUMBNAIL_VERIF
@@ -37,7 +38,7 @@ public:
     static void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid);
 
 private:
-    const QFileInfo _ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/app/deps/ffmpeg");
+    const QFileInfo _ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/deps/ffmpeg");
 
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
     const QDir _thumbnailDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails/");
@@ -61,18 +62,11 @@ private slots:
     void test_whole_app_100GB();
 
     void cleanupTestCase();
-
 };
 
-TestVideo::TestVideo()
-{
+TestVideo::TestVideo(){}
 
-}
-
-TestVideo::~TestVideo()
-{
-
-}
+TestVideo::~TestVideo(){}
 
 // Run before all tests
 void TestVideo::initTestCase(){
@@ -80,25 +74,22 @@ void TestVideo::initTestCase(){
 }
 
 // Run after all tests
-void TestVideo::cleanupTestCase()
-{
-
-}
+void TestVideo::cleanupTestCase(){}
 
 void TestVideo::test_whole_app(){
     // constants of the test
     const int nb_vids_to_find = 190;
-    const int nb_valid_vids_to_find = 186;
+    const int nb_valid_vids_to_find = 187;
     // mix lib&exec metadata, exec captures : finds 69 videos with one or more matches
-    // lib(only) metadata, lib(only) captures : finds 70 videos with one or more matches
+    // lib(only) metadata, lib(only) captures : finds 71 videos with one or more matches
 
     // no cached thumbs, mix lib&exec metadata, exec captures : 31 sec
     // cached thumbs, mix lib&exec metadata, exec captures : 9 sec
     // no cached thumbs, lib(only) metadata, exec captures : 26 sec
     // cached thumbs, lib(only) metadata, exec captures : 3 sec
-    // no cached thumbs, lib(only) metadata, lib(only) captures : 14 sec
-    // cached thumbs, lib(only) metadata, lib(only) captures : 4 sec
-   const qint64 ref_ms_time = 30*1000;
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 13 sec
+    // cached thumbs, lib(only) metadata, lib(only) captures : 3 sec
+   const qint64 ref_ms_time = 20*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -116,10 +107,10 @@ void TestVideo::test_whole_app(){
     w->ui->blocksizeCombo->setAcceptDrops(true);
 
     qDebug() << "Found "<<w->_everyVideo.count()<<" files of which "<< w->_videoList.count()<<" valid ones";
-    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Only found %1 files").arg(w->_everyVideo.count()).toStdString().c_str());
-    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Only found %1 valid files").arg(w->_videoList.count()).toStdString().c_str());
-
     qDebug() << "TIMER:test_whole_app took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Found %1 files, doesn't match").arg(w->_everyVideo.count()).toStdString().c_str());
+    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files, doesn't match").arg(w->_videoList.count()).toStdString().c_str());
+
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
     Comparison comp(w->sortVideosBySize(), w->_prefs);
     comp.reportMatchingVideos();
@@ -139,6 +130,8 @@ void TestVideo::test_check_reference_video_params(){
     // cached thumbs, mix lib&exec metadata, exec captures : 26 sec
     // no cached thumbs, lib(only) metadata, exec captures : 64 sec
     // cached thumbs, library(only) metadata, executable captures : 9 sec
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 35 sec
+    // cached thumbs, lib(only) metadata, lib(only) captures : 8 sec
     const qint64 ref_ms_time = 80*1000;
 
     QElapsedTimer timer;
@@ -292,6 +285,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
     // cached thumbs, mix lib&exec metadata, exec captures : 39 min
     // no cached thumbs, library(only) metadata, exec captures : 37
     // cached thumbs, library(only) metadata, exec captures : 12 min
+    // cached thumbs, lib(only) metadata, lib(only) captures : xx min
     const qint64 ref_ms_time = 40*60*1000;
 
     QElapsedTimer timer;
@@ -338,7 +332,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
 void TestVideo::test_whole_app_100GB(){
     // Constants of the test
     const int nb_vids_to_find = 12505;
-    const int nb_valid_vids_to_find = 12048;
+    const int nb_valid_vids_to_find = 12328;
     // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
     // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6551 videos with one or more matches
 
@@ -346,8 +340,8 @@ void TestVideo::test_whole_app_100GB(){
     // cached thumbs, mix lib&exec metadata, exec captures : 17 min
     // no cached thumbs, lib(only) metadata, exec captures : 30 min
     // cached thumbs, lib(only) metadata, exec captures : 6 min
-    // no cached thumbs, lib(only) metadata, lib(only) captures : 17 min
-    // cached thumbs, lib(only) metadata, lib(only) captures : 5 min
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 19 min
+    // cached thumbs, lib(only) metadata, lib(only) captures : 6 min
     const qint64 ref_ms_time = 20*60*1000;
 
     QElapsedTimer timer;
@@ -391,7 +385,7 @@ void TestVideo::test_whole_app_100GB(){
 void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) {
     QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2").arg(videoParam.size).arg(vid->size).toUtf8().constData());
     QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
-    QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2").arg(videoParam.duration).arg(vid->duration).toUtf8().constData());
+    QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData());
     QVERIFY2(videoParam.bitrate == vid->bitrate, QString("ref bitrate=%1 new bitrate=%2").arg(videoParam.bitrate).arg(vid->bitrate).toUtf8().constData());
     QVERIFY2(videoParam.framerate == vid->framerate, QString("framerate ref=%1 new=%2").arg(videoParam.framerate).arg(vid->framerate).toUtf8().constData());
     QVERIFY2(videoParam.codec == vid->codec, QString("codec ref=%1 new=%2").arg(videoParam.codec).arg(vid->codec).toUtf8().constData());
@@ -401,10 +395,10 @@ void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const V
     QVERIFY2(videoParam.width == vid->width, QString("width x height ref=%1x%2 new=%3x%4").arg(videoParam.width).arg(videoParam.height).arg(vid->width).arg(vid->height).toUtf8().constData());
     QVERIFY2(videoParam.height == vid->height, QString("width x height ref=%1x%2 new=%3x%4").arg(videoParam.width).arg(videoParam.height).arg(vid->width).arg(vid->height).toUtf8().constData());
     QVERIFY2(!(!ref_thumbnail.isNull() && vid->thumbnail.isNull()),  QString("Ref thumb not empty but new thumb is empty file %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toStdString().c_str());
-//    if(ref_thumbnail.isNull() && !vid->thumbnail.isNull()){ // manually visualise new captures
+//    if(ref_thumbnail.isNull() && !vid->thumbnail.isNull()){ // Useful to manually visualise new captures
 //        TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
 //                                                vid->thumbnail,
-//                                                QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath()));
+//                                                QString("Previously no thumbnail worked but now it does for  %1").arg(videoParam.thumbnailInfo.absoluteFilePath()));
 //    }
 #ifdef ENABLE_THUMBNAIL_VERIF
     bool manuallyAccepted = false; // hash will be different anyways if thumbnails look different, so must skip these tests !
