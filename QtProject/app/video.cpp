@@ -14,7 +14,7 @@ int Video::_jpegQuality = _okJpegQuality;
 //DEBUGTHEO
 QString ffmpeg_output="Uninitialized";
 
-Video::Video(const Prefs &prefsParam, const QString &ffmpegPathParam, const QString &filenameParam) : filename(filenameParam), _ffmpegPath(ffmpegPathParam)
+Video::Video(const Prefs &prefsParam, const QString &filenameParam) : filename(filenameParam)
 {
     _prefs = prefsParam;
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit

@@ -63,10 +63,11 @@ PRE_TARGETDEPS += $$PWD/../libraries/ffmpeg/lib/libavutil.a \
 # Other things
 ICON = $$PWD/AppIcon.icns
 
-APP_QML_FILES.files = \
-    $$PWD/../deps/ffmpeg
-APP_QML_FILES.path = Contents/MacOS
-QMAKE_BUNDLE_DATA += APP_QML_FILES
+# Old way that FFMPEG was included as an executable : now it's only a library !
+#APP_QML_FILES.files = \
+#    $$PWD/../deps/ffmpeg
+#APP_QML_FILES.path = Contents/MacOS
+#QMAKE_BUNDLE_DATA += APP_QML_FILES
 }
 
 win32 {
