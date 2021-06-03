@@ -7,7 +7,7 @@
  * Also sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
-//#define ENABLE_THUMBNAIL_VERIF
+#define ENABLE_THUMBNAIL_VERIF
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
@@ -285,7 +285,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
     // cached thumbs, mix lib&exec metadata, exec captures : 39 min
     // no cached thumbs, library(only) metadata, exec captures : 37
     // cached thumbs, library(only) metadata, exec captures : 12 min
-    // cached thumbs, lib(only) metadata, lib(only) captures : xx min
+    // cached thumbs, lib(only) metadata, lib(only) captures : 12 min
     const qint64 ref_ms_time = 40*60*1000;
 
     QElapsedTimer timer;

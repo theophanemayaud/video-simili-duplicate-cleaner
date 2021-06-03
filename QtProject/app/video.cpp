@@ -39,10 +39,7 @@ void Video::run()
     // DDEBUGTHEO removed the cheking whether it was cached as it generated errors with all seemingly cached with height width and duration == 0
 //    if(!cache.readMetadata(*this))      //check first if video properties are cached
 //    {
-        const QFileInfo videoFile(filename);
-        size = videoFile.size();
-        modified = videoFile.lastModified();
-        if(size==0){
+        if(QFileInfo(filename).size()==0){
             qDebug() << "File size = 0 : rejected " << filename;
             emit rejectVideo(this, "File size = 0 : rejected ");
             return;
@@ -77,6 +74,13 @@ void Video::run()
 
 bool Video::getMetadata(const QString &filename)
 {
+    const QFileInfo videoFile(filename);
+    size = videoFile.size();
+    if(size==0){
+        qDebug() << "Video file size=0 : rejected "<<filename;
+        return false;
+    }
+
     // Get Video stream metadata with new methods using ffmpeg library
     ffmpeg::av_log_set_level(AV_LOG_FATAL);
 #ifdef DEBUG_VIDEO_READING
@@ -178,6 +182,8 @@ bool Video::getMetadata(const QString &filename)
     }
 
     ffmpeg::avformat_close_input(&fmt_ctx);
+
+    modified = videoFile.lastModified(); // get it at the end so as not to have a date when other infos are empty
 
     return true; // success !
 }
