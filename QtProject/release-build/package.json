@@ -5,7 +5,7 @@
     "macdeploy": "/Users/theophanemayaud/Qt/5.15.2/clang_64/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
     "build-mac-binaries": "npm run qmake && npm run make && npm run macdeploy && npm run sign-and-package",
     "sign-and-package": "cp Info.plist 'Video simili duplicate cleaner.app/Contents/Info.plist' && npm run sign-app && npm run package-app",
-    "sign-app": "codesign --deep --sign 'Apple Distribution: THEOPHANE MAYAUD (XZ4FY5SXW7)' --entitlements child.plist --options=runtime --timestamp 'Video simili duplicate cleaner.app/Contents/MacOS/ffmpeg' && codesign --deep --sign 'Apple Distribution: THEOPHANE MAYAUD (XZ4FY5SXW7)' --entitlements parent.plist --options=runtime --timestamp 'Video simili duplicate cleaner.app'",
+    "sign-app": "codesign --deep --sign 'Apple Distribution: THEOPHANE MAYAUD (XZ4FY5SXW7)' --entitlements parent.plist --options=runtime --timestamp 'Video simili duplicate cleaner.app'",
     "package-app": "productbuild --component 'Video simili duplicate cleaner.app' /Applications --sign '3rd Party Mac Developer Installer: THEOPHANE MAYAUD (XZ4FY5SXW7)' --timestamp 'Video simili duplicate cleaner.pkg'",
     "make-clean" : "make clean -j8 || exit 0",
     "clean-leftovers" : "npm run make-clean && rm -f 'Video simili duplicate cleaner.dmg' && rm -f Makefile && rm -f .qmake.stash && rm -f -r 'Video simili duplicate cleaner.app' && rm -f 'Video simili duplicate cleaner.pkg'",
