@@ -327,7 +327,7 @@ void TestVideo::test_whole_app_100GB(){
     const int nb_vids_to_find = 12505;
     const int nb_valid_vids_to_find = 12328; // when cached finds 12330 ?
     // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
-    // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6551 videos with one or more matches
+    // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6562 videos with one or more matches. When cached finds 6553...
 
     // no cached thumbs, mix lib&exec metadata, exec captures : 36 min
     // cached thumbs, mix lib&exec metadata, exec captures : 17 min
