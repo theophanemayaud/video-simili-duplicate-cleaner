@@ -3,6 +3,12 @@
 
 #define FAIL_ON_FRAME_DECODE_NB_FAIL 10
 
+#define ESTIMATE_DURATION_FROM_FRAME_NB 5
+#define ESTIMATE_DURATION_FROM_FRAME_RESCALE 0.8
+
+
+//#define DEBUG_VIDEO_READING
+
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
 
@@ -32,16 +38,26 @@ void Video::run()
 
     Db cache(filename);
     // DDEBUGTHEO removed the cheking whether it was cached as it generated errors with all seemingly cached with height width and duration == 0
-    /*if(!cache.readMetadata(*this))      //check first if video properties are cached
-    {*/
+//    if(!cache.readMetadata(*this))      //check first if video properties are cached
+//    {
+        const QFileInfo videoFile(filename);
+        size = videoFile.size();
+        modified = videoFile.lastModified();
+        if(size==0){
+            qDebug() << "File size = 0 : rejected " << filename;
+            emit rejectVideo(this, "File size = 0 : rejected ");
+            return;
+        }
         if(!getMetadata(filename))         //if not, read them with ffmpeg
             return;
-        cache.writeMetadata(*this);
-    //}
-    if(width == 0 || height == 0 || duration == 0)
+//        cache.writeMetadata(*this);
+//    }
+    if(width == 0 || height == 0)// || duration == 0) TODO temp : see if we can infer duration when decoding frames,
     {
-        qDebug() << "Height width duration = 0 : rejected "+ filename;
-        emit rejectVideo(this, "Height width duration = 0");
+//        qDebug() << "Height ("<<height<<"), width ("<<width<<") or duration ("<<msToHHMMSS(duration)<<") = 0 : rejected " << filename;
+//        emit rejectVideo(this, "Height, width or duration = 0 ");
+        qDebug() << "Height ("<<height<<") or width ("<<width<<") = 0 : rejected " << filename;
+        emit rejectVideo(this, QString("Height (%1) or width (%2) = 0 ").arg(height).arg(width));
         return;
     }
 
@@ -64,26 +80,30 @@ void Video::run()
 bool Video::getMetadata(const QString &filename)
 {
     // Get Video stream metadata with new methods using ffmpeg library
-    ffmpeg::av_log_set_level(AV_LOG_ERROR);
+    ffmpeg::av_log_set_level(AV_LOG_FATAL);
+#ifdef DEBUG_VIDEO_READING
+    ffmpeg::av_log_set_level(AV_LOG_INFO);
+#endif
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
     int ret;
-    ret = avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
+    ret = ffmpeg::avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
     if (ret < 0) {
         qDebug() << "Could not open input : " + filename;
         emit rejectVideo(this, "Could not open input");
         avformat_close_input(&fmt_ctx);
         return false; // error
     }
-    ret = avformat_find_stream_info(fmt_ctx, NULL);
+    ret = ffmpeg::avformat_find_stream_info(fmt_ctx, NULL);
     if (ret < 0) {
         qDebug() << "Could not find stream information : " + filename;
         emit rejectVideo(this, "Could not find stream information");
     }
+#ifdef DEBUG_VIDEO_READING
     // Helpful for debugging : dumps as the executable would
-//    qDebug() << "ffmpeg dump format :";
-//    av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
-//    qDebug() << "\n\n";
-
+    qDebug() << "ffmpeg dump format :";
+    ffmpeg::av_dump_format(fmt_ctx, 0, QDir::toNativeSeparators(filename).toStdString().c_str(), 0);
+    qDebug() << "\n\n";
+#endif
     // Get Duration and bitrate infos (code copied from ffmpeg helper function av_dump_format see https://ffmpeg.org/doxygen/3.2/group__lavf__misc.html#gae2645941f2dc779c307eb6314fd39f10
     if (fmt_ctx->duration != AV_NOPTS_VALUE) {
         int64_t ffmpeg_duration = fmt_ctx->duration + (fmt_ctx->duration <= INT64_MAX - 5000 ? 5000 : 0);
@@ -104,30 +124,37 @@ bool Video::getMetadata(const QString &filename)
     //          stream info if there were multiple, but now using ffmpeg find best stream
     ret = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_VIDEO, -1 /* auto stream selection*/,
                                       -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
-    if(ret>=0){ // Found a video stream
-        ffmpeg::AVStream *vs = fmt_ctx->streams[ret]; // not necessary, but shorter for next calls
-        codec = ffmpeg::avcodec_get_name(vs->codecpar->codec_id); //inspired from avcodec_string function
-        width = vs->codecpar->width ; // from avcodec_parameters_to_context function -> different than vs->codec->coded_height but seems to be more correct
-        height = vs->codecpar->height;
-        framerate = round(ffmpeg::av_q2d(vs->avg_frame_rate) * 10) / 10;
+    if(ret<0){ // Didn't find a video stream
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return false;
+    }
+    ffmpeg::AVStream *vs = fmt_ctx->streams[ret]; // not necessary, but shorter for next calls
+    codec = ffmpeg::avcodec_get_name(vs->codecpar->codec_id); //inspired from avcodec_string function
+    // sometimes duration and or bitrate from format context is not found, so we set it here from video stream
+    if(duration==0 && vs->duration!=AV_NOPTS_VALUE){
+        // duration is in ms, so we *1000 to go from secs to ms. Also video stream duration is in its own time base
+        duration = 1000*vs->duration*vs->time_base.num/vs->time_base.den;
+    }
+    if(bitrate==0 && vs->codecpar->bit_rate!=AV_NOPTS_VALUE){
+        bitrate = vs->codecpar->bit_rate/1000; //we want it in kb/s and ffmpeg gives b/s
+    }
+    width = vs->codecpar->width ; // from avcodec_parameters_to_context function -> different than vs->codec->coded_height but seems to be more correct
+    height = vs->codecpar->height;
+    framerate = round(ffmpeg::av_q2d(vs->avg_frame_rate) * 10) / 10;
 
-        // handle rotated videos
-        ffmpeg::AVDictionaryEntry *tag = NULL;
-        tag = ffmpeg::av_dict_get(vs->metadata, "rotate", NULL /* not wanting to specify any position*/, 0 /*no flags*/);
-        if(tag){
-            _rotateAngle = QString(tag->value).toInt();
-            if(_rotateAngle == 90 || _rotateAngle == 270) {
-                const short temp = width;
-                width = height;
-                height = temp;
-            }
-//#ifdef QT_DEBUG
-//            new_rotate = _rotateAngle; // to check with old code if equal
-//#endif
+    // handle rotated videos
+    ffmpeg::AVDictionaryEntry *tag = NULL;
+    tag = ffmpeg::av_dict_get(vs->metadata, "rotate", NULL /* not wanting to specify any position*/, 0 /*no flags*/);
+    if(tag){
+        _rotateAngle = QString(tag->value).toInt();
+        if(_rotateAngle == 90 || _rotateAngle == 270) {
+            const short temp = width;
+            width = height;
+            height = temp;
         }
     }
 
-    // Find audio stream information
+    // Find audio stream information (we don't care if we don't find any, though)
     ret = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_AUDIO, -1 /* auto stream selection*/,
                                       -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
     if(ret>=0){ // Found a good audio stream
@@ -152,11 +179,7 @@ bool Video::getMetadata(const QString &filename)
             audio = QStringLiteral("%1 %2 kb/s").arg(audio, kbps);
     }
 
-    avformat_close_input(&fmt_ctx);
-
-    const QFileInfo videoFile(filename);
-    size = videoFile.size();
-    modified = videoFile.lastModified();
+    ffmpeg::avformat_close_input(&fmt_ctx);
 
     return true; // success !
 }
@@ -176,6 +199,7 @@ int Video::takeScreenCaptures(const Db &cache)
         QBuffer captureBuffer(&cachedImage);
         bool writeToCache = false;
 
+#ifndef DEBUG_VIDEO_READING
         if(!cachedImage.isNull())   //image was already in cache
         {
             frame.load(&captureBuffer, QByteArrayLiteral("JPG"));   //was saved in cache as small size, resize to original
@@ -183,6 +207,7 @@ int Video::takeScreenCaptures(const Db &cache)
         }
         else
         {
+#endif
             frame = ffmpegLib_captureAt(percentages[capture], ofDuration);
             if(frame.isNull())                                  //taking screen capture may fail if video is broken
             {
@@ -195,8 +220,10 @@ int Video::takeScreenCaptures(const Db &cache)
                 qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
                 return _failure;
             }
+#ifndef DEBUG_VIDEO_READING
             writeToCache = true;
         }
+#endif
         if(frame.width() > width || frame.height() > height){    //metadata parsing error or variable resolution
             qDebug() << "Failing because capture height="<<frame.height()<<",width="<<frame.width()<<" is different to vid metadata height="<<width<<",width="<<height<< "for file "<< filename;
             return _failure;
@@ -314,12 +341,15 @@ QString Video::msToHHMMSS(const int64_t &time) const // miliseconds to user read
     return QStringLiteral("%1:%2:%3.%4").arg(paddedHours, paddedMinutes, paddedSeconds).arg(paddedMSeconds);
 }
 
-QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
+QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 {
-//    // NB Here a lot of comments are kept as is, because they quickly enable diagnstics of new or problematic
-//    // video codecs/files/...
-//    qDebug() << "Library will try to capture at "<<percent<<"% ofduration "<<ofDuration<<"% for file "<< filename;
     ffmpeg::av_log_set_level(AV_LOG_FATAL);
+#ifdef DEBUG_VIDEO_READING
+    // NB Here a lot of debug elements are kept as is, because they quickly enable diagnstics of new or problematic
+    // video codecs/files/...
+    qDebug() << "Library will try to capture at "<<percent<<"% ofduration "<<ofDuration<<"% for file "<< filename;
+    ffmpeg::av_log_set_level(AV_LOG_INFO);
+#endif
     // new ffmpeg library code to capture an image :
     // inspired from http://blog.allenworkspace.net/2020/06/ffmpeg-decode-and-then-encode-frames-to.html
     // general understanding https://github.com/leandromoreira/ffmpeg-libav-tutorial
@@ -361,7 +391,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
         return img;
     }
 
-    /* find decoder for the stream */
+    // find decoder for the stream
     ffmpeg::AVCodec *codec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
     if (!codec) {
         qDebug() << "Failed to find video codec "<< ffmpeg::avcodec_get_name(vs->codecpar->codec_id) << " for file " << filename;
@@ -419,36 +449,45 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
     bool readFrame = false;
     int failedFrames = 0;
     // get timestamp, in units of stream time base. We have in miliseconds
-    int64_t ms_stream_duration = 1000*vs->duration*vs->time_base.num/vs->time_base.den;
+    int64_t ms_stream_duration = 0;
+    if(vs->duration!=AV_NOPTS_VALUE){
+            ms_stream_duration = 1000*vs->duration*vs->time_base.num/vs->time_base.den;
+    }
+    else if(duration!=0){
+        ms_stream_duration = duration;
+    }
+    int frames_estimated=-1; // duration estimation from frame size (bytes) and file size. Disabled if -1
+    int avg_frame_bytes_size = 1; // avoid 0 division
+    if(ms_stream_duration==0){
+        frames_estimated = 0;
+    }
     // TODO : we use stream duration here, not duration gotten from metadata,
     //        but sometimes metadata file duration is very different => should find a way to report it
+#ifdef DEBUG_VIDEO_READING
     if(abs(ms_stream_duration-duration)>100){
-//        qDebug() << "Stream duration ms(" << ms_stream_duration << ") is more than 100ms different to file reported duration("<<duration<<") (we're using video stream duration for captures) " << filename;
+        qDebug() << "Stream duration ms(" << ms_stream_duration << ") is more than 100ms different to file reported duration("<<duration<<") (we're using video stream duration for captures) " << filename;
     }
-    const int64_t wanted_ms_place = (double) ms_stream_duration *  percent * ofDuration / (100 * 100 /*percents*/) ;
+#endif
+    int64_t wanted_ms_place = (double) ms_stream_duration *  percent * ofDuration / (100 * 100 /*percents*/) ;
     const int64_t ts_diff = vs->avg_frame_rate.den * vs->time_base.den / (vs->avg_frame_rate.num * vs->time_base.num);
     long long start_time=0;
     if(vs->start_time!=AV_NOPTS_VALUE){
         start_time = vs->start_time;
     }
     // don't need to offset by vs->start_time as stream duration doesn't include this offset
-    const int64_t wanted_ts = vs->time_base.den * wanted_ms_place / (vs->time_base.num * 1000 /*we have ms duration*/);
-
-//    qDebug() << "Will try to get frame at "<<percent<<"% ofdur "<<ofDuration<<"% for "<< filename;
-//    qDebug() << "wanted_ms_place "<<wanted_ms_place << " video stream ms duration "<< ms_stream_duration;
-//    qDebug() << "ts_diff_between_images "<< ts_diff << " in terms of time "<< msToHHMMSS(1000*ts_diff*vs->time_base.num/vs->time_base.den);
-//    qDebug() << "tb num "<<vs->time_base.num<<" den "<<vs->time_base.den;
-//    qDebug() << "avg fps="<<(float)vs->avg_frame_rate.num/vs->avg_frame_rate.den;
-//    qDebug() << "start pts="<< start_time << "in terms of time "<< msToHHMMSS(1000*start_time*vs->time_base.num/vs->time_base.den);
-//    qDebug() << "stream duration="<< vs->duration <<
-//                " in terms of time " << msToHHMMSS(ms_stream_duration) <<
-//                " in terms of ms "<< ms_stream_duration;
-
-//    qDebug() << "Seeking to timestamp " <<
-//                msToHHMMSS(ms_stream_duration * (percent * ofDuration) / (100 * 100))<<
-//                " for file (of duration " << msToHHMMSS(ms_stream_duration) << " ) " << filename;
-//    qDebug() << "In terms of ffmpeg units : "<< wanted_ts << " for stream duration " << vs->duration ;
-
+    int64_t wanted_ts = vs->time_base.den * wanted_ms_place / (vs->time_base.num * 1000 /*we have ms duration*/);
+#ifdef DEBUG_VIDEO_READING
+    qDebug() << "wanted_ms_place "<< wanted_ms_place << " for video stream ms duration "<< ms_stream_duration;
+    qDebug() << "ts_diff_between_images "<< ts_diff << " in terms of time "<< msToHHMMSS(1000*ts_diff*vs->time_base.num/vs->time_base.den);
+    qDebug() << "time base = "<<vs->time_base.num<<" / "<<vs->time_base.den;
+    qDebug() << "avg fps="<<(float)vs->avg_frame_rate.num/vs->avg_frame_rate.den << " stream bitrate= "<<vs->codecpar->bit_rate/1000<<"kb/s"<< "Number of frames in stream : "<<vs->nb_frames;
+    qDebug() << "start pts="<< start_time << "in terms of time "<< msToHHMMSS(1000*start_time*vs->time_base.num/vs->time_base.den);
+    qDebug() << "stream duration="<< vs->duration << " in terms of time " << msToHHMMSS(ms_stream_duration) << " in terms of ms "<< ms_stream_duration;
+    qDebug() << "Seeking to timestamp " <<
+                msToHHMMSS(ms_stream_duration * (percent * ofDuration) / (100 * 100))<<
+                " for file (of duration " << msToHHMMSS(ms_stream_duration) << " ) ";
+    qDebug() << "(in terms of stream time base wanted : "<< wanted_ts << " for stream duration " << vs->duration<<")";
+#endif
     // From http://ffmpeg.org/ffmpeg.html#Main-options see -ss option (as was previously used with executable)
     // "ffmpeg will seek to the closest seek point before position"
     // -> need to seek to closest previous keyframe and then decode each frame until the one right BEFORE (or at/after) exact position
@@ -463,13 +502,17 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
     }
     while (readFrame == false){
         int ret = ffmpeg::av_read_frame(fmt_ctx, vPacket); // reads packet frames, but buffers some so at the end,
-                                                            // even if it says EOF we need to decode again until there's nothing returned
+                                                            // even if it says EOF we need to decode again until there's no frames returned
+#ifdef DEBUG_VIDEO_READING
         if(ret == AVERROR_EOF){
-//            qDebug() << "av_read_frame said eof for file " << filename;
+            qDebug() << "av_read_frame said eof for file " << filename;
         }
+#endif
         if( ret /* reads all stream frames, must check for when video*/ < 0){
             failedFrames++;
-//            qDebug() << "Failed to read 1 frame, will try again for file" << filename;
+#ifdef DEBUG_VIDEO_READING
+            qDebug() << "Failed to read 1 frame, will try again for file" << filename;
+#endif
             if(failedFrames>FAIL_ON_FRAME_DECODE_NB_FAIL){
                 qDebug() << "Failed to read frames too many("<< failedFrames << ") times, will stop, for file " << filename;
                 ffmpeg::av_packet_free(&vPacket);
@@ -503,29 +546,54 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
                 return img;
             }
             if(ffmpeg::avcodec_receive_frame(codec_ctx, vFrame) == 0){ // should debug codes, 0 means success, otherwise just try again
-                long long curr_ts = -1; // if no other value, we'll effectively skip that frame, except if wanting the first frame and that's the first one we get
-                if(vFrame->pts>=0){
+                long long curr_ts = -1;
+                if(vFrame->best_effort_timestamp!=AV_NOPTS_VALUE){
+                    curr_ts = vFrame->best_effort_timestamp;
+                }
+                else if(vFrame->pts!=AV_NOPTS_VALUE){
                     curr_ts = vFrame->pts;
                 }
-                else if(vPacket->pts>=0){
+                else if(vPacket->pts!=AV_NOPTS_VALUE){
                     curr_ts = vPacket->pts;
                 }
-                else if(vFrame->pkt_dts>=0){
+                else if(vFrame->pkt_dts!=AV_NOPTS_VALUE){
                     curr_ts = vFrame->pkt_dts;
                 }
-
+            // try to find estimate stream duration from frame size and file size
+            if(frames_estimated!=-1 && frames_estimated<ESTIMATE_DURATION_FROM_FRAME_NB && vFrame->pkt_size!=0){
+                avg_frame_bytes_size = (frames_estimated*avg_frame_bytes_size + vFrame->pkt_size)/(1+frames_estimated);
+                frames_estimated++;
+                ms_stream_duration = (double)ESTIMATE_DURATION_FROM_FRAME_RESCALE*1000*size*vs->avg_frame_rate.den/(avg_frame_bytes_size*vs->avg_frame_rate.num); // rescale to avoid over estimating !
+                wanted_ms_place = (double) ms_stream_duration *  percent * ofDuration / (100 * 100 /*percents*/) ;
+                wanted_ts = vs->time_base.den * wanted_ms_place / (vs->time_base.num * 1000 /*we have ms duration*/);
+                duration = ms_stream_duration;
+                if(frames_estimated==ESTIMATE_DURATION_FROM_FRAME_NB){
+                    if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, AVSEEK_FLAG_BACKWARD /* 0 for no flags*/) < 0){ // will seek to closest previous keyframe
+                        qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
+                        ffmpeg::av_packet_free(&vPacket);
+                        ffmpeg::av_frame_free(&vFrame);
+                        ffmpeg::avcodec_free_context(&codec_ctx);
+                        ffmpeg::avformat_close_input(&fmt_ctx);
+                        return img;
+                    }
+                }
+            }
+#ifdef DEBUG_VIDEO_READING
 //                saveToJPEG(codec_ctx, vFrame, imgPathname +  " pts" + msToHHMMSS((long long)1000*vFrame->pts*vs->time_base.num/vs->time_base.den) + ".bmp");
-//                qDebug() << "Frame " <<
-//                            "type "<< av_get_picture_type_char(vFrame->pict_type) <<
-//                            " frame number " << codec_ctx->frame_number <<
-//                            " wanted ts (from start)"<<wanted_ts<<" in time (from 0)"<<msToHHMMSS(1000*(wanted_ts-start_time)*vs->time_base.num/vs->time_base.den)<<
-//                            " pts "<<vFrame->pts << " in time (from0)"<< msToHHMMSS(1000*(vFrame->pts-start_time)*vs->time_base.num/vs->time_base.den) <<
-//                            " pkt dts " << vFrame->pkt_dts<<
-//                            " curr_ts "<<curr_ts
-//                if(curr_ts==-1){
-//                    qDebug()<<"Problem with pts and dts (=-1) with file " << filename;
-//                }
-
+                qDebug() << "Frame " <<
+                            "type "<< av_get_picture_type_char(vFrame->pict_type) <<
+                            " frame number " << codec_ctx->frame_number <<
+                            " frame pkt size "<<vFrame->pkt_size<<
+                            " avg "<< frames_estimated<<" frames size "<<avg_frame_bytes_size<<
+                            " for file size (in bytes)"<<size <<
+                            " making estimated nb frames "<<size/avg_frame_bytes_size<<
+                            " or estimated duration " << msToHHMMSS(1000*vs->avg_frame_rate.den*size/(avg_frame_bytes_size*vs->avg_frame_rate.num));
+                qDebug() << " wanted ts (from start)"<<wanted_ts<<" in time (from 0)"<<msToHHMMSS(1000*(wanted_ts-start_time)*vs->time_base.num/vs->time_base.den)<<
+                            " vFrame pts "<<vFrame->pts << " in time (from0)"<< msToHHMMSS(1000*(vFrame->pts-start_time)*vs->time_base.num/vs->time_base.den) <<
+                            " pkt dts " << vFrame->pkt_dts<<
+                            " curr_ts "<<curr_ts <<
+                            " best effort ts "<<vFrame->best_effort_timestamp;
+#endif
                 if((curr_ts-wanted_ts)>=-ts_diff){ // must read frames until we get before wanted time stamp
                     img = getQImageFromFrame(codec_ctx, vFrame);
                     if(img.isNull()){
@@ -537,15 +605,18 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
                         return QImage();
                     }
                     readFrame = true;
-//                    qDebug() << "READ FRAME";
                 }
             }
             else{
-//                qDebug() << "Failed to receive frame for "<<filename;
+#ifdef DEBUG_VIDEO_READING
+                qDebug() << "Failed to receive frame for "<<filename;
+#endif
             }
         }
         else{
-//            qDebug() << "Packet not of wanted stream for "<<filename;
+#ifdef DEBUG_VIDEO_READING
+            qDebug() << "Packet not of wanted stream for "<<filename;
+#endif
             if(ret == AVERROR_EOF){
                 qDebug() << "Reached end of file, no more stream packets, found no matching frame for " << filename;
                 ffmpeg::av_packet_free(&vPacket);
@@ -566,9 +637,11 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration) const
     if(img.isNull()){
         qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<<filename;
     }
-//    else{
-//    qDebug() << "Library capture success at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
-//    }
+#ifdef DEBUG_VIDEO_READING
+    else{
+         qDebug() << "Library capture success at timestamp " << msToHHMMSS(wanted_ms_place) << " for file " << filename;
+    }
+#endif
     return img;
 }
 

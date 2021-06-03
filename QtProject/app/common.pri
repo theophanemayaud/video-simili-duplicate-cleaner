@@ -34,37 +34,37 @@ FORMS += \
 
 macx {
 # OpenCV libraries
-INCLUDEPATH += $$PWD/libraries/opencv/include
-DEPENDPATH += $$PWD/libraries/opencv/include
+INCLUDEPATH += $$PWD/../libraries/opencv/include
+DEPENDPATH += $$PWD/../libraries/opencv/include
 
-LIBS += -L$$PWD/libraries/opencv/lib/ -lopencv_imgproc -lopencv_core
+LIBS += -L$$PWD/../libraries/opencv/lib/ -lopencv_imgproc -lopencv_core
 
-PRE_TARGETDEPS += $$PWD/libraries/opencv/lib/libopencv_core.a \
-                        $$PWD/libraries/opencv/lib/libopencv_imgproc.a
+PRE_TARGETDEPS += $$PWD/../libraries/opencv/lib/libopencv_core.a \
+                        $$PWD/../libraries/opencv/lib/libopencv_imgproc.a
 
 ## OpenCV static libs dependencies
-LIBS += -L$$PWD/libraries/opencv/lib/opencv4/3rdparty -lzlib -littnotify -lippiw -lippicv -framework OpenCL -framework Accelerate
+LIBS += -L$$PWD/../libraries/opencv/lib/opencv4/3rdparty -lzlib -littnotify -lippiw -lippicv -framework OpenCL -framework Accelerate
 
 # ffmpeg libraries
-INCLUDEPATH += $$PWD/libraries/ffmpeg/include
+INCLUDEPATH += $$PWD/../libraries/ffmpeg/include
 
 ## libavformat and libavutil static libs dependencies (from pckgconfig file)
-LIBS += -L$$PWD/libraries/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
+LIBS += -L$$PWD/../libraries/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
                                      -lswresample -lavcodec \
                                      -lswscale \
                                      -lbz2 -liconv -Wl,-no_compact_unwind \
                                      -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
 
-PRE_TARGETDEPS += $$PWD/libraries/ffmpeg/lib/libavutil.a \
-                  $$PWD/libraries/ffmpeg/lib/libavformat.a
-                  $$PWD/libraries/ffmpeg/lib/libswresample.a
-                  $$PWD/libraries/ffmpeg/lib/libavcodec.a
+PRE_TARGETDEPS += $$PWD/../libraries/ffmpeg/lib/libavutil.a \
+                  $$PWD/../libraries/ffmpeg/lib/libavformat.a
+                  $$PWD/../libraries/ffmpeg/lib/libswresample.a
+                  $$PWD/../libraries/ffmpeg/lib/libavcodec.a
 
 # Other things
 ICON = $$PWD/AppIcon.icns
 
 APP_QML_FILES.files = \
-    $$PWD/deps/ffmpeg
+    $$PWD/../deps/ffmpeg
 APP_QML_FILES.path = Contents/MacOS
 QMAKE_BUNDLE_DATA += APP_QML_FILES
 }
