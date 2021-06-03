@@ -34,7 +34,6 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
 
     deleteTemporaryFiles();
     loadExtensions();
-    detectffmpeg();
     calculateThreshold(ui->thresholdSlider->sliderPosition());
 
     ui->blocksizeCombo->addItems( { QStringLiteral("2"), QStringLiteral("4"),
@@ -106,27 +105,6 @@ void MainWindow::loadExtensions()
     file.close();
 }
 
-bool MainWindow::detectffmpeg()
-{
-    _ffmpegPath = QCoreApplication::applicationDirPath() + "/ffmpeg";
-
-    QProcess ffmpeg;
-    ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
-//    ffmpeg.start(QStringLiteral("/Applications/ffmpeg"));
-    // THEO seems with 5.15 start requires program and arguments seperately
-//    ffmpeg.setProgram("/Applications/ffmpeg");
-    ffmpeg.setProgram(_ffmpegPath);
-    ffmpeg.start();
-    ffmpeg.waitForFinished();
-
-    if(ffmpeg.readAllStandardOutput().isEmpty())
-    {
-        addStatusMessage("Error: FFmpeg not found at " + _ffmpegPath);
-        return false;
-    }
-    return true;
-}
-
 void MainWindow::calculateThreshold(const int &value)
 {
     _prefs._thresholdSSIM = value / 100.0;
@@ -171,8 +149,6 @@ void MainWindow::on_findDuplicates_clicked()
         addStatusMessage(QStringLiteral("Error: No extensions found in extensions.ini. No video file will be searched."));
         return;
     }
-    if(!detectffmpeg())
-        return;
 
     const QString foldersToSearch = ui->directoryBox->text();   //search only if folder or thumbnail settings have changed
     if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
@@ -313,7 +289,7 @@ void MainWindow::processVideos()
 //        while(threadPool.activeThreadCount() == 1) // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
 
-        auto *videoTask = new Video(_prefs, _ffmpegPath, filename);
+        auto *videoTask = new Video(_prefs, filename);
         videoTask->setAutoDelete(false);
         threadPool.start(videoTask);
     }

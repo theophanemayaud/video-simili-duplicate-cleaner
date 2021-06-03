@@ -38,8 +38,6 @@ public:
     static void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid);
 
 private:
-    const QFileInfo _ffmpegInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/deps/ffmpeg");
-
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
     const QDir _thumbnailDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails/");
     const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests.csv");
@@ -96,7 +94,6 @@ void TestVideo::test_whole_app(){
 
     w = new MainWindow;
     w->show();
-    QVERIFY(w->detectffmpeg());
 
     QVERIFY(_videoDir.exists());
 //    w->ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
@@ -132,11 +129,10 @@ void TestVideo::test_check_reference_video_params(){
     // cached thumbs, library(only) metadata, executable captures : 9 sec
     // no cached thumbs, lib(only) metadata, lib(only) captures : 35 sec
     // cached thumbs, lib(only) metadata, lib(only) captures : 8 sec
-    const qint64 ref_ms_time = 80*1000;
+    const qint64 ref_ms_time = 40*1000;
 
     QElapsedTimer timer;
     timer.start();
-    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
 
     // read csv file
     QVERIFY(_csvInfo.exists());
@@ -156,7 +152,7 @@ void TestVideo::test_check_reference_video_params(){
         ref_thumbFile.close();
 
         Prefs prefs;
-        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), videoParam.videoInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath());
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
@@ -170,7 +166,6 @@ void TestVideo::test_check_reference_video_params(){
     QElapsedTimer timer;
     timer.start();
 
-    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
     QVERIFY(!_csvInfo.exists());    // we don't want to overwrite it !
 
     QVERIFY(!_videoDir.isEmpty());
@@ -191,7 +186,7 @@ void TestVideo::test_check_reference_video_params(){
         videoParam.videoInfo = vidInfo;
 
         Prefs prefs;
-        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vidInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, vidInfo.absoluteFilePath());
         vid->run();
         QFile thumbFile(_thumbnailDir.path() + "/" + vidInfo.fileName() + ".thumbnail");
         QVERIFY2(!thumbFile.exists(), QString("Thumnail already exists %1").arg(thumbFile.fileName()).toStdString().c_str()); // we don't want to overwrite !
@@ -227,8 +222,6 @@ void TestVideo::test_check_reference_video_params(){
     QElapsedTimer timer;
     timer.start();
 
-    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
-
     QVERIFY(!_100GBvideoDir.isEmpty());
     QVERIFY(!_100GBcsvInfo.exists());    // we don't want to overwrite it !
 
@@ -251,7 +244,7 @@ void TestVideo::test_check_reference_video_params(){
         QVERIFY2(vidInfo.exists(), QString("File not found %1").arg(vidInfo.absoluteFilePath()).toStdString().c_str());
 
         Prefs prefs;
-        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), vidInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, vidInfo.absoluteFilePath());
         vid->run();
         QString thumbPath = _100GBthumbnailDir.path() + "/" + vidInfo.path().remove(_100GBvideoDir.path()) + "-" + vidInfo.fileName() + ".thumbnail";
         QFile thumbFile(thumbPath);
@@ -291,7 +284,6 @@ void TestVideo::test_100GBcheck_reference_video_params(){
 
     QElapsedTimer timer;
     timer.start();
-    QVERIFY2(TestHelpers::detectFfmpeg(_ffmpegInfo), "couldn't detect ffmpeg");
 
     // read csv file
     QVERIFY(_100GBcsvInfo.exists());
@@ -315,7 +307,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
         ref_thumbFile.close();
 
         Prefs prefs;
-        Video *vid = new Video(prefs, _ffmpegInfo.absoluteFilePath(), videoParam.videoInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath());
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
@@ -350,7 +342,6 @@ void TestVideo::test_whole_app_100GB(){
 
     w = new MainWindow;
     w->show();
-    QVERIFY(w->detectffmpeg());
 
     QVERIFY(_100GBvideoDir.exists());
 
