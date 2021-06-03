@@ -20,11 +20,11 @@ public:
     void run();
 
     QString filename;
-    int64_t size = 0;
+    int64_t size = 0; // in bytes
     QDateTime modified;
     int64_t duration = 0; // in miliseconds
     int bitrate = 0;
-    double framerate = 0;
+    double framerate = 0; // avg, in frames per second
     QString codec;
     QString audio;
     short width = 0;
@@ -44,7 +44,7 @@ private slots:
 
 public slots:
     // returns empty image if ffmpegLib_captureAt failed and returned empty image
-    QImage ffmpegLib_captureAt(const int percent, const int ofDuration=100) const;   // new methods for capture of image, using ffmpeg library
+    QImage ffmpegLib_captureAt(const int percent, const int ofDuration=100);   // new methods for capture of image, using ffmpeg library
 
 signals:
     void acceptVideo(Video *addMe) const;

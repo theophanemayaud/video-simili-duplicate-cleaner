@@ -309,7 +309,8 @@ void MainWindow::processVideos()
             threadPool.clear();
             break;
         }
-        while(threadPool.activeThreadCount() == threadPool.maxThreadCount())
+        while(threadPool.activeThreadCount() == threadPool.maxThreadCount()) // TODO restore
+//        while(threadPool.activeThreadCount() == 1)
             QApplication::processEvents();          //avoid blocking signals in event loop
 
         auto *videoTask = new Video(_prefs, _ffmpegPath, filename);

@@ -6,7 +6,8 @@
 /* NB : sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
-#define ENABLE_MANUAL_THUMBNAIL_VERIF
+//#define ENABLE_THUMBNAIL_VERIF
+//#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
 #define ENABLE_HASHES_VERIFICATION
@@ -87,13 +88,17 @@ void TestVideo::cleanupTestCase()
 void TestVideo::test_whole_app(){
     // constants of the test
     const int nb_vids_to_find = 190;
-    const int nb_valid_vids_to_find = 184;
+    const int nb_valid_vids_to_find = 186;
+    // mix lib&exec metadata, exec captures : finds 69 videos with one or more matches
+    // lib(only) metadata, lib(only) captures : finds 70 videos with one or more matches
 
     // no cached thumbs, mix lib&exec metadata, exec captures : 31 sec
     // cached thumbs, mix lib&exec metadata, exec captures : 9 sec
     // no cached thumbs, lib(only) metadata, exec captures : 26 sec
     // cached thumbs, lib(only) metadata, exec captures : 3 sec
-    const qint64 ref_ms_time = 30*1000;
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 14 sec
+    // cached thumbs, lib(only) metadata, lib(only) captures : 4 sec
+   const qint64 ref_ms_time = 30*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -333,12 +338,16 @@ void TestVideo::test_100GBcheck_reference_video_params(){
 void TestVideo::test_whole_app_100GB(){
     // Constants of the test
     const int nb_vids_to_find = 12505;
-    const int nb_valid_vids_to_find = 11988;
+    const int nb_valid_vids_to_find = 12048;
+    // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
+    // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6551 videos with one or more matches
 
     // no cached thumbs, mix lib&exec metadata, exec captures : 36 min
     // cached thumbs, mix lib&exec metadata, exec captures : 17 min
     // no cached thumbs, lib(only) metadata, exec captures : 30 min
     // cached thumbs, lib(only) metadata, exec captures : 6 min
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 17 min
+    // cached thumbs, lib(only) metadata, lib(only) captures : 5 min
     const qint64 ref_ms_time = 20*60*1000;
 
     QElapsedTimer timer;
@@ -397,6 +406,7 @@ void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const V
 //                                                vid->thumbnail,
 //                                                QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath()));
 //    }
+#ifdef ENABLE_THUMBNAIL_VERIF
     bool manuallyAccepted = false; // hash will be different anyways if thumbnails look different, so must skip these tests !
     if(ref_thumbnail != vid->thumbnail){
 #ifdef ENABLE_MANUAL_THUMBNAIL_VERIF
@@ -414,7 +424,7 @@ void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const V
         QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
     }
 #endif
-
+#endif
 }
 
 // ---------------------------- END : helper testing functions ---------------------
