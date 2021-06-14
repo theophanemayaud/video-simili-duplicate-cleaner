@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QCryptographicHash>
 #include <QSqlQuery>
+#include <QUuid>
 #include "db.h"
 #include "video.h"
 
@@ -24,8 +25,13 @@ QString Db::uniqueId(const QString &filename) const
     if(filename.isEmpty())
         return _id;
 
+    // DEBUGTHEO : for windows, some calendar multithread bug in QT 5.15 needed to replace this unique ID
+    //               Instead using Uuid, which seems to work quite well ! https://forum.qt.io/topic/120355/qdatetime-assert/6
+//    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
+//                                  .arg(_modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss.zzz")));
     const QString name_modified = QStringLiteral("%1_%2").arg(filename)
-                                  .arg(_modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss.zzz")));
+                                  .arg(QUuid().toString());
+
     return QCryptographicHash::hash(name_modified.toLatin1(), QCryptographicHash::Md5).toHex();
 }
 
