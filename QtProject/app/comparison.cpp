@@ -432,7 +432,9 @@ int Comparison::comparisonsSoFar() const
 void Comparison::openFileManager(const QString &filename) const
 {
 #ifdef Q_OS_WIN
-        QProcess::startDetached(QStringLiteral("explorer /select, \"%1\"").arg(QDir::toNativeSeparators(filename)));
+//    THEODEBUG : old startDetached didn't work anymore
+//    QProcess::startDetached(QStringLiteral("explorer /select, \"%1\"").arg(QDir::toNativeSeparators(filename)));
+    QProcess::startDetached("explorer", QStringList() << QStringLiteral("/select, \"%1\"").arg(QDir::toNativeSeparators(filename)));
 #endif
 #ifdef Q_OS_MACOS
 //        QProcess::startDetached(QStringLiteral("open -R \"%1\"").arg(filename));
