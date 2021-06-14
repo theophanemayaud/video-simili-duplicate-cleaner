@@ -33,48 +33,73 @@ FORMS += \
     $$PWD/comparison.ui
 
 macx {
-# OpenCV libraries
-INCLUDEPATH += $$PWD/../libraries/opencv/include
-DEPENDPATH += $$PWD/../libraries/opencv/include
+    # OpenCV libraries
+    INCLUDEPATH += $$PWD/../libraries/opencv/include
+    DEPENDPATH += $$PWD/../libraries/opencv/include
 
-LIBS += -L$$PWD/../libraries/opencv/lib/ -lopencv_imgproc -lopencv_core
+    LIBS += -L$$PWD/../libraries/opencv/lib/ -lopencv_imgproc -lopencv_core
 
-PRE_TARGETDEPS += $$PWD/../libraries/opencv/lib/libopencv_core.a \
-                        $$PWD/../libraries/opencv/lib/libopencv_imgproc.a
+    PRE_TARGETDEPS += $$PWD/../libraries/opencv/lib/libopencv_core.a \
+                            $$PWD/../libraries/opencv/lib/libopencv_imgproc.a
 
-## OpenCV static libs dependencies
-LIBS += -L$$PWD/../libraries/opencv/lib/opencv4/3rdparty -lzlib -littnotify -lippiw -lippicv -framework OpenCL -framework Accelerate
+    ## OpenCV static libs dependencies
+    LIBS += -L$$PWD/../libraries/opencv/lib/opencv4/3rdparty -lzlib -littnotify -lippiw -lippicv -framework OpenCL -framework Accelerate
 
-# ffmpeg libraries
-INCLUDEPATH += $$PWD/../libraries/ffmpeg/include
+    # ffmpeg libraries
+    INCLUDEPATH += $$PWD/../libraries/ffmpeg/include
 
-## libavformat and libavutil static libs dependencies (from pckgconfig file)
-LIBS += -L$$PWD/../libraries/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
-                                     -lswresample -lavcodec \
-                                     -lswscale \
-                                     -lbz2 -liconv -Wl,-no_compact_unwind \
-                                     -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
+    ## libavformat and libavutil static libs dependencies (from pckgconfig file)
+    LIBS += -L$$PWD/../libraries/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
+                                         -lswresample -lavcodec \
+                                         -lswscale \
+                                         -lbz2 -liconv -Wl,-no_compact_unwind \
+                                         -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
 
-PRE_TARGETDEPS += $$PWD/../libraries/ffmpeg/lib/libavutil.a \
-                  $$PWD/../libraries/ffmpeg/lib/libavformat.a
-                  $$PWD/../libraries/ffmpeg/lib/libswresample.a
-                  $$PWD/../libraries/ffmpeg/lib/libavcodec.a
+    PRE_TARGETDEPS += $$PWD/../libraries/ffmpeg/lib/libavutil.a \
+                      $$PWD/../libraries/ffmpeg/lib/libavformat.a
+                      $$PWD/../libraries/ffmpeg/lib/libswresample.a
+                      $$PWD/../libraries/ffmpeg/lib/libavcodec.a
 
-# Other things
-ICON = $$PWD/AppIcon.icns
+    # Other things
+    ICON = $$PWD/AppIcon.icns
 
-# Old way that FFMPEG was included as an executable : now it's only a library !
-#APP_QML_FILES.files = \
-#    $$PWD/../deps/ffmpeg
-#APP_QML_FILES.path = Contents/MacOS
-#QMAKE_BUNDLE_DATA += APP_QML_FILES
+    # Old way that FFMPEG was included as an executable : now it's only a library !
+    #APP_QML_FILES.files = \
+    #    $$PWD/../deps/ffmpeg
+    #APP_QML_FILES.path = Contents/MacOS
+    #QMAKE_BUNDLE_DATA += APP_QML_FILES
 }
 
 win32 {
-# Other things
-RC_ICONS = $$PWD/icon16.ico
-}
+    # OpenCV libraries
+    INCLUDEPATH += $$PWD/../libraries/windows/opencv/include
 
+    # On windows, opencv has two configs that must match what QT is currently also under
+    # This means we have two versions of the same library, one debug, one release...
+    CONFIG(debug, debug|release) {
+        QMAKE_LFLAGS += /ignore:4099 # disable weird warning about pdb files... shouldn't be a problem
+        LIBS += -L$$PWD/../libraries/windows/opencv/lib/ -lopencv_imgproc451d -lopencv_core451d -lzlibd
+
+    } else {
+        LIBS += -L$$PWD/../libraries/windows/opencv/lib/ -lopencv_imgproc451 -lopencv_core451 -lzlib
+    }
+
+
+    # ffmpeg libraries
+    INCLUDEPATH += $$PWD/../libraries/windows/ffmpeg/include
+
+    LIBS += -L$$PWD/../libraries/windows/ffmpeg/lib/ \
+    # Three that we actually use directly, and their required libs (from pck config files)
+                        -lavcodec mfplat.lib mfuuid.lib strmiids.lib ole32.lib user32.lib \
+                        -lavformat secur32.lib ws2_32.lib \
+                        -lswscale \
+    # Other that seem required for the three above
+                        -lavutil bcrypt.lib \
+                        -lswresample
+
+    # Other things
+#    RC_ICONS = $$PWD/icon16.ico
+}
 
 RESOURCES += \
     $$PWD/files.qrc
