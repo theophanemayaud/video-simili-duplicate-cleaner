@@ -30,6 +30,9 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
         exit(173); // error code as per apple guideline https://developer.apple.com/library/archive/releasenotes/General/ValidateAppStoreReceipt/Chapters/ValidateLocally.html#//apple_ref/doc/uid/TP40010573-CH1-SW21
     }
 #endif
+#elif defined (Q_OS_WIN)
+    //Might want to so something here, maybe with Qt purchasing library with "app" keyword... ?
+    // https://doc.qt.io/qt-5/qtpurchasing-windowsstore.html
 #endif
 
     deleteTemporaryFiles();
