@@ -97,8 +97,8 @@ win32 {
                         -lavutil bcrypt.lib \
                         -lswresample
 
-    # Other things
-#    RC_ICONS = $$PWD/icon16.ico
+    # Windows app icon
+    RC_FILE = $$PWD/app.rc
 }
 
 RESOURCES += \
