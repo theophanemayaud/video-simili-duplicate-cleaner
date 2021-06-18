@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.15.0, 2021-06-18T11:12:19. -->
+<!-- Written by QtCreator 4.15.0, 2021-06-18T15:01:04. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -68,17 +68,17 @@
     <value type="bool" key="AutoTest.Framework.QtTest">true</value>
    </valuemap>
    <valuemap type="QVariantMap" key="AutoTest.CheckStates">
-    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:TestMainWindow">Unchecked</value>
+    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:TestMainWindow">Checked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:initTestCase">Unchecked</value>
-    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:test_case1">Unchecked</value>
-    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:TestVideo">PartiallyChecked</value>
+    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:test_case1">Checked</value>
+    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:TestVideo">Checked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:initTestCase">Unchecked</value>
-    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheck_reference_video_params">Unchecked</value>
+    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheck_reference_video_params">Checked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_reference_video_params">Checked</value>
-    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Unchecked</value>
-    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_100GB">Unchecked</value>
+    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Checked</value>
+    <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_100GB">Checked</value>
    </valuemap>
    <value type="int" key="AutoTest.RunAfterBuild">0</value>
    <value type="bool" key="AutoTest.UseGlobal">true</value>
@@ -117,7 +117,7 @@
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">QtProjectManager.QMakeBuildStep</value>
-      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">true</value>
+      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">false</value>
       <valuelist type="QVariantList" key="QtProjectManager.QMakeBuildStep.SelectedAbis"/>
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
@@ -151,7 +151,7 @@
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
-      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">/c rmdir /s /q %{buildDir} &amp; exit</value>
+      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">/c if exist %{buildDir} rmdir /s /q %{buildDir}</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.Command">cmd.exe</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.WorkingDirectory">%{buildDir}\..</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.ProcessStep</value>
@@ -197,7 +197,7 @@
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
-      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">/c rmdir /s /q %{buildDir} &amp; exit</value>
+      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">/c if exist %{buildDir} rmdir /s /q %{buildDir}</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.Command">cmd.exe</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.WorkingDirectory">%{buildDir}\..</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.ProcessStep</value>

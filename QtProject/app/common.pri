@@ -90,8 +90,8 @@ win32 {
 
     LIBS += -L$$PWD/../libraries/windows/ffmpeg/lib/ \
     # Three that we actually use directly, and their required libs (from pck config files)
-                        -lavcodec mfplat.lib mfuuid.lib strmiids.lib ole32.lib user32.lib \
-                        -lavformat secur32.lib ws2_32.lib \
+                        -lavcodec ole32.lib user32.lib \
+                        -lavformat ws2_32.lib \
                         -lswscale \
     # Other that seem required for the three above
                         -lavutil bcrypt.lib \
