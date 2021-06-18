@@ -38,6 +38,16 @@ public:
     static void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid);
 
 private:
+#ifdef Q_OS_WIN
+    QDir _videoDir = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Videos/");
+    const QDir _thumbnailDir = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails/");
+    const QFileInfo _csvInfo = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests.csv");
+
+    QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");
+    const QDir _100GBthumbnailDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Thumbnails/");
+    const QFileInfo _100GBcsvInfo = QFileInfo("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/100GBtests.csv");
+#endif
+#ifdef Q_OS_MACOS
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
     const QDir _thumbnailDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails/");
     const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests.csv");
@@ -45,6 +55,7 @@ private:
     QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");
     const QDir _100GBthumbnailDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Thumbnails/");
     const QFileInfo _100GBcsvInfo = QFileInfo("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/100GBtests.csv");
+#endif
 
     MainWindow *w = nullptr;
 
@@ -129,14 +140,15 @@ void TestVideo::test_check_reference_video_params(){
     // cached thumbs, library(only) metadata, executable captures : 9 sec
     // no cached thumbs, lib(only) metadata, lib(only) captures : 35 sec
     // cached thumbs, lib(only) metadata, lib(only) captures : 8 sec
-    const qint64 ref_ms_time = 40*1000;
+    // windows no cached thumbs, lib(only) metadata, lib(only) captures : 47 sec
+    const qint64 ref_ms_time = 50*1000;
 
     QElapsedTimer timer;
     timer.start();
 
     // read csv file
     QVERIFY(_csvInfo.exists());
-    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_csvInfo);
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_csvInfo, _videoDir, _thumbnailDir);
     QVERIFY(!videoParamList.isEmpty());
 
     // compute params for all videos
@@ -287,7 +299,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
 
     // read csv file
     QVERIFY(_100GBcsvInfo.exists());
-    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_100GBcsvInfo);
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_100GBcsvInfo, _videoDir, _thumbnailDir);
     QVERIFY(!videoParamList.isEmpty());
 
     // TODO : find a way to make this multithreaded, otherwise for all the videos it's too long !
@@ -377,7 +389,7 @@ void TestVideo::test_whole_app_100GB(){
 void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) {
     QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2").arg(videoParam.size).arg(vid->size).toUtf8().constData());
     QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
-    QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData());
+    QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.videoInfo.absoluteFilePath()).toUtf8().constData());
     QVERIFY2(videoParam.bitrate == vid->bitrate, QString("ref bitrate=%1 new bitrate=%2").arg(videoParam.bitrate).arg(vid->bitrate).toUtf8().constData());
     QVERIFY2(videoParam.framerate == vid->framerate, QString("framerate ref=%1 new=%2").arg(videoParam.framerate).arg(vid->framerate).toUtf8().constData());
     QVERIFY2(videoParam.codec == vid->codec, QString("codec ref=%1 new=%2").arg(videoParam.codec).arg(vid->codec).toUtf8().constData());
