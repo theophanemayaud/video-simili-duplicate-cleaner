@@ -98,6 +98,8 @@ void TestVideo::test_whole_app(){
     // cached thumbs, lib(only) metadata, exec captures : 3 sec
     // no cached thumbs, lib(only) metadata, lib(only) captures : 13 sec
     // cached thumbs, lib(only) metadata, lib(only) captures : 3 sec
+    // windows no cached thumbs, lib(only) metadata, lib(only) captures : 13.5 sec
+    // windows cached thumbs, lib(only) metadata, lib(only) captures : 2.75 sec
    const qint64 ref_ms_time = 20*1000;
 
     QElapsedTimer timer;
@@ -140,7 +142,8 @@ void TestVideo::test_check_reference_video_params(){
     // cached thumbs, library(only) metadata, executable captures : 9 sec
     // no cached thumbs, lib(only) metadata, lib(only) captures : 35 sec
     // cached thumbs, lib(only) metadata, lib(only) captures : 8 sec
-    // windows no cached thumbs, lib(only) metadata, lib(only) captures : 47 sec
+    // windows no cached thumbs, lib(only) metadata, lib(only) captures : 47 sec, another time run : 36sec
+    // windows cached thumbs, lib(only) metadata, lib(only) captures : 9 sec
     const qint64 ref_ms_time = 50*1000;
 
     QElapsedTimer timer;

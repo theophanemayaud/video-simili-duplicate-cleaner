@@ -9,6 +9,6 @@ Version: 58.76.100
 Requires: libavcodec >= 58.134.100, libswresample >= 3.9.100, libavutil >= 56.70.100
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavformat secur32.lib ws2_32.lib
+Libs: -L${libdir}  -lavformat ws2_32.lib
 Libs.private: 
 Cflags: -I${includedir}

@@ -8,9 +8,39 @@ FFmpeg : n4.4 on windows, not sure for mac, couldn't find it => next time make t
 
 First off, to build the app and dependencies, we need Microsoft Visual Studio (2019). Once installed, we'll have the "Cross Tools Command Prompt" with git and cmake already installed.
 
+Install Visual Studio (I did with v2019), only need C++ stuff. Note : it will install git for us, within the visual studio command lines.
+
+Then install QT (only need standard MSVC QT, not UWP or other stuff QT)
+
 ## FFmpeg
 
-From guide https://trac.ffmpeg.org/wiki/CompilationGuide/WinRT : must install MSYS2 and other things...
+From guide https://trac.ffmpeg.org/wiki/CompilationGuide/WinRT (WinRT also means UWP or in the guide, its simply windows !): must install MSYS2 and other things, then compile ffmpeg with "hacky" linux commands but using Visual Studio tools. We'll need to run the msys2 command line utility ("shell"), but launching it from the correct windows/visual studio cmd (use the Native x64 one, as we are on x64 platform with x64 windows os version) !  
+
+Download and run the msys2 installer : https://www.msys2.org/
+
+- Have it install for example in C:\Dev\msys64 (or another folder, but then adapt the next commands for the correct path)
+
+Download YASM which is needed by ffmpeg to be build, from http://yasm.tortall.net/Download.html (Win64 .exe for general use on 64-bit Windows)
+
+- Rename it yasm.exe
+- Move it into C:\Dev\msys64\usr\bin so that msys2 can find it later
+
+To avoid conflicts of utilities between native msys2 and windows later, delete link.exe from C:\Dev\msys64\usr\bin 
+
+Edit msys2 launch bat file : C:\Dev\msys64\msys2_shell.cmd (right click, edit) replace `rem set MSYS2_PATH_TYPE=inherit` with `set MSYS2_PATH_TYPE=inherit` this will allow the environment variables for Visual Studio to be transferred to the MSYS2 environment and back
+
+Qt seems to be using _link_ and _cl_ tools from : C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\bin\Hostx64\x64\ (you can check this in QT by going in the projects config part, and add a custom build step where link or where cl, disabling the first build step and build, then looking at the compile output), so we'll have to build ffmpeg with these same build tools. From x64 Native VS cmd (after installing Visual studio, it will make available these alternative cmd apps, just search in the apps "native", or "x64 native" and there should be one cmd app named like "x64 Native Tools Command Prompt for VS 2019" ) : launch msys2 from the cmd, by entering its bat file location and pressing enter : C:\Dev\msys64\msys2_shell.cmd 
+
+- This will open another "terminal" which is actually msys2, an "environment" that has tools more like unix terminal tools, but understands its on windows and kind of makes the translation between ffmpeg build tools which assumes its on linux, and the actual windows system. 
+- Once it has launched, it should have inherited automatically the environment variables from the x64 Native VS cmd that we opened it from. Check with "which link" and "which cl" (link and cl are key tools used when building) and make sure the paths are something like "/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30037/bin/HostX64/x64/link"
+- If it isn't this path, go back and check if you did delete the link.exe (or cl.exe if it exists ?) in the msys64\usr\bin folder, or wherever the "which" command tells you the path is.
+
+In this msys2 shell, we need to install a few things needed by ffmpeg build tools, by running :
+
+- pacman -S make
+- pacman -S diffutils
+
+From this msys2 shell, run (NB to copy and paste on this msys2 terminal, you have to right click, copy/paste. Standard keyboard ctrl+c/v don't work !) : 
 
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
 cd ffmpeg
@@ -20,28 +50,34 @@ mkdir ffmpeg_build
 mkdir ffmpeg_install
 cd ffmpeg_build
 
-Qt seems to be unsing link and cl tools from : C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\bin\Hostx64\x64\
-
+NB : Be advised, this next command is pretty sloooowww !
 ../ffmpeg/configure \
 --target-os=win64 --arch=x86_64 --toolchain=msvc \
 --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat \
 --extra-cflags="-MD" --extra-cxxflags="-MD" --extra-ldflags="/nodefaultlib:libcmt.lib" \
---disable-lzma \
+--disable-encoders --disable-muxers --disable-outdevs --disable-bsfs --disable-protocols --enable-protocol=file --disable-filters --enable-filter=scale --disable-lzma \
 --prefix=../ffmpeg_install
 
- NB : nodefaultlib:libcmt.lib for fixing weird thing about msvc confict :-1: warning: LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+Problems with mpg files :
 
+remove --disable-protocols --enable-protocol=file : no change
 
-make -j80 #number after j is the number of threads or something, more goes faster !
+remove --disable-encoders --disable-muxers : no change
+
+remove  --disable-bsfs : now it works !
+
+NB : Here we disable encoders, muxers, output devices (outdevs) and filters except scale which we use. lzma specifically is not needed, its a compression thing for some very very very few files which we shouldn't need. We need to keep bit stream filters (bsfs) for some raw frame decoding apparently (I tried deactivating them also, but it would break for some mpg and mov files...). Also, the argument with nodefaultlib:libcmt.lib is for fixing weird thing about msvc confict warning when building in QT : -1: warning: LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+
+make -j80 #number after j is the number of threads used while building or something, more goes faster !
 make install
 
-Rename the lib\*\*\*.a library files, into standard windows \*\*\*.lib files. They are just named wrong by build tools, but are the same.
-With something like :
+You now have the ffmpeg static lib files in the ffmpeg_install folder (C:\Dev\msys64\home\theop\ffmpeg_install). Just rename the lib\*\*\*.a library files, into standard windows \*\*\*.lib files. They are just named wrong by ffmpeg build tools, but are the same. Do this for example by running, from msys2 shell as before, the command :
 ```
 rename lib '' ../ffmpeg_install/lib/*.a
 rename .a '.lib' ../ffmpeg_install/lib/*.a
 ```
-Then copy the include and lib folders. 
+
+Then copy the include and lib folders to the Qt project windows ffmpeg libraries folder. 
 
 ## OpenCV
 
@@ -134,3 +170,4 @@ macx: PRE_TARGETDEPS += $$PWD/libraries/ffmpeg/lib/libavutil.a \
                         $$PWD/libraries/ffmpeg/lib/libavcodec.a
 
 ```
+
