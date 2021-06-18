@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.15.0, 2021-06-13T21:43:32. -->
+<!-- Written by QtCreator 4.15.0, 2021-06-17T21:20:01. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -68,7 +68,6 @@
     <value type="bool" key="AutoTest.Framework.QtTest">true</value>
    </valuemap>
    <valuemap type="QVariantMap" key="AutoTest.CheckStates">
-    <value type="Qt::CheckState" key="1@:Qt Test">Unchecked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:TestMainWindow">Unchecked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:initTestCase">Unchecked</value>
@@ -171,7 +170,7 @@
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">QtProjectManager.QMakeBuildStep</value>
-      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">true</value>
+      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">false</value>
       <valuelist type="QVariantList" key="QtProjectManager.QMakeBuildStep.SelectedAbis"/>
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">

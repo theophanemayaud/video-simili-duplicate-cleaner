@@ -33,7 +33,7 @@ class TestHelpers {
 public:
     static bool doThumbnailsLookSameWindow(const QByteArray ref_thumb, const QByteArray new_thumb, const QString title);
     // returns an empty list if either csv didn't exist, or something else happened.
-    static QList<VideoParam> importCSVtoVideoParamQList(const QFileInfo csvInfo); // CSV : sep  seperated values
+    static QList<VideoParam> importCSVtoVideoParamQList(const QFileInfo csvInfo, const QDir videoDir, const QDir thumbDir); // CSV : sep  seperated values
 
     // will not overwrite it already exists
     static bool saveVideoParamQListToCSV(const QList<VideoParam> videoParamQList, const QFileInfo csvInfo); // false->failed to save
@@ -100,6 +100,7 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
     return false;
 }
 
+// TODO : remove this !!!
 bool TestHelpers::detectFfmpeg(const QFileInfo ffmpegInfo){
     if(!ffmpegInfo.exists())
         return false;
@@ -111,7 +112,7 @@ bool TestHelpers::detectFfmpeg(const QFileInfo ffmpegInfo){
     return !ffmpeg.readAllStandardOutput().isEmpty();
 }
 
-QList<VideoParam> TestHelpers::importCSVtoVideoParamQList(const QFileInfo csvInfo){
+QList<VideoParam> TestHelpers::importCSVtoVideoParamQList(const QFileInfo csvInfo, const QDir videoDir, const QDir thumbDir){
     const char sep = VideoParam::sep;
     QList<VideoParam> videoParamList;
 
@@ -139,8 +140,8 @@ QList<VideoParam> TestHelpers::importCSVtoVideoParamQList(const QFileInfo csvInf
         }
         QList<QByteArray> stringParams = line.split(sep);
 
-        param.videoInfo = QFileInfo(stringParams[0]);
-        param.thumbnailInfo = QFileInfo(stringParams[1]);
+        param.videoInfo = QFileInfo(videoDir.path()+"/"+stringParams[0]);
+        param.thumbnailInfo = QFileInfo(thumbDir.path()+"/"+stringParams[1]);
         param.size = stringParams[2].toLongLong();
         param.modified = QDateTime::fromString(stringParams[3], VideoParam::timeformat);
         param.duration = stringParams[4].toLongLong();
