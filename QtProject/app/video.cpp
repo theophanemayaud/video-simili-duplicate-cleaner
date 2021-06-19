@@ -655,65 +655,140 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     return img;
 }
 
-QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AVFrame* pFrame) const//const char * folderName, int index)
+QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AVFrame* pFrame) const
 {
     // first convert frame to rgb24
-    ffmpeg::SwsContext* img_convert_ctx;
-    img_convert_ctx = sws_getContext(codec_ctx->width,
-                                     codec_ctx->height,
-                                     codec_ctx->pix_fmt,
-                                     codec_ctx->width,
-                                     codec_ctx->height,
+    ffmpeg::SwsContext* img_convert_ctx = ffmpeg::sws_getContext(
+                                     pFrame->width,
+                                     pFrame->height,
+                                     (ffmpeg::AVPixelFormat)pFrame->format,
+                                     pFrame->width,
+                                     pFrame->height,
                                      ffmpeg::AV_PIX_FMT_RGB24,
-                                     SWS_BICUBIC, NULL, NULL, NULL);
-//    ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
-//    frameRGB->width = codec_ctx->width;
-//    frameRGB->height = codec_ctx->height;
-//    frameRGB->format = ffmpeg::AV_PIX_FMT_RGB24;
+                                     SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
+    if(!img_convert_ctx){
+        qDebug() << "Failed to create sws context "<< filename;
+        return QImage();
+    }
 
+    // ---------------------------
+    // Possibility 1 : convert to second frame, then load into QImage : has memory leak issue !!!
+//    ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
+//    frameRGB->width = pFrame->width;
+//    frameRGB->height = pFrame->height;
+//    frameRGB->format = ffmpeg::AV_PIX_FMT_RGB24;
 //    ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
 //                            ffmpeg::AV_PIX_FMT_RGB24,
-//                            codec_ctx->width,
-//                            codec_ctx->height);
+//                            pFrame->width,
+//                            pFrame->height);
 
-    // TODO : migrate deprecated to something like below (NB it doesn't work yet)
-    // Maybe look at https://stackoverflow.com/questions/64428006/ffmpegs-sws-scale-for-converting-rgb-to-yuv420-image-is-extremely-slow
-//    if(ffmpeg::av_frame_get_buffer(frameRGB, 1)!=0){
-//        qDebug() << "Failed to get frame buffers for "<<filename;
+//    if(ffmpeg::sws_scale(img_convert_ctx,
+//                pFrame->data,
+//                pFrame->linesize, 0,
+//                pFrame->height,
+//                frameRGB->data,
+//                frameRGB->linesize)
+//            != pFrame->height){
+//        qDebug() << "Error changing frame color range "<<filename;
+//        ffmpeg::av_frame_free(&frameRGB);
+//        ffmpeg::sws_freeContext(img_convert_ctx);
 //        return QImage();
 //    }
-    QImage image(codec_ctx->width,
-                 codec_ctx->height,
-                 QImage::Format_RGB888);
-    int rgb_linesizes[8] = {0};
-    rgb_linesizes[0] = 3*codec_ctx->width;
-//qDebug() << "Linesize 0:"<< frameRGB->linesize[0] <<
-//            " 1:" << frameRGB->linesize[1] <<
-//            " 2:" << frameRGB->linesize[2] <<
-//            " 3:" << frameRGB->linesize[3] <<
-//            " 4:" << frameRGB->linesize[4] <<
-//            " 5:" << frameRGB->linesize[5] <<
-//            " 6:" << frameRGB->linesize[6] <<
-//            " 7:" << frameRGB->linesize[7];
-//    qDebug() <<
-//            "Width:"<< codec_ctx->width <<
-//            "Height:"<< codec_ctx->height;
-
-    ffmpeg::sws_scale(img_convert_ctx,
-              pFrame->data,
-              pFrame->linesize, 0,
-              codec_ctx->height,
-              (uint8_t *[]){image.bits()},
-              rgb_linesizes);
 
 //    QImage image(frameRGB->data[0],
-//                     codec_ctx->width,
-//                     codec_ctx->height,
+//                     pFrame->width,
+//                     pFrame->height,
 //                     frameRGB->linesize[0],
 //                     QImage::Format_RGB888);
 
-//    ffmpeg::avpicture_free((ffmpeg::AVPicture*)frameRGB);
+////    ffmpeg::avpicture_free((ffmpeg::AVPicture*)frameRGB); // Problem as this frees the underlying data which QImage share
 //    ffmpeg::av_frame_free(&frameRGB);
+
+    // ---------------------------
+    // Possibility 2 : directly convert into QImage -> has problem when source frame width is not multiple of 4 (QImage ligns are 32 bit aligned)
+//    QImage image(pFrame->width,
+//                 pFrame->height,
+//                 QImage::Format_RGB888);
+
+//    int rgb_linesizes[8] = {0};
+//    rgb_linesizes[0] = 3*pFrame->width;
+
+//    if(ffmpeg::sws_scale(img_convert_ctx,
+//                pFrame->data,
+//                pFrame->linesize, 0,
+//                pFrame->height,
+//                (uint8_t *[]){image.bits()},
+//                rgb_linesizes)
+//            != pFrame->height){
+//        qDebug() << "Error changing frame color range "<<filename;
+//        ffmpeg::sws_freeContext(img_convert_ctx);
+//        return QImage();
+//    }
+
+    // ---------------------------
+    // Possibility 3 : modif attempt of 1 without deprecated stuff
+//    int rgb_linesizes[8] = {0};
+//    rgb_linesizes[0] = 3*pFrame->width;
+
+//    unsigned char* rgbData[8];
+//    int imgBytesSyze = 3*pFrame->height*pFrame->width;
+//    rgbData[0] = (unsigned char *)malloc(imgBytesSyze);
+//    if(ffmpeg::sws_scale(img_convert_ctx,
+//                pFrame->data,
+//                pFrame->linesize, 0,
+//                pFrame->height,
+//                rgbData,
+//                rgb_linesizes)
+//            != pFrame->height){
+//        qDebug() << "Error changing frame color range "<<filename;
+//        free(rgbData[0]);
+//        ffmpeg::sws_freeContext(img_convert_ctx);
+//        return QImage();
+//    }
+
+//    QImage image(rgbData[0],
+//                 pFrame->width,
+//                 pFrame->height,
+//                 rgb_linesizes[0],
+//                 QImage::Format_RGB888);
+
+    // ---------------------------
+    // Possibility 4 : modif attempt of 3 to do memcopy
+    QImage image(pFrame->width,
+                 pFrame->height,
+                 QImage::Format_RGB888);
+
+    int rgb_linesizes[8] = {0};
+    rgb_linesizes[0] = 3*pFrame->width;
+
+    unsigned char* rgbData[8];
+    int imgBytesSyze = 3*pFrame->height*pFrame->width;
+    rgbData[0] = (unsigned char *)malloc(imgBytesSyze);
+    if(ffmpeg::sws_scale(img_convert_ctx,
+                pFrame->data,
+                pFrame->linesize, 0,
+                pFrame->height,
+                rgbData, // ideally should be (uint8_t *[]){image.bits()} but not possible as explained below, QImage lines are at least 32 bit aligned
+                rgb_linesizes)
+            != pFrame->height){
+        qDebug() << "Error changing frame color range "<<filename;
+        free(rgbData[0]);
+        ffmpeg::sws_freeContext(img_convert_ctx);
+        return QImage();
+    }
+
+    // we need to copy line by line, as qimage data lines are 32 bit aligned, thus we will (need) leave empty space at the end
+    // https://doc.qt.io/qt-5/qimage.html#scanLine -> here it mentions that each data line is minimum 32 bit aligned : this explains
+    // why it's not possible to have sws_scale directly fill the QImage buffer, because it assumes each output line must
+    // be filled entirely, I've not found a way that makes it "skip the rest of the line" but only output a correct width... !
+    // So doing sws_scale with output data being QImage.bits() works for all source frames that are "by chance" 32 bit aligned, but
+    // not others. Thus, we have another buffer, and copy afterwards to qimage, although this means sws_scale copies, and we copy so it's
+    // two times the same operation...
+    for(int y=0; y<pFrame->height; y++){
+        memcpy(image.scanLine(y), rgbData[0]+y*3*pFrame->width, 3*pFrame->width);
+    }
+
+    free(rgbData[0]);
     ffmpeg::sws_freeContext(img_convert_ctx);
 
     // if the video had rotated metadata, it needs to be flipped !
