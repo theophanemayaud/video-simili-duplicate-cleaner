@@ -526,6 +526,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                 return img;
             }
             if(ret != AVERROR_EOF){
+                // TODO ? unref packet ?
                 continue;
             }
         }
@@ -635,6 +636,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
             }
         }
         ffmpeg::av_packet_unref(vPacket);
+        ffmpeg::av_frame_unref(vFrame);
     }
 
     ffmpeg::av_packet_free(&vPacket);
@@ -664,15 +666,15 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const 
                                      codec_ctx->height,
                                      ffmpeg::AV_PIX_FMT_RGB24,
                                      SWS_BICUBIC, NULL, NULL, NULL);
-    ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
-    frameRGB->width = codec_ctx->width;
-    frameRGB->height = codec_ctx->height;
-    frameRGB->format = ffmpeg::AV_PIX_FMT_RGB24;
+//    ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
+//    frameRGB->width = codec_ctx->width;
+//    frameRGB->height = codec_ctx->height;
+//    frameRGB->format = ffmpeg::AV_PIX_FMT_RGB24;
 
-    ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
-                            ffmpeg::AV_PIX_FMT_RGB24,
-                            codec_ctx->width,
-                            codec_ctx->height);
+//    ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
+//                            ffmpeg::AV_PIX_FMT_RGB24,
+//                            codec_ctx->width,
+//                            codec_ctx->height);
 
     // TODO : migrate deprecated to something like below (NB it doesn't work yet)
     // Maybe look at https://stackoverflow.com/questions/64428006/ffmpegs-sws-scale-for-converting-rgb-to-yuv420-image-is-extremely-slow
@@ -680,21 +682,39 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const 
 //        qDebug() << "Failed to get frame buffers for "<<filename;
 //        return QImage();
 //    }
+    QImage image(codec_ctx->width,
+                 codec_ctx->height,
+                 QImage::Format_RGB888);
+    int rgb_linesizes[8] = {0};
+    rgb_linesizes[0] = 3*codec_ctx->width;
+//qDebug() << "Linesize 0:"<< frameRGB->linesize[0] <<
+//            " 1:" << frameRGB->linesize[1] <<
+//            " 2:" << frameRGB->linesize[2] <<
+//            " 3:" << frameRGB->linesize[3] <<
+//            " 4:" << frameRGB->linesize[4] <<
+//            " 5:" << frameRGB->linesize[5] <<
+//            " 6:" << frameRGB->linesize[6] <<
+//            " 7:" << frameRGB->linesize[7];
+//    qDebug() <<
+//            "Width:"<< codec_ctx->width <<
+//            "Height:"<< codec_ctx->height;
 
     ffmpeg::sws_scale(img_convert_ctx,
               pFrame->data,
               pFrame->linesize, 0,
               codec_ctx->height,
-              frameRGB->data,
-              frameRGB->linesize);
+              (uint8_t *[]){image.bits()},
+              rgb_linesizes);
 
-    QImage image(frameRGB->data[0],
-                     codec_ctx->width,
-                     codec_ctx->height,
-                     frameRGB->linesize[0],
-                     QImage::Format_RGB888);
+//    QImage image(frameRGB->data[0],
+//                     codec_ctx->width,
+//                     codec_ctx->height,
+//                     frameRGB->linesize[0],
+//                     QImage::Format_RGB888);
 
-    ffmpeg::av_frame_free(&frameRGB);
+//    ffmpeg::avpicture_free((ffmpeg::AVPicture*)frameRGB);
+//    ffmpeg::av_frame_free(&frameRGB);
+    ffmpeg::sws_freeContext(img_convert_ctx);
 
     // if the video had rotated metadata, it needs to be flipped !
     if(_rotateAngle%360 == 90){
