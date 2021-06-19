@@ -434,12 +434,14 @@ void Comparison::openFileManager(const QString &filename) const
 #ifdef Q_OS_WIN
 //    THEODEBUG : old startDetached didn't work anymore
 //    QProcess::startDetached(QStringLiteral("explorer /select, \"%1\"").arg(QDir::toNativeSeparators(filename)));
+    // TODO : for UWP, can't use process, so maybe change behavior to open folder, without file already selected :
+    // https://stackoverflow.com/questions/48243245/qdesktopservicesopenurl-cannot-open-directory-in-mac-finder
     QProcess::startDetached("explorer", {"/select,", QDir::toNativeSeparators(filename)});
 #elif defined(Q_OS_MACOS)
 //        QProcess::startDetached(QStringLiteral("open -R \"%1\"").arg(filename));
         // THEO seems with 5.15 start requires program and arguments seperately
         QProcess::startDetached("open", QStringList() << "-R" << filename);
-elif defined(Q_OS_X11)
+#elif defined(Q_OS_X11)
         QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(filename.left(filename.lastIndexOf("/"))));
 #endif
 }

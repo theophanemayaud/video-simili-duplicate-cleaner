@@ -46,8 +46,7 @@ private:
     QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");
     const QDir _100GBthumbnailDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Thumbnails/");
     const QFileInfo _100GBcsvInfo = QFileInfo("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/100GBtests.csv");
-#endif
-#ifdef Q_OS_MACOS
+#elif defined(Q_OS_MACOS)
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
     const QDir _thumbnailDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails/");
     const QFileInfo _csvInfo = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests.csv");
