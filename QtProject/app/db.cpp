@@ -30,7 +30,7 @@ QString Db::uniqueId(const QString &filename) const
 //    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
 //                                  .arg(_modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss.zzz")));
     const QString name_modified = QStringLiteral("%1_%2").arg(filename)
-                                  .arg(QUuid().toString());
+                                  .arg(QUuid::createUuid().toString());
 
     return QCryptographicHash::hash(name_modified.toLatin1(), QCryptographicHash::Md5).toHex();
 }
