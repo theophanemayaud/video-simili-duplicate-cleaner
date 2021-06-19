@@ -294,7 +294,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
     // cached thumbs, library(only) metadata, exec captures : 12 min
     // no cached thumbs, lib(only) metadata, lib(only) captures : 48 min
     // cached thumbs, lib(only) metadata, lib(only) captures : 12 min
-    const qint64 ref_ms_time = 40*60*1000;
+    const qint64 ref_ms_time = 50*60*1000;
 
     QElapsedTimer timer;
     timer.start();
