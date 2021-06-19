@@ -11,9 +11,6 @@
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
 
-//DEBUGTHEO
-QString ffmpeg_output="Uninitialized";
-
 Video::Video(const Prefs &prefsParam, const QString &filenameParam) : filename(filenameParam)
 {
     _prefs = prefsParam;

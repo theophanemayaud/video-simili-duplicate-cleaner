@@ -301,7 +301,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
 
     // read csv file
     QVERIFY(_100GBcsvInfo.exists());
-    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_100GBcsvInfo, _videoDir, _thumbnailDir);
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_100GBcsvInfo, _100GBvideoDir, _100GBthumbnailDir);
     QVERIFY(!videoParamList.isEmpty());
 
     // TODO : find a way to make this multithreaded, otherwise for all the videos it's too long !

@@ -4,7 +4,6 @@
 #include <QLayout>
 #include <QLabel>
 #include <QCheckBox>
-#include <QProcess>
 
 class VideoParam {
 public:
@@ -37,8 +36,6 @@ public:
 
     // will not overwrite it already exists
     static bool saveVideoParamQListToCSV(const QList<VideoParam> videoParamQList, const QFileInfo csvInfo); // false->failed to save
-
-    static bool detectFfmpeg(const QFileInfo ffmpegInfo);
 };
 
 // -------------------------------------------------
@@ -98,18 +95,6 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
 
     ui_image->close();
     return false;
-}
-
-// TODO : remove this !!!
-bool TestHelpers::detectFfmpeg(const QFileInfo ffmpegInfo){
-    if(!ffmpegInfo.exists())
-        return false;
-    QProcess ffmpeg;
-    ffmpeg.setProcessChannelMode(QProcess::MergedChannels);
-    ffmpeg.setProgram(ffmpegInfo.absoluteFilePath());
-    ffmpeg.start();
-    ffmpeg.waitForFinished();
-    return !ffmpeg.readAllStandardOutput().isEmpty();
 }
 
 QList<VideoParam> TestHelpers::importCSVtoVideoParamQList(const QFileInfo csvInfo, const QDir videoDir, const QDir thumbDir){
