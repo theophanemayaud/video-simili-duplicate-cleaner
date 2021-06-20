@@ -69,10 +69,13 @@ private slots:
     void test_check_refvidparams_cached();
     void test_whole_app();
     void test_whole_app_nocache();
+    void test_whole_app_cached();
 
 //    void test_100GB_create_reference_video_params();
-    void test_100GBcheck_reference_video_params();
-    void test_whole_app_100GB();
+    void test_100GBcheckRefVidParams();
+    void test_100GBwholeApp();
+    void test_100GBwholeApp_nocache();
+    void test_100GBwholeApp_cached();
 
     void cleanupTestCase();
 };
@@ -157,7 +160,7 @@ void TestVideo::test_whole_app_nocache(){
 
     w = new MainWindow;
     w->show();
-    w->ui->useCacheCheckBox->setChecked(false);
+    w->ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
 
     QVERIFY(_videoDir.exists());
 //    w->ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
@@ -173,6 +176,55 @@ void TestVideo::test_whole_app_nocache(){
     QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files, doesn't match").arg(w->_videoList.count()).toStdString().c_str());
 
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+    Comparison comp(w->sortVideosBySize(), w->_prefs);
+    comp.reportMatchingVideos();
+
+    comp.show();
+
+    QTest::qWait(1000);
+    comp.on_nextVideo_clicked();
+    comp.ui->tabWidget->setCurrentIndex(2);
+    QTest::qWait(1000);
+
+    w->destroy();
+};
+
+void TestVideo::test_whole_app_cached(){
+    // constants of the test
+    const int nb_vids_to_find = 190;
+    const int nb_valid_vids_to_find = 187;
+    // mix lib&exec metadata, exec captures : finds 69 videos with one or more matches
+    // lib(only) metadata, lib(only) captures : finds 71 videos with one or more matches
+
+    // cached thumbs, mix lib&exec metadata, exec captures : 9 sec
+    // cached thumbs, lib(only) metadata, exec captures : 3 sec
+    // cached thumbs, lib(only) metadata, lib(only) captures : 3 sec
+    // windows cached thumbs, lib(only) metadata, lib(only) captures : 2.75 sec
+   const qint64 ref_ms_time = 5*1000;
+
+   // run a first time to make sure all data is cached
+   test_whole_app();
+
+    QElapsedTimer timer;
+    timer.start();
+
+    w = new MainWindow;
+    w->show();
+
+    QVERIFY(_videoDir.exists());
+//    w->ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
+    //w->on_findDuplicates_clicked();
+
+    w->findVideos(_videoDir);
+    w->processVideos();
+    w->ui->blocksizeCombo->setAcceptDrops(true);
+
+    qDebug() << "Found "<<w->_everyVideo.count()<<" files of which "<< w->_videoList.count()<<" valid ones";
+    qDebug() << "TIMER:test_whole_app_cached took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Found %1 files, doesn't match").arg(w->_everyVideo.count()).toStdString().c_str());
+    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files, doesn't match").arg(w->_videoList.count()).toStdString().c_str());
+
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_cached took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
     Comparison comp(w->sortVideosBySize(), w->_prefs);
     comp.reportMatchingVideos();
 
@@ -374,7 +426,7 @@ void TestVideo::test_check_refvidparams_cached(){
     QVERIFY(TestHelpers::saveVideoParamQListToCSV(videoParamList, _100GBcsvInfo));
 }*/
 
-void TestVideo::test_100GBcheck_reference_video_params(){
+void TestVideo::test_100GBcheckRefVidParams(){
     // cached thumbs, mix lib&exec metadata, exec captures : 39 min
     // no cached thumbs, library(only) metadata, exec captures : 37
     // cached thumbs, library(only) metadata, exec captures : 12 min
@@ -418,11 +470,11 @@ void TestVideo::test_100GBcheck_reference_video_params(){
         test_nb++;
     }
 
-    qDebug() << "TIMER:test_100GBcheck_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
-    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_100GBcheck_reference_video_params took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+    qDebug() << "TIMER:test_100GBcheckRefVidParams took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_100GBcheckRefVidParams took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
 }
 
-void TestVideo::test_whole_app_100GB(){
+void TestVideo::test_100GBwholeApp(){
     // Constants of the test
     const int nb_vids_to_find = 12505;
     const int nb_valid_vids_to_find = 12328; // when cached finds 12330 ?
@@ -468,6 +520,99 @@ void TestVideo::test_whole_app_100GB(){
     QTest::qWait(1000);
     w->destroy();
 };
+
+void TestVideo::test_100GBwholeApp_nocache(){
+    // Constants of the test
+    const int nb_vids_to_find = 12505;
+    const int nb_valid_vids_to_find = 12328; // when cached finds 12330 ?
+    // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
+    // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6562 videos with one or more matches. When cached finds 6553...
+
+    // no cached thumbs, mix lib&exec metadata, exec captures : 36 min
+    // no cached thumbs, lib(only) metadata, exec captures : 30 min
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 17 min
+    const qint64 ref_ms_time = 20*60*1000;
+
+    QElapsedTimer timer;
+    timer.start();
+
+    w = new MainWindow;
+    w->show();
+    w->ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
+
+    QVERIFY(_100GBvideoDir.exists());
+
+    w->findVideos(_100GBvideoDir);
+    w->processVideos();
+    w->ui->blocksizeCombo->setAcceptDrops(true);
+
+    qDebug() << "Found "<<w->_everyVideo.count()<<" files of which "<< w->_videoList.count()<<" valid ones";
+    qDebug() << "TIMER:test_wholeApp100GB_nocache took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+
+    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Found %1 files but should be %2").arg(w->_everyVideo.count(), nb_vids_to_find).toStdString().c_str());
+    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w->_videoList.count(),nb_valid_vids_to_find).toStdString().c_str());
+
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_wholeApp100GB_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+
+    Comparison comp(w->sortVideosBySize(), w->_prefs);
+    comp.reportMatchingVideos();
+
+    comp.show();
+
+    QTest::qWait(1000);
+    comp.on_nextVideo_clicked();
+    comp.ui->tabWidget->setCurrentIndex(2);
+    QTest::qWait(1000);
+    w->destroy();
+};
+
+void TestVideo::test_100GBwholeApp_cached(){
+    // Constants of the test
+    const int nb_vids_to_find = 12505;
+    const int nb_valid_vids_to_find = 12328; // when cached finds 12330 ?
+    // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
+    // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6562 videos with one or more matches. When cached finds 6553...
+
+    // cached thumbs, mix lib&exec metadata, exec captures : 17 min
+    // cached thumbs, lib(only) metadata, exec captures : 6 min
+    // cached thumbs, lib(only) metadata, lib(only) captures : 6 min
+    const qint64 ref_ms_time = 10*60*1000;
+
+    test_whole_app(); // run a first time to make sure everything is cached
+
+    QElapsedTimer timer;
+    timer.start();
+
+    w = new MainWindow;
+    w->show();
+    w->ui->useCacheCheckBox->setChecked(true); // enable loading from and saving to cache (should be on by default)
+
+    QVERIFY(_100GBvideoDir.exists());
+
+    w->findVideos(_100GBvideoDir);
+    w->processVideos();
+    w->ui->blocksizeCombo->setAcceptDrops(true);
+
+    qDebug() << "Found "<<w->_everyVideo.count()<<" files of which "<< w->_videoList.count()<<" valid ones";
+    qDebug() << "TIMER:test_wholeApp100GB_cached took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+
+    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Found %1 files but should be %2").arg(w->_everyVideo.count(), nb_vids_to_find).toStdString().c_str());
+    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w->_videoList.count(),nb_valid_vids_to_find).toStdString().c_str());
+
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_wholeApp100GB_cached took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+
+    Comparison comp(w->sortVideosBySize(), w->_prefs);
+    comp.reportMatchingVideos();
+
+    comp.show();
+
+    QTest::qWait(1000);
+    comp.on_nextVideo_clicked();
+    comp.ui->tabWidget->setCurrentIndex(2);
+    QTest::qWait(1000);
+    w->destroy();
+};
+
 
 // ---------------------------- END : 100GB tests from SSD ---------------------
 // ------------------------------------------------------------------------------------
