@@ -11,8 +11,10 @@
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
 
-Video::Video(const Prefs &prefsParam, const QString &filenameParam) : filename(filenameParam)
+Video::Video(const Prefs &prefsParam, const QString &filenameParam, const bool enableCache) : filename(filenameParam)
 {
+    _useCacheDb = enableCache;
+
     _prefs = prefsParam;
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
     //   _jpegQuality = _lowJpegQuality;
@@ -32,28 +34,33 @@ void Video::run()
         return;
     }
 
-    Db cache(filename);
-    // DDEBUGTHEO removed the cheking whether it was cached as it generated errors with all seemingly cached with height width and duration == 0
-//    if(!cache.readMetadata(*this))      //check first if video properties are cached
-//    {
-        if(QFileInfo(filename).size()==0){
+    // THEODEBUG : probably should re-implement things not to cache randomly !
+    Db cache(filename); // we open the db here, but we'll only store things if needed
+    if(_useCacheDb && cache.readMetadata(*this)) {      //check first if video properties are cached
+        modified = QFileInfo(filename).lastModified(); // Db doesn't cache the modified date
+    }
+    else {
+        if(QFileInfo(filename).size()==0){ // check this before, as it's faster, but getMetadata also does this but stores the info
             qDebug() << "File size = 0 : rejected " << filename;
             emit rejectVideo(this, "File size = 0 : rejected ");
             return;
         }
-        if(!getMetadata(filename))         //if not, read them with ffmpeg
+        if(!getMetadata(filename))         //as not cached, read metadata with ffmpeg (NB : getMetadata handles rejection)
             return;
-//        cache.writeMetadata(*this);
-//    }
-    if(width == 0 || height == 0)// || duration == 0) TODO temp : see if we can infer duration when decoding frames,
+    }
+
+    if(width == 0 || height == 0)// || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
         qDebug() << "Height ("<<height<<") or width ("<<width<<") = 0 : rejected " << filename;
         emit rejectVideo(this, QString("Height (%1) or width (%2) = 0 ").arg(height).arg(width));
+        if(_useCacheDb)
+            cache.writeMetadata(*this); // cache so next run will be faster, even if to fail
         return;
     }
 
     const int ret = takeScreenCaptures(cache);
-    // TODO : check if duration has been updated from file decoding estimations, and update cached metadata
+    if(_useCacheDb)
+        cache.writeMetadata(*this); // wait until here to cache as takeScreenCaptures can estimate duration, when it was 0
     if(ret == _failure){
         qDebug() << "Rejected : failed to take capture : "+ filename;
         emit rejectVideo(this, "failed to take capture");
@@ -196,19 +203,18 @@ int Video::takeScreenCaptures(const Db &cache)
     while(--capture >= 0)           //screen captures are taken in reverse order so errors are found early
     {
         QImage frame;
-        QByteArray cachedImage = cache.readCapture(percentages[capture]);
+        QByteArray cachedImage;
+        if(_useCacheDb)
+            cachedImage = cache.readCapture(percentages[capture]);
         QBuffer captureBuffer(&cachedImage);
         bool writeToCache = false;
 
-#ifndef DEBUG_VIDEO_READING // disable loading from cache if wanting to manually debug
-        if(!cachedImage.isNull())   //image was already in cache
+        if(_useCacheDb && !cachedImage.isNull())   //image was already in cache
         {
             frame.load(&captureBuffer, QByteArrayLiteral("JPG"));   //was saved in cache as small size, resize to original
             frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         }
-        else
-        {
-#endif
+        else {
             frame = ffmpegLib_captureAt(percentages[capture], ofDuration);
             if(frame.isNull())                                  //taking screen capture may fail if video is broken
             {
@@ -221,10 +227,9 @@ int Video::takeScreenCaptures(const Db &cache)
                 qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
                 return _failure;
             }
-#ifndef DEBUG_VIDEO_READING
-            writeToCache = true;
+            if(_useCacheDb)
+                writeToCache = true;
         }
-#endif
         if(frame.width() > width || frame.height() > height){    //metadata parsing error or variable resolution
             qDebug() << "Failing because capture height="<<frame.height()<<",width="<<frame.width()<<" is different to vid metadata height="<<width<<",width="<<height<< "for file "<< filename;
             return _failure;
@@ -233,8 +238,7 @@ int Video::takeScreenCaptures(const Db &cache)
         QPainter painter(&thumbnail);                           //copy captured frame into right place in thumbnail
         painter.drawImage(capture % thumb.cols() * width, capture / thumb.cols() * height, frame);
 
-        if(writeToCache)
-        {
+        if(writeToCache) {
             frame = minimizeImage(frame);
             frame.save(&captureBuffer, QByteArrayLiteral("JPG"), _okJpegQuality);
             cache.writeCapture(percentages[capture], cachedImage);

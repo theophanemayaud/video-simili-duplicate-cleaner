@@ -8,6 +8,7 @@
 
 #include "video.h"
 #include "comparison.h"
+#include "db.h"
 
 namespace Ui { class MainWindow; }
 
@@ -65,6 +66,7 @@ private slots:
     void addVideo(Video *addMe);
     void removeVideo(Video *deleteMe, QString errorMsg);
     void on_actionAbout_triggered();
+    void on_actionEmpty_cache_triggered();
 };
 
 #endif // MAINWINDOW_H
