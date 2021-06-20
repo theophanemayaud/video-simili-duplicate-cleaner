@@ -67,6 +67,8 @@ private slots:
     void removeVideo(Video *deleteMe, QString errorMsg);
     void on_actionAbout_triggered();
     void on_actionEmpty_cache_triggered();
+    void on_actionCredits_triggered();
+    void on_actionContact_triggered();
 };
 
 #endif // MAINWINDOW_H

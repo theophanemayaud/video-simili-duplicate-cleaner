@@ -454,7 +454,15 @@ Errors will be listed in any case.</string>
     </property>
     <addaction name="actionEmpty_cache"/>
    </widget>
+   <widget class="QMenu" name="menuInfo">
+    <property name="title">
+     <string>Info</string>
+    </property>
+    <addaction name="actionCredits"/>
+    <addaction name="actionContact"/>
+   </widget>
    <addaction name="menuGeneral"/>
+   <addaction name="menuInfo"/>
    <addaction name="menuTools"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
@@ -471,14 +479,19 @@ Errors will be listed in any case.</string>
     <string>About</string>
    </property>
   </action>
+  <action name="actionEmpty_cache">
+   <property name="text">
+    <string>Empty cache</string>
+   </property>
+  </action>
   <action name="actionCredits">
    <property name="text">
     <string>Credits</string>
    </property>
   </action>
-  <action name="actionEmpty_cache">
+  <action name="actionContact">
    <property name="text">
-    <string>Empty cache</string>
+    <string>Contact</string>
    </property>
   </action>
  </widget>
