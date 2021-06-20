@@ -15,16 +15,16 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     }
     file.close();
 
-    ui->statusBox->append(QStringLiteral("%1 v%2").arg(APP_NAME, appVersion));
+    addStatusMessage(QStringLiteral("%1 v%2").arg(APP_NAME, appVersion));
 #ifdef Q_OS_MACOS
     // Check mac app store receipt
     QString receiptLocation = QString("%1/../_MASReceipt/receipt").arg(QCoreApplication::applicationDirPath());
     bool foundReceipt = QFile::exists(receiptLocation);
 #ifdef QT_DEBUG
     QString boolText = foundReceipt ? "true" : "false";
-    ui->statusBox->append("Receipt is found : " + boolText);
-    ui->statusBox->append("At location : " + receiptLocation);
-    ui->statusBox->append("   ");
+    addStatusMessage("Receipt is found : " + boolText);
+    addStatusMessage("At location : " + receiptLocation);
+    addStatusMessage("   ");
 #else
     if(foundReceipt==false){
         exit(173); // error code as per apple guideline https://developer.apple.com/library/archive/releasenotes/General/ValidateAppStoreReceipt/Chapters/ValidateLocally.html#//apple_ref/doc/uid/TP40010573-CH1-SW21
@@ -156,7 +156,7 @@ void MainWindow::on_findDuplicates_clicked()
     const QString foldersToSearch = ui->directoryBox->text();   //search only if folder or thumbnail settings have changed
     if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
     {
-        ui->statusBox->append(QStringLiteral("\n\rSearching for videos..."));
+        addStatusMessage(QStringLiteral("\n\rSearching for videos..."));
         ui->statusBar->setVisible(true);
 
         for(const auto &video : _videoList)                     //new search: delete videos from previous search
@@ -265,7 +265,7 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
 void MainWindow::processVideos()
 {
     _prefs._numberOfVideos = _everyVideo.count();
-    ui->statusBox->append(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
+    addStatusMessage(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
     if(_prefs._numberOfVideos > 0)
     {
         ui->selectThumbnails->setDisabled(true);
