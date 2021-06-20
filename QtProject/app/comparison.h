@@ -45,7 +45,7 @@ private:
     int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath);
 
 public slots:
-    void reportMatchingVideos();
+    int reportMatchingVideos(); // returns number of matching videos found
 
 private slots:
     void confirmToExit();

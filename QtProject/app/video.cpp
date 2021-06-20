@@ -48,19 +48,22 @@ void Video::run()
         if(!getMetadata(filename))         //as not cached, read metadata with ffmpeg (NB : getMetadata handles rejection)
             return;
     }
+    if(_useCacheDb)
+        cache.writeMetadata(*this); // cache so next run will be faster
+    bool durationWasZero = false; // we'll update cache again later if duration was 0
+    if(duration==0)
+        durationWasZero = true;
 
     if(width == 0 || height == 0)// || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
         qDebug() << "Height ("<<height<<") or width ("<<width<<") = 0 : rejected " << filename;
         emit rejectVideo(this, QString("Height (%1) or width (%2) = 0 ").arg(height).arg(width));
-        if(_useCacheDb)
-            cache.writeMetadata(*this); // cache so next run will be faster, even if to fail
         return;
     }
 
     const int ret = takeScreenCaptures(cache);
-    if(_useCacheDb)
-        cache.writeMetadata(*this); // wait until here to cache as takeScreenCaptures can estimate duration, when it was 0
+    if(_useCacheDb && durationWasZero && duration!=0)
+        cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if(ret == _failure){
         qDebug() << "Rejected : failed to take capture : "+ filename;
         emit rejectVideo(this, "failed to take capture");
