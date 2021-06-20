@@ -35,7 +35,7 @@ public:
     static QList<VideoParam> importCSVtoVideoParamQList(const QFileInfo csvInfo, const QDir videoDir, const QDir thumbDir); // CSV : sep  seperated values
 
     // will not overwrite it already exists
-    static bool saveVideoParamQListToCSV(const QList<VideoParam> videoParamQList, const QFileInfo csvInfo); // false->failed to save
+    static bool saveVideoParamQListToCSV(const QList<VideoParam> videoParamQList, const QFileInfo csvInfo, const QDir videoBaseDir); // false->failed to save
 };
 
 // -------------------------------------------------
@@ -146,7 +146,7 @@ QList<VideoParam> TestHelpers::importCSVtoVideoParamQList(const QFileInfo csvInf
     return videoParamList;
 }
 
-bool TestHelpers::saveVideoParamQListToCSV(const QList<VideoParam> videoParamQList, const QFileInfo csvInfo){
+bool TestHelpers::saveVideoParamQListToCSV(const QList<VideoParam> videoParamQList, const QFileInfo csvInfo, const QDir videoBaseDir){
     const char sep = VideoParam::sep;
 
     if(csvInfo.exists()) // we don't want to overwrite
@@ -158,8 +158,8 @@ bool TestHelpers::saveVideoParamQListToCSV(const QList<VideoParam> videoParamQLi
     QTextStream output(&csvFile);
     // write headers, to mirror videoParam class
     output <<
-              "videoInfo" << sep <<
-              "thumbnailInfo" << sep <<
+              "videoFilename" << sep <<
+              "thumbnailFilename" << sep <<
               "size" << sep <<
               "modified" << sep <<
               "duration" << sep <<
@@ -175,8 +175,8 @@ bool TestHelpers::saveVideoParamQListToCSV(const QList<VideoParam> videoParamQLi
 
     // write all parameters in the list
     foreach(VideoParam videoParam, videoParamQList){
-        output << videoParam.videoInfo.absoluteFilePath() << sep <<
-                  videoParam.thumbnailInfo.absoluteFilePath() << sep <<
+        output << videoParam.videoInfo.absoluteFilePath().remove(videoBaseDir.path() + "/") << sep <<
+                  videoParam.thumbnailInfo.fileName() << sep <<
                   QString::number(videoParam.size) << sep <<
                   videoParam.modified.toString(VideoParam::timeformat) << sep <<
                   QString::number(videoParam.duration) << sep <<
