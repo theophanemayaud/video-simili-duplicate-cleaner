@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.3.0...v1.4.0) (2021-06-20)
+
+
+### Features
+
+* **cache:** can now clear or disable cache, cleaned up but now only identified by path name ([90c2105](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/90c2105d2670187d037ffa778d86e84b735d9961))
+* **help:** added contact and about links to website ([f182a58](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/f182a58e101357863aad61fb30f83168d2b52e12))
+* **windows:** now builds successfully on windows with ffmpeg and opencv. Still icon and tests to do ([30a4b28](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/30a4b28c32aa93ebf02314e0888dff45b94c43dc))
+
+
+### Bug Fixes
+
+* **db:** uuid is now properly generated, move from date had not been done well ([10f8882](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/10f8882232347a7483369799b4a882fb8f0fad38))
+* **qt-bug:** multi thread datetime objects caused trouble because of QT bug, using Uuid in db ([632b123](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/632b123f8989d06775f0348399a4297da65d06dd))
+* **video:** fix a memory leak while capturing frames, which would take ram useage through the roof ([f1e15f5](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/f1e15f59fe971bfab405e94bb672db07ba16d762))
+
 ## [1.3.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.2.0...v1.3.0) (2021-06-04)
 
 
