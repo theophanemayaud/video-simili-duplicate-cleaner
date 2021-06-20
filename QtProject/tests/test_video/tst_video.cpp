@@ -24,6 +24,7 @@
 #include "../../app/mainwindow.h"
 #include "../../app/comparison.h"
 #include "../../app/ui_comparison.h"
+#include "../../app/db.h"
 
 #include "video_test_helpers.cpp"
 
@@ -35,7 +36,7 @@ public:
     TestVideo();
     ~TestVideo();
 
-    static void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid);
+    static void compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid, const bool compareThumbs=true);
 
 private:
 #ifdef Q_OS_WIN
@@ -61,9 +62,13 @@ private:
 private slots:
     void initTestCase();
 
+    void test_emptyDb(){ Db::emptyAllDb(); }
+
 //    void test_create_reference_video_params();
-    void test_check_reference_video_params();
+    void test_check_refvidparams_nocache();
+    void test_check_refvidparams_cached();
     void test_whole_app();
+    void test_whole_app_nocache();
 
 //    void test_100GB_create_reference_video_params();
     void test_100GBcheck_reference_video_params();
@@ -134,16 +139,59 @@ void TestVideo::test_whole_app(){
     w->destroy();
 };
 
-void TestVideo::test_check_reference_video_params(){
+void TestVideo::test_whole_app_nocache(){
+    // constants of the test
+    const int nb_vids_to_find = 190;
+    const int nb_valid_vids_to_find = 187;
+    // mix lib&exec metadata, exec captures : finds 69 videos with one or more matches
+    // lib(only) metadata, lib(only) captures : finds 71 videos with one or more matches
+
+    // no cached thumbs, mix lib&exec metadata, exec captures : 31 sec
+    // no cached thumbs, lib(only) metadata, exec captures : 26 sec
+    // no cached thumbs, lib(only) metadata, lib(only) captures : 13 sec
+    // windows no cached thumbs, lib(only) metadata, lib(only) captures : 13.5 sec
+   const qint64 ref_ms_time = 20*1000;
+
+    QElapsedTimer timer;
+    timer.start();
+
+    w = new MainWindow;
+    w->show();
+    w->ui->useCacheCheckBox->setChecked(false);
+
+    QVERIFY(_videoDir.exists());
+//    w->ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
+    //w->on_findDuplicates_clicked();
+
+    w->findVideos(_videoDir);
+    w->processVideos();
+    w->ui->blocksizeCombo->setAcceptDrops(true);
+
+    qDebug() << "Found "<<w->_everyVideo.count()<<" files of which "<< w->_videoList.count()<<" valid ones";
+    qDebug() << "TIMER:test_whole_app_nocache took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(w->_everyVideo.count()==nb_vids_to_find, QString("Found %1 files, doesn't match").arg(w->_everyVideo.count()).toStdString().c_str());
+    QVERIFY2(w->_videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files, doesn't match").arg(w->_videoList.count()).toStdString().c_str());
+
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+    Comparison comp(w->sortVideosBySize(), w->_prefs);
+    comp.reportMatchingVideos();
+
+    comp.show();
+
+    QTest::qWait(1000);
+    comp.on_nextVideo_clicked();
+    comp.ui->tabWidget->setCurrentIndex(2);
+    QTest::qWait(1000);
+
+    w->destroy();
+};
+
+void TestVideo::test_check_refvidparams_nocache(){
     // no cached thumbs, mix lib&exec metadata, exec captures : 110 sec
-    // cached thumbs, mix lib&exec metadata, exec captures : 26 sec
     // no cached thumbs, lib(only) metadata, exec captures : 64 sec
-    // cached thumbs, library(only) metadata, executable captures : 9 sec
     // no cached thumbs, lib(only) metadata, lib(only) captures : 35 sec
-    // cached thumbs, lib(only) metadata, lib(only) captures : 8 sec
     // windows no cached thumbs, lib(only) metadata, lib(only) captures : 47 sec, another time run : 36sec
-    // windows cached thumbs, lib(only) metadata, lib(only) captures : 9 sec
-    const qint64 ref_ms_time = 50*1000;
+    const qint64 ref_ms_time = 40*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -166,13 +214,51 @@ void TestVideo::test_check_reference_video_params(){
         ref_thumbFile.close();
 
         Prefs prefs;
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), false);
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
     }
-    qDebug() << "TIMER:test_check_reference_video_params took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
-    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_check_reference_video_params took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+    qDebug() << "TIMER:test_check_refvidparams_nocache took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_check_refvidparams_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+}
+
+void TestVideo::test_check_refvidparams_cached(){
+    // cached thumbs, mix lib&exec metadata, exec captures : 26 sec
+    // cached thumbs, library(only) metadata, executable captures : 9 sec
+    // cached thumbs, lib(only) metadata, lib(only) captures : 8 sec
+    // windows cached thumbs, lib(only) metadata, lib(only) captures : 9 sec
+    const qint64 ref_ms_time = 10*1000;
+
+    test_whole_app(); // create the cache if it didn't exist before
+
+    QElapsedTimer timer;
+    timer.start();
+
+    // read csv file
+    QVERIFY(_csvInfo.exists());
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(_csvInfo, _videoDir, _thumbnailDir);
+    QVERIFY(!videoParamList.isEmpty());
+
+    // compute params for all videos
+    QVERIFY(!_videoDir.isEmpty());
+    foreach(VideoParam videoParam, videoParamList){
+        QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
+        QVERIFY2(videoParam.thumbnailInfo.exists(), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
+
+        QFile ref_thumbFile(videoParam.thumbnailInfo.absoluteFilePath());
+        QVERIFY2(ref_thumbFile.open(QIODevice::ReadOnly), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
+        QByteArray ref_thumbnail = ref_thumbFile.readAll();
+        ref_thumbFile.close();
+
+        Prefs prefs;
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
+        vid->run();
+
+        compareVideoParamToVideo(ref_thumbnail, videoParam, vid, false);
+    }
+    qDebug() << "TIMER:test_check_refvidparams_cached took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_check_refvidparams_cached took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
 }
 
 /*void TestVideo::test_create_reference_video_params()
@@ -200,7 +286,7 @@ void TestVideo::test_check_reference_video_params(){
         videoParam.videoInfo = vidInfo;
 
         Prefs prefs;
-        Video *vid = new Video(prefs, vidInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, vidInfo.absoluteFilePath(), false);
         vid->run();
         QFile thumbFile(_thumbnailDir.path() + "/" + vidInfo.fileName() + ".thumbnail");
         QVERIFY2(!thumbFile.exists(), QString("Thumnail already exists %1").arg(thumbFile.fileName()).toStdString().c_str()); // we don't want to overwrite !
@@ -258,7 +344,7 @@ void TestVideo::test_check_reference_video_params(){
         QVERIFY2(vidInfo.exists(), QString("File not found %1").arg(vidInfo.absoluteFilePath()).toStdString().c_str());
 
         Prefs prefs;
-        Video *vid = new Video(prefs, vidInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, vidInfo.absoluteFilePath(), false);
         vid->run();
         QString thumbPath = _100GBthumbnailDir.path() + "/" + vidInfo.path().remove(_100GBvideoDir.path()) + "-" + vidInfo.fileName() + ".thumbnail";
         QFile thumbFile(thumbPath);
@@ -321,7 +407,7 @@ void TestVideo::test_100GBcheck_reference_video_params(){
         ref_thumbFile.close();
 
         Prefs prefs;
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath());
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), false);
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
@@ -388,7 +474,7 @@ void TestVideo::test_whole_app_100GB(){
 
 // ------------------------------------------------------------------------------------
 // ---------------------------- START : helper testing functions ---------------------
-void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid) {
+void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const VideoParam videoParam, const Video *vid, const bool compareThumbs) {
     QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2").arg(videoParam.size).arg(vid->size).toUtf8().constData());
     QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
     QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.videoInfo.absoluteFilePath()).toUtf8().constData());
@@ -416,10 +502,10 @@ void TestVideo::compareVideoParamToVideo(const QByteArray ref_thumbnail, const V
             manuallyAccepted = true;
         else
 #endif
-            QVERIFY2(manuallyAccepted, QString("Different thumbnails for %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData());
+            QVERIFY2(manuallyAccepted || compareThumbs==false, QString("Different thumbnails for %1").arg(videoParam.thumbnailInfo.absoluteFilePath()).toUtf8().constData());
     }
 #ifdef ENABLE_HASHES_VERIFICATION
-    if(manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
+    if(manuallyAccepted == false && compareThumbs){ // hash will be different anyways if thumbnails look different, so must skip these tests
         QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2").arg(videoParam.hash1).arg(vid->hash[0]).toUtf8().constData());
         QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2").arg(videoParam.hash2).arg(vid->hash[1]).toUtf8().constData());
     }

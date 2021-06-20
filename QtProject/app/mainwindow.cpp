@@ -291,8 +291,7 @@ void MainWindow::processVideos()
         while(threadPool.activeThreadCount() == threadPool.maxThreadCount())
 //        while(threadPool.activeThreadCount() == 1) // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
-
-        auto *videoTask = new Video(_prefs, filename);
+        auto *videoTask = new Video(_prefs, filename, ui->useCacheCheckBox->isChecked());
         videoTask->setAutoDelete(false);
         threadPool.start(videoTask);
     }
@@ -376,4 +375,9 @@ void MainWindow::on_actionAbout_triggered()
 
     ui_credits->setLayout(layout);
     ui_credits->show();
+}
+
+void MainWindow::on_actionEmpty_cache_triggered()
+{
+    Db::emptyAllDb();
 }

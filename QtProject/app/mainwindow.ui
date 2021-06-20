@@ -74,6 +74,19 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="useCacheCheckBox">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Unchecking this will disable loading and saving of file metadata and file caputres, to cache. &lt;/p&gt;&lt;p&gt;Caching is done based on the file path and name, so you should also disable caching &lt;/p&gt;&lt;p&gt;    if you have moved files or renamed files that could be otherwise incorrectly loaded from cache.  &lt;/p&gt;&lt;p&gt;The cache makes subsequent scans much faster !&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Use cache</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="verboseCheckbox">
           <property name="toolTip">
            <string>List all processed video names.  
@@ -426,7 +439,7 @@ Errors will be listed in any case.</string>
      <x>0</x>
      <y>0</y>
      <width>677</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGeneral">
@@ -435,7 +448,14 @@ Errors will be listed in any case.</string>
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionEmpty_cache"/>
+   </widget>
    <addaction name="menuGeneral"/>
+   <addaction name="menuTools"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -454,6 +474,11 @@ Errors will be listed in any case.</string>
   <action name="actionCredits">
    <property name="text">
     <string>Credits</string>
+   </property>
+  </action>
+  <action name="actionEmpty_cache">
+   <property name="text">
+    <string>Empty cache</string>
    </property>
   </action>
  </widget>

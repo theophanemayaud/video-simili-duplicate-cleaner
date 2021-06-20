@@ -17,9 +17,11 @@ private:
     QSqlDatabase _db;
     QString _connection;
     QString _id;
-    QDateTime _modified;
+//    QDateTime _modified; //THEODEBUG : no need actually doing this here, its not using the database !!
 
 public:
+    static void emptyAllDb();
+
     //return md5 hash of parameter's file, or (as convinience) md5 hash of the file given to constructor
     QString uniqueId(const QString &filename=QStringLiteral("")) const;
 

@@ -7,10 +7,13 @@
 
 Db::Db(const QString &filename)
 {
-    const QFileInfo file(filename);
-    _modified = file.lastModified();
+    // THEODEBUG : not using modified as we had problem with QT5 and datetime tostring in threads...
+//    const QFileInfo file(filename);
+//    _modified = file.lastModified(); // apparently if file doesn't exist, it still returns some random date...
     _connection = uniqueId(filename);       //connection name is unique (generated from full path+filename)
-    _id = uniqueId(file.fileName());        //primary key remains same even if file is moved to other folder
+//    _id = uniqueId(file.fileName());        //primary key remains same even if file is moved to other folder
+    _id = uniqueId(filename); // TODO : we can't use date here in QT5 because of bug, so won't stay cached if moved
+    // maybe find a way to better identify files than simply their pathnames, because that could cause problems... !
 
     const QString dbfilename = QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath());
     _db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), _connection);
@@ -18,6 +21,28 @@ Db::Db(const QString &filename)
     _db.open();
 
     createTables();
+}
+
+void Db::emptyAllDb(){
+    const QString dbfilename = QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath());
+    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                QStringLiteral("emptyAllDb_%2"). // unique but meaningfull connexion name
+                                                arg(QUuid::createUuid().toString()));
+    db.setDatabaseName(dbfilename);
+    db.open();
+
+    QSqlQuery query(db);
+
+//    query.exec(QStringLiteral("PRAGMA synchronous = OFF;"));
+//    query.exec(QStringLiteral("PRAGMA journal_mode = WAL;"));
+
+    query.exec(QStringLiteral("DROP TABLE IF EXISTS metadata"));
+
+    query.exec(QStringLiteral("DROP TABLE IF EXISTS capture"));
+
+    query.exec(QStringLiteral("DROP TABLE IF EXISTS version"));
+    query.exec(QStringLiteral("VACUUM"));
+    db.close();
 }
 
 QString Db::uniqueId(const QString &filename) const
@@ -29,8 +54,9 @@ QString Db::uniqueId(const QString &filename) const
     //               Instead using Uuid, which seems to work quite well ! https://forum.qt.io/topic/120355/qdatetime-assert/6
 //    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
 //                                  .arg(_modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss.zzz")));
-    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
-                                  .arg(QUuid::createUuid().toString());
+//    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
+//                                  .arg(QUuid::createUuid().toString());
+    const QString name_modified = QStringLiteral("%1").arg(filename); // TODO : see if in QT6 can do otherwise...
 
     return QCryptographicHash::hash(name_modified.toLatin1(), QCryptographicHash::Md5).toHex();
 }
@@ -68,7 +94,7 @@ bool Db::readMetadata(Video &video) const
 
     while(query.next())
     {
-        video.modified = _modified;
+//        video.modified = _modified;
         video.size = query.value(1).toLongLong();
         video.duration = query.value(2).toLongLong();
         video.bitrate = query.value(3).toInt();
@@ -78,7 +104,7 @@ bool Db::readMetadata(Video &video) const
         video.width = static_cast<short>(query.value(7).toInt());
         video.height = static_cast<short>(query.value(8).toInt());
         return true;
-    }
+    } // TODO : should proooobably delete others if there are multiple results !!! Or produce error !
     return false;
 }
 
