@@ -1,6 +1,8 @@
 #include <QFileDialog>
 #include <QtConcurrent/QtConcurrent>
 #include <QScrollBar>
+#include <QDesktopServices>
+
 #include "mainwindow.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
@@ -357,6 +359,16 @@ void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
 
 void MainWindow::on_actionAbout_triggered()
 {
+    QDesktopServices::openUrl(QUrl("https://theophanemayaud.github.io/video-simili-duplicate-cleaner/"));
+}
+
+void MainWindow::on_actionEmpty_cache_triggered()
+{
+    Db::emptyAllDb();
+}
+
+void MainWindow::on_actionCredits_triggered()
+{
     QFile file(":/CREDITS.md");
     QString credits = "undefined";
     if (file.open(QIODevice::ReadOnly)){
@@ -377,7 +389,7 @@ void MainWindow::on_actionAbout_triggered()
     ui_credits->show();
 }
 
-void MainWindow::on_actionEmpty_cache_triggered()
+void MainWindow::on_actionContact_triggered()
 {
-    Db::emptyAllDb();
+    QDesktopServices::openUrl(QUrl("https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions"));
 }
