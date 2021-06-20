@@ -767,7 +767,13 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
 
     unsigned char* rgbData[8];
     int imgBytesSyze = 3*pFrame->height*pFrame->width;
-    rgbData[0] = (unsigned char *)malloc(imgBytesSyze);
+    rgbData[0] = (unsigned char *)malloc(imgBytesSyze+64); // ask for extra bytes just to be safe
+    if(!rgbData[0]){
+        qDebug() << "Error allocating buffer for frame conversion "<<filename;
+        free(rgbData[0]);
+        ffmpeg::sws_freeContext(img_convert_ctx);
+        return QImage();
+    }
     if(ffmpeg::sws_scale(img_convert_ctx,
                 pFrame->data,
                 pFrame->linesize, 0,
