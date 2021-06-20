@@ -53,7 +53,7 @@ QString Db::uniqueId(const QString &filename) const
     // DEBUGTHEO : for windows, some calendar multithread bug in QT 5.15 needed to replace this unique ID
     //               Instead using Uuid, which seems to work quite well ! https://forum.qt.io/topic/120355/qdatetime-assert/6
 //    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
-//                                  .arg(_modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss.zzz")));
+//                                  .arg(_modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss.zzz"))); // THEO : also it's not good, because two files can have same name and modified date !!!
 //    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
 //                                  .arg(QUuid::createUuid().toString());
     const QString name_modified = QStringLiteral("%1").arg(filename); // TODO : see if in QT6 can do otherwise...
