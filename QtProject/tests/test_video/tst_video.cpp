@@ -41,12 +41,15 @@ public:
 private:
 #ifdef Q_OS_WIN
     QDir _videoDir = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Videos/");
-    const QDir _thumbnailDir = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails/");
-    const QFileInfo _csvInfo = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests.csv");
+    const QDir _thumbnailDir_nocache = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
+    const QFileInfo _csvInfo_nocache = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
 
-    QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");
-    const QDir _100GBthumbnailDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Thumbnails/");
-    const QFileInfo _100GBcsvInfo = QFileInfo("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/100GBtests.csv");
+    const QDir _thumbnailDir_cached = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
+    const QFileInfo _csvInfo_cached = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
+
+    QDir _100GBvideoDir = QDir("");
+    const QDir _100GBthumbnailDir_nocache = QDir("");
+    const QFileInfo _100GBcsvInfo_nocache = QFileInfo("");
 #elif defined(Q_OS_MACOS)
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Videos/");
     const QDir _thumbnailDir_nocache = QDir("/Users/theophanemayaud/Dev/Programming videos dupplicates/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
