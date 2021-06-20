@@ -71,7 +71,7 @@ Comparison::~Comparison()
     delete ui;
 }
 
-void Comparison::reportMatchingVideos()
+int Comparison::reportMatchingVideos()
 {
     int64_t combinedFilesize = 0;
     int foundMatches = 0;
@@ -89,6 +89,8 @@ void Comparison::reportMatchingVideos()
     if(foundMatches)
         emit sendStatusMessage(QStringLiteral("\n[%1] Found %2 video(s) (%3) with one or more matches")
              .arg(QTime::currentTime().toString()).arg(foundMatches).arg(readableFileSize(combinedFilesize)));
+
+    return foundMatches;
 }
 
 void Comparison::confirmToExit()
