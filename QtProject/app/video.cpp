@@ -607,7 +607,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                 }
             }
                 if((curr_ts-wanted_ts)>=-ts_diff){ // must read frames until we get before wanted time stamp
-                    img = getQImageFromFrame(codec_ctx, vFrame);
+                    img = getQImageFromFrame(vFrame);
                     if(img.isNull()){
                         qDebug() << "Failed to save img for file " << filename;
                         ffmpeg::av_packet_free(&vPacket);
@@ -659,7 +659,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     return img;
 }
 
-QImage Video::getQImageFromFrame(const ffmpeg::AVCodecContext *codec_ctx, const ffmpeg::AVFrame* pFrame) const
+QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
 {
     // first convert frame to rgb24
     ffmpeg::SwsContext* img_convert_ctx = ffmpeg::sws_getContext(
