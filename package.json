@@ -7,20 +7,25 @@
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
     "husky": "^4.3.8",
-    "standard-version": "^9.1.0"
+    "standard-version": "^9.3.0"
   },
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
     }
   },
+  "standard-version": {
+    "scripts": {
+      "postbump": "npm run binaries && git add -A"
+    }
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "release": "standard-version --sign",
-    "release:minor": "standard-version --release-as minor --sign && npm run binaries && npm run ammend-commit",
-    "release:patch": "standard-version --release-as patch --sign && npm run binaries && npm run ammend-commit",
-    "release:major": "standard-version --release-as major --sign && npm run binaries && npm run ammend-commit",
-    "ammend-commit": "git add -A && git commit --amend --no-edit && echo '\n\n Remember to push commits and tags with \n git push && git push --tags' ",
+    "release:minor": "standard-version --release-as minor --sign && npm run binaries && npm run notif-push",
+    "release:patch": "standard-version --release-as patch --sign && npm run binaries && npm run notif-push",
+    "release:major": "standard-version --release-as major --sign && npm run binaries && npm run notif-push",
+    "notif-push": "echo '\n\n Remember to push commits and tags with \n git push && git push --tags' ",
     "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/app/version.txt && npm run update-plist-version",
     "build": "npm run update-build-version && npm run build-mac-binaries --prefix QtProject/release-build",
     "clean": "npm run clean  --prefix QtProject/release-build",
