@@ -13,7 +13,7 @@ You can also support the project, or specific issues, via [BOUNTYSOURCE](https:/
 
 ## Contact
 
-Want to report a bug 🐞, suggest new ideas 💡, give general feedback 🧐 or have some specific question 🙋 ? That's what our [DISCUSSIONS PAGE](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions) is for 🚀 [Issues](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues) can also be used for bugs and feature suggestions, but it's often good to first chat about them in the discussions 💬
+Want to report a bug 🐞, suggest new ideas 💡, give general feedback 🧐 or have some specific question 🙋 ? That's what our [DISCUSSIONS PAGE](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions) is for 🚀 [Issues](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues) can also be used for bugs 🪳 and feature  suggestions, but it's often good to first chat about them in the discussions 💬.
 
 
 ## Examples
@@ -32,14 +32,16 @@ In the samples folder, you will find two videos with different sizes and compres
 
 ## Features
 
- - Simple, easy to use graphical user interface for comparing videos.
- - Supports all widely used video formats.
- - Multithreaded operation, makes full use of all available CPU threads.
- - Employs two powerful image comparison methods: pHash (perceptual hashing) and SSIM (structural similarity).
- - Cross-platform and open source development: source code available for compiling on Windows/Linux/macOS.
-- Uses caching for blazing fast second runs.
+- Simple, easy to use graphical user interface for comparing videos.
+- Supports all widely used video formats.
+- Manually select videos to remove, or use automatic selection criteria.
 - Safely move duplicates to trash (you must empty your trash afterwards to really delete the videos), or to a folder of your choosing. 
-- Specify locked folder, to make sure the videos within are never moved.
+- Specify locked folder, to make sure the videos within are never moved. 
+- Multithreaded operation, makes full use of all available CPU threads.
+- Employs two powerful image comparison methods: pHash (perceptual hashing) and SSIM (structural similarity).
+- Uses caching for blazing fast second runs.
+- Cross-platform and open source development: source code available for compiling on Windows/Linux/macOS.
+
 
 ## Changelog
 
@@ -47,7 +49,7 @@ See [CHANGELOG.md](CHANGELOG.md) file.
 
 ## Roadmap
 
-To see what I want to implement next, see [ROADMAP.md](ROADMAP.md). These things may or may not happen, in no guaranteed time frame. You can suggest ideas on [the project's github issues page](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues).
+To see what is wanted and planned, see the [Project Roadmap 🗺 page](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/projects/1). These things may or may not happen, in no guaranteed time frame ⏳. You can suggest ideas 💡 on [the project's github issues page](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues) or our [DISCUSSIONS 💬 PAGE](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions).
 
 ## Usage
  
@@ -126,6 +128,25 @@ A threshold that is too low or too high will either display videos that don't ma
 
 	(Under Tools) By default, files will be moved to trash when you manually press the trash button, or in one of the automatic modes. But with these two top bar menu options, you can select a custom folder into which the app will move files upon "trash" action. The interface might sometimes still say "trash" but if you have selected a folder, it will move to the folder. When you restore the default "move to trash", then the files will be move to trash, just like the default behavior
 
+#### Comparison window settings
+
+- Manual (tab)
+
+	This is the default comparison tab, from which you can select which file to perform most operations like move to trash/the selected custom folder. 
+
+	- Move -> / <- (buttons)
+
+		These two buttons make it possible too move one of the videos to the other file's folder. This is useful if you want to re-organize your videos in a specific way.
+
+- Auto (tab)
+
+	Using this tab, you can choose some automatic removal modes and settings. Once you have configured one, and press on its button, the app will go through the list of all videos and move each matching one to trash/your selected folder, as per the mode's description. 
+
+- Folder settings (tab)
+
+	- Locked folders list
+
+		In this tab you can add folders that you want to protect, and make sure any of the videos within them are not moved to trash/your selected folder, either when manually reviewing videos, or in the automatic modes. Videos in these folders, will simply be skipped when trying to move the to trash/your seleccted folder. You can right click on the list to bring up more options, to remove all folders from the list, or only the selected one. 
 
 ## Disk cache
 
