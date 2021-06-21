@@ -1426,6 +1426,10 @@ In each scenario where only one of the two files is either in a protected folder
              <property name="contextMenuPolicy">
               <enum>Qt::CustomContextMenu</enum>
              </property>
+             <property name="toolTip">
+              <string>Right click on the list for more options.
+Use up/down arrows to navigate options.</string>
+             </property>
              <property name="verticalScrollBarPolicy">
               <enum>Qt::ScrollBarAsNeeded</enum>
              </property>
