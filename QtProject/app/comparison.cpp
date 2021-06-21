@@ -479,6 +479,16 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
             // no need to seek as in auto trash mode, the seeking is already handled, and manual will not want to seek
             return;
         }
+        else if(filename.contains(".photoslibrary")){ // we must never delete files from the Apple Photos Library, although we can detect them !
+            if(!auto_trash_mode)
+                QMessageBox::information(this, "", "This file is in an Apple Photos Libray, cannot delete ! \nYou have to find it manually within Apple Photos \nif you really want to delete it.");
+            else{
+                emit sendStatusMessage(QString("Skipped %1 as it is in an Apple Photos Libray").arg(QDir::toNativeSeparators(filename)));
+                qDebug() << "Skipped file in an Apple Photos Libray"<< filename;
+            }
+            // no need to seek as in auto trash mode, the seeking is already handled, and manual will not want to seek
+            return;
+        }
         else{
             if(!QFile::moveToTrash(filename))
                 QMessageBox::information(this, "", "Could not move file to trash. Check file permissions.");

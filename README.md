@@ -105,6 +105,12 @@ Different thumbnail modes share some of the screen captures, so searching in 3x4
 A cache.db made with an older version of the program is not guaranteed to to be compatible with newer versions.
 
 
+## Platform speecific notes
+
+### MacOS
+
+On MacOS, the Apple Photos app stores its photos within a container, which has the .photoslibrary extension, but it is actually a folder. The app can't delete videos from within that folder, as it would break Apple Photos. But it will scan for the videos and show you the dupplicates, you just won't be able to trash them. The file names of the videos in the Apple Photos Library will however not be meaningfull, as Apple Photos stores them with a random generated name. If you need to delete videos that were reported from within the Apple Photos Library, you must manually look for them inside the Apple Photos app and delete them from there.
+
 ### Libraries/Dependencies
 
 ffmpeg and all other libraries are packaged all within the app file. You can change ffmpeg executable by right clicking on the app, then "Show Package Contents", then navigate to where ffmpeg is located and replace it.
