@@ -393,3 +393,34 @@ void MainWindow::on_actionContact_triggered()
 {
     QDesktopServices::openUrl(QUrl("https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions"));
 }
+
+void MainWindow::on_actionChange_trash_folder_triggered()
+{
+    // initially, files will be moved to trash. With this button, another folder can be selected
+    // into which to move files upon removal, instead of trash.
+    QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
+                          QByteArrayLiteral("Open folder"),
+                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                          QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if(dir.isEmpty()){ //empty because error or none chosen in dialog
+        return;
+    }
+    _prefs.trashDir = QDir(dir);
+    if(!_prefs.trashDir.exists()){ // we must make sure it exists, or we fail and reset to default root (signals trash)
+        _prefs.trashDir = QDir::root();
+        return;
+    }
+    ui->actionChange_trash_folder->setEnabled(false);
+    ui->actionRestoreMoveToTrash->setEnabled(true);
+    addStatusMessage(QString("\nRemoved files will now be moved to %1 folder instead of trash\n").arg(_prefs.trashDir.absolutePath()));
+}
+
+void MainWindow::on_actionRestoreMoveToTrash_triggered()
+{
+    // A  click on this button restores the fault "trash" as "move to trash" destination
+    // here we must restore the default "move to trash" behavior
+    _prefs.trashDir = QDir::root();
+    ui->actionChange_trash_folder->setEnabled(true);
+    ui->actionRestoreMoveToTrash->setEnabled(false);
+    addStatusMessage(QString("\nRemoved files will now be moved to trash\n"));
+}

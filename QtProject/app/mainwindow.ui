@@ -439,7 +439,7 @@ Errors will be listed in any case.</string>
      <x>0</x>
      <y>0</y>
      <width>677</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGeneral">
@@ -453,6 +453,8 @@ Errors will be listed in any case.</string>
      <string>Tools</string>
     </property>
     <addaction name="actionEmpty_cache"/>
+    <addaction name="actionChange_trash_folder"/>
+    <addaction name="actionRestoreMoveToTrash"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -492,6 +494,19 @@ Errors will be listed in any case.</string>
   <action name="actionContact">
    <property name="text">
     <string>Contact</string>
+   </property>
+  </action>
+  <action name="actionChange_trash_folder">
+   <property name="text">
+    <string>Select folder instead of trash</string>
+   </property>
+  </action>
+  <action name="actionRestoreMoveToTrash">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Restore move to trash behavior</string>
    </property>
   </action>
  </widget>
