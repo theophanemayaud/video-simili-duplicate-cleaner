@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QMenu>
 #include <QShortcut>
+#include <QUuid>
 
 #include "comparison.h"
 
@@ -17,7 +18,7 @@ enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
 
 const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 
-Comparison::Comparison(const QVector<Video *> &videosParam, const Prefs &prefsParam) :
+Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QDialog(prefsParam._mainwPtr, Qt::Window), _videos(videosParam), _prefs(prefsParam)
 {
     ui = new Ui::Comparison;
@@ -462,10 +463,14 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
         _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         return;
     }
+    QString question = QString("Are you sure you want to move the %1 file to trash?\n\n%2") //show if it is the left or right file
+                            .arg(videoSide).arg(onlyFilename);
+    if(!_prefs.trashDir.isRoot()) // if its not root then user has selected custom folder
+        question = QString("Are you sure you want to move the %1 file to the selected folder?\n\n%2") //show if it is the left or right file
+                            .arg(videoSide).arg(onlyFilename);
     if(ui->disableDeleteConfirmationCheckbox->isChecked() ||
             QMessageBox::question(this, "Delete file",
-                                  QString("Are you sure you want to move the %1 file to trash?\n\n%2") //show if it is the left or right file
-                                  .arg(videoSide).arg(onlyFilename),
+                                  question,
                                   QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
     {
         // check if file is in locked folder set by user
@@ -481,7 +486,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
         }
         else if(filename.contains(".photoslibrary")){ // we must never delete files from the Apple Photos Library, although we can detect them !
             if(!auto_trash_mode)
-                QMessageBox::information(this, "", "This file is in an Apple Photos Libray, cannot delete ! \nYou have to find it manually within Apple Photos \nif you really want to delete it.");
+                QMessageBox::information(this, "", "This file is in an Apple Photos Libray, it can't be deleted here ! \nYou have to find it manually within Apple Photos if you really want to delete it.");
             else{
                 emit sendStatusMessage(QString("Skipped %1 as it is in an Apple Photos Libray").arg(QDir::toNativeSeparators(filename)));
                 qDebug() << "Skipped file in an Apple Photos Libray"<< filename;
@@ -490,21 +495,52 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
             return;
         }
         else{
-            if(!QFile::moveToTrash(filename))
-                QMessageBox::information(this, "", "Could not move file to trash. Check file permissions.");
-            else
-            {
-                _videosDeleted++;
-                _spaceSaved = _spaceSaved + _videos[side]->size;
-                ui->trashedFiles->setVisible(true);
-                ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
-
-                // THEODEBUG : no use caching, no use un-caching !!
-//                cache.removeVideo(id);
-                emit sendStatusMessage(QString("Moved %1 to trash").arg(QDir::toNativeSeparators(filename)));
-                if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
-                    _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
+            if(_prefs.trashDir.isRoot()){ // default is root, meaning we move to trash
+                if(!QFile::moveToTrash(filename)){
+                    if(!auto_trash_mode)
+                        QMessageBox::information(this, "", "Could not move file to trash. Check file permissions.");
+                    else
+                        emit sendStatusMessage(QString("Error moving to trash video %1").arg(QDir::toNativeSeparators(filename)));
+                    return;
+                }
             }
+            else { // otherwise we move to the custom folder selected by user
+                if(!_prefs.trashDir.exists()){
+                    if(!auto_trash_mode)
+                        QMessageBox::information(this, "", "Selected folder to move files into doesn't seem to exist");
+                    else
+                        emit sendStatusMessage(QString("Error moving to selected folder, it doesn't seem to exist for video %1").arg(QDir::toNativeSeparators(filename)));
+                    return;
+                }
+                else { // the destination directory does exist
+                    QFileInfo newFileInfo(_prefs.trashDir, QFileInfo(filename).fileName());
+                    if(newFileInfo.exists()) // create random name to make sure it doesn't exist
+                        newFileInfo.setFile(_prefs.trashDir, QFileInfo(filename).completeBaseName()+"-"+QUuid::createUuid().toString().remove("{").remove("}") + "." + QFileInfo(filename).suffix());
+                    if(!QFile(filename).rename(newFileInfo.absoluteFilePath())){ // rename actually moves to new path !
+                        if(!auto_trash_mode)
+                            QMessageBox::information(this, "", "Could not move file to selected folder. Check file permissions.");
+                        else
+                            emit sendStatusMessage(QString("Error moving to selected folder, check file permissions of video %1").arg(QDir::toNativeSeparators(filename)));
+                        return;
+                    }
+                }
+            }
+            _videosDeleted++;
+            _spaceSaved = _spaceSaved + _videos[side]->size;
+            ui->trashedFiles->setVisible(true);
+            if(_prefs.trashDir.isRoot()){
+                ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
+                emit sendStatusMessage(QString("Moved %1 to trash").arg(QDir::toNativeSeparators(filename)));
+            }
+            else{
+                ui->trashedFiles->setText(QStringLiteral("Moved %1 to selected folder").arg(_videosDeleted));
+                emit sendStatusMessage(QString("Moved %1 to selected folder").arg(QDir::toNativeSeparators(filename)));
+            }
+
+            // THEODEBUG : no use caching, no use un-caching !!
+//                cache.removeVideo(id);
+            if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
+                _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
     }
 }

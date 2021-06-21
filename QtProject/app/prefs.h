@@ -2,6 +2,7 @@
 #define PREFS_H
 
 #include <QWidget>
+#include <QDir>
 #include "thumbnail.h"
 
 #define SSIM_THRESHOLD 1.0
@@ -23,6 +24,8 @@ public:
 
     int _differentDurationModifier = 4;
     int _sameDurationModifier = 1;
+
+    QDir trashDir = QDir::root();
 };
 
 #endif // PREFS_H

@@ -16,14 +16,14 @@ class Comparison : public QDialog
     friend class TestVideo;
 
 public:
-    Comparison(const QVector<Video *> &videosParam, const Prefs &prefsParam);
+    Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam);
     ~Comparison();
 
 private:
     Ui::Comparison *ui;
 
     QVector<Video *> _videos;
-    Prefs _prefs;
+    Prefs &_prefs;
     int _leftVideo = 0;
     int _rightVideo = 0;
     int _videosDeleted = 0;
