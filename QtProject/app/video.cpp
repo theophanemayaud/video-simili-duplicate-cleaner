@@ -35,7 +35,7 @@ void Video::run()
     }
 
     // THEODEBUG : probably should re-implement things not to cache randomly !
-    Db cache(filename); // we open the db here, but we'll only store things if needed
+    Db cache; // we open the db here, but we'll only store things if needed
     if(_useCacheDb && cache.readMetadata(*this)) {      //check first if video properties are cached
         modified = QFileInfo(filename).lastModified(); // Db doesn't cache the modified date
     }
@@ -210,7 +210,7 @@ int Video::takeScreenCaptures(const Db &cache)
         QImage frame;
         QByteArray cachedImage;
         if(_useCacheDb)
-            cachedImage = cache.readCapture(percentages[capture]);
+            cachedImage = cache.readCapture(filename, percentages[capture]);
         QBuffer captureBuffer(&cachedImage);
         bool writeToCache = false;
 
@@ -246,7 +246,7 @@ int Video::takeScreenCaptures(const Db &cache)
         if(writeToCache) {
             frame = minimizeImage(frame);
             frame.save(&captureBuffer, QByteArrayLiteral("JPG"), _okJpegQuality);
-            cache.writeCapture(percentages[capture], cachedImage);
+            cache.writeCapture(filename, percentages[capture], cachedImage);
         }
     }
 

@@ -449,9 +449,6 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
 {
     const QString filename = _videos[side]->filename;
     const QString onlyFilename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
-    // THEODEBUG : again, caching here seems useless !!!
-//    const Db cache(filename);                       //generate unique id before file has been deleted
-//    const QString id = cache.uniqueId();
 
     // find if it is the elft or right video in ui to tell used in trash confirmation
     QString videoSide = "left";
@@ -525,6 +522,8 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                     }
                 }
             }
+            // NB : we only delete the file from the disk, and not from _videos, as we check
+            //      when going to the next/prev video that each exists, or skip it.
             _videosDeleted++;
             _spaceSaved = _spaceSaved + _videos[side]->size;
             ui->trashedFiles->setVisible(true);
@@ -537,8 +536,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                 emit sendStatusMessage(QString("Moved %1 to selected folder").arg(QDir::toNativeSeparators(filename)));
             }
 
-            // THEODEBUG : no use caching, no use un-caching !!
-//                cache.removeVideo(id);
+            Db().removeVideo(filename); // remove it from the cache as it is not needed anymore !
             if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
                 _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
@@ -602,11 +600,11 @@ void Comparison::on_swapFilenames_clicked() const
     ui->leftFileName->setText(newLeftFilename);                     //update UI
     ui->rightFileName->setText(newRightFilename);
 
-    // THEODEBUG : the three following elements didn't seem to do anything, why cache here ?
-    //              and deleting with cache.uniqueId(...) generates a new unique id, so it will never match !!
-//    Db cache(_videos[_leftVideo]->filename);
-//    cache.removeVideo(cache.uniqueId(oldLeftFilename));             //remove both videos from cache
-//    cache.removeVideo(cache.uniqueId(oldRightFilename));
+    // remove both from cache, otherwise they will be stored in the cache inverted from their full path names
+    // TODO : could just rename them in the cache... ?
+    Db cache; // opening connexion to database
+    cache.removeVideo(oldLeftFilename);
+    cache.removeVideo(oldRightFilename);
 }
 
 void Comparison::on_thresholdSlider_valueChanged(const int &value)
@@ -943,6 +941,7 @@ int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString 
 
     return containedStatus;
 }
+
 // ------------------ End of : Automatic video deletion functions ------------------
 // ---------------------------------------------------------------------------------
 
@@ -982,6 +981,7 @@ void Comparison::eraseImportantFolderItem(){
         delete item;
     }
 }
+
 void Comparison::eraseLockedFolderItem(){
     // If multiple selection is on, we need to erase all selected items
     for (int i = 0; i < ui->lockedFolderslistWidget->selectedItems().size(); ++i) {
@@ -1008,6 +1008,7 @@ void Comparison::showImportantFolderContextMenu(const QPoint &pos){
     // Show context menu at handling position
     myMenu.exec(globalPos);
 }
+
 void Comparison::showLockedFolderContextMenu(const QPoint &pos){
     // Handle global position
     QPoint globalPos = ui->lockedFolderslistWidget->mapToGlobal(pos);
