@@ -21,7 +21,9 @@ require('fs').readFileSync('./QtProject/release-build/macos/Info.plist', 'utf-8'
     if(foundCFBundleShortVersionString == true){
         var beforeString = line.slice(0, getPosition(line, '>', 1) + 1);
         var afterString =line.slice(getPosition(line, '<', 2));
-        line = beforeString + appversion.substring(0, appversion.lastIndexOf('.')) + afterString;
+// Before : through short version needed to be short, but in fact no !! It's just a possibility offered by Apple, but it can be identical ! However, this short version must be unique between releases on the apple store, so if want to publish "patch" releases, must use longer version.
+//        line = beforeString + appversion.substring(0, appversion.lastIndexOf('.')) + afterString;
+        line = beforeString + appversion + afterString;
         foundCFBundleShortVersionString = false;
     }
     if(line.includes('CFBundleVersion')){
