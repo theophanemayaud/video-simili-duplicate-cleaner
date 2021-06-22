@@ -10,20 +10,18 @@ class Db
 {
 
 public:
-    explicit Db(const QString &filename);
-    ~Db() { _db.close(); _db = QSqlDatabase(); _db.removeDatabase(_connection); }
+    explicit Db();
+    ~Db() { _db.close(); _db = QSqlDatabase(); _db.removeDatabase(_uniqueConnexionName); }
 
 private:
     QSqlDatabase _db;
-    QString _connection;
-    QString _id;
-//    QDateTime _modified; //THEODEBUG : no need actually doing this here, its not using the database !!
+    QString _uniqueConnexionName;
 
 public:
     static void emptyAllDb();
 
-    //return md5 hash of parameter's file, or (as convinience) md5 hash of the file given to constructor
-    QString uniqueId(const QString &filename=QStringLiteral("")) const;
+    //return md5 hash of parameter's file, used internally as "unique id" for each file
+    static QString pathnameHashId(const QString &filename=QStringLiteral(""));
 
     //constructor creates a database file if there is none already
     void createTables() const;
@@ -35,13 +33,13 @@ public:
     void writeMetadata(const Video &video) const;
 
     //returns screen capture if it was cached, else return null ptr
-    QByteArray readCapture(const int &percent) const;
+    QByteArray readCapture(const QString &filePathname, const int &percent) const;
 
     //save image in cache
-    void writeCapture(const int &percent, const QByteArray &image) const;
+    void writeCapture(const QString &filePathname, const int &percent, const QByteArray &image) const;
 
-    //returns false if id not cached or could not be removed
-    bool removeVideo(const QString &id) const;
+    //returns false was not cached or could not be removed
+    bool removeVideo(const QString &filePathname) const;
 };
 
 #endif // DB_H

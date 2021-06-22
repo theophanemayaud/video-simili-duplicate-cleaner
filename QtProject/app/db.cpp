@@ -5,60 +5,57 @@
 #include "db.h"
 #include "video.h"
 
-Db::Db(const QString &filename)
-{
-    // THEODEBUG : not using modified as we had problem with QT5 and datetime tostring in threads...
-//    const QFileInfo file(filename);
-//    _modified = file.lastModified(); // apparently if file doesn't exist, it still returns some random date...
-    _connection = uniqueId(filename);       //connection name is unique (generated from full path+filename)
-//    _id = uniqueId(file.fileName());        //primary key remains same even if file is moved to other folder
-    _id = uniqueId(filename); // TODO : we can't use date here in QT5 because of bug, so won't stay cached if moved
-    // maybe find a way to better identify files than simply their pathnames, because that could cause problems... !
+// ----------------------------------------------------------------------
+// -------------------- START : static functions --------------------------
 
+void Db::emptyAllDb(){
     const QString dbfilename = QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath());
-    _db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), _connection);
+    const QString connexionName = QUuid::createUuid().toString();
+
+    {     // isolate queries, so that when we removeDatabase, it doesn't warn of possible problems
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                connexionName);
+        db.setDatabaseName(dbfilename);
+        db.open();
+
+        QSqlQuery query(db);
+
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS metadata"));
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS capture"));
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS version"));
+
+        query.exec(QStringLiteral("VACUUM")); // restructure sqlite file to make it smaller on disk
+
+        db.close();
+    }
+
+    QSqlDatabase().removeDatabase(connexionName); // clear the connexion backlog, basically... !
+}
+
+QString Db::pathnameHashId(const QString &filename)
+{
+    // Before : usesd file name and modified date, but could lead to two same identified files
+    //          if two files in seperate folders had the same name and modified date.
+    //          It was nice because even after moving files, they could still be identified
+    //          in the database.
+    // Instead simply using full path and name, but we'd need to find a way to better uniquely
+    //          identify, that doesn't depend on path, to have file moving proofness !
+    return QCryptographicHash::hash(filename.toLatin1(), QCryptographicHash::Md5).toHex();
+}
+
+// -------------------- END : static functions ----------------------------
+// ----------------------------------------------------------------------
+
+
+Db::Db()
+{
+    _uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
+    const QString dbfilename = QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath());
+    _db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), _uniqueConnexionName);
     _db.setDatabaseName(dbfilename);
     _db.open();
 
     createTables();
-}
-
-void Db::emptyAllDb(){
-    const QString dbfilename = QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath());
-    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
-                                                QStringLiteral("emptyAllDb_%2"). // unique but meaningfull connexion name
-                                                arg(QUuid::createUuid().toString()));
-    db.setDatabaseName(dbfilename);
-    db.open();
-
-    QSqlQuery query(db);
-
-//    query.exec(QStringLiteral("PRAGMA synchronous = OFF;"));
-//    query.exec(QStringLiteral("PRAGMA journal_mode = WAL;"));
-
-    query.exec(QStringLiteral("DROP TABLE IF EXISTS metadata"));
-
-    query.exec(QStringLiteral("DROP TABLE IF EXISTS capture"));
-
-    query.exec(QStringLiteral("DROP TABLE IF EXISTS version"));
-    query.exec(QStringLiteral("VACUUM"));
-    db.close();
-}
-
-QString Db::uniqueId(const QString &filename) const
-{
-    if(filename.isEmpty())
-        return _id;
-
-    // DEBUGTHEO : for windows, some calendar multithread bug in QT 5.15 needed to replace this unique ID
-    //               Instead using Uuid, which seems to work quite well ! https://forum.qt.io/topic/120355/qdatetime-assert/6
-//    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
-//                                  .arg(_modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss.zzz"))); // THEO : also it's not good, because two files can have same name and modified date !!!
-//    const QString name_modified = QStringLiteral("%1_%2").arg(filename)
-//                                  .arg(QUuid::createUuid().toString());
-    const QString name_modified = QStringLiteral("%1").arg(filename); // TODO : see if in QT6 can do otherwise...
-
-    return QCryptographicHash::hash(name_modified.toLatin1(), QCryptographicHash::Md5).toHex();
 }
 
 void Db::createTables() const
@@ -77,6 +74,8 @@ void Db::createTables() const
 
     query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS version (version TEXT PRIMARY KEY);"));
 
+    // Now create a version key, that could help us in the future to check if the database contains old records
+    //          and might need to be emptied... ! For now, not used.
     QFile file(":/version.txt");
     QString appVersion = "undefined";
     if (file.open(QIODevice::ReadOnly)){
@@ -89,8 +88,9 @@ void Db::createTables() const
 
 bool Db::readMetadata(Video &video) const
 {
+    const QString id = pathnameHashId(video.filename);
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("SELECT * FROM metadata WHERE id = '%1';").arg(_id));
+    query.exec(QStringLiteral("SELECT * FROM metadata WHERE id = '%1';").arg(id));
 
     while(query.next())
     {
@@ -110,34 +110,38 @@ bool Db::readMetadata(Video &video) const
 
 void Db::writeMetadata(const Video &video) const
 {
+    const QString id = pathnameHashId(video.filename);
     QSqlQuery query(_db);
     query.exec(QStringLiteral("INSERT OR REPLACE INTO metadata VALUES('%1',%2,%3,%4,%5,'%6','%7',%8,%9);")
-               .arg(_id).arg(video.size).arg(video.duration).arg(video.bitrate).arg(video.framerate)
+               .arg(id).arg(video.size).arg(video.duration).arg(video.bitrate).arg(video.framerate)
                .arg(video.codec).arg(video.audio).arg(video.width).arg(video.height));
 }
 
-QByteArray Db::readCapture(const int &percent) const
+QByteArray Db::readCapture(const QString &filePathname, const int &percent) const
 {
+    const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("SELECT at%1 FROM capture WHERE id = '%2';").arg(percent).arg(_id));
+    query.exec(QStringLiteral("SELECT at%1 FROM capture WHERE id = '%2';").arg(percent).arg(id));
 
     while(query.next())
         return query.value(0).toByteArray();
     return nullptr;
 }
 
-void Db::writeCapture(const int &percent, const QByteArray &image) const
+void Db::writeCapture(const QString &filePathname, const int &percent, const QByteArray &image) const
 {
+    const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("INSERT OR IGNORE INTO capture (id) VALUES('%1');").arg(_id));
+    query.exec(QStringLiteral("INSERT OR IGNORE INTO capture (id) VALUES('%1');").arg(id));
 
-    query.prepare(QStringLiteral("UPDATE capture SET at%1 = :image WHERE id = '%2';").arg(percent).arg(_id));
+    query.prepare(QStringLiteral("UPDATE capture SET at%1 = :image WHERE id = '%2';").arg(percent).arg(id));
     query.bindValue(QStringLiteral(":image"), image);
     query.exec();
 }
 
-bool Db::removeVideo(const QString &id) const
+bool Db::removeVideo(const QString &filePathname) const
 {
+    const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
 
     bool idCached = false;
