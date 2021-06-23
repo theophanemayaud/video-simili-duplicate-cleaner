@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.4.0...v1.5.0) (2021-06-23)
+
+
+### Features
+
+* **trash:** can now select custom folder into which duplicates should be moved, instead of trash ([0c2f1d1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/0c2f1d1132e881c711eaabfdb7eba39031e4e6e0))
+
+
+### Bug Fixes
+
+* **macos:** will now block deletion of videos that are in an apple photos library. closes [#10](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/10) ([0de825d](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/0de825d0ff88f94563007d5fd7d77f0038623174))
+* **video:** solved bug for some video files that ffmpeg doesn't find an average fps for (div/0) ([d1b2c5f](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/d1b2c5f65f8db94123d3390fcffe99e2aea0c20b))
+
 ## [1.4.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.3.0...v1.4.0) (2021-06-20)
 
 
