@@ -22,6 +22,7 @@ public:
     QString filename;
     int64_t size = 0; // in bytes
     QDateTime modified;
+    QDateTime _fileCreateDate;
     int64_t duration = 0; // in miliseconds
     int bitrate = 0;
     double framerate = 0; // avg, in frames per second

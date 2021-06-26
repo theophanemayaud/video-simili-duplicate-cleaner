@@ -252,6 +252,14 @@ void Comparison::showVideo(const QString &side) const
     auto *Modified = this->findChild<QLabel *>(side + QStringLiteral("Modified"));
     Modified->setText(_videos[thisVideo]->modified.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
 
+    // File create date
+    if(side=="left"){
+        this->ui->leftFileCreated->setText(_videos[thisVideo]->_fileCreateDate.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
+    }
+    else{
+        this->ui->rightFileCreated->setText(_videos[thisVideo]->_fileCreateDate.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
+    }
+
     const QString resolutionString = QStringLiteral("%1x%2").
                   arg(_videos[thisVideo]->width).arg(_videos[thisVideo]->height);
     auto *Resolution = this->findChild<QLabel *>(side + QStringLiteral("Resolution"));
@@ -361,6 +369,7 @@ void Comparison::highlightBetterProperties() const
     else if(_videos[_leftVideo]->framerate < _videos[_rightVideo]->framerate)
         ui->rightFrameRate->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
 
+    // Set file modified date
     ui->leftModified->setStyleSheet(QStringLiteral(""));
     ui->rightModified->setStyleSheet(QStringLiteral(""));
     if(_videos[_leftVideo]->modified == _videos[_rightVideo]->modified)
@@ -373,6 +382,20 @@ void Comparison::highlightBetterProperties() const
     else if(_videos[_leftVideo]->modified > _videos[_rightVideo]->modified)
         ui->rightModified->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
 
+    // Set file create date (earlier is better, ie green)
+    ui->leftFileCreated->setStyleSheet(QStringLiteral(""));
+    ui->rightFileCreated->setStyleSheet(QStringLiteral(""));
+    if(_videos[_leftVideo]->_fileCreateDate == _videos[_rightVideo]->_fileCreateDate)
+    {
+        ui->leftFileCreated->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->rightFileCreated->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+    }
+    else if(_videos[_leftVideo]->_fileCreateDate < _videos[_rightVideo]->_fileCreateDate)
+        ui->leftFileCreated->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+    else if(_videos[_leftVideo]->_fileCreateDate > _videos[_rightVideo]->_fileCreateDate)
+        ui->rightFileCreated->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+
+    // Set resolution
     ui->leftResolution->setStyleSheet(QStringLiteral(""));
     ui->rightResolution->setStyleSheet(QStringLiteral(""));
 
