@@ -38,6 +38,8 @@ void Video::run()
     Db cache; // we open the db here, but we'll only store things if needed
     if(_useCacheDb && cache.readMetadata(*this)) {      //check first if video properties are cached
         modified = QFileInfo(filename).lastModified(); // Db doesn't cache the modified date
+        if(QFileInfo(filename).birthTime().isValid())
+            _fileCreateDate = QFileInfo(filename).birthTime();
     }
     else {
         if(QFileInfo(filename).size()==0){ // check this before, as it's faster, but getMetadata also does this but stores the info
@@ -193,6 +195,8 @@ bool Video::getMetadata(const QString &filename)
     ffmpeg::avformat_close_input(&fmt_ctx);
 
     modified = videoFile.lastModified(); // get it at the end so as not to have a date when other infos are empty
+    if(videoFile.birthTime().isValid())
+        _fileCreateDate = videoFile.birthTime();
 
     return true; // success !
 }
