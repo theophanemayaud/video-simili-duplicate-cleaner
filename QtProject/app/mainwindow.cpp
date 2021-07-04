@@ -379,10 +379,12 @@ void MainWindow::on_actionCredits_triggered()
     QWidget *ui_credits = new QWidget;
     ui_credits->setWindowTitle("Credits");
     QVBoxLayout *layout = new QVBoxLayout(ui_credits);
-    QLabel *label = new QLabel(ui_credits);
-    label->setWordWrap(true);
-    label->setText(credits);
+    layout->setContentsMargins(0,0,0,0);
+    QTextEdit *label = new QTextEdit(ui_credits);
+    label->setDisabled(true);
+    label->setMarkdown(credits);
     label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    label->setMinimumSize(ui->centralWidget->size());
     layout->addWidget(label);
 
     ui_credits->setLayout(layout);
