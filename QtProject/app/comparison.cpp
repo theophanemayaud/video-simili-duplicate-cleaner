@@ -524,10 +524,29 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                         "        make new album named \"Trash from %2\"\n"
                         "    end if\n"
                         "    add selMedia to album \"Trash from %2\"\n"
+                        "    return get filename of item 1 of selMedia\n"
                         "end tell").arg(fileNameNoExt).arg(APP_NAME);
-                if(!QProcess::startDetached("osascript", QStringList() << "-e" << aScript)){
+                QProcess script;
+                script.setProgram("osascript");
+                script.setArguments(QStringList() <<
+                                     "-e" << aScript);
+                script.start();
+                if(_firstScriptingAskPermission){
+                    script.waitForFinished(30000); // wait longer, 30 seconds to let user time to accept permission request
+                    _firstScriptingAskPermission = false;
+                }
+                else
+                    script.waitForFinished(5000); // only wait 5 seconds or consider it failed
+//                QString output = script.readAllStandardOutput();
+                int exitCode = script.exitCode();
+                if(exitCode!=0){
+                    QString errorOut = script.readAllStandardError();
                     if(!auto_trash_mode)
-                        QMessageBox::information(this, "", "Unknown error adding into Apple Photos Library album, sorry.");
+                        QMessageBox::information(this, "", QString(
+                                "Unknown error adding into Apple Photos Library album, sorry. "
+                                "Video might be in Apple Photos trash. "
+                                "Make sure to empty Apple Photos trash."
+                                "\n\n%1").arg(errorOut));
                     emit sendStatusMessage(QString("Unknown error adding %1 into Apple Photos Library album.").arg(QDir::toNativeSeparators(filename)));
                 }
                 // Finally if reached here: it is "deleted" so remove from DB

@@ -44,6 +44,7 @@ private:
 
     int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath);
     bool _someWereMovedInApplePhotosLibrary = false;
+    bool _firstScriptingAskPermission = true;
 
 public slots:
     int reportMatchingVideos(); // returns number of matching videos found
