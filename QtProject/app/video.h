@@ -20,6 +20,7 @@ public:
     void run();
 
     QString filename;
+    QString nameInApplePhotos; // used externally only, as it is too slow to get at first
     int64_t size = 0; // in bytes
     QDateTime modified;
     QDateTime _fileCreateDate;
