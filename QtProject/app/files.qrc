@@ -3,5 +3,6 @@
         <file>extensions.ini</file>
         <file>version.txt</file>
         <file alias="CREDITS.md">../../CREDITS.md</file>
+        <file>static-ressources/apple-photos-icon.png</file>
     </qresource>
 </RCC>
