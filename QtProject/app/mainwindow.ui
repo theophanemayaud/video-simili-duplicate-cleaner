@@ -384,6 +384,9 @@ Errors will be listed in any case.</string>
           <height>16777215</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>Select Apple Photos Library</string>
+        </property>
         <property name="text">
          <string/>
         </property>
