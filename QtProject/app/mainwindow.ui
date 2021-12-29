@@ -368,6 +368,32 @@ Errors will be listed in any case.</string>
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="browseApplePhotos">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>40</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="files.qrc">
+          <normaloff>:/static-ressources/apple-photos-icon.png</normaloff>:/static-ressources/apple-photos-icon.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="findDuplicates">
         <property name="text">
          <string>Find duplicates</string>
@@ -439,7 +465,7 @@ Errors will be listed in any case.</string>
      <x>0</x>
      <y>0</y>
      <width>677</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGeneral">
@@ -511,6 +537,8 @@ Errors will be listed in any case.</string>
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="files.qrc"/>
+ </resources>
  <connections/>
 </ui>

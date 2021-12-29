@@ -55,6 +55,7 @@ private slots:
     void calculateThreshold(const int &value);
 
     void on_browseFolders_clicked() const;
+    void on_browseApplePhotos_clicked() const;
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
     void findVideos(QDir &dir);

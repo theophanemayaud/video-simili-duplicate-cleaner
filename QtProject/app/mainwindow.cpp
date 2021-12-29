@@ -59,6 +59,9 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
 
     ui->directoryBox->setFocus();
     ui->browseFolders->setIcon(ui->browseFolders->style()->standardIcon(QStyle::SP_DirOpenIcon));
+#ifndef Q_OS_MACOS
+    ui->browseApplePhotos->hide();
+#endif
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->mainToolBar->setVisible(false);
@@ -134,6 +137,19 @@ void MainWindow::on_browseFolders_clicked() const
         return;
     }
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(dir)));
+    ui->directoryBox->setFocus();
+}
+
+void MainWindow::on_browseApplePhotos_clicked() const
+{
+    const QString path = QFileDialog::getOpenFileName(ui->browseFolders,
+                                                    QByteArrayLiteral("Select Apple Photos Library"),
+                                                    QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                    tr("Apple Photos Library (*.photoslibrary)"));
+    if(path.isEmpty()){ //empty because error or none chosen in dialog
+        return;
+    }
+    ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(path)));
     ui->directoryBox->setFocus();
 }
 
