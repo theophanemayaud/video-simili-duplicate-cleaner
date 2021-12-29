@@ -40,6 +40,7 @@ In the samples folder, you will find two videos with different sizes and compres
 - Multithreaded operation, makes full use of all available CPU threads.
 - Employs two powerful image comparison methods: pHash (perceptual hashing) and SSIM (structural similarity).
 - Uses caching for blazing fast second runs.
+- macOS: supports Apple Photos, to save more space. 
 - Cross-platform and open source development: source code available for compiling on Windows/Linux/macOS.
 
 
@@ -55,8 +56,7 @@ To see what is wanted and planned, see the [Project Roadmap 🗺 page](https://g
  
 ### Main window
 
-After starting the program you must enter which folders to scan for video files. Folders can be added by typing them in, dragging and dropping a folder onto the window or using the folder browser button next to the input box.
-All folders must be separated by a semicolon ( ; ).
+After starting the program you must enter which folders to scan for video files. Folders can be added by typing them in, dragging and dropping a folder onto the window or using the folder browser button next to the input box. On macOS, you can add Apple Photos library(ies) to the search by using the dedicated button on the right of the browse folder button (for more information see the [dedicated section](#macos-apple-photos). All folders (or libraries) must be separated by a semicolon ( ; ).
 
 Comparison is started by pressing the "Find duplicates" button and all video files in selected folders are scanned.
 A lengthy search for videos can be aborted by pressing the button again (that now reads Stop).
@@ -158,9 +158,17 @@ A cache.db made with an older version of the program is not guaranteed to to be 
 
 ## Platform specific notes
 
-### MacOS
+### MacOS Apple Photos
 
-On MacOS, the Apple Photos app stores its photos within a container, which has the .photoslibrary extension, but it is actually a folder. The app can't delete videos from within that folder, as it would break Apple Photos. But it will scan for the videos and show you the dupplicates, you just won't be able to trash them. The file names of the videos in the Apple Photos Library will however not be meaningfull, as Apple Photos stores them with a random generated name. If you need to delete videos that were reported from within the Apple Photos Library, you must manually look for them inside the Apple Photos app and delete them from there.
+On MacOS, the Apple Photos app stores its photos within a container, which has the .photoslibrary extension, but it is actually a folder. The app can't delete videos directly from within that folder, as it would break Apple Photos. But it will scan for the videos and show you the duplicates. 
+
+If using iCloud photos ☁️, be sure to enable "Download Originals to this Mac" (Open the Photos app, Choose Photos > Preferences, Select iCloud, then click Download Originals to this Mac). Only videos that are downloaded to your device can be scanned.
+ 
+
+Instead of trash, if a duplicate is detected inside the Apple Photos library and is deleted inside our app, it will simply be added to an album within Apple Photos, so you can review them and delete them from within Apple Photos. After using our app, you must open the album 'Trash from Video simili duplicate cleaner' inside Apple Photos. Inside this album, select the videos then press 'cmd' and 'delete' (or right click while pressing 'cmd', and select the option 'Delete', ⚠️ but not 'Delete from album' !!!). Finally, empty Apple Photos' trash ! 🗑
+
+
+Note: the file names of the videos in the Apple Photos Library will however not be meaningfull, as Apple Photos stores them with a random generated name.
 
 ## Libraries/Dependencies
 
