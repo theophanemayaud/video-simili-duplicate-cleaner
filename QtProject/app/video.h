@@ -33,6 +33,7 @@ public:
     QByteArray thumbnail;
     cv::Mat grayThumb [2];
     uint64_t hash [2] = { 0, 0 };
+    bool trashed = false;
 
 private slots:
     bool getMetadata(const QString &filename); // return success=true or error=false. It handles video rejection on those with error

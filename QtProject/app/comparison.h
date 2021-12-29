@@ -43,6 +43,7 @@ private:
     int _rightH = 0;
 
     int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath);
+    bool _someWereMovedInApplePhotosLibrary = false;
 
 public slots:
     int reportMatchingVideos(); // returns number of matching videos found
@@ -105,6 +106,7 @@ private slots:
     void clearLockedFolderList();
 
     bool isFileInProtectedFolder(const QString filePathName) const;
+    void displayApplePhotosAlbumDeletionMessage();
 
 signals:
     void sendStatusMessage(const QString &message) const;
