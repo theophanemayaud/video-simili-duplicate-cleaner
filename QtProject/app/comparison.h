@@ -6,6 +6,10 @@
 #include <QUrl>
 #include <QLabel>
 
+#ifdef Q_OS_MACOS
+#include <QProcess> // for running apple scripts and opening file in explorer
+#endif
+
 #include "video.h"
 
 namespace Ui { class Comparison; }

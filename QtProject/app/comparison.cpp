@@ -5,10 +5,6 @@
 #include <QShortcut>
 #include <QUuid>
 
-#ifdef Q_OS_MACOS
-#include <QProcess> // for running apple scripts and opening file in explorer
-#endif
-
 #include "comparison.h"
 
 #include "ui_comparison.h" // WARNING : for some reason, this has to be below the rest, and not in comparison.h -> TODO : figure out why !
@@ -244,8 +240,32 @@ void Comparison::showVideo(const QString &side) const
     image.load(&pixels, QByteArrayLiteral("JPG"));
     Image->setPixmap(QPixmap::fromImage(image).scaled(Image->width(), Image->height(), Qt::KeepAspectRatio));
 
+    // Get video name from apple photos if applicable. Can't do in in video directly as it is very slow
+    if(_videos[thisVideo]->filename.contains(".photoslibrary")){
+        const QString fileNameNoExt = QFileInfo(_videos[thisVideo]->filename).completeBaseName();
+        if (!fileNameNoExt.contains("_")){
+            const QString aScript = QString(
+                    "tell application \"Photos\"\n"
+                    "    set selMedia to (get media items whose id contains \"%1\")\n"
+                    "    return get filename of item 1 of selMedia\n"
+                    "end tell").arg(fileNameNoExt);
+            QProcess script;
+            script.setProgram("osascript");
+            script.setArguments(QStringList() <<
+                                 "-e" << aScript);
+            script.start();
+            script.waitForFinished();
+            if(script.exitCode()==0){
+                _videos[thisVideo]->nameInApplePhotos = script.readAllStandardOutput().replace("\n","");
+            }
+        }
+    }
+
     auto *FileName = this->findChild<ClickableLabel *>(side + QStringLiteral("FileName"));
-    FileName->setText(QFileInfo(_videos[thisVideo]->filename).fileName());
+    if(_videos[thisVideo]->nameInApplePhotos.isEmpty())
+        FileName->setText(QFileInfo(_videos[thisVideo]->filename).fileName());
+    else
+        FileName->setText(_videos[thisVideo]->nameInApplePhotos);
     FileName->setToolTip(QStringLiteral("%1\nOpen in file manager")
                                         .arg(QDir::toNativeSeparators(_videos[thisVideo]->filename)));
 
@@ -494,7 +514,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
         return;
     }
     QString question = QString("Are you sure you want to move the %1 file to trash?\n\n%2") //show if it is the left or right file
-                            .arg(videoSide).arg(onlyFilename);
+                            .arg(videoSide).arg(_videos[side]->nameInApplePhotos.isEmpty()? onlyFilename : _videos[side]->nameInApplePhotos);
     if(!_prefs.trashDir.isRoot()) // if its not root then user has selected custom folder
         question = QString("Are you sure you want to move the %1 file to the selected folder?\n\n%2") //show if it is the left or right file
                             .arg(videoSide).arg(onlyFilename);
