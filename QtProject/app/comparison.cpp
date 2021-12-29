@@ -5,6 +5,10 @@
 #include <QShortcut>
 #include <QUuid>
 
+#ifdef Q_OS_MACOS
+#include <QProcess> // for running apple scripts and opening file in explorer
+#endif
+
 #include "comparison.h"
 
 #include "ui_comparison.h" // WARNING : for some reason, this has to be below the rest, and not in comparison.h -> TODO : figure out why !
@@ -109,6 +113,8 @@ void Comparison::confirmToExit()
     }
     if(confirm == QMessageBox::Yes)
     {
+        if(_someWereMovedInApplePhotosLibrary)
+            displayApplePhotosAlbumDeletionMessage();
         if(_videosDeleted)
             emit sendStatusMessage(QStringLiteral("\n%1 file(s) moved to trash, %2 freed")
                                    .arg(_videosDeleted).arg(readableFileSize(_spaceSaved)));
@@ -131,7 +137,9 @@ void Comparison::on_prevVideo_clicked()
     for(_rightVideo--, left=begin+_leftVideo; left>=begin; left--, _leftVideo--)
     {
         for(right=begin+_rightVideo; right>left; right--, _rightVideo--)
-            if(bothVideosMatch(*left, *right) && QFileInfo::exists((*left)->filename) && QFileInfo::exists((*right)->filename))
+            if(bothVideosMatch(*left, *right)
+                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
             {
                 showVideo(QStringLiteral("left"));
                 showVideo(QStringLiteral("right"));
@@ -156,7 +164,9 @@ void Comparison::on_nextVideo_clicked()
     for(left=begin+_leftVideo; left<end; left++, _leftVideo++)
     {
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
-            if(bothVideosMatch(*left, *right) && QFileInfo::exists((*left)->filename) && QFileInfo::exists((*right)->filename))
+            if(bothVideosMatch(*left, *right)
+                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
             {
                 showVideo(QStringLiteral("left"));
                 showVideo(QStringLiteral("right"));
@@ -478,7 +488,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
     if(side == _rightVideo)
         videoSide = "right";
 
-    if(!QFileInfo::exists(filename))                //video was already manually deleted, skip to next
+    if(_videos[side]->trashed || !QFileInfo::exists(filename))  //video was already manually deleted, skip to next
     {
         _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         return;
@@ -498,21 +508,52 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
             if(!auto_trash_mode)
                 QMessageBox::information(this, "", "This file is locked, cannot delete !");
             else{
-                emit sendStatusMessage(QString("Skipped %1 as it is locked").arg(QDir::toNativeSeparators(filename)));
-                qDebug() << "Skipped  locked file "<< filename;
+                emit sendStatusMessage(QString("Skipped %1 as it is locked.").arg(QDir::toNativeSeparators(filename)));
             }
             // no need to seek as in auto trash mode, the seeking is already handled, and manual will not want to seek
             return;
         }
         else if(filename.contains(".photoslibrary")){ // we must never delete files from the Apple Photos Library, although we can detect them !
-            if(!auto_trash_mode)
-                QMessageBox::information(this, "", "This file is in an Apple Photos Libray, it can't be deleted here ! \nYou have to find it manually within Apple Photos if you really want to delete it.");
-            else{
-                emit sendStatusMessage(QString("Skipped %1 as it is in an Apple Photos Libray").arg(QDir::toNativeSeparators(filename)));
-                qDebug() << "Skipped file in an Apple Photos Libray"<< filename;
+            // We'll now tell Apple Photos via AppleScript to add videos to be deleted to a specific album so the user can manually delete them all at once
+            const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
+            if (!fileNameNoExt.contains("_")){
+                const QString aScript = QString(
+                        "tell application \"Photos\"\n"
+                        "    set selMedia to (get media items whose id contains \"%1\")\n"
+                        "    if not (album \"Trash from %2\" exists) then\n"
+                        "        make new album named \"Trash from %2\"\n"
+                        "    end if\n"
+                        "    add selMedia to album \"Trash from %2\"\n"
+                        "end tell").arg(fileNameNoExt).arg(APP_NAME);
+                if(!QProcess::startDetached("osascript", QStringList() << "-e" << aScript)){
+                    if(!auto_trash_mode)
+                        QMessageBox::information(this, "", "Unknown error adding into Apple Photos Library album, sorry.");
+                    emit sendStatusMessage(QString("Unknown error adding %1 into Apple Photos Library album.").arg(QDir::toNativeSeparators(filename)));
+                }
+                // Finally if reached here: it is "deleted" so remove from DB
+                // NB : we only delete the file from the disk, and not from _videos, as we check
+                //      when going to the next/prev video that each exists, or skip it.
+                _someWereMovedInApplePhotosLibrary = true; // used to check at the very end, to display reminder message to user
+                _videos[side]->trashed = true; // could check simply if file still exists on disk but not in case of Apple Photos...
+                _videosDeleted++;
+                _spaceSaved = _spaceSaved + _videos[side]->size;
+
+                ui->trashedFiles->setVisible(true);
+                ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
+                emit sendStatusMessage(QString("Moved %1 to album 'Trash from %2' album of Apple Photos Library").arg(QDir::toNativeSeparators(filename)).arg(APP_NAME));
+
+                Db().removeVideo(filename); // remove it from the cache as it is not needed anymore !
+                if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
+                    _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
+                return;
             }
-            // no need to seek as in auto trash mode, the seeking is already handled, and manual will not want to seek
-            return;
+            else { // TODO : if contains _ then video is probably a live photo media, so should not modify it ! -> should preferably discard at scan time... ?
+                if(!auto_trash_mode)
+                    QMessageBox::information(this, "", "This video is in an Apple Photos Libray, and seems to be from a Live Photo, not a real video. \n"
+                                                        "You should use duplicate photo scanners to deal with it.");
+                emit sendStatusMessage(QString("Did not add %1 into Apple Photos Library album : it seems to be a live photo, so deal with it as a photo.").arg(QDir::toNativeSeparators(filename)));
+                return;
+            }
         }
         else{
             if(_prefs.trashDir.isRoot()){ // default is root, meaning we move to trash
@@ -547,6 +588,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
             }
             // NB : we only delete the file from the disk, and not from _videos, as we check
             //      when going to the next/prev video that each exists, or skip it.
+            _videos[side]->trashed = true; // could check simply if file still exists on disk but not in case of Apple Photos...
             _videosDeleted++;
             _spaceSaved = _spaceSaved + _videos[side]->size;
             ui->trashedFiles->setVisible(true);
@@ -774,7 +816,9 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     {
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
         {
-            if(bothVideosMatch(*left, *right) && QFileInfo::exists((*left)->filename) && QFileInfo::exists((*right)->filename))
+            if(bothVideosMatch(*left, *right)
+                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
             {
                 showVideo(QStringLiteral("left"));
                 showVideo(QStringLiteral("right"));
@@ -851,6 +895,8 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     QMessageBox::information(this, "Auto identical files deletion complete",
                              QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
                              .arg(_videosDeleted-initialDeletedNumber).arg(readableFileSize(_spaceSaved-initialSpaceSaved)));
+    if(_someWereMovedInApplePhotosLibrary)
+        displayApplePhotosAlbumDeletionMessage();
     on_nextVideo_clicked();
 }
 
@@ -880,7 +926,9 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
     {
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
         {
-            if(bothVideosMatch(*left, *right) && QFileInfo::exists((*left)->filename) && QFileInfo::exists((*right)->filename))
+            if(bothVideosMatch(*left, *right)
+                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
             {
                 ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
 
@@ -951,6 +999,8 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                              QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
                              .arg(_videosDeleted-initialDeletedNumber).arg(readableFileSize(_spaceSaved-initialSpaceSaved)));
 
+    if(_someWereMovedInApplePhotosLibrary)
+        displayApplePhotosAlbumDeletionMessage();
     on_nextVideo_clicked();
 }
 
@@ -1052,4 +1102,17 @@ void Comparison::showLockedFolderContextMenu(const QPoint &pos){
 
     // Show context menu at handling position
     myMenu.exec(globalPos);
+}
+
+void Comparison::displayApplePhotosAlbumDeletionMessage() {
+    QMessageBox::information(this, "",
+         QString("Notice: \n\nSome videos were not actually deleted"
+                 " as they were from an Apple Photos Library.\n"
+                 "They were added to the album 'Trash from %1'. "
+                 "You must manually delete them from within "
+                 "Apple Photos ! \n\n"
+                 "From Apple Photos, select them and press 'cmd' and 'delete' "
+                 " (or right click while pressing 'cmd', and select the option "
+                 " 'Delete', ⚠️ but not 'Delete from album' !!!)\n\n"
+                 "Then empty Apple Photos' trash").arg(APP_NAME));
 }
