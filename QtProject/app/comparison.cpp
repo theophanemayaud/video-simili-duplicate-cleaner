@@ -545,6 +545,14 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
 
 void Comparison::moveVideo(const QString &from, const QString &to)
 {
+    if(from.contains(".photoslibrary")){
+        QMessageBox::information(this, "", "This file is in an Apple Photos Library, cannot move !");
+        return;
+    }
+    if(QMessageBox::question(this, "Move", "This file is in a locked folder, are you sure you want to move it ?",
+                             QMessageBox::Yes|QMessageBox::No) == QMessageBox::No)
+        return;
+
     if(!QFileInfo::exists(from))
     {
         _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
