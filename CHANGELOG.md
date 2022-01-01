@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.5.0...v1.5.1) (2022-01-01)
+
+
+### Features
+
+* **comparison:** will now display file create date ([a9093d3](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/a9093d3c985661b8a9162d2584a1d85214c915b6))
+
+
+### Bug Fixes
+
+* **move video:** fixed [#50](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/50) moving now blocked in Apple Photos. Also confirmation is asked if locked ([c7593e1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/c7593e10d486df4eedfc1a21fa0eb868187c1e66))
+
 ## [1.5.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.4.0...v1.5.0) (2021-06-23)
 
 
