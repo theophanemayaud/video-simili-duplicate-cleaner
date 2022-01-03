@@ -74,12 +74,13 @@ private slots:
     void on_selectSSIM_clicked ( const bool &checked) { if(checked) _prefs._comparisonMode = _prefs._SSIM;
                                                         emit switchComparisonMode(_prefs._comparisonMode); }
 
-    void on_leftImage_clicked() { QDesktopServices::openUrl(QUrl::fromLocalFile(_videos[_leftVideo]->filename)); }
-    void on_rightImage_clicked() { QDesktopServices::openUrl(QUrl::fromLocalFile(_videos[_rightVideo]->filename)); }
+    void on_leftImage_clicked() { openMedia(_videos[_leftVideo]->filename); }
+    void on_rightImage_clicked() { openMedia(_videos[_rightVideo]->filename); }
+    void openMedia(const QString filenamepath);
 
     void on_leftFileName_clicked() { openFileManager(_videos[_leftVideo]->filename); }
     void on_rightFileName_clicked() { openFileManager(_videos[_rightVideo]->filename); }
-    void openFileManager(const QString &filename) const;
+    void openFileManager(const QString &filename);
 
     void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
     void on_rightDelete_clicked() { deleteVideo(_rightVideo); }

@@ -20,6 +20,13 @@ class Obj_C
          * return : media name if success, or string OBJ_C_FAILURE_STRING if error
         * */
         static char *obj_C_getMediaName(char *mediaId);
+
+        /* *
+         * function:
+         * return :  string OBJ_C_SUCCESS_STRING if success, or the error if error
+        * */
+        static char *obj_C_revealMediaInPhotosApp(char *mediaId);
+
 };
 
 #endif // OBJCHEADER_H

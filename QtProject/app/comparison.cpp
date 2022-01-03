@@ -481,16 +481,56 @@ int Comparison::comparisonsSoFar() const
     return maxComparisons - remaining + _rightVideo - _leftVideo;
 }
 
-void Comparison::openFileManager(const QString &filename) const
+void Comparison::openFileManager(const QString &filename)
 {
 #ifdef Q_OS_WIN
     // TODO : for UWP, can't use process, so maybe change behavior to open folder, without file already selected :
     // https://stackoverflow.com/questions/48243245/qdesktopservicesopenurl-cannot-open-directory-in-mac-finder
     QProcess::startDetached("explorer", {"/select,", QDir::toNativeSeparators(filename)});
 #elif defined(Q_OS_MACOS)
+    if(!filename.contains(".photoslibrary")){
         QProcess::startDetached("open", QStringList() << "-R" << filename);
+    }
+    else{
+        const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
+        QString returnValue = QString::fromLocal8Bit(
+                    Obj_C::obj_C_revealMediaInPhotosApp(fileNameNoExt.toLocal8Bit().data())
+                    );
+        if(!returnValue.contains(OBJ_C_SUCCESS_STRING)){
+            QMessageBox::information(this, "", QString(
+                    "Unknown error revealing in Apple Photos Library album, sorry. "
+                    "\nInstead, will open in file manager. "
+                    "\n\nError:%1").arg(returnValue));
+            QProcess::startDetached("open", QStringList() << "-R" << filename);
+        }
+
+    }
 #elif defined(Q_OS_X11)
         QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(filename.left(filename.lastIndexOf("/"))));
+#endif
+}
+
+void Comparison::openMedia(const QString filename) {
+#ifdef Q_OS_MACOS
+    if(!filename.contains(".photoslibrary")){
+#endif
+        QDesktopServices::openUrl(QUrl::fromLocalFile(filename));
+#ifdef Q_OS_MACOS
+    }
+    else{
+        const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
+        QString returnValue = QString::fromLocal8Bit(
+                    Obj_C::obj_C_revealMediaInPhotosApp(fileNameNoExt.toLocal8Bit().data())
+                    );
+        if(!returnValue.contains(OBJ_C_SUCCESS_STRING)){
+            QMessageBox::information(this, "", QString(
+                    "Unknown error revealing in Apple Photos Library album, sorry. "
+                    "\nInstead, will open in default player manager. "
+                    "\n\nError:%1").arg(returnValue));
+            QDesktopServices::openUrl(QUrl::fromLocalFile(filename));
+        }
+
+    }
 #endif
 }
 
