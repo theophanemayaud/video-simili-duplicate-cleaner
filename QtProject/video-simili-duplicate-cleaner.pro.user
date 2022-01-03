@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.15.1, 2021-12-29T17:58:51. -->
+<!-- Written by QtCreator 4.15.1, 2022-01-01T18:32:03. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -87,6 +87,7 @@
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_cached">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_nocache">Unchecked</value>
+    <value type="Qt::CheckState" key="1@:Qt Test">PartiallyChecked</value>
    </valuemap>
    <value type="int" key="AutoTest.RunAfterBuild">0</value>
    <value type="bool" key="AutoTest.UseGlobal">true</value>

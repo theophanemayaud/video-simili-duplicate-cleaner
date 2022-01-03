@@ -26,5 +26,11 @@
 	<string>NSApplication</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>The app uses events to control Apple Photos, to help you identify duplicates within you library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>The app uses Apple Photos, to help you identify duplicates within you library.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>The app writes to Apple Photos, to help you identify duplicates within you library.</string>
 </dict>
 </plist>

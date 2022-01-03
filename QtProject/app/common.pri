@@ -15,6 +15,7 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x100000 # 0x[major][minor]00 set to hig
 HEADERS += \
     $$PWD/ffmpeg.h \
     $$PWD/mainwindow.h \
+    $$PWD/obj-c.h \
     $$PWD/prefs.h \
     $$PWD/video.h \
     $$PWD/thumbnail.h \
@@ -23,6 +24,7 @@ HEADERS += \
 
 SOURCES += \
     $$PWD/mainwindow.cpp \
+    $$PWD/obj-c.mm \
     $$PWD/video.cpp \
     $$PWD/db.cpp \
     $$PWD/comparison.cpp \
