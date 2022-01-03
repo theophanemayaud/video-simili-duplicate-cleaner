@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.5.1...v1.6.0) (2022-01-03)
+
+
+### Features
+
+* **apple photos:** enable selection of apple photos library with dedicated button ([89c0851](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/89c0851dd7d426d3ae58fe6382ff43e107dfe00f))
+* **apple photos:** name of video inside apple photos is displayed in side by side ([85cc0ca](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/85cc0ca735b57edbf7d4bf7a09c4a1acbd29dac6))
+* **apple photos:** reveal and play in apple photos instead of file manager if in Photos library ([ce6f579](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/ce6f579c30650c43f0c8b7d408280d769a1a8605))
+* **apple photos:** trash if in Apple Photos will now move to specific album ([4785581](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/4785581f7a80bc1e87f460d129714a6a53ab57ad))
+
 ### [1.5.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.5.0...v1.5.1) (2022-01-01)
 
 
