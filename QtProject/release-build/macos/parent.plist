@@ -6,12 +6,24 @@
         <true/>
     <key>com.apple.security.app-sandbox</key>
         <true/>
+    <key>com.apple.security.automation.apple-events</key>
+        <true/>
+    <key>com.apple.security.temporary-exception.apple-events</key>
+        <array>
+           <string>com.apple.iPhoto</string>
+           <string>com.apple.Aperture</string>
+           <string>com.apple.Photos</string>
+        </array>
     <key>com.apple.security.scripting-targets</key>
     <dict>
-        <key>com.apple.photos</key>
+        <key>com.apple.Photos</key>
         <array>
             <string>com.apple.Photos.library.read-write</string>
         </array>
     </dict>
+    <key>com.apple.security.personal-information.photos-library</key>
+        <true/>
+    <key>com.apple.security.assets.pictures.read-write</key>
+        <true/>
   </dict>
 </plist>

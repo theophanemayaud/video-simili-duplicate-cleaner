@@ -8,6 +8,7 @@
 
 #ifdef Q_OS_MACOS
 #include <QProcess> // for running apple scripts and opening file in explorer
+#include "obj-c.h"
 #endif
 
 #include "video.h"
@@ -60,7 +61,7 @@ private slots:
     bool bothVideosMatch(const Video *left, const Video *right);
     int phashSimilarity(const Video *left, const Video *right, const int &nthHash);
 
-    void showVideo(const QString &side) const;
+    void showVideo(const QString &side);
     QString readableDuration(const int64_t &milliseconds) const;
     QString readableFileSize(const int64_t &filesize) const;
     QString readableBitRate(const double &kbps) const;
