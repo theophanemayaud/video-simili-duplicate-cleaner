@@ -254,26 +254,6 @@ void Comparison::showVideo(const QString &side)
                                                "it will only work, only with the currently open library.")
                                        .arg(_videos[thisVideo]->filename));
             }
-/*            const QString aScript = QString(
-                    "tell application \"Photos\"\n"
-                    "    set selMedia to (get media items whose id contains \"%1\")\n"
-                    "    return get filename of item 1 of selMedia\n"
-                    "end tell").arg(fileNameNoExt);
-            QProcess script;
-            script.setProgram("osascript");
-            script.setArguments(QStringList() << "-l" << "AppleScript" <<
-                                 "-e" << aScript);
-            script.start();
-            script.waitForFinished();
-            if(script.exitCode()==0){
-                _videos[thisVideo]->nameInApplePhotos = script.readAllStandardOutput().replace("\n","");
-            }
-            else{
-                QString outMsg = script.readAllStandardOutput();
-                QString errorOut = script.readAllStandardError();
-                QMessageBox::information(this, "", QString(
-                        "Error with getting name from photoslibrary nOutput: %1\nError:%2").arg(outMsg, errorOut));
-            }*/
         }
     }
 
@@ -565,39 +545,6 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                                 "\n\nError:%1").arg(returnValue));
                     emit sendStatusMessage(QString("Unknown error adding %1 into Apple Photos Library album.").arg(QDir::toNativeSeparators(filename)));
                 }
-/*                qDebug() << "Objective C returned value =" << returnValue;
-                const QString aScript = QString(
-                        "tell application \"Photos\""
-                        "    set selMedia to (get media items whose id contains \"%1\")\n"
-                        "    if not (album \"Trash from %2\" exists) then\n"
-                        "        make new album named \"Trash from %2\"\n"
-                        "    end if\n"
-                        "    add selMedia to album \"Trash from %2\"\n"
-                        "end tell").arg(fileNameNoExt, APP_NAME);
-//                QMessageBox::information(this, "", aScript);
-                QProcess script;
-                script.setProgram("osascript");
-                script.setArguments(QStringList() <<
-                                     "-e" << aScript);
-                script.start();
-                if(_firstScriptingAskPermission){
-                    script.waitForFinished(); // wait longer at first to let user time to accept permission request
-                    _firstScriptingAskPermission = false;
-                }
-                else
-                    script.waitForFinished(5000); // only wait 5 seconds or consider it failed
-                int exitCode = script.exitCode();
-                if(exitCode!=0){
-                    QString outMsg = script.readAllStandardOutput();
-                    QString errorOut = script.readAllStandardError();
-                    if(!auto_trash_mode)
-                        QMessageBox::information(this, "", QString(
-                                "Unknown error adding into Apple Photos Library album, sorry. "
-                                "Video might be in Apple Photos trash. "
-                                "Make sure to empty Apple Photos trash."
-                                "\n\nOutput: %1\nError:%2").arg(outMsg, errorOut));
-                    emit sendStatusMessage(QString("Unknown error adding %1 into Apple Photos Library album.").arg(QDir::toNativeSeparators(filename)));
-                } */
                 // Finally if reached here: it is "deleted" so remove from DB
                 // NB : we only delete the file from the disk, and not from _videos, as we check
                 //      when going to the next/prev video that each exists, or skip it.
