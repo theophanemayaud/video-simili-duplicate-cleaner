@@ -5,9 +5,17 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QLabel>
+#include <QMessageBox>
+#include <QWheelEvent>
+#include <QFileDialog>
+#include <QMenu>
+#include <QShortcut>
+#include <QUuid>
+#include <QStandardPaths>
 
 #ifdef Q_OS_MACOS
 #include <QProcess> // for running apple scripts and opening file in explorer
+
 #include "obj-c.h"
 #endif
 

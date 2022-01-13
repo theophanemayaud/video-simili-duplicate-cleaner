@@ -1,8 +1,3 @@
-#include <QFileDialog>
-#include <QtConcurrent/QtConcurrent>
-#include <QScrollBar>
-#include <QDesktopServices>
-
 #include "mainwindow.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
@@ -107,7 +102,7 @@ void MainWindow::loadExtensions()
         QString line = text.readLine();
         if(line.startsWith(QStringLiteral(";")) || line.isEmpty())
             continue;
-        _extensionList << line.replace(QRegExp("\\*?\\."), "*.").split(QStringLiteral(" "));
+        _extensionList << line.replace(QRegularExpression("\\*?\\."), "*.").split(QStringLiteral(" "));
         addStatusMessage(line.remove(QStringLiteral("*")));
     }
     file.close();
@@ -155,7 +150,7 @@ void MainWindow::on_browseApplePhotos_clicked() const
 
 void MainWindow::on_findDuplicates_clicked()
 {
-    if(ui->findDuplicates->text() == QLatin1String("Stop"))     //pressing "find duplicates" button will morph into a
+    if(ui->findDuplicates->text() == "Stop")     //pressing "find duplicates" button will morph into a
     {                                                           //stop button. a lengthy search can thus be stopped and
         _userPressedStop = true;                                //those videos already processed are compared w/each other
         return;
@@ -208,7 +203,7 @@ void MainWindow::on_findDuplicates_clicked()
         _comparison = new Comparison(sortVideosBySize(), _prefs);
         if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
         {
-            QFuture<void> future = QtConcurrent::run(_comparison, &Comparison::reportMatchingVideos);   //run in background
+            QFuture<int> future = QtConcurrent::run(&Comparison::reportMatchingVideos, _comparison);   //run in background
             _comparison->exec();          //open dialog, but if it is closed while reportMatchingVideos() still running...
             QApplication::setOverrideCursor(Qt::WaitCursor);
             future.waitForFinished();   //...must wait until finished (crash when going out of scope destroys instance)
@@ -263,7 +258,7 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
     if(_prefs._numberOfVideos <= 0) //no videos to sort
         return sortedVideosList;
 
-    QMultiMap<int64_t, int> mappedVideos; // key is video size, value is index in video QVector (maps are sorted automagically by key)
+    QMap<int64_t, int> mappedVideos; // key is video size, value is index in video QVector (maps are sorted automagically by key)
     for(int i=0; i<_videoList.size(); i++){
         mappedVideos.insert(_videoList[i]->size, i);
     }

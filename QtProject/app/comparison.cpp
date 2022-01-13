@@ -1,13 +1,6 @@
-#include <QMessageBox>
-#include <QWheelEvent>
-#include <QFileDialog>
-#include <QMenu>
-#include <QShortcut>
-#include <QUuid>
-
 #include "comparison.h"
 
-#include "ui_comparison.h" // WARNING : for some reason, this has to be below the rest, and not in comparison.h -> TODO : figure out why !
+#include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
 
 enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
 {
@@ -19,14 +12,14 @@ enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
 const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 
 Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
-    QDialog(prefsParam._mainwPtr, Qt::Window), _videos(videosParam), _prefs(prefsParam)
+    QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
-    ui = new Ui::Comparison;
     ui->setupUi(this);
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), _prefs._mainwPtr, SLOT(on_thresholdSlider_valueChanged(const int &)));
+    connect(ui->progressBar, SIGNAL(valueChanged(const int &)), ui->currentVideo, SLOT(setNum(const int &)));
 
     if(_prefs._comparisonMode == _prefs._SSIM)
         ui->selectSSIM->setChecked(true);
@@ -34,7 +27,7 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     ui->progressBar->setMaximum(_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2);
 
     ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
-    ui->totalVideos->setNum(_videos.size() * (_videos.size() - 1) / 2 ); // all possible combinations
+    ui->totalVideos->setNum(int(_videos.size() * (_videos.size() - 1) / 2)); // all possible combinations
 
     // hide as not implemented yet
     // Auto trash based on earlier/later dates
@@ -231,7 +224,7 @@ int Comparison::phashSimilarity(const Video *left, const Video *right, const int
 void Comparison::showVideo(const QString &side)
 {
     int thisVideo = _leftVideo;
-    if(side == QLatin1String("right"))
+    if(side == "right")
         thisVideo = _rightVideo;
 
     auto *Image = this->findChild<ClickableLabel *>(side + QStringLiteral("Image"));
@@ -776,9 +769,9 @@ void Comparison::wheelEvent(QWheelEvent *event)
     if(!QApplication::widgetAt(pos))
         return;
     ClickableLabel *imagePtr;
-    if(QApplication::widgetAt(pos)->objectName() == QLatin1String("leftImage"))
+    if(QApplication::widgetAt(pos)->objectName() == "leftImage")
         imagePtr = ui->leftImage;
-    else if(QApplication::widgetAt(pos)->objectName() == QLatin1String("rightImage"))
+    else if(QApplication::widgetAt(pos)->objectName() == "rightImage")
         imagePtr = ui->rightImage;
     else
         return;
