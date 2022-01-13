@@ -3,6 +3,12 @@
 
 #include <QSqlDatabase>
 #include <QDateTime>
+#include <QApplication>
+#include <QCryptographicHash>
+#include <QSqlQuery>
+#include <QUuid>
+
+#include "video.h"
 
 class Video;
 

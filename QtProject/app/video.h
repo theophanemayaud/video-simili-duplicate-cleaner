@@ -6,10 +6,15 @@
 #include <QProcess>
 #include <QBuffer>
 #include <QTemporaryDir>
+#include <QPainter>
+
 #include "opencv2/imgproc.hpp"
+
 #include "prefs.h"
 #include "db.h"
 #include "ffmpeg.h"
+
+class Db;
 
 class Video : public QObject, public QRunnable
 {

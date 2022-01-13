@@ -1,9 +1,4 @@
-#include <QApplication>
-#include <QCryptographicHash>
-#include <QSqlQuery>
-#include <QUuid>
 #include "db.h"
-#include "video.h"
 
 // ----------------------------------------------------------------------
 // -------------------- START : static functions --------------------------

@@ -1,4 +1,3 @@
-#include <QPainter>
 #include "video.h"
 
 #define FAIL_ON_FRAME_DECODE_NB_FAIL 10
@@ -178,7 +177,7 @@ bool Video::getMetadata(const QString &filename)
         char buf[50];
         ffmpeg::av_get_channel_layout_string(buf, sizeof(buf), as->codecpar->channels, as->codecpar->channel_layout); // handles channel layout and number of channels !
         QString channels = buf;
-        if(channels == QLatin1String("1 channels"))
+        if(channels == "1 channels")
             channels = QStringLiteral("mono");
         else if(channels == QLatin1String("2 channels"))
             channels = QStringLiteral("stereo");

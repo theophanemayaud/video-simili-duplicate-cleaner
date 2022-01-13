@@ -3,6 +3,10 @@
 
 #include <QDragEnterEvent>
 #include <QMimeData>
+#include <QFileDialog>
+#include <QtConcurrent/QtConcurrent>
+#include <QScrollBar>
+#include <QDesktopServices>
 
 #include "ui_mainwindow.h"
 
