@@ -40,11 +40,11 @@ public:
 
 private:
 #ifdef Q_OS_WIN
-    QDir _videoDir = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Videos/");
-    const QDir _thumbnailDir_nocache = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
+    QDir _videoDir = QDir("Y:/Videos/");
+    const QDir _thumbnailDir_nocache = QDir("Y:/Thumbnails-nocache/");
     const QFileInfo _csvInfo_nocache = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
 
-    const QDir _thumbnailDir_cached = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
+    const QDir _thumbnailDir_cached = QDir("Y:/Thumbnails-cached/");
     const QFileInfo _csvInfo_cached = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
 
     QDir _100GBvideoDir = QDir("");
