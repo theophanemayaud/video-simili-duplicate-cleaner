@@ -42,7 +42,8 @@
     "win-build": "npm run update-build-version && npm run build-win-binaries --prefix QtProject/release-build/windows",
     "win-clean": "npm run clean  --prefix QtProject/release-build/windows",
     "win-copy-binaries": "copy \"QtProject\\release-build\\windows\\Video simili duplicate cleaner.msix\" \"..\\Video simili duplicate cleaner.msix\"",
-    "win-binaries": "npm run win-clean && npm run win-build && npm run win-copy-binaries && npm run win-clean"
+    "win-copy-vcredist": "copy \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\14.29.30036\\vc_redist.x64.exe\" \"..\\vc_redist.x64.exe\"",
+    "win-binaries": "npm run win-clean && npm run win-build && npm run win-copy-binaries && npm run win-copy-vcredist && npm run win-clean"
   },
   "repository": {
     "type": "git",
