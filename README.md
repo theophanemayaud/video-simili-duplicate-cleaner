@@ -32,6 +32,7 @@ In the samples folder, you will find two videos with different sizes and compres
 
 ## Features
 
+- Find similar videos, even if they are not exactly the same (different metadata, different compression, different sizes...)
 - Simple, easy to use graphical user interface for comparing videos.
 - Supports all widely used video formats.
 - Manually select videos to remove, or use automatic selection criteria.
