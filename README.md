@@ -4,18 +4,9 @@
 Find and remove duplicates : *Video simili duplicate cleaner* is a program that can find duplicate or simply similar video files.
 Video simili duplicate cleaner compares the actual video content regardless of different format or compression used, while other software only find identical files (digital video fingerprinting).
 
+<a href="https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308?mt=12&amp;itsct=apps_box_badge&amp;itscg=30200" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img src="https://tools.applemediaservices.com/api/badges/download-on-the-mac-app-store/black/en-us?size=250x83&amp;releaseDate=1616457600&h=4be3dd1f8904662edbb0885807d87ea3" alt="Download on the Mac App Store" style="border-radius: 13px; width: 250px; height: 83px;"></a>
 
-<table border="0">
- <tr>
-    <td>
-		<a href="https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308?mt=12&amp;itsct=apps_box_badge&amp;itscg=30200" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img src="https://tools.applemediaservices.com/api/badges/download-on-the-mac-app-store/black/en-us?size=250x83&amp;releaseDate=1616457600&h=4be3dd1f8904662edbb0885807d87ea3" alt="Download on the Mac App Store" style="border-radius: 13px; width: 250px; height: 83px;"></a>
-	</td>
-    <td>
-		<script type="module" src="https://getbadgecdn.azureedge.net/ms-store-badge.bundled.js"></script>
-<ms-store-badge productid="9n3vr2kx3vxm" size="large"></ms-store-badge>
-	</td>
- </tr>
-</table>
+<a href="https://www.microsoft.com/store/apps/9n3vr2kx3vxm" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img src="https://user-images.githubusercontent.com/25605953/158606068-b30a1fb7-d67c-4ff2-8d80-fd3deccfe027.svg" alt="Download on the Microsoft Windows" style=" width: 250px; height: 83px;"></a>
 
 
 This app is made available via the [Apple App Store with a small cost](https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308), and [Microsoft Windows Store](https://www.microsoft.com/p/video-simili-duplicate-cleaner/9n3vr2kx3vxm) in order to support further development work. You are of course free to check out the source code on GitHub, report bugs, suggest new features, and contribute code ! But please support my work via the store purchases, and do not redistribute the binary, although of course you may use the code for you own projects, no problemo !
