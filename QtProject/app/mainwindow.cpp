@@ -262,15 +262,14 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
     if(_prefs._numberOfVideos <= 0) //no videos to sort
         return sortedVideosList;
 
-    QMap<int64_t, int> mappedVideos; // key is video size, value is index in video QVector (maps are sorted automagically by key)
+    QMultiMap<int64_t, int> mappedVideos; // key is video size, value is index in video QVector (maps are sorted automagically by key)
     for(int i=0; i<_videoList.size(); i++){
         mappedVideos.insert(_videoList[i]->size, i);
     }
 
-    QMap<int64_t, int>::const_iterator mappedVidSize = mappedVideos.constBegin(); //video size, then video index
-    while (mappedVidSize != mappedVideos.constEnd()) { // iterating from smaller size to bigger sizes
-        sortedVideosList.insert(0, _videoList[mappedVidSize.value()]);
-        mappedVidSize++;
+    QMultiMapIterator<int64_t, int> mappedVidSize(mappedVideos); //video size, then video index
+    while (mappedVidSize.hasNext()) { // iterating from smaller size to bigger sizes
+        sortedVideosList.insert(0, _videoList[mappedVidSize.next().value()]);
     }
 
     if(sortedVideosList.size()!=_videoList.size())
