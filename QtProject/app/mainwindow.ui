@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>677</width>
+    <width>685</width>
     <height>642</height>
    </rect>
   </property>
@@ -467,8 +467,8 @@ Errors will be listed in any case.</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>677</width>
-     <height>24</height>
+     <width>685</width>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGeneral">
@@ -482,8 +482,12 @@ Errors will be listed in any case.</string>
      <string>Tools</string>
     </property>
     <addaction name="actionEmpty_cache"/>
+    <addaction name="actionSet_custom_cache_location"/>
+    <addaction name="actionRestore_default_cache_location"/>
+    <addaction name="separator"/>
     <addaction name="actionChange_trash_folder"/>
     <addaction name="actionRestoreMoveToTrash"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -511,6 +515,9 @@ Errors will be listed in any case.</string>
    </property>
   </action>
   <action name="actionEmpty_cache">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Empty cache</string>
    </property>
@@ -536,6 +543,19 @@ Errors will be listed in any case.</string>
    </property>
    <property name="text">
     <string>Restore move to trash behavior</string>
+   </property>
+  </action>
+  <action name="actionSet_custom_cache_location">
+   <property name="text">
+    <string>Set custom cache location</string>
+   </property>
+  </action>
+  <action name="actionRestore_default_cache_location">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Restore default cache location</string>
    </property>
   </action>
  </widget>

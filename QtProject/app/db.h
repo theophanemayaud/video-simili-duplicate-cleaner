@@ -27,9 +27,12 @@ private:
     QSqlDatabase _db;
     QString _uniqueConnexionName;
     static void createTables(QSqlDatabase db, const QString appVersion);
+    static QString getUserSelectedCacheNamePath(Prefs *prefs);
 
 public:
     static bool initDbAndCacheLocation(Prefs *prefs);
+
+    static bool initCustomDbAndCacheLocation(Prefs *prefs);
 
     static void emptyAllDb(const Prefs prefs);
 
