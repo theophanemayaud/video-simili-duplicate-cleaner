@@ -1,16 +1,70 @@
 #include "db.h"
 
 // ----------------------------------------------------------------------
-// -------------------- START : static functions --------------------------
+// -------------------- START : public static functions -----------------
+/**
+ * @abstract: initialize/connect to db, make sure it works as expected (or will notify to user)
+ * @input:
+ *   -  prefs      for dialogs and will set the cache file location if a valid one is found
+ * @return:
+ *      - true if successfully found and connected to db/cache file, false if error
+ **/
+bool Db::initDbAndCacheLocation(Prefs *prefs){
+    if(!prefs->cacheFilePathName.isEmpty()){
+        qDebug() << "Already set cache location, should not do it again !";
+        return true;
+    }
 
-void Db::emptyAllDb(){
-    const QString dbfilename = QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath());
+    const QString uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
+
+        //attempt with system application local cache folder (doesn't seem to work on windows in dev mode
+        QString cacheFolder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+        QString dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder);
+        db.setDatabaseName(dbfilename);
+
+        if(!db.open()){
+            //attempt with application folder path
+            cacheFolder = QApplication::applicationDirPath();
+            dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder);
+            db.setDatabaseName(dbfilename);
+
+            if(!db.open()){
+                // attempt with user specified location
+                QMessageBox::about(prefs->_mainwPtr,
+                                   "Default cache location not accessible",
+                                   "The default cache location was not writable, please manually select a location for the cache file.");
+
+                dbfilename = QFileDialog::getSaveFileName(prefs->_mainwPtr, "Save/Load Cache",
+                                           cacheFolder,
+                                           "Cache (*.db)");
+                db.setDatabaseName(dbfilename);
+                if(!db.open()){
+                    return false;
+                }
+            }
+        }
+        prefs->cacheFilePathName = dbfilename;
+        createTables(db, prefs->appVersion);
+        db.close();
+    }
+
+    QSqlDatabase().removeDatabase(uniqueConnexionName); // clear the connexion backlog, basically... !
+    return true;
+}
+
+void Db::emptyAllDb(const Prefs prefs){
+    if(prefs.cacheFilePathName.isEmpty()){
+        qDebug() << "Database path not set, can't empty cache.";
+        return;
+    }
+
     const QString connexionName = QUuid::createUuid().toString();
-
     {     // isolate queries, so that when we removeDatabase, it doesn't warn of possible problems
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
                                                 connexionName);
-        db.setDatabaseName(dbfilename);
+        db.setDatabaseName(prefs.cacheFilePathName);
         db.open();
 
         QSqlQuery query(db);
@@ -20,6 +74,8 @@ void Db::emptyAllDb(){
         query.exec(QStringLiteral("DROP TABLE IF EXISTS version"));
 
         query.exec(QStringLiteral("VACUUM")); // restructure sqlite file to make it smaller on disk
+
+        Db::createTables(db, prefs.appVersion); // recreate empty tables
 
         db.close();
     }
@@ -38,24 +94,14 @@ QString Db::pathnameHashId(const QString &filename)
     return QCryptographicHash::hash(filename.toLatin1(), QCryptographicHash::Md5).toHex();
 }
 
-// -------------------- END : static functions ----------------------------
+// -------------------- END : public static functions -------------------
 // ----------------------------------------------------------------------
 
-
-Db::Db()
+// ----------------------------------------------------------------------
+// -------------------- START : private static functions ----------------
+void Db::createTables(QSqlDatabase db, const QString appVersion)
 {
-    _uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
-    const QString dbfilename = QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath());
-    _db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), _uniqueConnexionName);
-    _db.setDatabaseName(dbfilename);
-    _db.open();
-
-    createTables();
-}
-
-void Db::createTables() const
-{
-    QSqlQuery query(_db);
+    QSqlQuery query(db);
     query.exec(QStringLiteral("PRAGMA synchronous = OFF;"));
     query.exec(QStringLiteral("PRAGMA journal_mode = WAL;"));
 
@@ -71,18 +117,29 @@ void Db::createTables() const
 
     // Now create a version key, that could help us in the future to check if the database contains old records
     //          and might need to be emptied... ! For now, not used.
-    QFile file(":/version.txt");
-    QString appVersion = "undefined";
-    if (file.open(QIODevice::ReadOnly)){
-        appVersion = file.readLine();
-    }
-    file.close();
-
     query.exec(QStringLiteral("INSERT OR REPLACE INTO version VALUES('%1');").arg(appVersion));
+}
+
+// -------------------- END : private static functions ------------------
+// ----------------------------------------------------------------------
+
+Db::Db(const QString cacheFilePathName)
+{
+    if(cacheFilePathName.isEmpty())
+       return;
+
+    _uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
+    _db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), _uniqueConnexionName);
+    _db.setDatabaseName(cacheFilePathName);
+    _db.open();
 }
 
 bool Db::readMetadata(Video &video) const
 {
+    if(!_db.isOpen()){
+        qDebug() << "Database not open, can't read Video cache.";
+        return false;
+    }
     const QString id = pathnameHashId(video.filename);
     QSqlQuery query(_db);
     query.exec(QStringLiteral("SELECT * FROM metadata WHERE id = '%1';").arg(id));
@@ -105,6 +162,11 @@ bool Db::readMetadata(Video &video) const
 
 void Db::writeMetadata(const Video &video) const
 {
+    if(!_db.isOpen()){
+        qDebug() << "Database not open, can't write Video cache.";
+        return;
+    }
+
     const QString id = pathnameHashId(video.filename);
     QSqlQuery query(_db);
     query.exec(QStringLiteral("INSERT OR REPLACE INTO metadata VALUES('%1',%2,%3,%4,%5,'%6','%7',%8,%9);")
@@ -114,6 +176,11 @@ void Db::writeMetadata(const Video &video) const
 
 QByteArray Db::readCapture(const QString &filePathname, const int &percent) const
 {
+    if(!_db.isOpen()){
+        qDebug() << "Database not open, can't read capture cache.";
+        return nullptr;
+    }
+
     const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
     query.exec(QStringLiteral("SELECT at%1 FROM capture WHERE id = '%2';").arg(percent).arg(id));
@@ -125,6 +192,11 @@ QByteArray Db::readCapture(const QString &filePathname, const int &percent) cons
 
 void Db::writeCapture(const QString &filePathname, const int &percent, const QByteArray &image) const
 {
+    if(!_db.isOpen()){
+        qDebug() << "Database not open, can't write capture to cache.";
+        return;
+    }
+
     const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
     query.exec(QStringLiteral("INSERT OR IGNORE INTO capture (id) VALUES('%1');").arg(id));
@@ -136,6 +208,11 @@ void Db::writeCapture(const QString &filePathname, const int &percent, const QBy
 
 bool Db::removeVideo(const QString &filePathname) const
 {
+    if(!_db.isOpen()){
+        qDebug() << "Database not open, can't remove Video cache.";
+        return false;
+    }
+
     const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
 

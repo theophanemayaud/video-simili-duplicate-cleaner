@@ -2,12 +2,16 @@
 #define DB_H
 
 #include <QSqlDatabase>
+#include <QSqlQuery>
 #include <QDateTime>
 #include <QApplication>
 #include <QCryptographicHash>
-#include <QSqlQuery>
 #include <QUuid>
+#include <QStandardPaths>
+#include <QFileDialog>
+#include <QMessageBox>
 
+#include "prefs.h"
 #include "video.h"
 
 class Video;
@@ -16,15 +20,18 @@ class Db
 {
 
 public:
-    explicit Db();
+    explicit Db(const QString cacheFilePathName);
     ~Db() { _db.close(); _db = QSqlDatabase(); _db.removeDatabase(_uniqueConnexionName); }
 
 private:
     QSqlDatabase _db;
     QString _uniqueConnexionName;
+    static void createTables(QSqlDatabase db, const QString appVersion);
 
 public:
-    static void emptyAllDb();
+    static bool initDbAndCacheLocation(Prefs *prefs);
+
+    static void emptyAllDb(const Prefs prefs);
 
     //return md5 hash of parameter's file, used internally as "unique id" for each file
     static QString pathnameHashId(const QString &filename=QStringLiteral(""));
