@@ -594,7 +594,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                 emit sendStatusMessage(QString("Moved %1 to album 'Trash from %2' of Apple Photos Library")
                                        .arg(QDir::toNativeSeparators(filename), APP_NAME));
 
-                Db().removeVideo(filename); // remove it from the cache as it is not needed anymore !
+                Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
                 if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
                     _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
                 return;
