@@ -35,15 +35,30 @@ bool Db::initDbAndCacheLocation(Prefs *prefs){
                 QMessageBox::about(prefs->_mainwPtr,
                                    "Default cache location not accessible",
                                    "The default cache location was not writable, please manually select a location for the cache file.");
-
-                dbfilename = QFileDialog::getSaveFileName(prefs->_mainwPtr, "Save/Load Cache",
-                                           cacheFolder,
-                                           "Cache (*.db)");
+                dbfilename = getUserSelectedCacheNamePath(prefs);
                 db.setDatabaseName(dbfilename);
                 if(!db.open()){
                     return false;
                 }
             }
+        }
+        prefs->cacheFilePathName = dbfilename;
+        createTables(db, prefs->appVersion);
+        db.close();
+    }
+
+    QSqlDatabase().removeDatabase(uniqueConnexionName); // clear the connexion backlog, basically... !
+    return true;
+}
+
+bool Db::initCustomDbAndCacheLocation(Prefs *prefs){
+    const QString uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
+        QString dbfilename = getUserSelectedCacheNamePath(prefs);
+        db.setDatabaseName(dbfilename);
+        if(!db.open()){
+            return false;
         }
         prefs->cacheFilePathName = dbfilename;
         createTables(db, prefs->appVersion);
@@ -93,7 +108,6 @@ QString Db::pathnameHashId(const QString &filename)
     //          identify, that doesn't depend on path, to have file moving proofness !
     return QCryptographicHash::hash(filename.toLatin1(), QCryptographicHash::Md5).toHex();
 }
-
 // -------------------- END : public static functions -------------------
 // ----------------------------------------------------------------------
 
@@ -120,6 +134,13 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
     query.exec(QStringLiteral("INSERT OR REPLACE INTO version VALUES('%1');").arg(appVersion));
 }
 
+QString Db::getUserSelectedCacheNamePath(Prefs *prefs){
+    // attempt with user specified location
+    QString dbfilename = QFileDialog::getSaveFileName(prefs->_mainwPtr, "Save/Load Cache",
+                               QStandardPaths::writableLocation(QStandardPaths::HomeLocation),
+                               "Cache (*.db)");
+    return dbfilename;
+}
 // -------------------- END : private static functions ------------------
 // ----------------------------------------------------------------------
 
