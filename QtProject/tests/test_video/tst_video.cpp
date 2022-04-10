@@ -7,7 +7,7 @@
  * Also sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
-//#define ENABLE_THUMBNAIL_VERIF
+#define ENABLE_THUMBNAIL_VERIF
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
@@ -16,6 +16,10 @@
 // When moving over to library, audio metadata sometimes changes but when manually checked, is actually identical
 // Disable following define to skip testing audio comparison
 #define ENABLE_AUDIO_COMPARISON
+
+// inside the app it default to 100, but for tests it's more interesting if lower
+// (and also in previous versions it was 89 so the new default 100 could break old tests)
+#define COMPARISON_THRESHOLD 100
 
 // add necessary includes here
 #include "../../app/video.h"
@@ -130,6 +134,7 @@ void TestVideo::test_whole_app(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
 
     QVERIFY(_videoDir.exists());
@@ -184,6 +189,7 @@ void TestVideo::test_whole_app_nocache(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
 
@@ -241,6 +247,7 @@ void TestVideo::test_whole_app_cached(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(true); // enable loading from and saving to cache (nb it's actually the default so this is redundant)
 
@@ -711,6 +718,7 @@ void TestVideo::test_100GBwholeApp(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
 
     QVERIFY(_100GBvideoDir.exists());
@@ -764,6 +772,7 @@ void TestVideo::test_100GBwholeApp_nocache(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
 
@@ -819,6 +828,7 @@ void TestVideo::test_100GBwholeApp_cached(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(true); // enable loading from and saving to cache (should be on by default)
 
