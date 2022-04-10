@@ -654,7 +654,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                 emit sendStatusMessage(QString("Moved %1 to selected folder").arg(QDir::toNativeSeparators(filename)));
             }
 
-            Db().removeVideo(filename); // remove it from the cache as it is not needed anymore !
+            Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
             if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
                 _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
@@ -728,7 +728,7 @@ void Comparison::on_swapFilenames_clicked() const
 
     // remove both from cache, otherwise they will be stored in the cache inverted from their full path names
     // TODO : could just rename them in the cache... ?
-    Db cache; // opening connexion to database
+    Db cache(_prefs.cacheFilePathName); // opening connexion to database
     cache.removeVideo(oldLeftFilename);
     cache.removeVideo(oldRightFilename);
 }

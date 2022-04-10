@@ -7,7 +7,7 @@
  * Also sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
-#define ENABLE_THUMBNAIL_VERIF
+//#define ENABLE_THUMBNAIL_VERIF
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
@@ -66,7 +66,7 @@ private:
 private slots:
     void initTestCase();
 
-    void emptyDb(){ Db::emptyAllDb(); }
+    void emptyDb(){ Prefs prefs; Db::initDbAndCacheLocation(&prefs); Db::emptyAllDb(prefs); }
 
 //    void createRefVidParams_nocache();
 //    void createRefVidParams_cached();
@@ -333,6 +333,8 @@ void TestVideo::test_check_refvidparams_cached(){
 
     // compute params for all videos
     QVERIFY(!_videoDir.isEmpty());
+    Prefs prefs;
+    Db::initDbAndCacheLocation(&prefs);
     foreach(VideoParam videoParam, videoParamList){
         QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
         QVERIFY2(videoParam.thumbnailInfo.exists(), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
@@ -342,7 +344,6 @@ void TestVideo::test_check_refvidparams_cached(){
         QByteArray ref_thumbnail = ref_thumbFile.readAll();
         ref_thumbFile.close();
 
-        Prefs prefs;
         Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
         vid->run();
 
@@ -652,6 +653,8 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
     QVERIFY(!_100GBvideoDir.isEmpty());
     int test_nb = 0;
     const int nb_tests = videoParamList.count();
+    Prefs prefs;
+    Db::initDbAndCacheLocation(&prefs);
     foreach(VideoParam videoParam, videoParamList){
 
         QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
@@ -663,7 +666,6 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
         QByteArray ref_thumbnail = ref_thumbFile.readAll();
         ref_thumbFile.close();
 
-        Prefs prefs;
         Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
         vid->run();
 

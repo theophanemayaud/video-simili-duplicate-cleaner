@@ -34,7 +34,7 @@ void Video::run()
     }
 
     // THEODEBUG : probably should re-implement things not to cache randomly !
-    Db cache; // we open the db here, but we'll only store things if needed
+    Db cache(_prefs.cacheFilePathName); // we open the db here, but we'll only store things if needed
     if(_useCacheDb && cache.readMetadata(*this)) {      //check first if video properties are cached
         modified = QFileInfo(filename).lastModified(); // Db doesn't cache the modified date
         if(QFileInfo(filename).birthTime().isValid())

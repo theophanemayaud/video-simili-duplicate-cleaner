@@ -6,13 +6,12 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     _prefs._mainwPtr = this;
 
     QFile file(":/version.txt");
-    QString appVersion = "undefined";
     if (file.open(QIODevice::ReadOnly)){
-        appVersion = file.readLine();
+        _prefs.appVersion = file.readLine();
     }
     file.close();
 
-    addStatusMessage(QStringLiteral("%1 v%2").arg(APP_NAME, appVersion));
+    addStatusMessage(QStringLiteral("%1 v%2").arg(APP_NAME, _prefs.appVersion));
 #ifdef Q_OS_MACOS
     // Check mac app store receipt
     QString receiptLocation = QString("%1/../_MASReceipt/receipt").arg(QCoreApplication::applicationDirPath());
@@ -60,6 +59,11 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->mainToolBar->setVisible(false);
+
+    if(Db::initDbAndCacheLocation(&_prefs))
+        addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName + "\n");
+    else
+        addStatusMessage("\nError accessing cache, will not use any.\n");
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -375,7 +379,7 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionEmpty_cache_triggered()
 {
-    Db::emptyAllDb();
+    Db::emptyAllDb(_prefs);
 }
 
 void MainWindow::on_actionCredits_triggered()
