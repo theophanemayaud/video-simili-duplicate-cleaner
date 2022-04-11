@@ -4,7 +4,7 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
   <Identity Name="5743TheophaneMayaud.Videosimiliduplicatecleaner" 
-            Version="1.6.0.0" 
+            Version="1.7.0.0" 
             Publisher="CN=4718DAC3-F3E7-40DE-AF8E-C3EB08A4F6AB" 
             ProcessorArchitecture="x64" />
     <Properties>
@@ -17,6 +17,7 @@
     </Resources>
   <Dependencies>
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17135.0" MaxVersionTested="10.0.19043.1052" />
+    <PackageDependency Name="Microsoft.VCLibs.140.00.UWPDesktop" MinVersion="14.0.27323.0" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" />
   </Dependencies>
   <Capabilities>
 	    <rescap:Capability Name="runFullTrust"/>

@@ -9,7 +9,9 @@ nmake
 nmake clean # to remove all the leftover files and keep only executable
 
 Prepare all dependencies for packaging :
-C:\Qt\5.15.1\msvc2019_64\bin\windeployqt.exe --release "C:\Dev\release\release\Video simili duplicate cleaner.exe"
+C:\Qt\5.15.1\msvc2019_64\bin\windeployqt.exe --no-compiler-runtime --release "C:\Dev\release\release\Video simili duplicate cleaner.exe"
+
+Option --no-compiler-runtime is because when distributing through the MS Store, the vc redistributables are made available when specified in the appmanifest, as per https://docs.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-prepare "Your app uses a VCLibs framework package". To check the version needed, go into the developer machine and check under `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC` see what version to use, and therefore make sure the minversion specified in the appmanifest is below the required version. However for testing, in a clean machine not via the store, these redistributables need to be installed for the app to launch. On the target test machine, run `vc_redist.x64.exe` copied over from `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.29.30036`
 
 Copy app manifest and icons referenced in the manifest into folder within which is the executable, then package all :
 MakeAppx pack /d release /p "Video simili duplicate cleaner.msix"
@@ -21,12 +23,15 @@ MakeAppx unpack /v /p "Video simili duplicate cleaner.msix" /d "extracted-packag
 New-SelfSignedCertificate -Type Custom -Subject "CN=4718DAC3-F3E7-40DE-AF8E-C3EB08A4F6AB" -KeyUsage DigitalSignature -FriendlyName "CertifVideoSimili" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
 
 (PowerShell) Export the certificate which is apparently needed later
-$password = ConvertTo-SecureString -String <certificate password> -Force -AsPlainText 
-Export-PfxCertificate -cert "Cert:\CurrentUser\My\<certificate hash>" -FilePath C:\Dev\CertifVideoSimili.pfx -Password $password
+`$password = ConvertTo-SecureString -String <certificate password> -Force -AsPlainText 
+Export-PfxCertificate -cert "Cert:\CurrentUser\My\<certificate hash>" -FilePath C:\Dev\CertifVideoSimili.pfx -Password $password`
 
 Sign the package :
-SignTool sign /fd SHA256  /a /f C:\Dev\CertifVideoSimili.pfx /p <certificate password> "Video simili duplicate cleaner.msix"
+`SignTool sign /fd SHA256  /a /f C:\Dev\CertifVideoSimili.pfx /p <certificate password> "Video simili duplicate cleaner.msix"`
 
 Now import the certificate to the computer's trusted certificates, with "Manage computer certificates", go to Trusted People part, click on certificates, and "Action", "All Tasks", import -> then select the exported certificate file, and import it.
 
 Then we can run the package to install the app. If wanting to upload to windows store, do not sign the package before uploading.
+
+## Upload
+

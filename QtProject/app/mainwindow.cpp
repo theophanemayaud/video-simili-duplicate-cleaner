@@ -6,13 +6,12 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     _prefs._mainwPtr = this;
 
     QFile file(":/version.txt");
-    QString appVersion = "undefined";
     if (file.open(QIODevice::ReadOnly)){
-        appVersion = file.readLine();
+        _prefs.appVersion = file.readLine();
     }
     file.close();
 
-    addStatusMessage(QStringLiteral("%1 v%2").arg(APP_NAME, appVersion));
+    addStatusMessage(QStringLiteral("%1 v%2").arg(APP_NAME, _prefs.appVersion));
 #ifdef Q_OS_MACOS
     // Check mac app store receipt
     QString receiptLocation = QString("%1/../_MASReceipt/receipt").arg(QCoreApplication::applicationDirPath());
@@ -60,6 +59,11 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->mainToolBar->setVisible(false);
+
+    if(Db::initDbAndCacheLocation(&_prefs))
+        addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName + "\n");
+    else
+        addStatusMessage("\nError accessing cache, will not use any.\n");
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -258,15 +262,14 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
     if(_prefs._numberOfVideos <= 0) //no videos to sort
         return sortedVideosList;
 
-    QMap<int64_t, int> mappedVideos; // key is video size, value is index in video QVector (maps are sorted automagically by key)
+    QMultiMap<int64_t, int> mappedVideos; // key is video size, value is index in video QVector (maps are sorted automagically by key)
     for(int i=0; i<_videoList.size(); i++){
         mappedVideos.insert(_videoList[i]->size, i);
     }
 
-    QMap<int64_t, int>::const_iterator mappedVidSize = mappedVideos.constBegin(); //video size, then video index
-    while (mappedVidSize != mappedVideos.constEnd()) { // iterating from smaller size to bigger sizes
-        sortedVideosList.insert(0, _videoList[mappedVidSize.value()]);
-        mappedVidSize++;
+    QMultiMapIterator<int64_t, int> mappedVidSize(mappedVideos); //video size, then video index
+    while (mappedVidSize.hasNext()) { // iterating from smaller size to bigger sizes
+        sortedVideosList.insert(0, _videoList[mappedVidSize.next().value()]);
     }
 
     if(sortedVideosList.size()!=_videoList.size())
@@ -375,7 +378,31 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionEmpty_cache_triggered()
 {
-    Db::emptyAllDb();
+    Db::emptyAllDb(_prefs);
+}
+
+void MainWindow::on_actionSet_custom_cache_location_triggered()
+{
+    if(Db::initCustomDbAndCacheLocation(&_prefs)){
+        ui->actionSet_custom_cache_location->setEnabled(false);
+        ui->actionRestore_default_cache_location->setEnabled(true);
+        addStatusMessage(QString("\nCache now used:  %1\n").arg(_prefs.cacheFilePathName));
+    }
+    else
+        addStatusMessage(QString("\nError selecting custom cache.\n"));
+}
+
+void MainWindow::on_actionRestore_default_cache_location_triggered()
+{
+    _prefs.cacheFilePathName = "";
+    if(Db::initDbAndCacheLocation(&_prefs)){
+        addStatusMessage("\nCache restored to: " + _prefs.cacheFilePathName + "\n");
+    }
+    else
+        addStatusMessage(QString("\nError restoring default cache. Probably no cache now.\n"));
+
+    ui->actionSet_custom_cache_location->setEnabled(true);
+    ui->actionRestore_default_cache_location->setEnabled(false);
 }
 
 void MainWindow::on_actionCredits_triggered()

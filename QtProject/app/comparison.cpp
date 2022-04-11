@@ -233,6 +233,7 @@ void Comparison::showVideo(const QString &side)
     image.load(&pixels, QByteArrayLiteral("JPG"));
     Image->setPixmap(QPixmap::fromImage(image).scaled(Image->width(), Image->height(), Qt::KeepAspectRatio));
 
+#ifdef Q_OS_MACOS
     // Get video name from apple photos if applicable. Can't do in in video directly as it is very slow
     if(_videos[thisVideo]->filename.contains(".photoslibrary")){
         const QString fileNameNoExt = QFileInfo(_videos[thisVideo]->filename).completeBaseName();
@@ -249,6 +250,7 @@ void Comparison::showVideo(const QString &side)
             }
         }
     }
+#endif
 
     auto *FileName = this->findChild<ClickableLabel *>(side + QStringLiteral("FileName"));
     if(_videos[thisVideo]->nameInApplePhotos.isEmpty())
@@ -562,6 +564,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
             // no need to seek as in auto trash mode, the seeking is already handled, and manual will not want to seek
             return;
         }
+#ifdef Q_OS_MACOS
         else if(filename.contains(".photoslibrary")){ // we must never delete files from the Apple Photos Library, although we can detect them !
             // We'll now tell Apple Photos via AppleScript to add videos to be deleted to a specific album so the user can manually delete them all at once
             const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
@@ -591,7 +594,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                 emit sendStatusMessage(QString("Moved %1 to album 'Trash from %2' of Apple Photos Library")
                                        .arg(QDir::toNativeSeparators(filename), APP_NAME));
 
-                Db().removeVideo(filename); // remove it from the cache as it is not needed anymore !
+                Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
                 if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
                     _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
                 return;
@@ -602,8 +605,9 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                                                         "You should use duplicate photo scanners to deal with it.");
                 emit sendStatusMessage(QString("Did not add %1 into Apple Photos Library album : it seems to be a live photo, so deal with it as a photo.").arg(QDir::toNativeSeparators(filename)));
                 return;
-            }
+            } 
         }
+#endif
         else{
             if(_prefs.trashDir.isRoot()){ // default is root, meaning we move to trash
                 if(!QFile::moveToTrash(filename)){
@@ -650,7 +654,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                 emit sendStatusMessage(QString("Moved %1 to selected folder").arg(QDir::toNativeSeparators(filename)));
             }
 
-            Db().removeVideo(filename); // remove it from the cache as it is not needed anymore !
+            Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
             if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
                 _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
@@ -724,7 +728,7 @@ void Comparison::on_swapFilenames_clicked() const
 
     // remove both from cache, otherwise they will be stored in the cache inverted from their full path names
     // TODO : could just rename them in the cache... ?
-    Db cache; // opening connexion to database
+    Db cache(_prefs.cacheFilePathName); // opening connexion to database
     cache.removeVideo(oldLeftFilename);
     cache.removeVideo(oldRightFilename);
 }
