@@ -7,7 +7,7 @@
  * Also sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
-#define ENABLE_THUMBNAIL_VERIF
+//#define ENABLE_THUMBNAIL_VERIF
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
@@ -16,6 +16,10 @@
 // When moving over to library, audio metadata sometimes changes but when manually checked, is actually identical
 // Disable following define to skip testing audio comparison
 #define ENABLE_AUDIO_COMPARISON
+
+// inside the app it default to 100, but for tests it's more interesting if lower
+// (and also in previous versions it was 89 so the new default 100 could break old tests)
+#define COMPARISON_THRESHOLD 100
 
 // add necessary includes here
 #include "../../app/video.h"
@@ -40,11 +44,11 @@ public:
 
 private:
 #ifdef Q_OS_WIN
-    QDir _videoDir = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Videos/");
-    const QDir _thumbnailDir_nocache = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
+    QDir _videoDir = QDir("Y:/Videos/");
+    const QDir _thumbnailDir_nocache = QDir("Y:/Thumbnails-nocache/");
     const QFileInfo _csvInfo_nocache = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
 
-    const QDir _thumbnailDir_cached = QDir("C:/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
+    const QDir _thumbnailDir_cached = QDir("Y:/Thumbnails-cached/");
     const QFileInfo _csvInfo_cached = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
 
     QDir _100GBvideoDir = QDir("");
@@ -66,7 +70,7 @@ private:
 private slots:
     void initTestCase();
 
-    void emptyDb(){ Db::emptyAllDb(); }
+    void emptyDb(){ Prefs prefs; Db::initDbAndCacheLocation(&prefs); Db::emptyAllDb(prefs); }
 
 //    void createRefVidParams_nocache();
 //    void createRefVidParams_cached();
@@ -130,6 +134,7 @@ void TestVideo::test_whole_app(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
 
     QVERIFY(_videoDir.exists());
@@ -184,6 +189,7 @@ void TestVideo::test_whole_app_nocache(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
 
@@ -241,6 +247,7 @@ void TestVideo::test_whole_app_cached(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(true); // enable loading from and saving to cache (nb it's actually the default so this is redundant)
 
@@ -333,6 +340,8 @@ void TestVideo::test_check_refvidparams_cached(){
 
     // compute params for all videos
     QVERIFY(!_videoDir.isEmpty());
+    Prefs prefs;
+    Db::initDbAndCacheLocation(&prefs);
     foreach(VideoParam videoParam, videoParamList){
         QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
         QVERIFY2(videoParam.thumbnailInfo.exists(), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
@@ -342,7 +351,6 @@ void TestVideo::test_check_refvidparams_cached(){
         QByteArray ref_thumbnail = ref_thumbFile.readAll();
         ref_thumbFile.close();
 
-        Prefs prefs;
         Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
         vid->run();
 
@@ -652,6 +660,8 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
     QVERIFY(!_100GBvideoDir.isEmpty());
     int test_nb = 0;
     const int nb_tests = videoParamList.count();
+    Prefs prefs;
+    Db::initDbAndCacheLocation(&prefs);
     foreach(VideoParam videoParam, videoParamList){
 
         QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
@@ -663,7 +673,6 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
         QByteArray ref_thumbnail = ref_thumbFile.readAll();
         ref_thumbFile.close();
 
-        Prefs prefs;
         Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
         vid->run();
 
@@ -709,6 +718,7 @@ void TestVideo::test_100GBwholeApp(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
 
     QVERIFY(_100GBvideoDir.exists());
@@ -762,6 +772,7 @@ void TestVideo::test_100GBwholeApp_nocache(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
 
@@ -817,6 +828,7 @@ void TestVideo::test_100GBwholeApp_cached(){
     timer.start();
 
     MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
     w.ui->useCacheCheckBox->setChecked(true); // enable loading from and saving to cache (should be on by default)
 

@@ -26,6 +26,10 @@ public:
     int _sameDurationModifier = 1;
 
     QDir trashDir = QDir::root();
+
+    QString cacheFilePathName = "";
+
+    QString appVersion = "undefined";
 };
 
 #endif // PREFS_H

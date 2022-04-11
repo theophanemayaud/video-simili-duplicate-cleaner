@@ -76,6 +76,8 @@ private slots:
     void on_actionContact_triggered();
     void on_actionChange_trash_folder_triggered();
     void on_actionRestoreMoveToTrash_triggered();
+    void on_actionSet_custom_cache_location_triggered();
+    void on_actionRestore_default_cache_location_triggered();
 };
 
 #endif // MAINWINDOW_H

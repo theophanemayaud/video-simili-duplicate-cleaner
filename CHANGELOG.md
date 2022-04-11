@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.6.0...v1.7.0) (2022-04-11)
+
+
+### Features
+
+* **cache:** user can now select custom cache location and name ([e361b5d](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/e361b5d21141db7ac9d93b9a40ebd94e499b37be))
+
+
+### Bug Fixes
+
+* **duplicates:** fixed regression caused by update QT from 5 to 6 ([b6a62ff](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/b6a62ff2e8e7b2c0138c31ac6de9672e519a738b))
+* **windows:** fixed microsoft store preventing default cache location ([00f9496](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/00f9496be56a6f1efcba739c0dee2035247b28a6))
+
 ## [1.6.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.5.1...v1.6.0) (2022-01-03)
 
 
