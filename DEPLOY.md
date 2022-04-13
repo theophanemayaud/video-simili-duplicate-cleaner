@@ -16,6 +16,8 @@ Option --no-compiler-runtime is because when distributing through the MS Store, 
 Copy app manifest and icons referenced in the manifest into folder within which is the executable, then package all :
 MakeAppx pack /d release /p "Video simili duplicate cleaner.msix"
 
+See https://docs.microsoft.com/fr-fr/windows/msix/package/create-app-package-with-makeappx-tool for more information
+
 NB : to check what was put into the package, we can simply unpack it to a folder :
 MakeAppx unpack /v /p "Video simili duplicate cleaner.msix" /d "extracted-package"
 
@@ -28,6 +30,8 @@ Export-PfxCertificate -cert "Cert:\CurrentUser\My\<certificate hash>" -FilePath 
 
 Sign the package :
 `SignTool sign /fd SHA256  /a /f C:\Dev\CertifVideoSimili.pfx /p <certificate password> "Video simili duplicate cleaner.msix"`
+
+See more info in https://docs.microsoft.com/fr-fr/windows/msix/package/sign-app-package-using-signtool
 
 Now import the certificate to the computer's trusted certificates, with "Manage computer certificates", go to Trusted People part, click on certificates, and "Action", "All Tasks", import -> then select the exported certificate file, and import it.
 
