@@ -20,14 +20,16 @@ bool Db::initDbAndCacheLocation(Prefs *prefs){
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
 
         //attempt with system application local cache folder (doesn't seem to work on windows in dev mode
-        QString cacheFolder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-        QString dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder);
+        QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+        if(!cacheFolder.exists())
+            QDir().mkpath(cacheFolder.path());
+        QString dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder.path());
         db.setDatabaseName(dbfilename);
 
         if(!db.open()){
             //attempt with application folder path
             cacheFolder = QApplication::applicationDirPath();
-            dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder);
+            dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder.path());
             db.setDatabaseName(dbfilename);
 
             if(!db.open()){

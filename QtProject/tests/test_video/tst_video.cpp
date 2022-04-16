@@ -7,7 +7,7 @@
  * Also sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
-//#define ENABLE_THUMBNAIL_VERIF
+#define ENABLE_THUMBNAIL_VERIF
 //#define ENABLE_MANUAL_THUMBNAIL_VERIF
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
