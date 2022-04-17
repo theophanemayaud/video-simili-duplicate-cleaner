@@ -578,7 +578,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
             else{ // only video in subfolder originals are true videos
                 // We'll now tell Apple Photos via AppleScript to add videos to be deleted to a specific album so the user can manually delete them all at once
                 const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
-                if(fileNameNoExt.contains("_") { // TODO : if contains _ then video is probably a live photo media, so should not modify it ! -> should preferably discard at scan time... ?
+                if(fileNameNoExt.contains("_")) { // TODO : if contains _ then video is probably a live photo media, so should not modify it ! -> should preferably discard at scan time... ?
                     if(!auto_trash_mode)
                         QMessageBox::information(this, "", "This video is in an Apple Photos Libray, and seems to be from a Live Photo, not a real video. \n"
                                                             "You should use duplicate photo scanners to deal with it.");

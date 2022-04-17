@@ -34,8 +34,13 @@ void Video::run()
     }
 #ifdef Q_OS_MACOS
     else if(filename.contains(".photoslibrary")){
+        const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
         if(!filename.contains(".photoslibrary/originals/")){
             emit rejectVideo(this, "file is an Apple Photos derivative");
+            return;
+        }
+        else if(fileNameNoExt.contains("_")){
+            emit rejectVideo(this, "Video seems to be a live photo, so deal with it as a photo.");
             return;
         }
     }
