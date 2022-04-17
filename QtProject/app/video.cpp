@@ -32,6 +32,14 @@ void Video::run()
         emit rejectVideo(this, "file doesn't seem to exist");
         return;
     }
+#ifdef Q_OS_MACOS
+    else if(filename.contains(".photoslibrary")){
+        if(!filename.contains(".photoslibrary/originals/")){
+            emit rejectVideo(this, "file is an Apple Photos derivative");
+            return;
+        }
+    }
+#endif
 
     // THEODEBUG : probably should re-implement things not to cache randomly !
     Db cache(_prefs.cacheFilePathName); // we open the db here, but we'll only store things if needed

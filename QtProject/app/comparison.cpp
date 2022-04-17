@@ -566,46 +566,57 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
         }
 #ifdef Q_OS_MACOS
         else if(filename.contains(".photoslibrary")){ // we must never delete files from the Apple Photos Library, although we can detect them !
-            // We'll now tell Apple Photos via AppleScript to add videos to be deleted to a specific album so the user can manually delete them all at once
-            const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
-            if (!fileNameNoExt.contains("_")){
-                QString returnValue = QString::fromLocal8Bit(
-                            Obj_C::obj_C_addMediaToAlbum(QString(APP_NAME).toLocal8Bit().data(),
-                                                      fileNameNoExt.toLocal8Bit().data()));
-                if(!returnValue.contains(OBJ_C_SUCCESS_STRING)){
-                    if(!auto_trash_mode)
-                        QMessageBox::information(this, "", QString(
-                                "Unknown error adding into Apple Photos Library album, sorry. "
-                                "Video might be in Apple Photos trash. "
-                                "Make sure to empty Apple Photos trash."
-                                "\n\nError:%1").arg(returnValue));
-                    emit sendStatusMessage(QString("Unknown error adding %1 into Apple Photos Library album.").arg(QDir::toNativeSeparators(filename)));
-                }
-                // Finally if reached here: it is "deleted" so remove from DB
-                // NB : we only delete the file from the disk, and not from _videos, as we check
-                //      when going to the next/prev video that each exists, or skip it.
-                _someWereMovedInApplePhotosLibrary = true; // used to check at the very end, to display reminder message to user
-                _videos[side]->trashed = true; // could check simply if file still exists on disk but not in case of Apple Photos...
-                _videosDeleted++;
-                _spaceSaved = _spaceSaved + _videos[side]->size;
-
-                ui->trashedFiles->setVisible(true);
-                ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
-                emit sendStatusMessage(QString("Moved %1 to album 'Trash from %2' of Apple Photos Library")
-                                       .arg(QDir::toNativeSeparators(filename), APP_NAME));
-
-                Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
-                if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
-                    _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
+            if(!filename.contains(".photoslibrary/originals/")){
+                if(!auto_trash_mode)
+                    QMessageBox::information(this, "", QString(
+                            "The file is a derivative media created by Apple Photos. "
+                            "It shouldn't have been detected in the first place, sorry. "
+                            "It must and will not be deleted."));
+                emit sendStatusMessage(QString("Error, file %1 was an Apple Photos Library derivative not an original.").arg(QDir::toNativeSeparators(filename)));
                 return;
             }
-            else { // TODO : if contains _ then video is probably a live photo media, so should not modify it ! -> should preferably discard at scan time... ?
-                if(!auto_trash_mode)
-                    QMessageBox::information(this, "", "This video is in an Apple Photos Libray, and seems to be from a Live Photo, not a real video. \n"
-                                                        "You should use duplicate photo scanners to deal with it.");
-                emit sendStatusMessage(QString("Did not add %1 into Apple Photos Library album : it seems to be a live photo, so deal with it as a photo.").arg(QDir::toNativeSeparators(filename)));
-                return;
-            } 
+            else{ // only video in subfolder originals are true videos
+                // We'll now tell Apple Photos via AppleScript to add videos to be deleted to a specific album so the user can manually delete them all at once
+                const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
+                if(fileNameNoExt.contains("_") { // TODO : if contains _ then video is probably a live photo media, so should not modify it ! -> should preferably discard at scan time... ?
+                    if(!auto_trash_mode)
+                        QMessageBox::information(this, "", "This video is in an Apple Photos Libray, and seems to be from a Live Photo, not a real video. \n"
+                                                            "You should use duplicate photo scanners to deal with it.");
+                    emit sendStatusMessage(QString("Did not add %1 into Apple Photos Library album : it seems to be a live photo, so deal with it as a photo.").arg(QDir::toNativeSeparators(filename)));
+                    return;
+                }
+                else { // only videos that aren't live photos
+                    QString returnValue = QString::fromLocal8Bit(
+                                Obj_C::obj_C_addMediaToAlbum(QString(APP_NAME).toLocal8Bit().data(),
+                                                          fileNameNoExt.toLocal8Bit().data()));
+                    if(!returnValue.contains(OBJ_C_SUCCESS_STRING)){
+                        if(!auto_trash_mode)
+                            QMessageBox::information(this, "", QString(
+                                    "Unknown error adding into Apple Photos Library album, sorry. "
+                                    "Video might be in Apple Photos trash. "
+                                    "Make sure to empty Apple Photos trash."
+                                    "\n\nError:%1").arg(returnValue));
+                        emit sendStatusMessage(QString("Unknown error adding %1 into Apple Photos Library album.").arg(QDir::toNativeSeparators(filename)));
+                    }
+                    // Finally if reached here: it is "deleted" so remove from DB
+                    // NB : we only delete the file from the disk, and not from _videos, as we check
+                    //      when going to the next/prev video that each exists, or skip it.
+                    _someWereMovedInApplePhotosLibrary = true; // used to check at the very end, to display reminder message to user
+                    _videos[side]->trashed = true; // could check simply if file still exists on disk but not in case of Apple Photos...
+                    _videosDeleted++;
+                    _spaceSaved = _spaceSaved + _videos[side]->size;
+
+                    ui->trashedFiles->setVisible(true);
+                    ui->trashedFiles->setText(QStringLiteral("Moved %1 to trash").arg(_videosDeleted));
+                    emit sendStatusMessage(QString("Moved %1 to album 'Trash from %2' of Apple Photos Library")
+                                           .arg(QDir::toNativeSeparators(filename), APP_NAME));
+
+                    Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
+                    if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
+                        _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
+                    return;
+                }
+            }
         }
 #endif
         else{
@@ -663,10 +674,12 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
 
 void Comparison::moveVideo(const QString &from, const QString &to)
 {
+#ifdef Q_OS_MACOS
     if(from.contains(".photoslibrary")){
         QMessageBox::information(this, "", "This file is in an Apple Photos Library, cannot move !");
         return;
     }
+#endif
     if(QMessageBox::question(this, "Move", "This file is in a locked folder, are you sure you want to move it ?",
                              QMessageBox::Yes|QMessageBox::No) == QMessageBox::No)
         return;
