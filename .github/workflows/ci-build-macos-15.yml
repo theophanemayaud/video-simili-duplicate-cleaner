@@ -87,7 +87,7 @@ jobs:
           
       - name: Build
         run: | 
-          $Qt6_DIR/macos/bin/qmake './QtProject/app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler 
+          $Qt6_DIR/bin/qmake './QtProject/app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler 
           /usr/bin/make qmake_all
         
       # Runs a single command using the runners shell
