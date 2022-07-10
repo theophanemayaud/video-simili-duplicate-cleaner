@@ -97,6 +97,11 @@ jobs:
           $Qt6_DIR/bin/qmake './QtProject/app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler 
           /usr/bin/make ./qmake_all
           make -j8
+          
+      - name: ls
+        run: ls
+        
+      - name: Mac Deploy Qt
           #$Qt6_DIR/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant"
         
       # Runs a single command using the runners shell
