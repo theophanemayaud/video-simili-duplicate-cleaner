@@ -27,10 +27,14 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      - name: setup project
+      - name: install project dependencies
         run: | 
           npm install
-        
+          
+      - name: ls
+        run: | 
+          ls
+          
       # Runs a single command using the runners shell
       - name: Run a one-line script
         run: echo Hello, world!
@@ -41,52 +45,39 @@ jobs:
           echo Add other actions to build,
           echo test, and deploy your project.
           
-      - name: Install Qt
-        # You may pin to the exact commit or the version.
-        uses: jurplel/install-qt-action@v2
-        with:
-          # Directory to install Qt - When possible, access your Qt directory through the Qt5_DIR or Qt6_DIR environment variable
-          # dir: # optional
-          
-          # Version of Qt to install
-          version: 6.2.2
-          
-          # Host platform
-          host: mac
-          
-          # Target platform for build
-          target: desktop
+#       - name: Install Qt
+#         # You may pin to the exact commit or the version.
+#         uses: jurplel/install-qt-action@v2
+#         with:
+#           # Directory to install Qt - When possible, access your Qt directory through the Qt5_DIR or Qt6_DIR environment variable
+#           # dir: # optional          
+#           # Version of Qt to install
+#           version: 6.2.2          
+#           # Host platform
+#           host: mac  
+#           # Target platform for build
+#           target: desktop
           
           # Architecture for Windows/Android
-          #arch: # optional
-          
+          #arch: # optional          
           # Whether or not to install Qt dependencies on Linux
-          #install-deps: # optional, default is true
-          
+          #install-deps: # optional, default is true          
           # Additional Qt modules to install
-          #modules: # optional
-          
+          #modules: # optional          
           # Whether or not to actually download Qt
-          #cached: # optional, default is false
-          
+          #cached: # optional, default is false          
           # Whether or not to automatically run setup-python to find a valid python version.
-          #setup-python: # optional, default is true
-          
+          #setup-python: # optional, default is true          
           # Qt tools to download--specify comma-separated argument lists which are themselves separated by spaces: <tool_name>,<tool_version>,<tool_arch>
-          #tools: # optional
-          
+          #tools: # optional          
           # Whether or not to set environment variables after running aqtinstall
-          #set-env: # optional, default is true
-          
+          #set-env: # optional, default is true          
           # Whether or not to actually install Qt or just the tools from the tools argument
-          #tools-only: # optional, default is false
-          
+          #tools-only: # optional, default is false          
           # Version of aqtinstall to use in case of issues
-          #aqtversion: # optional, default is ==1.2.5
-          
+          #aqtversion: # optional, default is ==1.2.5          
           # Version of py7zr to use in case of issues
-          #py7zrversion: # optional, default is ==0.16.1
-          
+          #py7zrversion: # optional, default is ==0.16.1          
           # Any extra arguments to append to the back
           
       # Runs a single command using the runners shell
