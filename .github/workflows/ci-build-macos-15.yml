@@ -80,8 +80,15 @@ jobs:
           #py7zrversion: # optional, default is ==0.16.1          
           # Any extra arguments to append to the back
           
+      - name: ls qt folder
+        run: |
+          echo $Qt6_DIR
+          ls $Qt6_DIR
+          
       - name: Build
-        run: npm run build
+        run: | 
+          $Qt6_DIR/macos/bin/qmake './QtProject/app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler 
+          /usr/bin/make qmake_all
         
       # Runs a single command using the runners shell
       - name: Signal the end       
