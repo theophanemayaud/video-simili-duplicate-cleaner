@@ -57,7 +57,7 @@ jobs:
         with:
           cached: ${{ steps.cache-qt.outputs.cache-hit }}
           # Directory to install Qt - When possible, access your Qt directory through the Qt5_DIR or Qt6_DIR environment variable
-          # dir: # optional          
+          dir: ../ # optional          
           # Version of Qt to install
           version: 6.2.2          
           # Host platform
