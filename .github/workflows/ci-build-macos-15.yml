@@ -45,18 +45,18 @@ jobs:
           echo Add other actions to build,
           echo test, and deploy your project.
           
-#       - name: Install Qt
-#         # You may pin to the exact commit or the version.
-#         uses: jurplel/install-qt-action@v2
-#         with:
-#           # Directory to install Qt - When possible, access your Qt directory through the Qt5_DIR or Qt6_DIR environment variable
-#           # dir: # optional          
-#           # Version of Qt to install
-#           version: 6.2.2          
-#           # Host platform
-#           host: mac  
-#           # Target platform for build
-#           target: desktop
+      - name: Install Qt
+        # You may pin to the exact commit or the version.
+        uses: jurplel/install-qt-action@v2
+        with:
+          # Directory to install Qt - When possible, access your Qt directory through the Qt5_DIR or Qt6_DIR environment variable
+          # dir: # optional          
+          # Version of Qt to install
+          version: 6.2.2          
+          # Host platform
+          host: mac  
+          # Target platform for build
+          target: desktop
           
           # Architecture for Windows/Android
           #arch: # optional          
@@ -80,6 +80,9 @@ jobs:
           #py7zrversion: # optional, default is ==0.16.1          
           # Any extra arguments to append to the back
           
+      - name: Build
+        run: npm run build
+        
       # Runs a single command using the runners shell
       - name: Signal the end       
         run: echo Well Done 
