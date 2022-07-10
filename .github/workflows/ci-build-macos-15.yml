@@ -44,7 +44,19 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
-          
+
+      - name: Cache Qt
+        id: cache-qt
+        uses: actions/cache@v3 #v1  # not v2!
+        with:
+          path: ../Qt
+          key: ${{ runner.os }}-QtCache
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+    
       - name: Install Qt
         # You may pin to the exact commit or the version.
         uses: jurplel/install-qt-action@v2
@@ -65,7 +77,7 @@ jobs:
           # Additional Qt modules to install
           #modules: # optional          
           # Whether or not to actually download Qt
-          #cached: # optional, default is false          
+          cached: true # optional, default is false          
           # Whether or not to automatically run setup-python to find a valid python version.
           #setup-python: # optional, default is true          
           # Qt tools to download--specify comma-separated argument lists which are themselves separated by spaces: <tool_name>,<tool_version>,<tool_arch>
@@ -88,7 +100,9 @@ jobs:
       - name: Build
         run: | 
           $Qt6_DIR/bin/qmake './QtProject/app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler 
-          /usr/bin/make qmake_all
+          /usr/bin/make ./qmake_all
+          make -j8
+          $Qt6_DIR/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant"
         
       # Runs a single command using the runners shell
       - name: Signal the end       
