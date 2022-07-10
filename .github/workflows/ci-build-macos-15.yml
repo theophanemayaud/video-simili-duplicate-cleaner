@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI-build-macos
+name: ci-build-macos
 
 # Controls when the workflow will run
 on:
@@ -93,16 +93,13 @@ jobs:
           ls $Qt6_DIR
           
       - name: Build
-        run: | 
-          $Qt6_DIR/bin/qmake './QtProject/app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler 
-          /usr/bin/make ./qmake_all
-          make -j8
+        run: npm run build
           
       - name: ls
         run: ls
         
-      - name: Mac Deploy Qt
-        run : $Qt6_DIR/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant
+#       - name: Mac Deploy Qt
+#         run : $Qt6_DIR/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant
         
       # Runs a single command using the runners shell
       - name: Signal the end       
