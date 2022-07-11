@@ -32,13 +32,13 @@ jobs:
       - run: ls
         
       - name: get project qt version from package.json
-        id: packageJson
+        id: package-json
         uses: notiz-dev/github-action-json-property@7c8cf5cc36eb85d8d287a8086a39dac59628eb31
         with: 
             path: 'package.json'
             prop_path: 'config.qt-version'
             
-      - run: echo ${{steps.version.outputs.prop}} 
+      - run: echo ${{steps.package-json.outputs.prop}} 
 
       - name: Cache Qt
         id: cache-qt
