@@ -27,11 +27,18 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      - name: install project dependencies
-        run: npm install
+      -  run: npm install
           
-      - name: ls
-        run: ls
+      - run: ls
+        
+      - name: get project qt version from package.json
+        id: packageJson
+        uses: notiz-dev/github-action-json-property@7c8cf5cc36eb85d8d287a8086a39dac59628eb31
+        with: 
+            path: '../../package.json'
+            prop_path: 'config'
+            
+      - run: echo ${{steps.version.outputs.qt-version}} 
 
       - name: Cache Qt
         id: cache-qt
