@@ -2,7 +2,7 @@
     "scripts": {
     "qmake": "../../../../Qt/${npm_package_config_qtversion}/macos/bin/qmake '../../app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && make qmake_all",
     "make": "make -j8",
-    "macdeploy": "../../../../Qt/${npm_package_config_qt-version}/macos/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
+    "macdeploy": "../../../../Qt/${npm_package_config_qtversion}/macos/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
     "build-mac-binaries": "npm run build-mac && npm run sign-and-package",
     "build-mac": "npm run qmake && npm run make && npm run macdeploy",
     "sign-and-package": "cp Info.plist 'Video simili duplicate cleaner.app/Contents/Info.plist' && npm run sign-app && npm run package-app",
