@@ -1,5 +1,4 @@
 {
-    "config": { "qtversion": "6.2.2"},
     "scripts": {
     "qmake": "../../../../Qt/${npm_package_config_qtversion}/macos/bin/qmake '../../app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && make qmake_all",
     "make": "make -j8",
