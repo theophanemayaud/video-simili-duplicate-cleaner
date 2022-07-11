@@ -2,7 +2,7 @@
   "name": "Video simili duplicate cleaner",
   "version": "1.7.0",
   "description": "Video simili duplicate cleaner is a program that can find duplicate and similar video files.",
-  "config": { "qt-version": "6.2.2"},
+  "config": { "qtversion": "6.2.2"},
   "main": "QtProject/video-simili-duplicate-cleaner.pro",
   "cpp-dependencies": {
     "ffmpeg": "https://github.com/FFmpeg/FFmpeg.git#n4.4",
