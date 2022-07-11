@@ -54,7 +54,7 @@ jobs:
           # Directory to install Qt - When possible, access your Qt directory through the Qt5_DIR or Qt6_DIR environment variable
           dir: ../ # optional          
           # Version of Qt to install
-          version: 6.2.2          
+          version: ${{steps.package-json.outputs.prop}}          
           # Host platform
           host: mac  
           # Target platform for build
