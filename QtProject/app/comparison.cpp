@@ -913,7 +913,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
 
                 int containedStatus = whichFilenameContainsTheOther((*left)->filename, (*right)->filename);
 
-                if(ui->autoIdenticalFilesNamesMustBeContainedCheckbox->isChecked()
+                if(ui->settingOnlySizeDiffNamesCheckbox->isChecked()
                         && containedStatus == NOT_CONTAINED)
                     continue; // the file names were not contained in one another : we go to the next comparison
 
@@ -1012,7 +1012,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 }
                 if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) < 100*1024) // When sizes are identical, results are treated in specific other functionality
                     continue;
-                if(ui->autoOnlySizeDiffNamesCheckbox->isChecked()
+                if(ui->settingOnlySizeDiffNamesCheckbox->isChecked()
                         && whichFilenameContainsTheOther((*left)->filename, (*right)->filename) == NOT_CONTAINED)
                     continue; // the file names were not contained in one another : we go to the next comparison
 
@@ -1182,3 +1182,14 @@ void Comparison::displayApplePhotosAlbumDeletionMessage() {
                  " 'Delete', ⚠️ but not 'Delete from album' !!!)\n\n"
                  "Then empty Apple Photos' trash").arg(APP_NAME));
 }
+
+void Comparison::on_settingOnlySizeDiffNamesCheckbox_stateChanged(int arg1)
+{
+    QString status;
+    if(arg1==Qt::Checked) status="ENABLED";
+    else status="DISABLED";
+
+    ui->label_namesContainedInOneAnotherStatus_autoIdentFiles->setText(status);
+    ui->label_namesContainedInOneAnotherStatus_autoOnlySizeDiff->setText(status);
+}
+
