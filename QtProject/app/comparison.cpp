@@ -128,7 +128,10 @@ void Comparison::on_prevVideo_clicked()
         for(right=begin+_rightVideo; right>left; right--, _rightVideo--)
             if(bothVideosMatch(*left, *right)
                     && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
-                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
+                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed
+                    && (ui->settingOnlySizeDiffNamesCheckbox->isChecked()==false
+                        || whichFilenameContainsTheOther((*left)->filename, (*right)->filename) != NOT_CONTAINED ) // check wether name in another is enabled
+                    )
             {
                 showVideo(QStringLiteral("left"));
                 showVideo(QStringLiteral("right"));
@@ -155,7 +158,10 @@ void Comparison::on_nextVideo_clicked()
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
             if(bothVideosMatch(*left, *right)
                     && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
-                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
+                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed
+                    && (ui->settingOnlySizeDiffNamesCheckbox->isChecked()==false
+                        || whichFilenameContainsTheOther((*left)->filename, (*right)->filename) != NOT_CONTAINED ) // check wether name in another is enabled
+                    )
             {
                 showVideo(QStringLiteral("left"));
                 showVideo(QStringLiteral("right"));
