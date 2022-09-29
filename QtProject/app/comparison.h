@@ -123,6 +123,8 @@ private slots:
     bool isFileInProtectedFolder(const QString filePathName) const;
     void displayApplePhotosAlbumDeletionMessage();
 
+    void on_settingOnlySizeDiffNamesCheckbox_stateChanged(int arg1);
+
 signals:
     void sendStatusMessage(const QString &message) const;
     void switchComparisonMode(const int &mode) const;
