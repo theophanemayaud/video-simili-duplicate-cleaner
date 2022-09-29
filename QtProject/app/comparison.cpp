@@ -331,6 +331,7 @@ QString Comparison::readableDuration(const int64_t &milliseconds) const
 
 QString Comparison::readableFileSize(const int64_t &filesize) const
 {
+    //FileSizes are in bytes
     if(filesize < 1024 * 1024)
         return(QStringLiteral("%1 kB").arg(QString::number(filesize / 1024.0, 'i', 0))); //even kBs
     else if(filesize < 1024 * 1024 * 1024)                          //larger files have one decimal point
@@ -374,7 +375,7 @@ void Comparison::highlightBetterProperties() const
 
     ui->leftBitRate->setStyleSheet(QStringLiteral(""));
     ui->rightBitRate->setStyleSheet(QStringLiteral(""));
-    if(_videos[_leftVideo]->bitrate == _videos[_rightVideo]->bitrate)
+    if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)<=1) //leave some margin due to decoding error
     {
         ui->leftBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
         ui->rightBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
@@ -908,7 +909,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     continue;
                 if(_videos[_leftVideo]->width != _videos[_rightVideo]->width)
                     continue;
-                if(_videos[_leftVideo]->bitrate != _videos[_rightVideo]->bitrate)
+                if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)>1) //leave some margin due to decoding error
                     continue;
                 if(_videos[_leftVideo]->framerate != _videos[_rightVideo]->framerate)
                     continue;
