@@ -11,6 +11,8 @@ enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
 
 const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 
+const int64_t FILE_SIZE_BYTES_DIFF_STILL_EQUALS = 100*1024;
+
 Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
@@ -350,8 +352,8 @@ QString Comparison::readableBitRate(const double &kbps) const
 void Comparison::highlightBetterProperties() const
 {
     ui->leftFileSize->setStyleSheet(QStringLiteral(""));
-    ui->rightFileSize->setStyleSheet(QStringLiteral(""));       //both filesizes within 100 kb
-    if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) <= 1024*100)
+    ui->rightFileSize->setStyleSheet(QStringLiteral(""));       //both filesizes within 100 kB
+    if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) <= FILE_SIZE_BYTES_DIFF_STILL_EQUALS)
     {
         ui->leftFileSize->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
         ui->rightFileSize->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
@@ -899,7 +901,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                 updateUI();
 
                 // Check if params are equal and perform deletion, then go to next
-                if(_videos[_leftVideo]->size != _videos[_rightVideo]->size)
+                if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size)>FILE_SIZE_BYTES_DIFF_STILL_EQUALS)
                     continue;
                 if(_videos[_leftVideo]->modified != _videos[_rightVideo]->modified)
                     continue;
@@ -1017,7 +1019,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                     if(qAbs(_videos[_leftVideo]->framerate - _videos[_rightVideo]->framerate) > 0.1) //both framerates more than 0.1 fps different
                         continue;
                 }
-                if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) < 100*1024) // When sizes are identical, results are treated in specific other functionality
+                if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) <= FILE_SIZE_BYTES_DIFF_STILL_EQUALS) // When sizes are identical, results are treated in specific other functionality
                     continue;
                 if(ui->settingOnlySizeDiffNamesCheckbox->isChecked()
                         && whichFilenameContainsTheOther((*left)->filename, (*right)->filename) == NOT_CONTAINED)
