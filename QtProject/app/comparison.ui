@@ -1092,7 +1092,7 @@
              <item>
               <widget class="QLabel" name="label_4">
                <property name="text">
-                <string>If both files have all equal parameters, except name and path : randomly keep one of the two and trash the other, or if both names are similar keep the file with shortest name.</string>
+                <string>If both files have all equal parameters (or very very close, eg. if bitrate is within 1kB/s), except name and path : randomly keep one of the two and trash the other, or if both names are similar keep the file with shortest name.</string>
                </property>
                <property name="wordWrap">
                 <bool>true</bool>
