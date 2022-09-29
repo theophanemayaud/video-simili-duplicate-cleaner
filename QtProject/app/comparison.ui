@@ -20,6 +20,13 @@
       <number>0</number>
      </property>
      <item>
+      <widget class="QCheckBox" name="settingOnlySizeDiffNamesCheckbox">
+       <property name="text">
+        <string>Names must be contained in one another</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer_6">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -55,7 +62,7 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="sizeType">
-        <enum>QSizePolicy::Maximum</enum>
+        <enum>QSizePolicy::Expanding</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -74,6 +81,18 @@
      </item>
      <item>
       <widget class="QSlider" name="thresholdSlider">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>230</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="minimum">
         <number>1</number>
        </property>
@@ -1081,14 +1100,38 @@
               </widget>
              </item>
              <item>
-              <widget class="QCheckBox" name="autoIdenticalFilesNamesMustBeContainedCheckbox">
-               <property name="enabled">
-                <bool>true</bool>
+              <spacer name="verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
                </property>
-               <property name="text">
-                <string>Names must be contained in one another</string>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
                </property>
-              </widget>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>4</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="verticalLayout_NbNamesContainedOption_autoIdentFiles">
+               <item>
+                <widget class="QLabel" name="label_NbNamesContainedOption">
+                 <property name="text">
+                  <string>NB: Names must be contained in one another is </string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_namesContainedInOneAnotherStatus_autoIdentFiles">
+                 <property name="text">
+                  <string>DISABLED</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
               <widget class="QLabel" name="label_8">
@@ -1173,14 +1216,22 @@
               </widget>
              </item>
              <item>
-              <widget class="QCheckBox" name="autoOnlySizeDiffNamesCheckbox">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="text">
-                <string>Names must be contained in one another</string>
-               </property>
-              </widget>
+              <layout class="QHBoxLayout" name="horizontalLayout_NbNamesContainedOption_autoOnlySizeDiff">
+               <item>
+                <widget class="QLabel" name="label_11">
+                 <property name="text">
+                  <string>NB: Names must be contained in one another is </string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_namesContainedInOneAnotherStatus_autoOnlySizeDiff">
+                 <property name="text">
+                  <string>DISABLED</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
               <widget class="QCheckBox" name="autoOnlySizeDontCheckResFpsCheckbox">
