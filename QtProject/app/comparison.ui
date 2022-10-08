@@ -20,7 +20,7 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QCheckBox" name="settingOnlySizeDiffNamesCheckbox">
+      <widget class="QCheckBox" name="settingNamesInAnotherCheckbox">
        <property name="text">
         <string>Names must be contained in one another</string>
        </property>
@@ -1281,7 +1281,7 @@
            <item>
             <widget class="QLabel" name="label_onlyTimeDiffers">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -1310,13 +1310,13 @@
              <item>
               <widget class="QLabel" name="label_label_onlyTimeDiffers_Descript">
                <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="lineWidth">
-                <number>2</number>
+                <bool>true</bool>
                </property>
                <property name="text">
-                <string>If both have all same parameters except time, choose either :</string>
+                <string>If both have all same parameters except time, choose either (first by creation date or if equal by modification date):</string>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -1325,20 +1325,26 @@
                <item>
                 <widget class="QRadioButton" name="radioButton_onlyTimeDiffers_trashEarlier">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="text">
                   <string>Trash earlier date</string>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
                  </property>
                 </widget>
                </item>
                <item>
                 <widget class="QRadioButton" name="radioButton_onlyTimeDiffers_trashLater">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="text">
                   <string>Trash later date</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -1349,7 +1355,7 @@
            <item>
             <widget class="QPushButton" name="pushButton_onlyTimeDiffersAutoTrash">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">

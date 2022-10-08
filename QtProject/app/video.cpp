@@ -846,3 +846,18 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
 
     return image; // If fail/error on sws_scale or avpicture_alloc, it will simply be a null image
 }
+
+VideoMetadata::VideoMetadata(const Video* vid){
+    this->filename = vid->filename;
+    this->nameInApplePhotos = vid->nameInApplePhotos;
+    this->size = vid->size;
+    this->_fileCreateDate = vid->_fileCreateDate;
+    this->modified = vid->modified;
+    this->duration = vid->duration;
+    this->bitrate = vid->bitrate;
+    this->framerate = vid->framerate;
+    this->codec = vid->codec;
+    this->audio = vid->audio;
+    this->width = vid->width;
+    this->height = vid->height;
+}
