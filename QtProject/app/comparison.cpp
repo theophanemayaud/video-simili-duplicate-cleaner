@@ -12,6 +12,8 @@ enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
 const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 
 const int64_t FILE_SIZE_BYTES_DIFF_STILL_EQUALS = 100*1024;
+const int64_t VIDEO_DURATION_STILL_EQUALS_MS = 1000; //if this close in duration then it's considered equal
+const int BITRATE_DIFF_STILL_EQUAL = 1;
 
 Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
@@ -32,12 +34,6 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     ui->totalVideos->setNum(int(_videos.size() * (_videos.size() - 1) / 2)); // all possible combinations
 
     // hide as not implemented yet
-    // Auto trash based on earlier/later dates
-    ui->label_onlyTimeDiffers->setVisible(false);
-    ui->label_label_onlyTimeDiffers_Descript->setVisible(false);
-    ui->radioButton_onlyTimeDiffers_trashEarlier->setVisible(false);
-    ui->radioButton_onlyTimeDiffers_trashLater->setVisible(false);
-    ui->pushButton_onlyTimeDiffersAutoTrash->setVisible(false);
     // Auto trash based on folder settings
     ui->label_folderSettingsChoice->setVisible(false);
     ui->label_folderSettingsChoice_Description->setVisible(false);
@@ -131,7 +127,7 @@ void Comparison::on_prevVideo_clicked()
             if(bothVideosMatch(*left, *right)
                     && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
                     && QFileInfo::exists((*right)->filename) && !(*right)->trashed
-                    && (ui->settingOnlySizeDiffNamesCheckbox->isChecked()==false
+                    && (ui->settingNamesInAnotherCheckbox->isChecked()==false
                         || whichFilenameContainsTheOther((*left)->filename, (*right)->filename) != NOT_CONTAINED ) // check wether name in another is enabled
                     )
             {
@@ -161,7 +157,7 @@ void Comparison::on_nextVideo_clicked()
             if(bothVideosMatch(*left, *right)
                     && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
                     && QFileInfo::exists((*right)->filename) && !(*right)->trashed
-                    && (ui->settingOnlySizeDiffNamesCheckbox->isChecked()==false
+                    && (ui->settingNamesInAnotherCheckbox->isChecked()==false
                         || whichFilenameContainsTheOther((*left)->filename, (*right)->filename) != NOT_CONTAINED ) // check wether name in another is enabled
                     )
             {
@@ -365,7 +361,7 @@ void Comparison::highlightBetterProperties() const
 
     ui->leftDuration->setStyleSheet(QStringLiteral(""));
     ui->rightDuration->setStyleSheet(QStringLiteral(""));       //both runtimes within 1 second
-    if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) <= 1000)
+    if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) <= VIDEO_DURATION_STILL_EQUALS_MS)
     {
         ui->leftDuration->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
         ui->rightDuration->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
@@ -377,7 +373,7 @@ void Comparison::highlightBetterProperties() const
 
     ui->leftBitRate->setStyleSheet(QStringLiteral(""));
     ui->rightBitRate->setStyleSheet(QStringLiteral(""));
-    if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)<=1) //leave some margin due to decoding error
+    if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)<=BITRATE_DIFF_STILL_EQUAL) //leave some margin due to decoding error
     {
         ui->leftBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
         ui->rightBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
@@ -903,6 +899,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                 // Check if params are equal and perform deletion, then go to next
                 if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size)>FILE_SIZE_BYTES_DIFF_STILL_EQUALS)
                     continue;
+                // TODO mklemewmqwhoi13u18134tih2g
                 if(_videos[_leftVideo]->modified != _videos[_rightVideo]->modified)
                     continue;
                 if(_videos[_leftVideo]->duration != _videos[_rightVideo]->duration)
@@ -911,7 +908,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     continue;
                 if(_videos[_leftVideo]->width != _videos[_rightVideo]->width)
                     continue;
-                if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)>1) //leave some margin due to decoding error
+                if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)>BITRATE_DIFF_STILL_EQUAL) //leave some margin due to decoding error
                     continue;
                 if(_videos[_leftVideo]->framerate != _videos[_rightVideo]->framerate)
                     continue;
@@ -922,7 +919,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
 
                 int containedStatus = whichFilenameContainsTheOther((*left)->filename, (*right)->filename);
 
-                if(ui->settingOnlySizeDiffNamesCheckbox->isChecked()
+                if(ui->settingNamesInAnotherCheckbox->isChecked()
                         && containedStatus == NOT_CONTAINED)
                     continue; // the file names were not contained in one another : we go to the next comparison
 
@@ -951,7 +948,6 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     if(containedStatus == LEFT_CONTAINS_RIGHT)
                         break;
                 }
-
             }
         }
         ui->progressBar->setValue(comparisonsSoFar());
@@ -1008,7 +1004,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
 
                 // Check if params are as required and perform deletion, then go to next
-                if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) > 1000) // video durations more than 1 second length difference
+                if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) > VIDEO_DURATION_STILL_EQUALS_MS) // video durations more than 1 second length difference
                     continue;
                 if(!ui->autoOnlySizeDontCheckResFpsCheckbox->isChecked())
                 {
@@ -1021,7 +1017,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 }
                 if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) <= FILE_SIZE_BYTES_DIFF_STILL_EQUALS) // When sizes are identical, results are treated in specific other functionality
                     continue;
-                if(ui->settingOnlySizeDiffNamesCheckbox->isChecked()
+                if(ui->settingNamesInAnotherCheckbox->isChecked()
                         && whichFilenameContainsTheOther((*left)->filename, (*right)->filename) == NOT_CONTAINED)
                     continue; // the file names were not contained in one another : we go to the next comparison
 
@@ -1079,7 +1075,158 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
     on_nextVideo_clicked();
 }
 
-int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath){
+void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
+    // loop through all files
+    // and maybe trash one each time depending on config
+
+    int initialDeletedNumber = _videosDeleted;
+    int64_t initialSpaceSaved = _spaceSaved;
+    bool userWantsToStop = false;
+
+    // Go over all videos from begin to end
+    _leftVideo = 0; // reset to first video
+    _rightVideo = 0;
+
+    ui->tabWidget->setCurrentIndex(0); // switch to manual tab so that user can see progress and details if confirmation is on
+    QCoreApplication::processEvents(); //next operations are blocking, might need to find a way to make it work nicer !
+
+    QVector<Video*>::const_iterator left, right, begin = _videos.cbegin(), end = _videos.cend();
+    for(left=begin+_leftVideo; left<end; left++, _leftVideo++)
+    {
+        for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
+        {
+            if(bothVideosMatch(*left, *right)
+                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
+            {
+                ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
+                QCoreApplication::processEvents();
+
+                // Check if params are as required or go to next
+                if(ui->settingNamesInAnotherCheckbox->isChecked()
+                        && whichFilenameContainsTheOther((*left)->filename, (*right)->filename) == NOT_CONTAINED)
+                    continue; // the file names were not contained in one another : we go to the next comparison
+
+                //find for the specific auto mode if one video needs to be deleted
+                const VideoMetadata leftVidMeta(_videos[_leftVideo]), rightVidMeta(_videos[_rightVideo]);
+
+                const VideoMetadata* vidToDeleteMetaPtr = autoDelConfig.videoToDelete(&leftVidMeta, &rightVidMeta,
+                                            AutoDeleteUserSettings(ui->radioButton_onlyTimeDiffers_trashEarlier->isChecked()));
+                if(vidToDeleteMetaPtr==nullptr) // null means the videos don't match in the auto mode
+                    continue;
+
+                // now we know videos are matched, we show them and the auto deletion goes through
+                showVideo(QStringLiteral("left"));
+                showVideo(QStringLiteral("right"));
+                highlightBetterProperties();
+                updateUI();
+
+                if(vidToDeleteMetaPtr == &leftVidMeta)
+                    deleteVideo(_leftVideo);
+                else
+                    deleteVideo(_rightVideo);
+
+                // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
+                if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
+                    QMessageBox message;
+                    message.setWindowTitle(QString("Auto trash by %1 confirmation").arg(autoDelConfig.getDeleteByText()));
+                    message.setText(QString("Do you want to continue the auto deletion by %1, and maybe disable confirmations ?").arg(autoDelConfig.getDeleteByText()));
+                    message.addButton(tr("Continue"), QMessageBox::AcceptRole);
+                    QPushButton *stopButton = message.addButton(tr("Stop"), QMessageBox::RejectRole);
+                    QPushButton *disableConfirmationsButton = message.addButton(tr("Disable confirmations"), QMessageBox::ActionRole);
+                    message.exec();
+                    if (message.clickedButton() == stopButton) {
+                        userWantsToStop = true;
+                        break;
+                    } else if (message.clickedButton() == disableConfirmationsButton)
+                        ui->disableDeleteConfirmationCheckbox->setCheckState(Qt::Checked);
+                }
+
+                // when left video was deleted, we need to break
+                // out of the inner for loop to go to the next left/reference video
+                if(vidToDeleteMetaPtr == &leftVidMeta)
+                    break;
+            }
+        }
+        ui->progressBar->setValue(comparisonsSoFar());
+        _rightVideo = _leftVideo + 1;
+        if(userWantsToStop)
+            break;
+    }
+
+    if(!userWantsToStop) //finished going through all videos, check if there are still some matches from beginning
+    {
+        ui->tabWidget->setCurrentIndex(1); // switch back to auto tab
+        _leftVideo = 0;
+        _rightVideo = 0;
+    }
+    // display statistics of deletions
+    QMessageBox::information(this, QString("Auto trash by %1 complete").arg(autoDelConfig.getDeleteByText()),
+                             QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
+                             .arg(_videosDeleted-initialDeletedNumber).arg(readableFileSize(_spaceSaved-initialSpaceSaved)));
+
+    if(_someWereMovedInApplePhotosLibrary)
+        displayApplePhotosAlbumDeletionMessage();
+    on_nextVideo_clicked();
+}
+
+const VideoMetadata* Comparison::AutoDeleteConfig::videoToDelete(const VideoMetadata* meta1, const VideoMetadata* meta2, const AutoDeleteUserSettings userAutoDelConf) const {
+    if(_autoDelConfig == AUTO_DELETE_ONLY_TIMES_DIFF){
+
+        if(qAbs(meta1->size - meta2->size) > FILE_SIZE_BYTES_DIFF_STILL_EQUALS)
+            return nullptr;
+        if(qAbs(meta1->duration - meta2->duration) > VIDEO_DURATION_STILL_EQUALS_MS)
+            return nullptr;
+        if(meta1->height != meta2->height)
+            return nullptr;
+        if(meta1->width != meta2->width)
+            return nullptr;
+        if(qAbs(meta1->bitrate - meta2->bitrate)>BITRATE_DIFF_STILL_EQUAL) //leave some margin due to decoding error
+            return nullptr;
+        if(meta1->framerate != meta2->framerate)
+            return nullptr;
+        if(meta1->codec != meta2->codec)
+            return nullptr;
+        if(meta1->audio != meta2->audio)
+            return nullptr;
+
+        // check the dates and which is earlier
+        const VideoMetadata** earlierVideo;
+        if(meta1->_fileCreateDate < meta2->_fileCreateDate)
+           earlierVideo = &meta1;
+        else if(meta1->_fileCreateDate > meta2->_fileCreateDate)
+            earlierVideo = &meta2;
+        else if(meta1->modified < meta2->modified)
+            earlierVideo = &meta1;
+        else if(meta1->modified > meta2->modified)
+            earlierVideo = &meta2;
+        else
+            return nullptr; // all dates are equal
+
+        const VideoMetadata** laterVideo = &meta1;
+        if(earlierVideo == &meta1)
+            laterVideo = &meta2;
+
+        //tell to delete depending on user setting
+        if(userAutoDelConf.trashEarlierIsChecked)
+            return *earlierVideo;
+        else
+            return *laterVideo;
+    }
+    else
+        return nullptr;
+}
+
+QString Comparison::AutoDeleteConfig::getDeleteByText() const {
+    switch (_autoDelConfig) {
+    case AUTO_DELETE_ONLY_TIMES_DIFF:
+        return "dates";
+    default:
+        return "";
+    }
+}
+
+int Comparison::whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath) const {
     const QFileInfo leftVideoFile(leftFileNamepath);
     const QString leftFilename = leftVideoFile.fileName();
     const QString leftNoExtension = leftFilename.left(leftFilename.lastIndexOf("."));
@@ -1192,7 +1339,7 @@ void Comparison::displayApplePhotosAlbumDeletionMessage() {
                  "Then empty Apple Photos' trash").arg(APP_NAME));
 }
 
-void Comparison::on_settingOnlySizeDiffNamesCheckbox_stateChanged(int arg1)
+void Comparison::on_settingNamesInAnotherCheckbox_stateChanged(int arg1)
 {
     QString status;
     if(arg1==Qt::Checked) status="ENABLED";
@@ -1201,4 +1348,3 @@ void Comparison::on_settingOnlySizeDiffNamesCheckbox_stateChanged(int arg1)
     ui->label_namesContainedInOneAnotherStatus_autoIdentFiles->setText(status);
     ui->label_namesContainedInOneAnotherStatus_autoOnlySizeDiff->setText(status);
 }
-

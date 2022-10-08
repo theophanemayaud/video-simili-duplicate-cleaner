@@ -55,9 +55,45 @@ private:
     int _rightW = 0;
     int _rightH = 0;
 
-    int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath);
+    int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath) const;
     bool _someWereMovedInApplePhotosLibrary = false;
     bool _firstScriptingAskPermission = true;
+
+    // --- \\
+    // --- auto deletion internal stuff
+    enum AUTO_DELETE_CONFIG : int
+    {
+        AUTO_DELETE_ONLY_TIMES_DIFF
+    };
+
+    class AutoDeleteConfig;
+    class AutoDeleteUserSettings;
+
+    class AutoDeleteConfig
+    {
+    public:
+        AutoDeleteConfig(const AUTO_DELETE_CONFIG config): _autoDelConfig(config){};
+
+        QString getDeleteByText() const;
+
+        const VideoMetadata* videoToDelete(const VideoMetadata*, const VideoMetadata*, const AutoDeleteUserSettings) const; //returns null if none should be deleted
+
+    private:
+        const AUTO_DELETE_CONFIG _autoDelConfig;
+    };
+
+    class AutoDeleteUserSettings
+    {
+    public:
+        AutoDeleteUserSettings(const bool trashEarlierIsChecked): trashEarlierIsChecked(trashEarlierIsChecked){};
+        const bool trashEarlierIsChecked;
+    };
+
+    void autoDeleteLoopthrough(const AutoDeleteConfig);
+
+    // -- end auto deletion internal stuff
+    // --- //
+
 
 public slots:
     int reportMatchingVideos(); // returns number of matching videos found
@@ -123,7 +159,9 @@ private slots:
     bool isFileInProtectedFolder(const QString filePathName) const;
     void displayApplePhotosAlbumDeletionMessage();
 
-    void on_settingOnlySizeDiffNamesCheckbox_stateChanged(int arg1);
+    void on_settingNamesInAnotherCheckbox_stateChanged(int arg1);
+
+    void on_pushButton_onlyTimeDiffersAutoTrash_clicked() {autoDeleteLoopthrough(AutoDeleteConfig(AUTO_DELETE_ONLY_TIMES_DIFF)); }
 
 signals:
     void sendStatusMessage(const QString &message) const;
