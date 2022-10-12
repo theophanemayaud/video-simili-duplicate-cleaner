@@ -1122,9 +1122,9 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
                 updateUI();
 
                 if(vidToDeleteMetaPtr == &leftVidMeta)
-                    deleteVideo(_leftVideo);
+                    deleteVideo(_leftVideo, true);
                 else
-                    deleteVideo(_rightVideo);
+                    deleteVideo(_rightVideo, true);
 
                 // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
                 if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
