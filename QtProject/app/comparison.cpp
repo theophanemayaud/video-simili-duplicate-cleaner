@@ -13,7 +13,7 @@ const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 
 const int64_t FILE_SIZE_BYTES_DIFF_STILL_EQUALS = 100*1024;
 const int64_t VIDEO_DURATION_STILL_EQUALS_MS = 1000; //if this close in duration then it's considered equal
-const int BITRATE_DIFF_STILL_EQUAL = 1;
+const int BITRATE_DIFF_STILL_EQUAL_kbs = 5;
 
 Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
@@ -373,7 +373,7 @@ void Comparison::highlightBetterProperties() const
 
     ui->leftBitRate->setStyleSheet(QStringLiteral(""));
     ui->rightBitRate->setStyleSheet(QStringLiteral(""));
-    if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)<=BITRATE_DIFF_STILL_EQUAL) //leave some margin due to decoding error
+    if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)<=BITRATE_DIFF_STILL_EQUAL_kbs) //leave some margin due to decoding error
     {
         ui->leftBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
         ui->rightBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
@@ -908,7 +908,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     continue;
                 if(_videos[_leftVideo]->width != _videos[_rightVideo]->width)
                     continue;
-                if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)>BITRATE_DIFF_STILL_EQUAL) //leave some margin due to decoding error
+                if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)>BITRATE_DIFF_STILL_EQUAL_kbs) //leave some margin due to decoding error
                     continue;
                 if(_videos[_leftVideo]->framerate != _videos[_rightVideo]->framerate)
                     continue;
@@ -1181,7 +1181,7 @@ const VideoMetadata* Comparison::AutoDeleteConfig::videoToDelete(const VideoMeta
             return nullptr;
         if(meta1->width != meta2->width)
             return nullptr;
-        if(qAbs(meta1->bitrate - meta2->bitrate)>BITRATE_DIFF_STILL_EQUAL) //leave some margin due to decoding error
+        if(qAbs(meta1->bitrate - meta2->bitrate)>BITRATE_DIFF_STILL_EQUAL_kbs) //leave some margin due to decoding error
             return nullptr;
         if(meta1->framerate != meta2->framerate)
             return nullptr;
