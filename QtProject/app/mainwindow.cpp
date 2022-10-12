@@ -143,7 +143,7 @@ void MainWindow::on_browseApplePhotos_clicked() const
 {
     const QString path = QFileDialog::getOpenFileName(ui->browseFolders,
                                                     QByteArrayLiteral("Select Apple Photos Library"),
-                                                    QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                    QStandardPaths::standardLocations(QStandardPaths::PicturesLocation).first() /*defines where the chooser opens at*/,
                                                     tr("Apple Photos Library (*.photoslibrary)"));
     if(path.isEmpty()){ //empty because error or none chosen in dialog
         return;
