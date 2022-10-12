@@ -30,7 +30,7 @@ public:
     QDateTime modified;
     QDateTime _fileCreateDate;
     int64_t duration = 0; // in miliseconds
-    int bitrate = 0;
+    int bitrate = 0; // in kb/s
     double framerate = 0; // avg, in frames per second
     QString codec;
     QString audio;
