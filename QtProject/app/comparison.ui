@@ -123,7 +123,7 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="tabManual">
       <attribute name="title">
        <string>Manual</string>
       </attribute>
@@ -834,6 +834,9 @@
            </property>
            <item>
             <widget class="QPushButton" name="prevVideo">
+             <property name="toolTip">
+              <string>Shortcut: Up arrow</string>
+             </property>
              <property name="text">
               <string>Prev</string>
              </property>
@@ -889,6 +892,9 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="toolTip">
+              <string>Shortcut: Left arrow</string>
+             </property>
              <property name="text">
               <string>Trash</string>
              </property>
@@ -912,6 +918,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="rightDelete">
+             <property name="toolTip">
+              <string>Shortcut: Right arrow</string>
+             </property>
              <property name="text">
               <string>Trash</string>
              </property>
@@ -955,6 +964,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="nextVideo">
+             <property name="toolTip">
+              <string>Shortcut: Down arrow</string>
+             </property>
              <property name="text">
               <string>Next</string>
              </property>
