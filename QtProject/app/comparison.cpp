@@ -55,6 +55,17 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QShortcut* lockedFoldersShortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->importantFoldersListWidget);
     connect(lockedFoldersShortcut, SIGNAL(activated()), this, SLOT(eraseLockedFolderItem()));
 
+    //delete right, left, and go right, left shortcuts
+    QShortcut* rightDelShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToNextChar), ui->tabManual);
+    connect(rightDelShortcut, SIGNAL(activated()), this, SLOT(on_rightDelete_clicked()));
+    QShortcut* leftDelShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousChar), ui->tabManual);
+    connect(leftDelShortcut, SIGNAL(activated()), this, SLOT(on_leftDelete_clicked()));
+
+    QShortcut* downShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToNextLine), ui->tabManual);
+    connect(downShortcut, SIGNAL(activated()), this, SLOT(on_nextVideo_clicked()));
+    QShortcut* upShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousLine), ui->tabManual);
+    connect(upShortcut, SIGNAL(activated()), this, SLOT(on_prevVideo_clicked()));
+
     on_nextVideo_clicked();
 }
 
