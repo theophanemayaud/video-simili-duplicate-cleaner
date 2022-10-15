@@ -83,7 +83,7 @@ private:
 class VideoMetadata: public QObject
 {
 public:
-    VideoMetadata();
+    VideoMetadata(){};
     VideoMetadata(const Video *);
 
     QString filename;
