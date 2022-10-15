@@ -2,6 +2,7 @@ TEMPLATE = subdirs
 
 SUBDIRS = \
     app \
+    tests/test_comparison \
     tests/test_mainwindow \
     tests/test_video
 

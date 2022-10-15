@@ -27,6 +27,7 @@ class Comparison : public QDialog
 {
     Q_OBJECT
     friend class TestVideo;
+    friend class test_comparison;
 
 public:
     Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam);
