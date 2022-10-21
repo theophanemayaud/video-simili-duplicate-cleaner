@@ -100,16 +100,16 @@ void Db::emptyAllDb(const Prefs prefs){
     QSqlDatabase().removeDatabase(connexionName); // clear the connexion backlog, basically... !
 }
 
-QString Db::pathnameHashId(const QString &filename)
-{
-    // Before : usesd file name and modified date, but could lead to two same identified files
-    //          if two files in seperate folders had the same name and modified date.
-    //          It was nice because even after moving files, they could still be identified
-    //          in the database.
-    // Instead simply using full path and name, but we'd need to find a way to better uniquely
-    //          identify, that doesn't depend on path, to have file moving proofness !
-    return QCryptographicHash::hash(filename.toLatin1(), QCryptographicHash::Md5).toHex();
-}
+//QString Db::pathnameHashId(const QString &filename)
+//{
+//    // Before : usesd file name and modified date, but could lead to two same identified files
+//    //          if two files in seperate folders had the same name and modified date.
+//    //          It was nice because even after moving files, they could still be identified
+//    //          in the database.
+//    // Instead simply using full path and name, but we'd need to find a way to better uniquely
+//    //          identify, that doesn't depend on path, to have file moving proofness !
+//    return QCryptographicHash::hash(filename.toLatin1(), QCryptographicHash::Md5).toHex();
+//}
 // -------------------- END : public static functions -------------------
 // ----------------------------------------------------------------------
 
@@ -163,9 +163,8 @@ bool Db::readMetadata(Video &video) const
         qDebug() << "Database not open, can't read Video cache.";
         return false;
     }
-    const QString id = pathnameHashId(video.filename);
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("SELECT * FROM metadata WHERE id = '%1';").arg(id));
+    query.exec(QStringLiteral("SELECT * FROM metadata WHERE id = '%1';").arg(video.filename));
 
     while(query.next())
     {
@@ -190,10 +189,9 @@ void Db::writeMetadata(const Video &video) const
         return;
     }
 
-    const QString id = pathnameHashId(video.filename);
     QSqlQuery query(_db);
     query.exec(QStringLiteral("INSERT OR REPLACE INTO metadata VALUES('%1',%2,%3,%4,%5,'%6','%7',%8,%9);")
-               .arg(id).arg(video.size).arg(video.duration).arg(video.bitrate).arg(video.framerate)
+               .arg(video.filename).arg(video.size).arg(video.duration).arg(video.bitrate).arg(video.framerate)
                .arg(video.codec).arg(video.audio).arg(video.width).arg(video.height));
 }
 
@@ -204,10 +202,8 @@ QByteArray Db::readCapture(const QString &filePathname, const int &percent) cons
         return nullptr;
     }
 
-    const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("SELECT at%1 FROM capture WHERE id = '%2';").arg(percent).arg(id));
-
+    query.exec(QStringLiteral("SELECT at%1 FROM capture WHERE id = '%2';").arg(percent).arg(filePathname));
     while(query.next())
         return query.value(0).toByteArray();
     return nullptr;
@@ -220,11 +216,10 @@ void Db::writeCapture(const QString &filePathname, const int &percent, const QBy
         return;
     }
 
-    const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("INSERT OR IGNORE INTO capture (id) VALUES('%1');").arg(id));
+    query.exec(QStringLiteral("INSERT OR IGNORE INTO capture (id) VALUES('%1');").arg(filePathname));
 
-    query.prepare(QStringLiteral("UPDATE capture SET at%1 = :image WHERE id = '%2';").arg(percent).arg(id));
+    query.prepare(QStringLiteral("UPDATE capture SET at%1 = :image WHERE id = '%2';").arg(percent).arg(filePathname));
     query.bindValue(QStringLiteral(":image"), image);
     query.exec();
 }
@@ -236,20 +231,19 @@ bool Db::removeVideo(const QString &filePathname) const
         return false;
     }
 
-    const QString id = pathnameHashId(filePathname);
     QSqlQuery query(_db);
 
     bool idCached = false;
-    query.exec(QStringLiteral("SELECT id FROM metadata WHERE id = '%1';").arg(id));
+    query.exec(QStringLiteral("SELECT id FROM metadata WHERE id = '%1';").arg(filePathname));
     while(query.next())
         idCached = true;
     if(!idCached)
         return false;
 
-    query.exec(QStringLiteral("DELETE FROM metadata WHERE id = '%1';").arg(id));
-    query.exec(QStringLiteral("DELETE FROM capture WHERE id = '%1';").arg(id));
+    query.exec(QStringLiteral("DELETE FROM metadata WHERE id = '%1';").arg(filePathname));
+    query.exec(QStringLiteral("DELETE FROM capture WHERE id = '%1';").arg(filePathname));
 
-    query.exec(QStringLiteral("SELECT id FROM metadata WHERE id = '%1';").arg(id));
+    query.exec(QStringLiteral("SELECT id FROM metadata WHERE id = '%1';").arg(filePathname));
     while(query.next())
         return false;
     return true;
