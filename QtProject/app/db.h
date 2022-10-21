@@ -36,8 +36,8 @@ public:
 
     static void emptyAllDb(const Prefs prefs);
 
-    //return md5 hash of parameter's file, used internally as "unique id" for each file
-    static QString pathnameHashId(const QString &filename=QStringLiteral(""));
+//    //return md5 hash of parameter's file, used internally as "unique id" for each file
+//    static QString pathnameHashId(const QString &filename=QStringLiteral(""));
 
     //constructor creates a database file if there is none already
     void createTables() const;
