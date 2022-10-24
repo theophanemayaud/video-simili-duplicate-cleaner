@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>685</width>
+    <width>820</width>
     <height>642</height>
    </rect>
   </property>
@@ -47,43 +47,76 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QLabel" name="label_2">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Thumbnails:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="selectThumbnails">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="toolTip">
-           <string>&lt;nobr&gt;CutEnds finds videos where beginning or end is cut off&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;2x2 is usually enough to find identical videos, but&lt;/nobr&gt;
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Thumbnails:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="selectThumbnails">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="toolTip">
+             <string>&lt;nobr&gt;CutEnds finds videos where beginning or end is cut off&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;2x2 is usually enough to find identical videos, but&lt;/nobr&gt;
 &lt;br&gt;&lt;nobr&gt;every mode will have slightly different results. More = slower&lt;/nobr&gt;</string>
-          </property>
-         </widget>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
-         <widget class="QCheckBox" name="useCacheCheckBox">
-          <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Unchecking this will disable loading and saving of file metadata and file caputres, to cache. &lt;/p&gt;&lt;p&gt;Caching is done based on the file path and name, so you should also disable caching &lt;/p&gt;&lt;p&gt;    if you have moved files or renamed files that could be otherwise incorrectly loaded from cache.  &lt;/p&gt;&lt;p&gt;The cache makes subsequent scans much faster !&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-          </property>
-          <property name="text">
+         <widget class="QGroupBox" name="groupBox_UseCache">
+          <property name="title">
            <string>Use cache</string>
           </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QRadioButton" name="radio_UseCacheNo">
+             <property name="toolTip">
+              <string>Videos will not be stored or loaded from cache</string>
+             </property>
+             <property name="text">
+              <string>No</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radio_UseCacheYes">
+             <property name="toolTip">
+              <string>New videos will be cached and already cached ones will be used</string>
+             </property>
+             <property name="text">
+              <string>Yes</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radio_UseCacheOnly">
+             <property name="toolTip">
+              <string>Only videos already cached will be compared</string>
+             </property>
+             <property name="text">
+              <string>Only</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
         <item>
@@ -122,66 +155,71 @@ Errors will be listed in any case.</string>
        </spacer>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_6">
-        <item>
-         <widget class="QRadioButton" name="selectPhash">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="toolTip">
-           <string>Perceptual hashing algorithm</string>
-          </property>
-          <property name="text">
-           <string>pHash</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QRadioButton" name="selectSSIM">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="toolTip">
-           <string>Structural similarity algorithm. Slighly more accurate, much slower</string>
-          </property>
-          <property name="text">
-           <string>SSIM</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_3">
-          <property name="toolTip">
-           <string/>
-          </property>
-          <property name="text">
-           <string>SSIM block size:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="blocksizeCombo">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="toolTip">
-           <string>Smaller block size is more accurate, but slower</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+       <widget class="QGroupBox" name="groupBox">
+        <property name="title">
+         <string>Similarity algorithm</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <item>
+          <widget class="QRadioButton" name="selectPhash">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Perceptual hashing algorithm</string>
+           </property>
+           <property name="text">
+            <string>pHash</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="selectSSIM">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Structural similarity algorithm. Slighly more accurate, much slower</string>
+           </property>
+           <property name="text">
+            <string>SSIM</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="toolTip">
+            <string/>
+           </property>
+           <property name="text">
+            <string>SSIM block size:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="blocksizeCombo">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Smaller block size is more accurate, but slower</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </item>
       <item>
        <spacer name="horizontalSpacer_2">
@@ -467,8 +505,8 @@ Errors will be listed in any case.</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>685</width>
-     <height>22</height>
+     <width>820</width>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGeneral">

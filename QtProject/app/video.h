@@ -21,7 +21,13 @@ class Video : public QObject, public QRunnable
     Q_OBJECT
 
 public:
-    Video(const Prefs &prefsParam, const QString &filenameParam, const bool enableCache=true);
+    enum USE_CACHE_OPTION : int {
+        NO_CACHE,
+        WITH_CACHE,
+        CACHE_ONLY
+    };
+
+    Video(const Prefs &prefsParam, const QString &filenameParam, const USE_CACHE_OPTION cacheOption=WITH_CACHE);
     void run();
 
     QString filename;
@@ -61,7 +67,7 @@ signals:
 private:
     int _rotateAngle=0;
 
-    bool _useCacheDb = true;
+    USE_CACHE_OPTION _useCacheDb = WITH_CACHE;
 
     static Prefs _prefs;
     static int _jpegQuality;

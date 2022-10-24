@@ -40,6 +40,8 @@ private:
     QString _previousRunFolders = QStringLiteral("");
     int _previousRunThumbnails = -1;
 
+    Video::USE_CACHE_OPTION _useCacheOption = Video::WITH_CACHE;
+
 private slots:
     void deleteTemporaryFiles() const;
     void closeEvent(QCloseEvent *event) { Q_UNUSED (event) _userPressedStop = true; }
@@ -78,6 +80,11 @@ private slots:
     void on_actionRestoreMoveToTrash_triggered();
     void on_actionSet_custom_cache_location_triggered();
     void on_actionRestore_default_cache_location_triggered();
+
+    // cache options
+    void on_radio_UseCacheNo_clicked() {_useCacheOption = Video::NO_CACHE;};
+    void on_radio_UseCacheYes_clicked() {_useCacheOption = Video::WITH_CACHE;};
+    void on_radio_UseCacheOnly_clicked() {_useCacheOption = Video::CACHE_ONLY;};
 };
 
 #endif // MAINWINDOW_H

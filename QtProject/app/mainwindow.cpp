@@ -182,22 +182,27 @@ void MainWindow::on_findDuplicates_clicked()
         _everyVideo.clear();
 
         const QStringList directories = foldersToSearch.split(QStringLiteral(";"));
-        QString notFound;
-        for(auto directory : directories)               //add all video files from entered paths to list
-        {
-            if(directory.isEmpty())
-                continue;
-            QDir dir = directory.remove(QStringLiteral("\""));
-            if(dir.exists())
-                findVideos(dir);
-            else
+        if(_useCacheOption!=Video::CACHE_ONLY){
+            QString notFound;
+            for(auto directory : directories)               //add all video files from entered paths to list
             {
-                addStatusMessage(QStringLiteral("Cannot find folder: %1").arg(QDir::toNativeSeparators(dir.path())));
-                notFound += QStringLiteral("%1 ").arg(QDir::toNativeSeparators(dir.path()));
+                if(directory.isEmpty())
+                    continue;
+                QDir dir = directory.remove(QStringLiteral("\""));
+                if(dir.exists())
+                    findVideos(dir);
+                else
+                {
+                    addStatusMessage(QStringLiteral("Cannot find folder: %1").arg(QDir::toNativeSeparators(dir.path())));
+                    notFound += QStringLiteral("%1 ").arg(QDir::toNativeSeparators(dir.path()));
+                }
             }
+            if(!notFound.isEmpty())
+                ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
         }
-        if(!notFound.isEmpty())
-            ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
+        else{
+            _everyVideo = Db(_prefs.cacheFilePathName).getCachedVideoPathnamesInFolders(directories);
+        }
 
         processVideos();
     }
@@ -281,12 +286,18 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
 void MainWindow::processVideos()
 {
     _prefs._numberOfVideos = _everyVideo.count();
-    addStatusMessage(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
+    if(_useCacheOption!=Video::CACHE_ONLY)
+        addStatusMessage(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
+    else
+        addStatusMessage(QStringLiteral("\nFound %1 cached video file(s):\n").arg(_prefs._numberOfVideos));
     if(_prefs._numberOfVideos > 0)
     {
         ui->selectThumbnails->setDisabled(true);
         ui->processedFiles->setVisible(true);
-        ui->processedFiles->setText(QStringLiteral("0/%1").arg(_prefs._numberOfVideos));
+        if(_useCacheOption!=Video::CACHE_ONLY)
+            ui->processedFiles->setText(QStringLiteral("0/%1").arg(_prefs._numberOfVideos));
+        else
+            ui->processedFiles->setText(QStringLiteral("Loading cache 0/%1").arg(_prefs._numberOfVideos));
         if(ui->statusBar->currentMessage().indexOf(QStringLiteral("Cannot find folder")) == -1)
             ui->statusBar->setVisible(false);
         ui->progressBar->setVisible(true);
@@ -307,7 +318,7 @@ void MainWindow::processVideos()
         while(threadPool.activeThreadCount() == threadPool.maxThreadCount())
 //        while(threadPool.activeThreadCount() == 1) // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
-        auto *videoTask = new Video(_prefs, filename, ui->useCacheCheckBox->isChecked());
+        auto *videoTask = new Video(_prefs, filename, _useCacheOption);
         videoTask->setAutoDelete(false);
         threadPool.start(videoTask);
     }
@@ -355,7 +366,11 @@ void MainWindow::addVideo(Video *addMe)
                                                        QDir::toNativeSeparators(addMe->filename)));
     }
     ui->progressBar->setValue(ui->progressBar->value() + 1);
-    ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+    if(_useCacheOption!=Video::CACHE_ONLY)
+        ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+    else
+        ui->processedFiles->setText(QStringLiteral("Loading cache %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+
     _videoList << addMe;
 }
 
