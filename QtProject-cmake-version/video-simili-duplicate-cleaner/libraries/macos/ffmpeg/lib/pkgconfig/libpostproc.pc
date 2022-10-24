@@ -1,0 +1,14 @@
+prefix=/Users/theophanemayaud/Dev/ffmpeg-install
+exec_prefix=${prefix}
+libdir=/Users/theophanemayaud/Dev/ffmpeg-install/lib
+includedir=/Users/theophanemayaud/Dev/ffmpeg-install/include
+
+Name: libpostproc
+Description: FFmpeg postprocessing library
+Version: 55.8.100
+Requires: libavutil >= 56.66.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lpostproc -lm
+Libs.private: 
+Cflags: -I${includedir}

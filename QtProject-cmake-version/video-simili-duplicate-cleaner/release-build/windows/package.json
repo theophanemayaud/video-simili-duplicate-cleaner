@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "prep-package": "copy logo150x150.png release\\logo150x150.png && copy logo44x44.png release\\logo44x44.png && copy Icon1024.png release\\Icon1024.png && copy appxmanifest.xml release\\appxmanifest.xml",
+    "qmake": "C:\\Qt\\5.15.1\\msvc2019_64\\bin\\qmake.exe 'C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\app\\app.pro' -config release",
+    "make": "nmake",
+    "windeploy": "npm run prep-package && C:\\\\Qt\\\\5.15.1\\\\msvc2019_64\\\\bin\\\\windeployqt.exe --release \"C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\release-build\\windows\\release\\Video simili duplicate cleaner.exe\"",
+    "build-win-binaries": "npm run qmake && npm run make && npm run windeploy && npm run package-app",
+    "package-app": "MakeAppx pack /d release /p \"Video simili duplicate cleaner.msix\"",
+    "make-clean": "nmake clean || exit 0",
+    "clean-leftovers": "del /f \"Video simili duplicate cleaner.msix\" && del /f Makefile && del /f Makefile.Debug && del /f Makefile.Release && del /f .qmake.stash && rmdir /q /s release && rmdir /q /s debug",
+    "clean": "npm run make-clean && (npm run clean-leftovers || exit 0)"
+  }
+}

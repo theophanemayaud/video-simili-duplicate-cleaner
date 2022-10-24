@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.7.0...v1.8.0) (2022-10-24)
+
+
+### Features
+
+* **comparison:** new auto comparison mode for videos where only created or modified dates differ ([2a5fd0e](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/2a5fd0e351d6cce0795c5a3e05f7755c830c618a))
+* **comparison:** new option to only use cached videos for faster scans if previously cached ([d922af2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/d922af2db584195f8e4a05295b72e3361c61e186))
+* **comparison:** only compare videos with names contained in another now for manual comparison ([e0c4f06](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/e0c4f0696fa1f19865831673ca02e7769d2f72b2))
+* **comparison:** right/left arrows now shortcuts for delete right/left, up/down for next/prev ([258c29c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/258c29c971e75bea7307611a354429ca1e8fc5f4))
+* **comparison:** videos of bitrates of less than 5kb/s difference will now be considered equal ([e7e90c6](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/e7e90c65421f6029ec66219847f79e02f135e646))
+
+
+### Bug Fixes
+
+* **applephotos:** apple photos button will now open Pictures as it's macOS default .photoslibrary ([1194a53](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/1194a533a6a3e44d002aa9f51b7b688934bf9c5d))
+* **applephotos:** should now skip videos that are Apple Photo derivative files - closes [#52](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/52) ([cabd388](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/cabd388f2119bf622f511cb4eb915a8ad107927d))
+* **cache:** default cache folder wouldn't work because of folder not existing closes [#69](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/69) ([a1991d2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/a1991d25ea1275f16177e972cb3ce2f5440250ae))
+* **cache:** will now cache even if apostrophe in file name or path ([fc83504](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/fc83504705ee0c5269dd8255eba9d3ac519dc2e1))
+* **comparison:** bitrates within 1kB/s are now considered equal, closes [#84](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/84) ([d3a0b4d](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/d3a0b4d1cf75619b23e815c5280872a8fee6c759))
+* **comparison:** fixed auto delete same except date, that would skip two videos ([316c609](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/316c609d610725c8233e57eb2407c50e723c9fe8))
+* **comparison:** videos with very small size (100kB) difference are also considered in auto mode ([56b5a59](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/56b5a59049937441495fb403dd75bb1735799e47))
+* **livephotos:** live photos should now be skipped upon scan - closes [#58](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/58) ([fa6b5d0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/fa6b5d01c4383ae42e4b117f4219f2490b00467a))
+
 ## [1.7.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.6.0...v1.7.0) (2022-04-11)
 
 
