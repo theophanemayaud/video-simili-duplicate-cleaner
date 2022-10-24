@@ -164,7 +164,14 @@ bool Db::readMetadata(Video &video) const
         return false;
     }
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("SELECT * FROM metadata WHERE id = '%1';").arg(video.filename));
+    query.prepare("SELECT * FROM metadata WHERE id = :id;");
+    query.bindValue(":id", video.filename);
+    query.exec();
+    QSqlError error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with readMetadata query for video=" << video.filename << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
 
     while(query.next())
     {
@@ -190,9 +197,25 @@ void Db::writeMetadata(const Video &video) const
     }
 
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("INSERT OR REPLACE INTO metadata VALUES('%1',%2,%3,%4,%5,'%6','%7',%8,%9);")
-               .arg(video.filename).arg(video.size).arg(video.duration).arg(video.bitrate).arg(video.framerate)
-               .arg(video.codec).arg(video.audio).arg(video.width).arg(video.height));
+    query.prepare("INSERT OR REPLACE INTO metadata "
+                  "VALUES(:id,:size,:duration,:bitrate,:framerate,"
+                  ":codec,:audio,:width,:height);");
+    query.bindValue(":id",          video.filename);
+    query.bindValue(":size",        video.size);
+    query.bindValue(":duration",    video.duration);
+    query.bindValue(":bitrate",     video.bitrate);
+    query.bindValue(":framerate",   video.framerate);
+    query.bindValue(":codec",       video.codec);
+    query.bindValue(":audio",       video.audio);
+    query.bindValue(":width",       video.width);
+    query.bindValue(":height",      video.height);
+    query.exec();
+
+    QSqlError error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with readmetadata query for video=" << video.filename << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
 }
 
 QByteArray Db::readCapture(const QString &filePathname, const int &percent) const
@@ -203,7 +226,17 @@ QByteArray Db::readCapture(const QString &filePathname, const int &percent) cons
     }
 
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("SELECT at%1 FROM capture WHERE id = '%2';").arg(percent).arg(filePathname));
+    query.prepare(QString("SELECT at%1 FROM capture WHERE id = :id;").arg(percent));
+    query.bindValue(":id",filePathname);
+    query.exec();
+
+    QSqlError error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with readCapture query for video=" << filePathname << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
+
+
     while(query.next())
         return query.value(0).toByteArray();
     return nullptr;
@@ -217,11 +250,26 @@ void Db::writeCapture(const QString &filePathname, const int &percent, const QBy
     }
 
     QSqlQuery query(_db);
-    query.exec(QStringLiteral("INSERT OR IGNORE INTO capture (id) VALUES('%1');").arg(filePathname));
-
-    query.prepare(QStringLiteral("UPDATE capture SET at%1 = :image WHERE id = '%2';").arg(percent).arg(filePathname));
-    query.bindValue(QStringLiteral(":image"), image);
+    query.prepare("INSERT OR IGNORE INTO capture (id) VALUES(:id);");
+    query.bindValue(":id", filePathname);
     query.exec();
+    QSqlError error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with writeCapture query for video=" << filePathname << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
+
+    query.prepare(QString("UPDATE capture SET at%1 = :image WHERE id = :id;").arg(percent));
+    query.bindValue(":id",filePathname);
+    query.bindValue(":image", image);
+    query.exec();
+
+    error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with writeCapture query for video=" << filePathname << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
+
 }
 
 bool Db::removeVideo(const QString &filePathname) const
@@ -234,16 +282,41 @@ bool Db::removeVideo(const QString &filePathname) const
     QSqlQuery query(_db);
 
     bool idCached = false;
-    query.exec(QStringLiteral("SELECT id FROM metadata WHERE id = '%1';").arg(filePathname));
+    query.prepare("SELECT id FROM metadata WHERE id = :id;");
+    query.bindValue(":id", filePathname);
+    query.exec();
     while(query.next())
         idCached = true;
     if(!idCached)
         return false;
 
-    query.exec(QStringLiteral("DELETE FROM metadata WHERE id = '%1';").arg(filePathname));
-    query.exec(QStringLiteral("DELETE FROM capture WHERE id = '%1';").arg(filePathname));
+    query.prepare("DELETE FROM metadata WHERE id = :id;");
+    query.bindValue(":id", filePathname);
+    query.exec();
+    QSqlError error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with removeVideo query for video=" << filePathname << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
 
-    query.exec(QStringLiteral("SELECT id FROM metadata WHERE id = '%1';").arg(filePathname));
+    query.prepare("DELETE FROM capture WHERE id = :id;");
+    query.bindValue(":id", filePathname);
+    query.exec();
+    error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with removeVideo query for video=" << filePathname << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
+
+    query.prepare("SELECT id FROM metadata WHERE id = :id;");
+    query.bindValue(":id", filePathname);
+    query.exec();
+    error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with removeVideo query for video=" << filePathname << " query="<<query.lastQuery();
+        qDebug() << error.text();
+    }
+
     while(query.next())
         return false;
     return true;
