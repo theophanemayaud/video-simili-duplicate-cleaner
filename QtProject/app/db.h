@@ -57,6 +57,9 @@ public:
 
     //returns false was not cached or could not be removed
     bool removeVideo(const QString &filePathname) const;
+
+    // returns a list of unique cached video pathNames within specified folders
+    QStringList getCachedVideoPathnamesInFolders(QStringList directoriesPaths) const;
 };
 
 #endif // DB_H

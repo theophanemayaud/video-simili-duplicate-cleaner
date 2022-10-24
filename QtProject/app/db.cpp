@@ -321,3 +321,45 @@ bool Db::removeVideo(const QString &filePathname) const
         return false;
     return true;
 }
+
+QStringList Db::getCachedVideoPathnamesInFolders(QStringList directoriesPaths) const{
+    QStringList videoPathNames;
+    directoriesPaths.removeAll("");
+
+    if(!_db.isOpen()){
+        qDebug() << "Database not open, can't read Video cache.";
+        return videoPathNames;
+    }
+    else if(directoriesPaths.isEmpty()){
+        qDebug() << "No directories selected.";
+        return videoPathNames;
+    }
+
+    QString queryText = "SELECT id FROM metadata WHERE id LIKE ? || '%'";
+    for(auto i = directoriesPaths.count() - 1; i>=1; i--){ //first is already handled
+        queryText = queryText + " OR id LIKE ? || '%'";
+    }
+
+    QSqlQuery query(_db);
+    query.prepare(queryText);
+    foreach(QString dirPath, directoriesPaths){
+        //according to https://stackoverflow.com/questions/1428197/how-to-escape-a-string-for-use-with-the-like-operator-in-sql-server
+        // only these three characters need to be handled and encapsulated
+        query.addBindValue(dirPath.replace("[","[[]").replace("%", "[%]").replace("_","[_]"));
+    }
+    query.exec();
+    QSqlError error = query.lastError();
+    if(error.isValid()){
+        qDebug() << "Error with get cached pathnames query="<<queryText;
+        qDebug() << error.text();
+    }
+
+    while(query.next()){
+        if(videoPathNames.contains(query.value(0))){
+            qDebug() << query.value(0) << " was already in list !!!"; // this shouldn't happen but debug just in case...
+        }
+        videoPathNames.append(query.value(0).toString());
+    }
+
+    return videoPathNames;
+}

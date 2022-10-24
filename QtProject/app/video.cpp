@@ -10,10 +10,9 @@
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
 
-Video::Video(const Prefs &prefsParam, const QString &filenameParam, const bool enableCache) : filename(filenameParam)
+Video::Video(const Prefs &prefsParam, const QString &filenameParam, const USE_CACHE_OPTION cacheOption) :
+    filename(filenameParam), _useCacheDb(cacheOption)
 {
-    _useCacheDb = enableCache;
-
     _prefs = prefsParam;
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
     //   _jpegQuality = _lowJpegQuality;
@@ -48,12 +47,12 @@ void Video::run()
 
     // THEODEBUG : probably should re-implement things not to cache randomly !
     Db cache(_prefs.cacheFilePathName); // we open the db here, but we'll only store things if needed
-    if(_useCacheDb && cache.readMetadata(*this)) {      //check first if video properties are cached
+    if(_useCacheDb!=Video::NO_CACHE && cache.readMetadata(*this)) {      //check first if video properties are cached
         modified = QFileInfo(filename).lastModified(); // Db doesn't cache the modified date
         if(QFileInfo(filename).birthTime().isValid())
             _fileCreateDate = QFileInfo(filename).birthTime();
     }
-    else {
+    else if(_useCacheDb!=Video::CACHE_ONLY) {
         if(QFileInfo(filename).size()==0){ // check this before, as it's faster, but getMetadata also does this but stores the info
             qDebug() << "File size = 0 : rejected " << filename;
             emit rejectVideo(this, "File size = 0 : rejected ");
@@ -62,7 +61,11 @@ void Video::run()
         if(!getMetadata(filename))         //as not cached, read metadata with ffmpeg (NB : getMetadata handles rejection)
             return;
     }
-    if(_useCacheDb)
+    else{
+        emit rejectVideo(this, "Video was not fully cached ");
+        return;
+    }
+    if(_useCacheDb==Video::WITH_CACHE) // TODO-REFACTOR could we move this into the case when we actually cache data ?
         cache.writeMetadata(*this); // cache so next run will be faster
     bool durationWasZero = false; // we'll update cache again later if duration was 0
     if(duration==0)
@@ -76,7 +79,7 @@ void Video::run()
     }
 
     const int ret = takeScreenCaptures(cache);
-    if(_useCacheDb && durationWasZero && duration!=0)
+    if(_useCacheDb==Video::WITH_CACHE && durationWasZero && duration!=0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if(ret == _failure){
         qDebug() << "Rejected : failed to take capture : "+ filename;
@@ -225,32 +228,37 @@ int Video::takeScreenCaptures(const Db &cache)
     {
         QImage frame;
         QByteArray cachedImage;
-        if(_useCacheDb)
+        if(_useCacheDb!=Video::NO_CACHE) // TODO-REFACTOR could maybe load from cache in same condition as frame loading and resizing... ?
             cachedImage = cache.readCapture(filename, percentages[capture]);
         QBuffer captureBuffer(&cachedImage);
         bool writeToCache = false;
 
-        if(_useCacheDb && !cachedImage.isNull())   //image was already in cache
+        if(_useCacheDb!=Video::NO_CACHE && !cachedImage.isNull())   //image was already in cache
         {
             frame.load(&captureBuffer, QByteArrayLiteral("JPG"));   //was saved in cache as small size, resize to original
             frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         }
-        else {
+        else if (_useCacheDb!=Video::CACHE_ONLY){
             frame = ffmpegLib_captureAt(percentages[capture], ofDuration);
-            if(frame.isNull())                                  //taking screen capture may fail if video is broken
-            {
-                ofDuration = ofDuration - _goBackwardsPercent;
-                if(ofDuration >= _videoStillUsable)             //retry a few times, always closer to beginning
-                {
-                    capture = percentages.count();
-                    continue;
-                }
-                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
-                return _failure;
-            }
-            if(_useCacheDb)
+            if(!frame.isNull() && _useCacheDb==Video::WITH_CACHE)
                 writeToCache = true;
         }
+
+        if(frame.isNull())                                  //taking screen capture may fail if video is broken
+        {
+            ofDuration = ofDuration - _goBackwardsPercent;
+            if(ofDuration >= _videoStillUsable)             //retry a few times, always closer to beginning
+            {
+                capture = percentages.count();
+                continue;
+            }
+            if(_useCacheDb!=Video::CACHE_ONLY)
+                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
+            else
+                qDebug() << "Cache only mode is failing because capture was not cached at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
+            return _failure;
+        }
+
         if(frame.width() > width || frame.height() > height){    //metadata parsing error or variable resolution
             qDebug() << "Failing because capture height="<<frame.height()<<",width="<<frame.width()<<" is different to vid metadata height="<<width<<",width="<<height<< "for file "<< filename;
             return _failure;

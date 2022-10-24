@@ -80,6 +80,7 @@ private slots:
     void test_whole_app();
     void test_whole_app_nocache();
     void test_whole_app_cached();
+    void test_whole_app_cache_only();
 
 //    void create100GBrefVidParams_nocache();
     void test_100GBcheckRefVidParams();
@@ -191,7 +192,7 @@ void TestVideo::test_whole_app_nocache(){
     MainWindow w;
     w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
-    w.ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
+    w.ui->radio_UseCacheNo->click(); // disable loading from and saving to cache
 
     QVERIFY(_videoDir.exists());
 //    w.ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
@@ -249,7 +250,7 @@ void TestVideo::test_whole_app_cached(){
     MainWindow w;
     w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
-    w.ui->useCacheCheckBox->setChecked(true); // enable loading from and saving to cache (nb it's actually the default so this is redundant)
+    w.ui->radio_UseCacheYes->click(); // enable loading from and saving to cache (nb it's actually the default so this is redundant)
 
     QVERIFY(_videoDir.exists());
 //    w.ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
@@ -284,6 +285,60 @@ void TestVideo::test_whole_app_cached(){
     w.destroy();
 };
 
+void TestVideo::test_whole_app_cache_only(){
+    // constants of the test
+    const int nb_vids_to_find = 207; // before add subfolders tests 190;
+    const int nb_valid_vids_to_find = 204; // before add subfolders tests 187;
+    const int nb_matching_vids_to_find = 75;
+
+    // macos : 3.203 sec (221024 macbook pro 2018 i5)
+    // windows : ?? sec
+   const qint64 ref_ms_time = 5*1000;
+
+   // run a first time to make sure all data is cached
+   test_whole_app();
+
+    QElapsedTimer timer;
+    timer.start();
+
+    MainWindow w;
+    w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
+    w.show();
+    w.ui->radio_UseCacheYes->click(); // enable loading from and saving to cache (nb it's actually the default so this is redundant)
+
+    QVERIFY(_videoDir.exists());
+//    w.ui->directoryBox->insert(QStringLiteral(";%1").arg(_videoDir.absolutePath()));
+    //w.on_findDuplicates_clicked();
+
+    w.findVideos(_videoDir);
+    w.processVideos();
+    w.ui->blocksizeCombo->setAcceptDrops(true);
+
+    qDebug() << "Found "<<w._everyVideo.count()<<" files of which "<< w._videoList.count()<<" valid ones";
+    qDebug() << "TIMER:test_whole_app_cache_only before match report took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+
+    Comparison comp(w.sortVideosBySize(), w._prefs);
+    int matchingVideoNb = comp.reportMatchingVideos();
+    qDebug() << QString("Found %1 matching vids").arg(matchingVideoNb);
+
+    qDebug() << "TIMER:test_whole_app_cache_only took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+
+    QVERIFY2(w._everyVideo.count()==nb_vids_to_find, QString("Found %1 files but should be %2").arg(w._everyVideo.count()).arg(nb_vids_to_find).toStdString().c_str());
+    QVERIFY2(w._videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w._videoList.count()).arg(nb_valid_vids_to_find).toStdString().c_str());
+    QVERIFY2(matchingVideoNb==nb_matching_vids_to_find, QString("Found %1 matching vids but should be %2").arg(matchingVideoNb).arg(nb_matching_vids_to_find).toStdString().c_str());
+
+    QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_cache_only took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+
+    comp.show();
+
+    QTest::qWait(750);
+    comp.on_nextVideo_clicked();
+    QTest::qWait(750);
+    comp.ui->tabWidget->setCurrentIndex(2);
+    QTest::qWait(750);
+
+    w.destroy();
+};
 void TestVideo::test_check_refvidparams_nocache(){
     // no cached thumbs, mix lib&exec metadata, exec captures : 110 sec
     // no cached thumbs, lib(only) metadata, exec captures : 64 sec
@@ -312,7 +367,7 @@ void TestVideo::test_check_refvidparams_nocache(){
         ref_thumbFile.close();
 
         Prefs prefs;
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), false);
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), Video::NO_CACHE);
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
@@ -351,7 +406,7 @@ void TestVideo::test_check_refvidparams_cached(){
         QByteArray ref_thumbnail = ref_thumbFile.readAll();
         ref_thumbFile.close();
 
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), Video::WITH_CACHE);
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid, true); // because we're loading cached thumbnails, we can compare thumbnails !
@@ -579,7 +634,7 @@ void TestVideo::test_100GBcheckRefVidParams(){
         ref_thumbFile.close();
 
         Prefs prefs;
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), Video::WITH_CACHE);
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
@@ -624,7 +679,7 @@ void TestVideo::test_100GBcheckRefVidParams_nocache(){
         ref_thumbFile.close();
 
         Prefs prefs;
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), false);
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), Video::NO_CACHE);
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
@@ -673,7 +728,7 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
         QByteArray ref_thumbnail = ref_thumbFile.readAll();
         ref_thumbFile.close();
 
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), true);
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), Video::WITH_CACHE);
         vid->run();
 
         compareVideoParamToVideo(ref_thumbnail, videoParam, vid);
@@ -774,7 +829,7 @@ void TestVideo::test_100GBwholeApp_nocache(){
     MainWindow w;
     w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
-    w.ui->useCacheCheckBox->setChecked(false); // disable loading from and saving to cache
+    w.ui->radio_UseCacheNo->click(); // disable loading from and saving to cache
 
     QVERIFY(_100GBvideoDir.exists());
 
@@ -830,7 +885,7 @@ void TestVideo::test_100GBwholeApp_cached(){
     MainWindow w;
     w.ui->thresholdSlider->setValue(COMPARISON_THRESHOLD);
     w.show();
-    w.ui->useCacheCheckBox->setChecked(true); // enable loading from and saving to cache (should be on by default)
+    w.ui->radio_UseCacheYes->click(); // enable loading from and saving to cache (should be on by default)
 
     QVERIFY(_100GBvideoDir.exists());
 
