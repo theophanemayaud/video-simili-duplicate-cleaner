@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.8.0...v1.8.1) (2022-10-25)
+
+
+### Bug Fixes
+
+* **comparison:** cache only option will now work on windows ([39093f8](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/39093f8826b08a2ac2d2d1a57d11ab6a89b8d735))
+
 ## [1.8.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.7.0...v1.8.0) (2022-10-24)
 
 
