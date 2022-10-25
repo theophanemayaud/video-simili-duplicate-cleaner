@@ -345,7 +345,7 @@ QStringList Db::getCachedVideoPathnamesInFolders(QStringList directoriesPaths) c
     foreach(QString dirPath, directoriesPaths){
         //according to https://stackoverflow.com/questions/1428197/how-to-escape-a-string-for-use-with-the-like-operator-in-sql-server
         // only these three characters need to be handled and encapsulated
-        query.addBindValue(dirPath.replace("[","[[]").replace("%", "[%]").replace("_","[_]"));
+        query.addBindValue(QDir(dirPath).absolutePath().replace("[","[[]").replace("%", "[%]").replace("_","[_]"));
     }
     query.exec();
     QSqlError error = query.lastError();
