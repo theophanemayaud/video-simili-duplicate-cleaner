@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 8.0.1, 2022-10-21T19:39:40. -->
+<!-- Written by QtCreator 8.0.1, 2022-10-24T21:53:29. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -88,14 +88,10 @@
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp_nocache">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_cached">Checked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_nocache">Checked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_cached">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_nocache">Unchecked</value>
-    <value type="Qt::CheckState" key="1@:Boost Test">Checked</value>
-    <value type="Qt::CheckState" key="1@:Catch Test">Checked</value>
-    <value type="Qt::CheckState" key="1@:Google Test">Checked</value>
-    <value type="Qt::CheckState" key="1@:Qt Test">PartiallyChecked</value>
-    <value type="Qt::CheckState" key="1@:Quick Test">Checked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Checked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_cache_only">Checked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_cached">Checked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_nocache">Checked</value>
    </valuemap>
    <value type="int" key="AutoTest.RunAfterBuild">0</value>
    <value type="bool" key="AutoTest.UseGlobal">true</value>
