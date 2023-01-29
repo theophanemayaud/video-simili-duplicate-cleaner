@@ -2,7 +2,7 @@
 
 ## Video simili duplicate cleaner
 
-Video simili duplicate cleaner Copyright (C) 2020-2021 Théophane Mayaud
+Video simili duplicate cleaner Copyright (C) 2020-2023 Théophane Mayaud
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
