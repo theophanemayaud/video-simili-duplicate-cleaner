@@ -1,5 +1,0 @@
-/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject-cmake-subdirs/video-simili-duplicate-cleaner/build-test_video-Qt_6_2_2_for_macOS-Debug/CMakeFiles/test_video.dir
-/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject-cmake-subdirs/video-simili-duplicate-cleaner/build-test_video-Qt_6_2_2_for_macOS-Debug/CMakeFiles/test.dir
-/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject-cmake-subdirs/video-simili-duplicate-cleaner/build-test_video-Qt_6_2_2_for_macOS-Debug/CMakeFiles/edit_cache.dir
-/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject-cmake-subdirs/video-simili-duplicate-cleaner/build-test_video-Qt_6_2_2_for_macOS-Debug/CMakeFiles/rebuild_cache.dir
-/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject-cmake-subdirs/video-simili-duplicate-cleaner/build-test_video-Qt_6_2_2_for_macOS-Debug/CMakeFiles/test_video_autogen.dir
