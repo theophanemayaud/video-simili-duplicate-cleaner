@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.9.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.8.1...v1.9.0) (2023-01-29)
+
+
+### Features
+
+* **trash:** add setting to delete files directly ([22f366c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/22f366c94b4aec91302c38f3f1a9fb8d5ba47c43))
+
 ### [1.8.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.8.0...v1.8.1) (2022-10-25)
 
 
