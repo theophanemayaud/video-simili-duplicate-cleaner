@@ -11,6 +11,7 @@ class Prefs
 {
 public:
     enum _modes { _PHASH, _SSIM };
+    enum DeletionModes { STANDARD_TRASH, CUSTOM_TRASH, DIRECT_DELETION };
 
     QWidget *_mainwPtr = nullptr;               //pointer to MainWindow, for connecting signals to it's slots
 
@@ -25,6 +26,7 @@ public:
     int _differentDurationModifier = 4;
     int _sameDurationModifier = 1;
 
+    DeletionModes delMode = STANDARD_TRASH;
     QDir trashDir = QDir::root();
 
     QString cacheFilePathName = "";

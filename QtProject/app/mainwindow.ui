@@ -506,7 +506,7 @@ Errors will be listed in any case.</string>
      <x>0</x>
      <y>0</y>
      <width>820</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGeneral">
@@ -524,6 +524,7 @@ Errors will be listed in any case.</string>
     <addaction name="actionRestore_default_cache_location"/>
     <addaction name="separator"/>
     <addaction name="actionChange_trash_folder"/>
+    <addaction name="actionEnable_direct_deletion_instead_of_trash"/>
     <addaction name="actionRestoreMoveToTrash"/>
     <addaction name="separator"/>
    </widget>
@@ -594,6 +595,14 @@ Errors will be listed in any case.</string>
    </property>
    <property name="text">
     <string>Restore default cache location</string>
+   </property>
+  </action>
+  <action name="actionEnable_direct_deletion_instead_of_trash">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Enable direct deletion instead of trash</string>
    </property>
   </action>
  </widget>
