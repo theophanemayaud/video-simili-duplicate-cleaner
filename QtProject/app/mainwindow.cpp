@@ -449,6 +449,8 @@ void MainWindow::on_actionContact_triggered()
     QDesktopServices::openUrl(QUrl("https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions"));
 }
 
+// ----------------------------------------------------------------------------
+// ------------------- BEGIN: File deletion configuration methods -----------
 void MainWindow::on_actionChange_trash_folder_triggered()
 {
     // initially, files will be moved to trash. With this button, another folder can be selected
@@ -458,24 +460,42 @@ void MainWindow::on_actionChange_trash_folder_triggered()
                           QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
                           QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
+        QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
+        return;
+    }
+    if(!QDir(dir).exists()){ // we must make sure it exists, or we fail and reset to default root (signals trash)
+        QMessageBox::information(this, "", "The folder selected doesn't seem to exist, please create it first");
         return;
     }
     _prefs.trashDir = QDir(dir);
-    if(!_prefs.trashDir.exists()){ // we must make sure it exists, or we fail and reset to default root (signals trash)
-        _prefs.trashDir = QDir::root();
-        return;
-    }
+    // we successfully set custom trash location
+    _prefs.delMode = Prefs::CUSTOM_TRASH;
     ui->actionChange_trash_folder->setEnabled(false);
+    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(true);
     ui->actionRestoreMoveToTrash->setEnabled(true);
     addStatusMessage(QString("\nRemoved files will now be moved to %1 folder instead of trash\n").arg(_prefs.trashDir.absolutePath()));
 }
 
+void MainWindow::on_actionEnable_direct_deletion_instead_of_trash_triggered()
+{
+    _prefs.delMode = Prefs::DIRECT_DELETION;
+    ui->actionChange_trash_folder->setEnabled(true);
+    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(false);
+    ui->actionRestoreMoveToTrash->setEnabled(true);
+    addStatusMessage("\nRemoved files will now be deleted directly and completely. Be extra careful what you do !\n");
+}
+
 void MainWindow::on_actionRestoreMoveToTrash_triggered()
 {
-    // A  click on this button restores the fault "trash" as "move to trash" destination
+    // A  click on this button restores the default "trash" as "move to trash" destination
     // here we must restore the default "move to trash" behavior
-    _prefs.trashDir = QDir::root();
+    _prefs.delMode = Prefs::STANDARD_TRASH;
+    _prefs.trashDir = QDir::root(); //reset to known, controlled state
     ui->actionChange_trash_folder->setEnabled(true);
+    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(true);
     ui->actionRestoreMoveToTrash->setEnabled(false);
     addStatusMessage(QString("\nRemoved files will now be moved to trash\n"));
 }
+// ------------------- END: File deletion configuration methods -----------
+// ----------------------------------------------------------------------------
+
