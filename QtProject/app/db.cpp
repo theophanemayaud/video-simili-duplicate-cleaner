@@ -58,6 +58,8 @@ bool Db::initCustomDbAndCacheLocation(Prefs *prefs){
     {
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
         QString dbfilename = getUserSelectedCacheNamePath(prefs);
+        if(dbfilename.isNull())
+            return false;
         db.setDatabaseName(dbfilename);
         if(!db.open()){
             return false;
