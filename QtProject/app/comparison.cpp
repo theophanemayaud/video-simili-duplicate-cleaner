@@ -23,11 +23,13 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), _prefs._mainwPtr, SLOT(on_thresholdSlider_valueChanged(const int &)));
+    connect(this, SIGNAL(adjustThresholdSlider(const int &)), ui->percentSim, SLOT(setNum(const int &)));
     connect(ui->progressBar, SIGNAL(valueChanged(const int &)), ui->currentVideo, SLOT(setNum(const int &)));
 
     if(_prefs._comparisonMode == _prefs._SSIM)
         ui->selectSSIM->setChecked(true);
     ui->thresholdSlider->setValue(QVariant(_prefs._thresholdSSIM * 100).toInt());
+    ui->percentSim->setNum(QVariant(_prefs._thresholdSSIM * 100).toInt());
     ui->progressBar->setMaximum(_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2);
 
     ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
@@ -450,12 +452,16 @@ void Comparison::highlightBetterProperties() const
         ui->rightResolution->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
 
     // show if video codecs are the same
+    ui->leftCodec->setStyleSheet("");
+    ui->rightCodec->setStyleSheet("");
     if(_videos[_leftVideo]->codec.localeAwareCompare(_videos[_rightVideo]->codec)==0){
         ui->leftCodec->setStyleSheet(TEXT_STYLE_ORANGE);
         ui->rightCodec->setStyleSheet(TEXT_STYLE_ORANGE);
     }
 
     // show if audio codecs are the same
+    ui->leftAudio->setStyleSheet("");
+    ui->rightAudio->setStyleSheet("");
     if(_videos[_leftVideo]->audio.localeAwareCompare(_videos[_rightVideo]->audio)==0){
         ui->leftAudio->setStyleSheet(TEXT_STYLE_ORANGE);
         ui->rightAudio->setStyleSheet(TEXT_STYLE_ORANGE);

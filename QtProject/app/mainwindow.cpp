@@ -114,6 +114,8 @@ void MainWindow::loadExtensions()
 
 void MainWindow::calculateThreshold(const int &value)
 {
+    ui->threshPercent->setNum(value);
+
     _prefs._thresholdSSIM = value / 100.0;
     const int matchingBitsOf64 = static_cast<int>(round(64 * _prefs._thresholdSSIM));
     _prefs._thresholdPhash = matchingBitsOf64;
