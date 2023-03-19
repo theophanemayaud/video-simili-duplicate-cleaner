@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.8.1...v1.9.1) (2023-03-19)
+
+
+### Features
+
+* **trash:** add setting to delete files directly ([22f366c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/22f366c94b4aec91302c38f3f1a9fb8d5ba47c43))
+* **ui:** improved ui as per [#105](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/105) and fixed minor glitch ([d0282f3](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/d0282f31ce37e818527daa04a93f8684f8f396dc))
+
+
+### Bug Fixes
+
+* **settings:** canceling while setting custom cache now actually cancels ([791b24c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/791b24cf67123061798a1793059a93f93cf492c5))
+
 ## [1.9.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.8.1...v1.9.0) (2023-01-29)
 
 
