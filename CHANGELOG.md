@@ -7,7 +7,6 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Features
 
-* **trash:** add setting to delete files directly ([22f366c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/22f366c94b4aec91302c38f3f1a9fb8d5ba47c43))
 * **ui:** improved ui as per [#105](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/105) and fixed minor glitch ([d0282f3](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/d0282f31ce37e818527daa04a93f8684f8f396dc))
 
 
