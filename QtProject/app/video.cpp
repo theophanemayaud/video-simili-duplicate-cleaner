@@ -18,8 +18,8 @@ Video::Video(const Prefs &prefsParam, const QString &filenameParam, const USE_CA
     //   _jpegQuality = _lowJpegQuality;
 
     if(_prefs._mainwPtr){ // during testing, mainPtr is not always defined, giving warnings : here we supress them !
-        QObject::connect(this, SIGNAL(rejectVideo(Video *, QString)), _prefs._mainwPtr, SLOT(removeVideo(Video *, QString)));
-        QObject::connect(this, SIGNAL(acceptVideo(Video *)), _prefs._mainwPtr, SLOT(addVideo(Video *)));
+        QObject::connect(this, SIGNAL(rejectVideo(Video*,QString)), _prefs._mainwPtr, SLOT(removeVideo(Video*,QString)));
+        QObject::connect(this, SIGNAL(acceptVideo(Video*)), _prefs._mainwPtr, SLOT(addVideo(Video*)));
     }
 }
 

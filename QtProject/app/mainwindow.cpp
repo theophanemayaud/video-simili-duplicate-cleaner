@@ -378,14 +378,19 @@ void MainWindow::addVideo(Video *addMe)
 
 void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
 {
-    addStatusMessage(QStringLiteral("[%1] ERROR with %2 : %3")
-                     .arg(QTime::currentTime().toString())
-                     .arg(QDir::toNativeSeparators(deleteMe->filename))
-                     .arg(errorMsg));
-    ui->progressBar->setValue(ui->progressBar->value() + 1);
-    ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
-    _rejectedVideos << QDir::toNativeSeparators(deleteMe->filename);
-    delete deleteMe;
+    if (deleteMe != nullptr) {
+        addStatusMessage(QStringLiteral("[%1] ERROR with %2 : %3")
+                         .arg(QTime::currentTime().toString())
+                         .arg(QDir::toNativeSeparators(deleteMe->filename))
+                         .arg(errorMsg));
+        ui->progressBar->setValue(ui->progressBar->value() + 1);
+        ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+        _rejectedVideos << QDir::toNativeSeparators(deleteMe->filename);
+        delete deleteMe;
+    }
+    else{
+        qCritical() << Q_FUNC_INFO << ": attempted to delete deleteMe but is already null";
+    }
 }
 
 void MainWindow::on_actionAbout_triggered()

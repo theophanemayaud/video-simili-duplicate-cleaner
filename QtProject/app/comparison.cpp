@@ -192,6 +192,10 @@ void Comparison::on_nextVideo_clicked()
 bool Comparison::bothVideosMatch(const Video *left, const Video *right)
 {
     bool theyMatch = false;
+    if(left==nullptr || right==nullptr){
+        qCritical() << Q_FUNC_INFO << ": left or right video for comparison was null";
+        return theyMatch;
+    }
     _phashSimilarity = 0;
 
     const int hashes = _prefs._thumbnails == cutEnds? 2 : 1;
