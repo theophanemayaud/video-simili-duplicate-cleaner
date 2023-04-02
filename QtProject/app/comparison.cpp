@@ -1168,7 +1168,8 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
                     continue; // the file names were not contained in one another : we go to the next comparison
 
                 //find for the specific auto mode if one video needs to be deleted
-                const VideoMetadata leftVidMeta(_videos[_leftVideo]), rightVidMeta(_videos[_rightVideo]);
+                const VideoMetadata leftVidMeta = Video::videoToMetadata(*_videos[_leftVideo]);
+                const VideoMetadata rightVidMeta = Video::videoToMetadata(*_videos[_rightVideo]);
 
                 const VideoMetadata* vidToDeleteMetaPtr = autoDelConfig.videoToDelete(&leftVidMeta, &rightVidMeta,
                                             AutoDeleteUserSettings(ui->radioButton_onlyTimeDiffers_trashEarlier->isChecked()));

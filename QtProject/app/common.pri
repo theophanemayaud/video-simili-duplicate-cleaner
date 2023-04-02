@@ -19,7 +19,8 @@ HEADERS += \
     $$PWD/video.h \
     $$PWD/thumbnail.h \
     $$PWD/db.h \
-    $$PWD/comparison.h
+    $$PWD/comparison.h \
+    $$PWD/videometadata.h
 
 SOURCES += \
     $$PWD/mainwindow.cpp \

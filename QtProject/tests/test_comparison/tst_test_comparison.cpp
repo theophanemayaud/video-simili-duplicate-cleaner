@@ -2,7 +2,7 @@
 #include <QCoreApplication>
 
 // add necessary includes here
-#include "../../app/video.h"
+#include "../../app/videometadata.h"
 #include "../../app/comparison.h"
 
 class test_comparison : public QObject

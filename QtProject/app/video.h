@@ -13,6 +13,7 @@
 #include "prefs.h"
 #include "db.h"
 #include "ffmpeg.h"
+#include "videometadata.h"
 
 class Db;
 
@@ -30,6 +31,7 @@ public:
     Video(const Prefs &prefsParam, const QString &filenameParam, const USE_CACHE_OPTION cacheOption=WITH_CACHE);
     void run();
 
+    VideoMetadata meta;
     QString filename;
     QString nameInApplePhotos; // used externally only, as it is too slow to get at first
     int64_t size = 0; // in bytes
@@ -46,6 +48,8 @@ public:
     cv::Mat grayThumb [2];
     uint64_t hash [2] = { 0, 0 };
     bool trashed = false;
+
+    static VideoMetadata videoToMetadata(const Video& vid);
 
 private slots:
     bool getMetadata(const QString &filename); // return success=true or error=false. It handles video rejection on those with error
@@ -86,23 +90,4 @@ private:
     static constexpr int _almostBlackBitmap  = 1500;    //monochrome thumbnail if less shades of gray than this
 };
 
-class VideoMetadata: public QObject
-{
-public:
-    VideoMetadata(){};
-    VideoMetadata(const Video *);
-
-    QString filename;
-    QString nameInApplePhotos; // used externally only, as it is too slow to get at first
-    int64_t size = 0; // in bytes
-    QDateTime _fileCreateDate;
-    QDateTime modified;
-    int64_t duration = 0; // in miliseconds
-    int bitrate = 0;
-    double framerate = 0; // avg, in frames per second
-    QString codec;
-    QString audio;
-    short width = 0;
-    short height = 0; 
-};
 #endif // VIDEO_H

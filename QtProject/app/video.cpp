@@ -855,17 +855,24 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
     return image; // If fail/error on sws_scale or avpicture_alloc, it will simply be a null image
 }
 
-VideoMetadata::VideoMetadata(const Video* vid){
-    this->filename = vid->filename;
-    this->nameInApplePhotos = vid->nameInApplePhotos;
-    this->size = vid->size;
-    this->_fileCreateDate = vid->_fileCreateDate;
-    this->modified = vid->modified;
-    this->duration = vid->duration;
-    this->bitrate = vid->bitrate;
-    this->framerate = vid->framerate;
-    this->codec = vid->codec;
-    this->audio = vid->audio;
-    this->width = vid->width;
-    this->height = vid->height;
+// ------------------------------------------------------------
+// ------------ Start: Public STATIC member functions ----------
+VideoMetadata Video::videoToMetadata(const Video & vid) {
+    VideoMetadata meta;
+    meta.filename = vid.filename;
+    meta.nameInApplePhotos = vid.nameInApplePhotos;
+    meta.size = vid.size;
+    meta._fileCreateDate = vid._fileCreateDate;
+    meta.modified = vid.modified;
+    meta.duration = vid.duration;
+    meta.bitrate = vid.bitrate;
+    meta.framerate = vid.framerate;
+    meta.codec = vid.codec;
+    meta.audio = vid.audio;
+    meta.width = vid.width;
+    meta.height = vid.height;
+    return meta;
 }
+// ------------ End: Public STATIC member functions ----------
+// ------------------------------------------------------------
+
