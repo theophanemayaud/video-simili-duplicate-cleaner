@@ -55,11 +55,11 @@ private:
     const QDir _100GBthumbnailDir_nocache = QDir("");
     const QFileInfo _100GBcsvInfo_nocache = QFileInfo("");
 #elif defined(Q_OS_MACOS)
-    QDir _videoDir = QDir("/Volumes/Mays2TOSSD/SSD Dev - back up only with time machine /Videos across all formats with duplicates of all kinds/Videos/");
-    const QDir _thumbnailDir_nocache = QDir("/Volumes/Mays2TOSSD/SSD Dev - back up only with time machine /Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
-    const QFileInfo _csvInfo_nocache = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
+    QDir _videoDir = QDir("/Volumes/4TBSSD/SSD Dev - back up only with time machine /Videos across all formats with duplicates of all kinds/Videos/");
+    const QDir _thumbnailDir_nocache = QDir("/Volumes/4TBSSD/SSD Dev - back up only with time machine /Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
+    const QFileInfo _csvInfo_nocache = QFileInfo("/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
 
-    const QDir _thumbnailDir_cached = QDir("/Volumes/Mays2TOSSD/SSD Dev - back up only with time machine /Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
+    const QDir _thumbnailDir_cached = QDir("/Volumes/4TBSSD/SSD Dev - back up only with time machine /Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
     const QFileInfo _csvInfo_cached = QFileInfo("/Users/theophanemayaud/Dev/Programming videos dupplicates/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
 
     QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");

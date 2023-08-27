@@ -154,19 +154,44 @@ export MACOSX_DEPLOYMENT_TARGET=10.13
 
 ## FFmpeg
 
-Similar to guide (FFmpeg Compilation guide macOS)[https://trac.ffmpeg.org/wiki/CompilationGuide/macOS]
+Similar to guide [FFmpeg Compilation guide macOS](https://trac.ffmpeg.org/wiki/CompilationGuide/macOS)
 
 Clone ffmpeg repository, then from this ffmpeg folder, run the following command or a similar, alternate one to configure the build options.
 
+FFmpeg doesn't seem to support building as a univeral library (targeting both arm and intel macs), but the individual architecture libraries can be combined with apple tools : `lipo` to combine de libs, and `install_name_tool` to replace references to frameworks (listed with `otool`), as per [This python function in a github repo](https://github.com/ColorsWind/FFmpeg-macOS/blob/main/make_universal.py)
+
+For the x86\_64 cross build from arm, ffmpeg configure scripts fails because of missing nasm/yasm (native code assembler), so simply install it with `brew install yasm`
+
 ```
-mkdir ffmpeg-build
-mkdir ffmpeg-install
+mkdir ffmpeg-build-arm
+mkdir ffmpeg-install-arm
+mkdir ffmpeg-build-x86-from-arm
+mkdir ffmpeg-install-x86-from-arm
+mkdir ffmpeg-universalized-libs 
 git clone https://github.com/FFmpeg/FFmpeg.git -b n4.4.4 --depth 1
-cd ffmpeg-build
-./configure --prefix='../ffmpeg-install' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
-make build -j8
+cd ffmpeg-build-arm
+../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+make -j8
 make install
+cd ../ffmpeg-build-x86-from-arm
+../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+make -j8
+make install
+cd ../ffmpeg-universalized-libs
+cp -r ../ffmpeg-install-arm/include .
+mkdir lib
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavcodec.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavcodec.a -output lib/libavcodec.a
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavdevice.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavdevice.a -output lib/libavdevice.a
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavfilter.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavfilter.a -output lib/libavfilter.a
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavformat.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavformat.a -output lib/libavformat.a
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavutil.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavutil.a -output lib/libavutil.a
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libpostproc.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libpostproc.a -output lib/libpostproc.a
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libswresample.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libswresample.a -output lib/libswresample.a
+lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libswscale.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libswscale.a -output lib/libswscale.a
+cp -r ../ffmpeg-install-arm/lib/pkgconfig ./lib/pkgconfig-arm
+cp -r ../ffmpeg-install-x86-from-arm/lib/pkgconfig ./lib/pkgconfig-x86_64-from-arm
 ```
+
 
 NB : 
 - ```--disable-lzma``` is because it has a private api, incompatible with apple app store. It's only for some tiff file compressions.

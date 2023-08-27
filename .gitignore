@@ -9,3 +9,6 @@ QtProject/release-build
 
 # Node things
 node_modules
+
+# macOS Specifics
+.DS_Store
