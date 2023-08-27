@@ -110,7 +110,7 @@ Then copy from install directory the includes and the lib files to the correct l
 ## OpenCV
 
 To build opencv, first follow :
-- [https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html](https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html)
+- [OpenCV Installation in MacOS](https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html)
 - We want a custom install directory to get all the dependencies in one place so use the cmake flag ```-DCMAKE_INSTALL_PREFIX=/Users/theophanemayaud/Dev/opencv_install```
 - If wanting static libraries use flag -DBUILD_SHARED_LIBS=OFF
 
@@ -128,8 +128,16 @@ Should try :
 
 In the end :
 ```
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/Users/theophanemayaud/Dev/opencv_install -DBUILD_SHARED_LIBS=OFF -DBUILD_LIST=core,imgproc -D OPENCV_GENERATE_PKGCONFIG=YES ../opencv
+mkdir opencv-build
+mkdir opencv-install
+git clone https://github.com/opencv/opencv.git -b 4.8.0 --depth 1
+cd opencv-build
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../opencv_install -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64' -DBUILD_SHARED_LIBS=OFF -DBUILD_LIST=core,imgproc -D OPENCV_GENERATE_PKGCONFIG=YES ../opencv
+make -j8
+make install
 ```
+
+Flag `-DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'` is for compiling from arm macs, which creates a universal library (for both intel and arm macs). Witout it, the library will work for arm only qt linking.
 
 Then you can copy the libraries listed in the .pc file, NB to use a framework add -framwork FrameWorkName instead of -lLibraryName for libraries
 like :
@@ -146,10 +154,18 @@ export MACOSX_DEPLOYMENT_TARGET=10.13
 
 ## FFmpeg
 
+Similar to guide (FFmpeg Compilation guide macOS)[https://trac.ffmpeg.org/wiki/CompilationGuide/macOS]
+
 Clone ffmpeg repository, then from this ffmpeg folder, run the following command or a similar, alternate one to configure the build options.
 
 ```
-./configure --prefix='/Users/theophanemayaud/Dev/ffmpeg-install' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+mkdir ffmpeg-build
+mkdir ffmpeg-install
+git clone https://github.com/FFmpeg/FFmpeg.git -b n4.4.4 --depth 1
+cd ffmpeg-build
+./configure --prefix='../ffmpeg-install' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+make build -j8
+make install
 ```
 
 NB : 
