@@ -35,6 +35,7 @@ FORMS += \
 
 
 macx {
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.0
     HEADERS += \
         $$PWD/obj-c.h
     SOURCES += \
