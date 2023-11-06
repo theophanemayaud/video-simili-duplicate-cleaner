@@ -197,7 +197,9 @@ bool Comparison::bothVideosMatch(const Video *left, const Video *right)
         return theyMatch;
     }
 
-    // TODO check if pair is flagged as not dupplicate in DB
+    // check if pair is flagged as not dupplicate in DB
+    if(Db(_prefs.cacheFilePathName).isPairToIgnore(left->_filePathName, right->_filePathName))
+        return false;
 
     _phashSimilarity = 0;
 
@@ -1412,3 +1414,11 @@ void Comparison::on_settingNamesInAnotherCheckbox_stateChanged(int arg1)
     ui->label_namesContainedInOneAnotherStatus_autoIdentFiles->setText(status);
     ui->label_namesContainedInOneAnotherStatus_autoOnlySizeDiff->setText(status);
 }
+
+void Comparison::on_ignoreDuplicatePairButton_clicked()
+{
+    Db cache(_prefs.cacheFilePathName); // opening connexion to database
+    cache.writePairToIgnore(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName);
+    on_nextVideo_clicked();
+}
+

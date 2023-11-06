@@ -103,6 +103,8 @@ CutEnds compares the beginning and end of videos separately, trying to find matc
 
 	The app stores video information and thumnails in a cache, which makes it much faster the second time it is asked to scan a video. Videos are identified by their full path and name. Sometimes you might not want to use the cache if you have renamed some videos to the names of other videos, or if you are very low on disk space (cache can take a few hunded MB per thousands of scanned videos). You can also clear cache as explained below.
 
+This setting does not apply to saved pairs declare as not duplicates.
+
 - pHash / SSIM: 
  
 	pHash is a fast and accurate algorithm for finding duplicate videos.  
@@ -126,7 +128,7 @@ A threshold that is too low or too high will either display videos that don't ma
 
 - Empty cache
 
-	(Under Tools) With this option you can empty the app cache when you want a fresh start for the next scans. It will also reduce the cache file size on disk, freeing up space.
+	(Under Tools) With this option you can empty the app cache when you want a fresh start for the next scans. It will also reduce the cache file size on disk, freeing up space. This will also delete all saved pairs declared as not duplicates.
 
 - Select custom "move to" folder instead of trash, or restore default
 
@@ -141,6 +143,11 @@ A threshold that is too low or too high will either display videos that don't ma
 	- Move -> / <- (buttons)
 
 		These two buttons make it possible too move one of the videos to the other file's folder. This is useful if you want to re-organize your videos in a specific way.
+
+	- Ignore (button)
+
+		This button saves in cache an association of two videos, such that they will not be shown as a match anymore, regardless of other settings. Clearing cache resets those associations.
+
 
 - Auto (tab)
 

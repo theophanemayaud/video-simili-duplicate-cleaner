@@ -90,6 +90,7 @@ void Db::emptyAllDb(const Prefs prefs){
 
         query.exec(QStringLiteral("DROP TABLE IF EXISTS metadata"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS capture"));
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS ignored_pairs"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS version"));
 
         query.exec(QStringLiteral("VACUUM")); // restructure sqlite file to make it smaller on disk
@@ -102,16 +103,6 @@ void Db::emptyAllDb(const Prefs prefs){
     QSqlDatabase().removeDatabase(connexionName); // clear the connexion backlog, basically... !
 }
 
-//QString Db::pathnameHashId(const QString &filename)
-//{
-//    // Before : usesd file name and modified date, but could lead to two same identified files
-//    //          if two files in seperate folders had the same name and modified date.
-//    //          It was nice because even after moving files, they could still be identified
-//    //          in the database.
-//    // Instead simply using full path and name, but we'd need to find a way to better uniquely
-//    //          identify, that doesn't depend on path, to have file moving proofness !
-//    return QCryptographicHash::hash(filename.toLatin1(), QCryptographicHash::Md5).toHex();
-//}
 // -------------------- END : public static functions -------------------
 // ----------------------------------------------------------------------
 
@@ -156,6 +147,19 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
                     "at96 BLOB"
                 ");"
         ));
+
+    query.exec(QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS "
+                "ignored_pairs ("
+                    "pair_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "pathName1 TEXT NOT NULL, "
+                    "pathName2 TEXT NOT NULL, "
+                    "FOREIGN KEY (pathName1) REFERENCES metadata(id), "
+                    "FOREIGN KEY (pathName2) REFERENCES metadata(id), "
+                    "UNIQUE (pathName1, pathName2) "
+                ");"
+        ));
+
 
     // Now create a version table and entry, that could help us in the future to check if the database contains old records
     //          and might need to be emptied... ! For now, not used.
@@ -394,4 +398,43 @@ QStringList Db::getCachedVideoPathnamesInFolders(QStringList directoriesPaths) c
     }
 
     return videoPathNames;
+}
+
+void Db::writePairToIgnore(const QString filePathName1, const QString filePathName2) const {
+    QSqlQuery query(_db);
+    query.prepare("INSERT OR IGNORE INTO "
+                    "ignored_pairs (pathName1, pathName2) "
+                    "VALUES(:filePathName1, :filePathName2);");
+    query.bindValue(":filePathName1", filePathName1);
+    query.bindValue(":filePathName2", filePathName2);
+
+    if(!query.exec()){
+        qDebug() << "Error with writePairToIgnore query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+    }
+}
+
+bool Db::isPairToIgnore(const QString filePathName1, const QString filePathName2) const {
+    QSqlQuery query(_db);
+    query.prepare(
+        "SELECT * "
+            "FROM ignored_pairs "
+            "WHERE "
+                "(pathName1=:filePathName1 AND pathName2=:filePathName2) "
+                "OR "
+                "(pathName1=:filePathName2 AND pathName2=:filePathName1);"
+    );
+    query.bindValue(":filePathName1", filePathName1);
+    query.bindValue(":filePathName2", filePathName2);
+
+    if(!query.exec()){
+        qDebug() << "Error with isPairToIgnore query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        return false;
+    }
+
+    if(query.next())
+        return true;
+    else
+        return false;
 }

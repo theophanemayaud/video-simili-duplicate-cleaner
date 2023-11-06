@@ -38,8 +38,8 @@ private:
 
     QVector<Video *> _videos;
     Prefs &_prefs;
-    int _leftVideo = 0;
-    int _rightVideo = 0;
+    int _leftVideo = 0; // index in the video list, of the currently displayed left video
+    int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
     int64_t _spaceSaved = 0;
     bool _seekForwards = true;
@@ -163,6 +163,8 @@ private slots:
     void on_settingNamesInAnotherCheckbox_stateChanged(int arg1);
 
     void on_pushButton_onlyTimeDiffersAutoTrash_clicked() {autoDeleteLoopthrough(AutoDeleteConfig(AUTO_DELETE_ONLY_TIMES_DIFF)); }
+
+    void on_ignoreDuplicatePairButton_clicked();
 
 signals:
     void sendStatusMessage(const QString &message) const;
