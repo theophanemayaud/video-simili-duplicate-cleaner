@@ -138,10 +138,10 @@ void Comparison::on_prevVideo_clicked()
     {
         for(right=begin+_rightVideo; right>left; right--, _rightVideo--)
             if(bothVideosMatch(*left, *right)
-                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
-                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed
+                    && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed
                     && (ui->settingNamesInAnotherCheckbox->isChecked()==false
-                        || whichFilenameContainsTheOther((*left)->filename, (*right)->filename) != NOT_CONTAINED ) // check wether name in another is enabled
+                        || whichFilenameContainsTheOther((*left)->_filePathName, (*right)->_filePathName) != NOT_CONTAINED ) // check wether name in another is enabled
                     )
             {
                 showVideo(QStringLiteral("left"));
@@ -168,10 +168,10 @@ void Comparison::on_nextVideo_clicked()
     {
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
             if(bothVideosMatch(*left, *right)
-                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
-                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed
+                    && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed
                     && (ui->settingNamesInAnotherCheckbox->isChecked()==false
-                        || whichFilenameContainsTheOther((*left)->filename, (*right)->filename) != NOT_CONTAINED ) // check wether name in another is enabled
+                        || whichFilenameContainsTheOther((*left)->_filePathName, (*right)->_filePathName) != NOT_CONTAINED ) // check wether name in another is enabled
                     )
             {
                 showVideo(QStringLiteral("left"));
@@ -196,6 +196,9 @@ bool Comparison::bothVideosMatch(const Video *left, const Video *right)
         qCritical() << Q_FUNC_INFO << ": left or right video for comparison was null";
         return theyMatch;
     }
+
+    // TODO check if pair is flagged as not dupplicate in DB
+
     _phashSimilarity = 0;
 
     const int hashes = _prefs._thumbnails == cutEnds? 2 : 1;
@@ -256,8 +259,8 @@ void Comparison::showVideo(const QString &side)
 
 #ifdef Q_OS_MACOS
     // Get video name from apple photos if applicable. Can't do in in video directly as it is very slow
-    if(_videos[thisVideo]->filename.contains(".photoslibrary")){
-        const QString fileNameNoExt = QFileInfo(_videos[thisVideo]->filename).completeBaseName();
+    if(_videos[thisVideo]->_filePathName.contains(".photoslibrary")){
+        const QString fileNameNoExt = QFileInfo(_videos[thisVideo]->_filePathName).completeBaseName();
         if (!fileNameNoExt.contains("_")){
             QString resultString = QString::fromLocal8Bit(Obj_C::obj_C_getMediaName(fileNameNoExt.toLocal8Bit().data()));
             if(!resultString.contains(OBJ_C_FAILURE_STRING)){
@@ -267,7 +270,7 @@ void Comparison::showVideo(const QString &side)
                 emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
                                                "If you have multiple libraries this might be normal, "
                                                "it will only work, only with the currently open library.")
-                                       .arg(_videos[thisVideo]->filename));
+                                       .arg(_videos[thisVideo]->_filePathName));
             }
         }
     }
@@ -275,13 +278,13 @@ void Comparison::showVideo(const QString &side)
 
     auto *FileName = this->findChild<ClickableLabel *>(side + QStringLiteral("FileName"));
     if(_videos[thisVideo]->nameInApplePhotos.isEmpty())
-        FileName->setText(QFileInfo(_videos[thisVideo]->filename).fileName());
+        FileName->setText(QFileInfo(_videos[thisVideo]->_filePathName).fileName());
     else
         FileName->setText(_videos[thisVideo]->nameInApplePhotos);
     FileName->setToolTip(QStringLiteral("%1\nOpen in file manager")
-                                        .arg(QDir::toNativeSeparators(_videos[thisVideo]->filename)));
+                                        .arg(QDir::toNativeSeparators(_videos[thisVideo]->_filePathName)));
 
-    QFileInfo videoFile(_videos[thisVideo]->filename);
+    QFileInfo videoFile(_videos[thisVideo]->_filePathName);
     auto *PathName = this->findChild<QLabel *>(side + QStringLiteral("PathName"));
     PathName->setText(QDir::toNativeSeparators(videoFile.absolutePath()));
 
@@ -557,7 +560,7 @@ void Comparison::openMedia(const QString filename) {
 
 void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
 {
-    const QString filename = _videos[side]->filename;
+    const QString filename = _videos[side]->_filePathName;
     const QString onlyFilename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
 
     // find if it is the elft or right video in ui to tell used in trash confirmation
@@ -774,13 +777,13 @@ void Comparison::moveVideo(const QString &from, const QString &to)
 
 void Comparison::on_swapFilenames_clicked() const
 {
-    const QFileInfo leftVideoFile(_videos[_leftVideo]->filename);
+    const QFileInfo leftVideoFile(_videos[_leftVideo]->_filePathName);
     const QString leftPathname = leftVideoFile.absolutePath();
     const QString oldLeftFilename = leftVideoFile.fileName();
     const QString oldLeftNoExtension = oldLeftFilename.left(oldLeftFilename.lastIndexOf("."));
     const QString leftExtension = oldLeftFilename.right(oldLeftFilename.length() - oldLeftFilename.lastIndexOf("."));
 
-    const QFileInfo rightVideoFile(_videos[_rightVideo]->filename);
+    const QFileInfo rightVideoFile(_videos[_rightVideo]->_filePathName);
     const QString rightPathname = rightVideoFile.absolutePath();
     const QString oldRightFilename = rightVideoFile.fileName();
     const QString oldRightNoExtension = oldRightFilename.left(oldRightFilename.lastIndexOf("."));
@@ -792,14 +795,14 @@ void Comparison::on_swapFilenames_clicked() const
     const QString newRightFilename = QStringLiteral("%1%2").arg(oldLeftNoExtension, rightExtension);
     const QString newRightPathAndFilename = QStringLiteral("%1/%2").arg(rightPathname, newRightFilename);
 
-    QFile leftFile(_videos[_leftVideo]->filename);                  //rename files
-    QFile rightFile(_videos[_rightVideo]->filename);
+    QFile leftFile(_videos[_leftVideo]->_filePathName);                  //rename files
+    QFile rightFile(_videos[_rightVideo]->_filePathName);
     leftFile.rename(QStringLiteral("%1/DuplicateRenamedVideo.avi").arg(leftPathname));
     rightFile.rename(newRightPathAndFilename);
     leftFile.rename(newLeftPathAndFilename);
 
-    _videos[_leftVideo]->filename = newLeftPathAndFilename;         //update filename in object
-    _videos[_rightVideo]->filename = newRightPathAndFilename;
+    _videos[_leftVideo]->_filePathName = newLeftPathAndFilename;         //update filename in object
+    _videos[_rightVideo]->_filePathName = newRightPathAndFilename;
 
     ui->leftFileName->setText(newLeftFilename);                     //update UI
     ui->rightFileName->setText(newRightFilename);
@@ -948,8 +951,8 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
         {
             if(bothVideosMatch(*left, *right)
-                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
-                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
+                    && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed )
             {
                 showVideo(QStringLiteral("left"));
                 showVideo(QStringLiteral("right"));
@@ -977,7 +980,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                 if(_videos[_leftVideo]->audio != _videos[_rightVideo]->audio)
                     continue;
 
-                int containedStatus = whichFilenameContainsTheOther((*left)->filename, (*right)->filename);
+                int containedStatus = whichFilenameContainsTheOther((*left)->_filePathName, (*right)->_filePathName);
 
                 if(ui->settingNamesInAnotherCheckbox->isChecked()
                         && containedStatus == NOT_CONTAINED)
@@ -1058,8 +1061,8 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
         {
             if(bothVideosMatch(*left, *right)
-                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
-                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
+                    && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed )
             {
                 ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
 
@@ -1078,7 +1081,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) <= FILE_SIZE_BYTES_DIFF_STILL_EQUALS) // When sizes are identical, results are treated in specific other functionality
                     continue;
                 if(ui->settingNamesInAnotherCheckbox->isChecked()
-                        && whichFilenameContainsTheOther((*left)->filename, (*right)->filename) == NOT_CONTAINED)
+                        && whichFilenameContainsTheOther((*left)->_filePathName, (*right)->_filePathName) == NOT_CONTAINED)
                     continue; // the file names were not contained in one another : we go to the next comparison
 
                 showVideo(QStringLiteral("left"));
@@ -1156,15 +1159,15 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
         for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
         {
             if(bothVideosMatch(*left, *right)
-                    && QFileInfo::exists((*left)->filename) && !(*left)->trashed // check trashed in case it is from Apple Photos
-                    && QFileInfo::exists((*right)->filename) && !(*right)->trashed )
+                    && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
+                    && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed )
             {
                 ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
                 QCoreApplication::processEvents();
 
                 // Check if params are as required or go to next
                 if(ui->settingNamesInAnotherCheckbox->isChecked()
-                        && whichFilenameContainsTheOther((*left)->filename, (*right)->filename) == NOT_CONTAINED)
+                        && whichFilenameContainsTheOther((*left)->_filePathName, (*right)->_filePathName) == NOT_CONTAINED)
                     continue; // the file names were not contained in one another : we go to the next comparison
 
                 //find for the specific auto mode if one video needs to be deleted

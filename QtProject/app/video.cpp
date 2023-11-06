@@ -10,8 +10,8 @@
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
 
-Video::Video(const Prefs &prefsParam, const QString &filenameParam, const USE_CACHE_OPTION cacheOption) :
-    filename(filenameParam), _useCacheDb(cacheOption)
+Video::Video(const Prefs &prefsParam, const QString &filePathName, const USE_CACHE_OPTION cacheOption) :
+    _filePathName(filePathName), _useCacheDb(cacheOption)
 {
     _prefs = prefsParam;
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
@@ -25,16 +25,16 @@ Video::Video(const Prefs &prefsParam, const QString &filenameParam, const USE_CA
 
 void Video::run()
 {
-    if(!QFileInfo::exists(filename))
+    if(!QFileInfo::exists(_filePathName))
     {
-        qDebug() << "Rejected : file doesn't seem to exist : "+ filename;
+        qDebug() << "Rejected : file doesn't seem to exist : "+ _filePathName;
         emit rejectVideo(this, "file doesn't seem to exist");
         return;
     }
 #ifdef Q_OS_MACOS
-    else if(filename.contains(".photoslibrary")){
-        const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
-        if(!filename.contains(".photoslibrary/originals/")){
+    else if(_filePathName.contains(".photoslibrary")){
+        const QString fileNameNoExt = QFileInfo(_filePathName).completeBaseName();
+        if(!_filePathName.contains(".photoslibrary/originals/")){
             emit rejectVideo(this, "file is an Apple Photos derivative");
             return;
         }
@@ -48,17 +48,17 @@ void Video::run()
     // THEODEBUG : probably should re-implement things not to cache randomly !
     Db cache(_prefs.cacheFilePathName); // we open the db here, but we'll only store things if needed
     if(_useCacheDb!=Video::NO_CACHE && cache.readMetadata(*this)) {      //check first if video properties are cached
-        modified = QFileInfo(filename).lastModified(); // Db doesn't cache the modified date
-        if(QFileInfo(filename).birthTime().isValid())
-            _fileCreateDate = QFileInfo(filename).birthTime();
+        modified = QFileInfo(_filePathName).lastModified(); // Db doesn't cache the modified date
+        if(QFileInfo(_filePathName).birthTime().isValid())
+            _fileCreateDate = QFileInfo(_filePathName).birthTime();
     }
     else if(_useCacheDb!=Video::CACHE_ONLY) {
-        if(QFileInfo(filename).size()==0){ // check this before, as it's faster, but getMetadata also does this but stores the info
-            qDebug() << "File size = 0 : rejected " << filename;
+        if(QFileInfo(_filePathName).size()==0){ // check this before, as it's faster, but getMetadata also does this but stores the info
+            qDebug() << "File size = 0 : rejected " << _filePathName;
             emit rejectVideo(this, "File size = 0 : rejected ");
             return;
         }
-        if(!getMetadata(filename))         //as not cached, read metadata with ffmpeg (NB : getMetadata handles rejection)
+        if(!getMetadata(_filePathName))         //as not cached, read metadata with ffmpeg (NB : getMetadata handles rejection)
             return;
     }
     else{
@@ -73,7 +73,7 @@ void Video::run()
 
     if(width == 0 || height == 0)// || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
-        qDebug() << "Height ("<<height<<") or width ("<<width<<") = 0 : rejected " << filename;
+        qDebug() << "Height ("<<height<<") or width ("<<width<<") = 0 : rejected " << _filePathName;
         emit rejectVideo(this, QString("Height (%1) or width (%2) = 0 ").arg(height).arg(width));
         return;
     }
@@ -82,12 +82,12 @@ void Video::run()
     if(_useCacheDb==Video::WITH_CACHE && durationWasZero && duration!=0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if(ret == _failure){
-        qDebug() << "Rejected : failed to take capture : "+ filename;
+        qDebug() << "Rejected : failed to take capture : "+ _filePathName;
         emit rejectVideo(this, "failed to take capture");
     }
     else if((_prefs._thumbnails != cutEnds && hash[0] == 0 ) ||
             (_prefs._thumbnails == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
-        qDebug() << "Rejected : all screen captures black : "+ filename;
+        qDebug() << "Rejected : all screen captures black : "+ _filePathName;
         emit rejectVideo(this, "all screen captures black");
     }
     else{
@@ -229,7 +229,7 @@ int Video::takeScreenCaptures(const Db &cache)
         QImage frame;
         QByteArray cachedImage;
         if(_useCacheDb!=Video::NO_CACHE) // TODO-REFACTOR could maybe load from cache in same condition as frame loading and resizing... ?
-            cachedImage = cache.readCapture(filename, percentages[capture]);
+            cachedImage = cache.readCapture(_filePathName, percentages[capture]);
         QBuffer captureBuffer(&cachedImage);
         bool writeToCache = false;
 
@@ -253,14 +253,14 @@ int Video::takeScreenCaptures(const Db &cache)
                 continue;
             }
             if(_useCacheDb!=Video::CACHE_ONLY)
-                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
+                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<_filePathName;
             else
-                qDebug() << "Cache only mode is failing because capture was not cached at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<filename;
+                qDebug() << "Cache only mode is failing because capture was not cached at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<_filePathName;
             return _failure;
         }
 
         if(frame.width() > width || frame.height() > height){    //metadata parsing error or variable resolution
-            qDebug() << "Failing because capture height="<<frame.height()<<",width="<<frame.width()<<" is different to vid metadata height="<<width<<",width="<<height<< "for file "<< filename;
+            qDebug() << "Failing because capture height="<<frame.height()<<",width="<<frame.width()<<" is different to vid metadata height="<<width<<",width="<<height<< "for file "<< _filePathName;
             return _failure;
         }
 
@@ -270,7 +270,7 @@ int Video::takeScreenCaptures(const Db &cache)
         if(writeToCache) {
             frame = minimizeImage(frame);
             frame.save(&captureBuffer, QByteArrayLiteral("JPG"), _okJpegQuality);
-            cache.writeCapture(filename, percentages[capture], cachedImage);
+            cache.writeCapture(_filePathName, percentages[capture], cachedImage);
         }
     }
 
@@ -393,15 +393,15 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
 
     /* open input file, and allocate format context */
-    if (ffmpeg::avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL) < 0) {
-        qDebug() << "Could not open source file " << filename;
+    if (ffmpeg::avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(_filePathName).toStdString().c_str(), NULL, NULL) < 0) {
+        qDebug() << "Could not open source file " << _filePathName;
         avformat_close_input(&fmt_ctx);
         return img;
     }
 
     /* retrieve stream information */
     if (ffmpeg::avformat_find_stream_info(fmt_ctx, NULL) < 0) {
-        qDebug() << "Could not find stream information" << filename;
+        qDebug() << "Could not find stream information" << _filePathName;
         avformat_close_input(&fmt_ctx);
         return img;
     }
@@ -413,14 +413,14 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                                                          NULL /*don't find decoder*/,
                                                          0 /* no flags*/);
     if(stream_index<0){ // Did not find a video stream
-        qDebug() << "Could not find a good video stream" << filename;
+        qDebug() << "Could not find a good video stream" << _filePathName;
         ffmpeg::avformat_close_input(&fmt_ctx);
         return img;
     }
     ffmpeg::AVStream *vs = fmt_ctx->streams[stream_index]; // set shorter reference to video stream of interest
     // av_find_best_stream should not return non video stream if video stream requested !
     if(vs->codecpar->codec_type!=ffmpeg::AVMEDIA_TYPE_VIDEO){
-        qDebug() << "FFMPEG returned stream was not video... !" << filename;
+        qDebug() << "FFMPEG returned stream was not video... !" << _filePathName;
         ffmpeg::avformat_close_input(&fmt_ctx);
         return img;
     }
@@ -428,7 +428,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     // find decoder for the stream
     ffmpeg::AVCodec *codec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
     if (!codec) {
-        qDebug() << "Failed to find video codec "<< ffmpeg::avcodec_get_name(vs->codecpar->codec_id) << " for file " << filename;
+        qDebug() << "Failed to find video codec "<< ffmpeg::avcodec_get_name(vs->codecpar->codec_id) << " for file " << _filePathName;
         ffmpeg::avformat_close_input(&fmt_ctx);
         return img;
     }
@@ -436,7 +436,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     /* Allocate a codec context for the decoder */
     ffmpeg::AVCodecContext *codec_ctx = ffmpeg::avcodec_alloc_context3(codec);
     if (!codec_ctx) {
-        qDebug() << "Failed to allocate the video codec context for file " << filename;
+        qDebug() << "Failed to allocate the video codec context for file " << _filePathName;
         // NB here codec context failed to alloc, but next steps will need to free it !
         ffmpeg::avformat_close_input(&fmt_ctx);
         return img;
@@ -444,7 +444,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 
     /* Copy codec parameters from input stream to codec context */
     if (ffmpeg::avcodec_parameters_to_context(codec_ctx, vs->codecpar) < 0) {
-        qDebug() << "Failed to copy codec parameters to decoder context for file" << filename;
+        qDebug() << "Failed to copy codec parameters to decoder context for file" << _filePathName;
         ffmpeg::avcodec_free_context(&codec_ctx);
         ffmpeg::avformat_close_input(&fmt_ctx);
         return img;
@@ -452,7 +452,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 
     /* Open the codec */
     if(ffmpeg::avcodec_open2(codec_ctx, codec, NULL /* no options*/)<0){
-       qDebug() << "Failed to open video codec for file " << filename;
+       qDebug() << "Failed to open video codec for file " << _filePathName;
        ffmpeg::avcodec_free_context(&codec_ctx);
        ffmpeg::avformat_close_input(&fmt_ctx);
        return img;
@@ -461,7 +461,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     /* Allocate packet for storing decoded data */
     ffmpeg::AVPacket* vPacket = ffmpeg::av_packet_alloc();
     if (!vPacket){
-        qDebug() << "failed to allocated memory for AVPacket for file " << filename;
+        qDebug() << "failed to allocated memory for AVPacket for file " << _filePathName;
         //ffmpeg::av_packet_free(&vPacket); //NB failed to alloc, so don't call yet but next time
         ffmpeg::avcodec_free_context(&codec_ctx);
         ffmpeg::avformat_close_input(&fmt_ctx);
@@ -471,7 +471,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     /* Allocate a frame */
     ffmpeg::AVFrame* vFrame = ffmpeg::av_frame_alloc();
     if (!vFrame){
-        qDebug() << "failed to allocated memory for frame for file " << filename;
+        qDebug() << "failed to allocated memory for frame for file " << _filePathName;
         //ffmpeg::av_frame_free(&vFrame); // NB failed to alloc, so don't call yet but next time
         ffmpeg::av_packet_free(&vPacket);
         ffmpeg::avcodec_free_context(&codec_ctx);
@@ -533,7 +533,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     // -> need to seek to closest previous keyframe and then decode each frame until the one right BEFORE (or at/after) exact position
     // in fact from manual tests with the executable, it seems the behavior was not very consistent. Will just seek to frame right before or after timestamp
     if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, AVSEEK_FLAG_BACKWARD /* 0 for no flags*/) < 0){ // will seek to closest previous keyframe
-        qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
+        qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << _filePathName;
         ffmpeg::av_packet_free(&vPacket);
         ffmpeg::av_frame_free(&vFrame);
         ffmpeg::avcodec_free_context(&codec_ctx);
@@ -554,7 +554,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
             qDebug() << "Failed to read 1 frame, will try again for file" << filename;
 #endif
             if(failedFrames>FAIL_ON_FRAME_DECODE_NB_FAIL){
-                qDebug() << "Failed to read frames too many("<< failedFrames << ") times, will stop, for file " << filename;
+                qDebug() << "Failed to read frames too many("<< failedFrames << ") times, will stop, for file " << _filePathName;
                 ffmpeg::av_packet_free(&vPacket);
                 ffmpeg::av_frame_free(&vFrame);
                 ffmpeg::avcodec_free_context(&codec_ctx);
@@ -575,10 +575,10 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
             if (ffmpeg::avcodec_send_packet(codec_ctx, vPacket) < 0)
             {
                 if(ret == AVERROR_EOF){
-                    qDebug() << "Reached end of file but no matching frame for " << filename;
+                    qDebug() << "Reached end of file but no matching frame for " << _filePathName;
                 }
                 else{
-                    qDebug() << "Failed to send raw packet to decoder for file " << filename;
+                    qDebug() << "Failed to send raw packet to decoder for file " << _filePathName;
                 }
                 ffmpeg::av_packet_free(&vPacket);
                 ffmpeg::av_frame_free(&vFrame);
@@ -637,7 +637,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 #endif
                     if(frames_estimated==ESTIMATE_DURATION_FROM_FRAME_NB){
                         if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, AVSEEK_FLAG_BACKWARD /* 0 for no flags*/) < 0){ // will seek to closest previous keyframe
-                            qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << filename;
+                            qDebug() << "failed to seek to frame at timestamp " << msToHHMMSS(1000*wanted_ts*vs->time_base.num/vs->time_base.den) << " for file " << _filePathName;
                             ffmpeg::av_packet_free(&vPacket);
                             ffmpeg::av_frame_free(&vFrame);
                             ffmpeg::avcodec_free_context(&codec_ctx);
@@ -649,7 +649,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                 if((curr_ts-wanted_ts)>=-ts_diff){ // must read frames until we get before wanted time stamp
                     img = getQImageFromFrame(vFrame);
                     if(img.isNull()){
-                        qDebug() << "Failed to save img for file " << filename;
+                        qDebug() << "Failed to save img for file " << _filePathName;
                         ffmpeg::av_packet_free(&vPacket);
                         ffmpeg::av_frame_free(&vFrame);
                         ffmpeg::avcodec_free_context(&codec_ctx);
@@ -671,7 +671,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 #endif
             if(ret == AVERROR_EOF){
                 // TODO : could actually update stream duration because we know it more accurately now !!!
-                qDebug() << "Reached end of file, no more stream packets, found no matching frame for " << filename;
+                qDebug() << "Reached end of file, no more stream packets, found no matching frame for " << _filePathName;
                 ffmpeg::av_packet_free(&vPacket);
                 ffmpeg::av_frame_free(&vFrame);
                 ffmpeg::avcodec_free_context(&codec_ctx);
@@ -689,7 +689,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     ffmpeg::avformat_close_input(&fmt_ctx);
 
     if(img.isNull()){
-        qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<<filename;
+        qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<<_filePathName;
     }
 #ifdef DEBUG_VIDEO_READING
     else{
@@ -711,7 +711,7 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
                                      ffmpeg::AV_PIX_FMT_RGB24,
                                      SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
     if(!img_convert_ctx){
-        qDebug() << "Failed to create sws context "<< filename;
+        qDebug() << "Failed to create sws context "<< _filePathName;
         return QImage();
     }
 
@@ -809,7 +809,7 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
     int imgBytesSyze = 3*pFrame->height*pFrame->width;
     rgbData[0] = (unsigned char *)malloc(imgBytesSyze+64); // ask for extra bytes just to be safe
     if(!rgbData[0]){
-        qDebug() << "Error allocating buffer for frame conversion "<<filename;
+        qDebug() << "Error allocating buffer for frame conversion "<<_filePathName;
         free(rgbData[0]);
         ffmpeg::sws_freeContext(img_convert_ctx);
         return QImage();
@@ -821,7 +821,7 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
                 rgbData, // ideally should be (uint8_t *[]){image.bits()} but not possible as explained below, QImage lines are at least 32 bit aligned
                 rgb_linesizes)
             != pFrame->height){
-        qDebug() << "Error changing frame color range "<<filename;
+        qDebug() << "Error changing frame color range "<<_filePathName;
         free(rgbData[0]);
         ffmpeg::sws_freeContext(img_convert_ctx);
         return QImage();
@@ -859,7 +859,7 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
 // ------------ Start: Public STATIC member functions ----------
 VideoMetadata Video::videoToMetadata(const Video & vid) {
     VideoMetadata meta;
-    meta.filename = vid.filename;
+    meta.filename = vid._filePathName;
     meta.nameInApplePhotos = vid.nameInApplePhotos;
     meta.size = vid.size;
     meta._fileCreateDate = vid._fileCreateDate;

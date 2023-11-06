@@ -119,20 +119,20 @@ private slots:
     void on_selectSSIM_clicked ( const bool &checked) { if(checked) _prefs._comparisonMode = _prefs._SSIM;
                                                         emit switchComparisonMode(_prefs._comparisonMode); }
 
-    void on_leftImage_clicked() { openMedia(_videos[_leftVideo]->filename); }
-    void on_rightImage_clicked() { openMedia(_videos[_rightVideo]->filename); }
+    void on_leftImage_clicked() { openMedia(_videos[_leftVideo]->_filePathName); }
+    void on_rightImage_clicked() { openMedia(_videos[_rightVideo]->_filePathName); }
     void openMedia(const QString filenamepath);
 
-    void on_leftFileName_clicked() { openFileManager(_videos[_leftVideo]->filename); }
-    void on_rightFileName_clicked() { openFileManager(_videos[_rightVideo]->filename); }
+    void on_leftFileName_clicked() { openFileManager(_videos[_leftVideo]->_filePathName); }
+    void on_rightFileName_clicked() { openFileManager(_videos[_rightVideo]->_filePathName); }
     void openFileManager(const QString &filename);
 
     void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
     void on_rightDelete_clicked() { deleteVideo(_rightVideo); }
     void deleteVideo(const int &side, const bool auto_trash_mode = false);
 
-    void on_leftMove_clicked() { moveVideo(_videos[_leftVideo]->filename, _videos[_rightVideo]->filename); }
-    void on_rightMove_clicked() { moveVideo(_videos[_rightVideo]->filename, _videos[_leftVideo]->filename); }
+    void on_leftMove_clicked() { moveVideo(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName); }
+    void on_rightMove_clicked() { moveVideo(_videos[_rightVideo]->_filePathName, _videos[_leftVideo]->_filePathName); }
     void moveVideo(const QString &from, const QString &to);
     void on_swapFilenames_clicked() const;
 

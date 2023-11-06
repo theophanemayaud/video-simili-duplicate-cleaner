@@ -32,7 +32,7 @@ public:
     void run();
 
     VideoMetadata meta;
-    QString filename;
+    QString _filePathName;
     QString nameInApplePhotos; // used externally only, as it is too slow to get at first
     int64_t size = 0; // in bytes
     QDateTime modified;

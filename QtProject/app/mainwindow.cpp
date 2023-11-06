@@ -243,22 +243,21 @@ void MainWindow::findVideos(QDir &dir)
             _userPressedStop=false; //user needs to press 2x to stop the find videos process, then process videos process.
             return;
         }
-        const QFile file(iter.next());
-        const QString filename = file.fileName();
+        const QString filePathName = iter.nextFileInfo().canonicalFilePath();
 
         bool duplicate = false;                 //don't want duplicates of same file
         for(const auto &alreadyAddedFile : _everyVideo)
-            if(filename.toLower() == alreadyAddedFile.toLower())
+            if(filePathName.toLower() == alreadyAddedFile.toLower())
             {
                 duplicate = true;
                 break;
             }
         if(!duplicate)
-            _everyVideo << filename;
+            _everyVideo << filePathName;
 
         ui->statusBar->showMessage(QStringLiteral("Found %1 videos | %2")
                                    .arg(_everyVideo.size())
-                                   .arg(QDir::toNativeSeparators(filename)), 10);
+                                   .arg(QDir::toNativeSeparators(filePathName)), 10);
         QApplication::processEvents();
     }
 }
@@ -310,7 +309,7 @@ void MainWindow::processVideos()
     else return;
 
     QThreadPool threadPool;
-    for(const auto &filename : _everyVideo)
+    for(const auto &filePathName : _everyVideo)
     {
         if(_userPressedStop)
         {
@@ -320,7 +319,7 @@ void MainWindow::processVideos()
         while(threadPool.activeThreadCount() == threadPool.maxThreadCount())
 //        while(threadPool.activeThreadCount() == 1) // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
-        auto *videoTask = new Video(_prefs, filename, _useCacheOption);
+        auto *videoTask = new Video(_prefs, filePathName, _useCacheOption);
         videoTask->setAutoDelete(false);
         threadPool.start(videoTask);
     }
@@ -365,7 +364,7 @@ void MainWindow::addVideo(Video *addMe)
 {
     if(ui->verboseCheckbox->isChecked()){
         addStatusMessage(QStringLiteral("[%1] %2").arg(QTime::currentTime().toString(),
-                                                       QDir::toNativeSeparators(addMe->filename)));
+                                                       QDir::toNativeSeparators(addMe->_filePathName)));
     }
     ui->progressBar->setValue(ui->progressBar->value() + 1);
     if(_useCacheOption!=Video::CACHE_ONLY)
@@ -381,11 +380,11 @@ void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
     if (deleteMe != nullptr) {
         addStatusMessage(QStringLiteral("[%1] ERROR with %2 : %3")
                          .arg(QTime::currentTime().toString())
-                         .arg(QDir::toNativeSeparators(deleteMe->filename))
+                         .arg(QDir::toNativeSeparators(deleteMe->_filePathName))
                          .arg(errorMsg));
         ui->progressBar->setValue(ui->progressBar->value() + 1);
         ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
-        _rejectedVideos << QDir::toNativeSeparators(deleteMe->filename);
+        _rejectedVideos << QDir::toNativeSeparators(deleteMe->_filePathName);
         delete deleteMe;
     }
     else{

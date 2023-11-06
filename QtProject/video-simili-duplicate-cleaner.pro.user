@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 11.0.2, 2023-09-08T17:22:38. -->
+<!-- Written by QtCreator 11.0.2, 2023-11-04T12:35:58. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -86,11 +86,6 @@
     <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp_cached">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp_nocache">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_cached">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_cache_only">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_cached">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_whole_app_nocache">Unchecked</value>
    </valuemap>
    <value type="int" key="AutoTest.RunAfterBuild">0</value>
    <value type="bool" key="AutoTest.UseGlobal">true</value>

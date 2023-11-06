@@ -123,18 +123,48 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
     query.exec(QStringLiteral("PRAGMA synchronous = OFF;"));
     query.exec(QStringLiteral("PRAGMA journal_mode = WAL;"));
 
-    query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS metadata (id TEXT PRIMARY KEY, "
-                              "size INTEGER, duration INTEGER, bitrate INTEGER, framerate REAL, "
-                              "codec TEXT, audio TEXT, width INTEGER, height INTEGER);"));
+    query.exec(QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS "
+                "metadata ("
+                    "id TEXT PRIMARY KEY, "
+                    "size INTEGER, "
+                    "duration INTEGER, "
+                    "bitrate INTEGER, "
+                    "framerate REAL, "
+                    "codec TEXT, "
+                    "audio TEXT, "
+                    "width INTEGER, "
+                    "height INTEGER"
+                ");"
+        ));
 
-    query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS capture (id TEXT PRIMARY KEY, "
-                              " at8 BLOB, at16 BLOB, at24 BLOB, at32 BLOB, at40 BLOB, at48 BLOB, "
-                              "at56 BLOB, at64 BLOB, at72 BLOB, at80 BLOB, at88 BLOB, at96 BLOB);"));
+    query.exec(QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS "
+                "capture ("
+                    "id TEXT PRIMARY KEY, "
+                    "at8 BLOB, "
+                    "at16 BLOB, "
+                    "at24 BLOB, "
+                    "at32 BLOB, "
+                    "at40 BLOB, "
+                    "at48 BLOB, "
+                    "at56 BLOB, "
+                    "at64 BLOB, "
+                    "at72 BLOB, "
+                    "at80 BLOB, "
+                    "at88 BLOB, "
+                    "at96 BLOB"
+                ");"
+        ));
 
-    query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS version (version TEXT PRIMARY KEY);"));
-
-    // Now create a version key, that could help us in the future to check if the database contains old records
+    // Now create a version table and entry, that could help us in the future to check if the database contains old records
     //          and might need to be emptied... ! For now, not used.
+    query.exec(QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS "
+                "version ("
+                    "version TEXT PRIMARY KEY"
+                ");"
+        ));
     query.exec(QStringLiteral("INSERT OR REPLACE INTO version VALUES('%1');").arg(appVersion));
 }
 
@@ -167,11 +197,11 @@ bool Db::readMetadata(Video &video) const
     }
     QSqlQuery query(_db);
     query.prepare("SELECT * FROM metadata WHERE id = :id;");
-    query.bindValue(":id", video.filename);
+    query.bindValue(":id", video._filePathName);
     query.exec();
     QSqlError error = query.lastError();
     if(error.isValid()){
-        qDebug() << "Error with readMetadata query for video=" << video.filename << " query="<<query.lastQuery();
+        qDebug() << "Error with readMetadata query for video=" << video._filePathName << " query="<<query.lastQuery();
         qDebug() << error.text();
     }
 
@@ -202,7 +232,7 @@ void Db::writeMetadata(const Video &video) const
     query.prepare("INSERT OR REPLACE INTO metadata "
                   "VALUES(:id,:size,:duration,:bitrate,:framerate,"
                   ":codec,:audio,:width,:height);");
-    query.bindValue(":id",          video.filename);
+    query.bindValue(":id",          video._filePathName);
     query.bindValue(":size",        video.size);
     query.bindValue(":duration",    video.duration);
     query.bindValue(":bitrate",     video.bitrate);
@@ -215,7 +245,7 @@ void Db::writeMetadata(const Video &video) const
 
     QSqlError error = query.lastError();
     if(error.isValid()){
-        qDebug() << "Error with readmetadata query for video=" << video.filename << " query="<<query.lastQuery();
+        qDebug() << "Error with readmetadata query for video=" << video._filePathName << " query="<<query.lastQuery();
         qDebug() << error.text();
     }
 }
