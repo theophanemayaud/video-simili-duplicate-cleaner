@@ -151,12 +151,12 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
     query.exec(QStringLiteral(
             "CREATE TABLE IF NOT EXISTS "
                 "ignored_pairs ("
-                    "pair_id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "pathName1 TEXT NOT NULL, "
                     "pathName2 TEXT NOT NULL, "
                     "FOREIGN KEY (pathName1) REFERENCES metadata(id), "
                     "FOREIGN KEY (pathName2) REFERENCES metadata(id), "
                     "UNIQUE (pathName1, pathName2) "
+                    "PRIMARY KEY (pathName1, pathName2) "
                 ");"
         ));
 
@@ -420,9 +420,10 @@ bool Db::isPairToIgnore(const QString filePathName1, const QString filePathName2
         "SELECT * "
             "FROM ignored_pairs "
             "WHERE "
-                "(pathName1=:filePathName1 AND pathName2=:filePathName2) "
+                "(pathName1 = :filePathName1 AND pathName2 = :filePathName2) "
                 "OR "
-                "(pathName1=:filePathName2 AND pathName2=:filePathName1);"
+                "(pathName1 = :filePathName2 AND pathName2 = :filePathName1) "
+            "LIMIT 1;"
     );
     query.bindValue(":filePathName1", filePathName1);
     query.bindValue(":filePathName2", filePathName2);

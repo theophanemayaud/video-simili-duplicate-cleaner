@@ -197,10 +197,6 @@ bool Comparison::bothVideosMatch(const Video *left, const Video *right)
         return theyMatch;
     }
 
-    // check if pair is flagged as not dupplicate in DB
-    if(Db(_prefs.cacheFilePathName).isPairToIgnore(left->_filePathName, right->_filePathName))
-        return false;
-
     _phashSimilarity = 0;
 
     const int hashes = _prefs._thumbnails == cutEnds? 2 : 1;
@@ -222,7 +218,13 @@ bool Comparison::bothVideosMatch(const Video *left, const Video *right)
         if(theyMatch)               //if cutEnds mode: first comparison matched already, skip second
             break;
     }
-    return theyMatch;
+    if(!theyMatch)
+        return false;
+    // check if pair is flagged as not dupplicate in DB. DB is very slow so only do this after all checks
+    else if(Db(_prefs.cacheFilePathName).isPairToIgnore(left->_filePathName, right->_filePathName))
+        return false;
+
+    return true;
 }
 
 int Comparison::phashSimilarity(const Video *left, const Video *right, const int &nthHash)
