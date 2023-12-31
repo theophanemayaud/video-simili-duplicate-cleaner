@@ -1,8 +1,8 @@
 {
     "scripts": {
-    "qmake": "/Users/theophane/Qt/6.5.2/macos/bin/qmake '../../app/app.pro' -spec macx-clang QMAKE_APPLE_DEVICE_ARCHS='x86_64 arm64' CONFIG+=qtquickcompiler && make qmake_all",
+    "qmake": "/Users/theophane/Qt/6.5.3/macos/bin/qmake '../../app/app.pro' -spec macx-clang QMAKE_APPLE_DEVICE_ARCHS='x86_64 arm64' CONFIG+=qtquickcompiler && make qmake_all",
     "make": "make -j8",
-    "macdeploy": "/Users/theophane/Qt/6.5.2/macos/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
+    "macdeploy": "/Users/theophane/Qt/6.5.3/macos/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
     "build-mac-binaries": "npm run build-mac && npm run sign-and-package",
     "build-mac": "npm run qmake && npm run make && npm run macdeploy",
     "sign-and-package": "cp Info.plist 'Video simili duplicate cleaner.app/Contents/Info.plist' && npm run sign-app && npm run package-app",
