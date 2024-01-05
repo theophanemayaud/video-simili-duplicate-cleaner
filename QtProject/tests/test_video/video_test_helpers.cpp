@@ -81,6 +81,50 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
 
     ui_image->setLayout(layout);
     ui_image->showMaximized();
+
+    // create and show image of only differences
+    QImage img1, img2;
+    img1.loadFromData(ref_thumb,"JPG");
+    img2.loadFromData(new_thumb,"JPG");
+    qDebug() << "Img format="<<(int)img1.format();
+
+    QWidget *diff_imgWidg = new QWidget;
+    diff_imgWidg->setWindowTitle("Diff of two images");
+
+    QVBoxLayout *diff_layout = new QVBoxLayout(diff_imgWidg);
+
+    QLabel *diffR_label = new QLabel(diff_imgWidg);
+    QLabel *diffG_label = new QLabel(diff_imgWidg);
+    QLabel *diffB_label = new QLabel(diff_imgWidg);
+    diffR_label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    diffG_label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    diffB_label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    QImage r(img1.width(), img1.height(), QImage::Format_RGB32);
+    QImage g(img1.width(), img1.height(), QImage::Format_RGB32);
+    QImage b(img1.width(), img1.height(), QImage::Format_RGB32);
+    for(int y=0; y<img1.height(); y++){
+        for(int x=0; x<img1.width(); x++){
+            QRgb p1 = img1.pixel(x,y);
+            QRgb p2 = img2.pixel(x,y);
+            r.setPixel(x,y,qRgb(255*sqrt(abs(qRed(p1)-qRed(p2))/255.00),0,0));
+            g.setPixel(x,y,qRgb(0,255*sqrt(abs(qGreen(p1)-qGreen(p2))/255.00),0));
+            b.setPixel(x,y,qRgb(0,0,255*sqrt(abs(qBlue(p1)-qBlue(p2))/255.00)));
+        }
+    }
+    diffR_label->setPixmap(QPixmap::fromImage(r));
+    diffR_label->setScaledContents(true);
+    diffG_label->setPixmap(QPixmap::fromImage(g));
+    diffG_label->setScaledContents(true);
+    diffB_label->setPixmap(QPixmap::fromImage(b));
+    diffB_label->setScaledContents(true);
+
+    diff_layout->addWidget(diffR_label);
+    diff_layout->addWidget(diffG_label);
+    diff_layout->addWidget(diffB_label);
+    diff_imgWidg->setLayout(diff_layout);
+    diff_imgWidg->showNormal();
+
     while(ui_image->isVisible()){
         QTest::qWait(100);
         if(accept->isChecked()){
@@ -93,7 +137,11 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
         }
     }
 
-    ui_image->close();
+    ui_image->window()->hide();
+    diff_imgWidg->window()->hide();
+    for(QObject *widg : diff_imgWidg->layout()->children()){
+        widg->deleteLater();
+    }
     return false;
 }
 
