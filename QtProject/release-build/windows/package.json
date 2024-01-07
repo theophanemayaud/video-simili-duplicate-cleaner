@@ -1,9 +1,9 @@
 {
   "scripts": {
     "prep-package": "copy logo150x150.png release\\logo150x150.png && copy logo44x44.png release\\logo44x44.png && copy Icon1024.png release\\Icon1024.png && copy appxmanifest.xml release\\appxmanifest.xml",
-    "qmake": "C:\\Qt\\6.2.4\\msvc2019_64\\bin\\qmake.exe 'C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\app\\app.pro' -config release",
+    "qmake": "C:\\Qt\\6.5.3\\msvc2019_64\\bin\\qmake.exe 'C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\app\\app.pro' -config release",
     "make": "nmake",
-    "windeploy": "npm run prep-package && C:\\\\Qt\\\\6.2.4\\\\msvc2019_64\\\\bin\\\\windeployqt.exe --no-compiler-runtime --release \"C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\release-build\\windows\\release\\Video simili duplicate cleaner.exe\"",
+    "windeploy": "npm run prep-package && C:\\\\Qt\\\\6.5.3\\\\msvc2019_64\\\\bin\\\\windeployqt.exe --no-compiler-runtime --release \"C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\release-build\\windows\\release\\Video simili duplicate cleaner.exe\"",
     "build-win-binaries": "npm run qmake && npm run make && npm run windeploy && npm run package-app",
     "package-app": "MakeAppx pack /d release /p \"Video simili duplicate cleaner.msix\"",
     "make-clean": "nmake clean || exit 0",
