@@ -192,11 +192,14 @@
                <property name="minimumSize">
                 <size>
                  <width>400</width>
-                 <height>300</height>
+                 <height>100</height>
                 </size>
                </property>
                <property name="toolTip">
                 <string>Click to launch video in default player, scroll mouse wheel to zoom</string>
+               </property>
+               <property name="layoutDirection">
+                <enum>Qt::LeftToRight</enum>
                </property>
                <property name="text" stdset="0">
                 <string/>
@@ -233,7 +236,7 @@
                   </size>
                  </property>
                  <property name="styleSheet">
-                  <string notr="true">color : blue; text-decoration : underline;</string>
+                  <string notr="true">color : rgb(118, 214, 255); text-decoration : underline;</string>
                  </property>
                  <property name="text" stdset="0">
                   <string/>
@@ -577,7 +580,7 @@
                <property name="minimumSize">
                 <size>
                  <width>400</width>
-                 <height>300</height>
+                 <height>100</height>
                 </size>
                </property>
                <property name="toolTip">
@@ -618,7 +621,7 @@
                   </size>
                  </property>
                  <property name="styleSheet">
-                  <string notr="true">color : blue; text-decoration : underline;</string>
+                  <string notr="true">color : rgb(118, 214, 255); text-decoration : underline;</string>
                  </property>
                  <property name="text" stdset="0">
                   <string/>
