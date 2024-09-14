@@ -381,8 +381,8 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 #ifdef DEBUG_VIDEO_READING
     // NB Here a lot of debug elements are kept as is, because they quickly enable diagnstics of new or problematic
     // video codecs/files/...
-    qDebug() << "Library will try to capture at "<<percent<<"% ofduration "<<ofDuration<<"% for file "<< filename;
-    ffmpeg::av_log_set_level(AV_LOG_INFO);
+    qDebug() << "Library will try to capture at "<<percent<<"% ofduration "<<ofDuration<<"% for file "<< _filePathName;
+    ffmpeg::av_log_set_level(AV_LOG_DEBUG);
 #endif
     // new ffmpeg library code to capture an image :
     // inspired from http://blog.allenworkspace.net/2020/06/ffmpeg-decode-and-then-encode-frames-to.html
@@ -499,7 +499,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     //        but sometimes metadata file duration is very different => should find a way to report it
 #ifdef DEBUG_VIDEO_READING
     if(abs(ms_stream_duration-duration)>100){
-        qDebug() << "Stream duration ms(" << ms_stream_duration << ") is more than 100ms different to file reported duration("<<duration<<") (we're using video stream duration for captures) " << filename;
+        qDebug() << "Stream duration ms(" << ms_stream_duration << ") is more than 100ms different to file reported duration("<<duration<<") (we're using video stream duration for captures) " << _filePathName;
     }
 #endif
     int64_t wanted_ms_place = (double) ms_stream_duration *  percent * ofDuration / (100 * 100 /*percents*/) ;
@@ -545,13 +545,13 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                                                             // even if it says EOF we need to decode again until there's no frames returned
 #ifdef DEBUG_VIDEO_READING
         if(ret == AVERROR_EOF){
-            qDebug() << "av_read_frame said eof for file " << filename;
+            qDebug() << "av_read_frame said eof for file " << _filePathName;
         }
 #endif
         if( ret /* reads all stream frames, must check for when video*/ < 0){
             failedFrames++;
 #ifdef DEBUG_VIDEO_READING
-            qDebug() << "Failed to read 1 frame, will try again for file" << filename;
+            qDebug() << "Failed to read 1 frame, will try again for file" << _filePathName;
 #endif
             if(failedFrames>FAIL_ON_FRAME_DECODE_NB_FAIL){
                 qDebug() << "Failed to read frames too many("<< failedFrames << ") times, will stop, for file " << _filePathName;
@@ -612,10 +612,10 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                             " best effort ts "<<vFrame->best_effort_timestamp;
 #endif
                 // try to find estimate of frame rate TODO : find another way to do this, with frame ts maybe... ?
-                if(framerate==0){
+                if(this->framerate==0){
                     ffmpeg::AVRational est_fps = ffmpeg::av_guess_frame_rate(fmt_ctx, vs,vFrame);
                     if(est_fps.num!=0 && est_fps.den!=0){
-                        framerate = round(ffmpeg::av_q2d(est_fps) * 10) / 10;
+                        this->framerate = round(ffmpeg::av_q2d(est_fps) * 10) / 10;
                     }
                 }
                 // try to find estimate stream duration from frame size and file size
@@ -623,10 +623,10 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                         && vs->time_base.num!=0 /*avoid 0 divisions*/){
                     avg_frame_bytes_size = (frames_estimated*avg_frame_bytes_size + vFrame->pkt_size)/(1+frames_estimated);
                     frames_estimated++;
-                    ms_stream_duration = (double)ESTIMATE_DURATION_FROM_FRAME_RESCALE*1000*size*vs->avg_frame_rate.den/(avg_frame_bytes_size*vs->avg_frame_rate.num+1); // rescale to avoid over estimating, add 1 because avg_frame_rate can be 0 !
+                    ms_stream_duration = (double)ESTIMATE_DURATION_FROM_FRAME_RESCALE*1000*this->size*vs->avg_frame_rate.den/(avg_frame_bytes_size*vs->avg_frame_rate.num+1); // rescale to avoid over estimating, add 1 because avg_frame_rate can be 0 !
                     wanted_ms_place = (double) ms_stream_duration *  percent * ofDuration / (100 * 100 /*percents*/) ;
                     wanted_ts = vs->time_base.den * wanted_ms_place / (vs->time_base.num * 1000 /*we have ms duration*/);
-                    duration = ms_stream_duration;
+                    this->duration = ms_stream_duration;
 #ifdef DEBUG_VIDEO_READING
               qDebug() <<"No video duration : trying to estimate from file size and frame size : "<<
                          " frame pkt size "<<vFrame->pkt_size<<
@@ -661,13 +661,13 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
             }
             else{
 #ifdef DEBUG_VIDEO_READING
-                qDebug() << "Failed to receive frame for "<<filename;
+                qDebug() << "Failed to receive frame for "<< _filePathName;
 #endif
             }
         }
         else{
 #ifdef DEBUG_VIDEO_READING
-            qDebug() << "Packet not of wanted stream for "<<filename;
+            qDebug() << "Packet not of wanted stream for "<< _filePathName;
 #endif
             if(ret == AVERROR_EOF){
                 // TODO : could actually update stream duration because we know it more accurately now !!!
@@ -689,11 +689,11 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     ffmpeg::avformat_close_input(&fmt_ctx);
 
     if(img.isNull()){
-        qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<<_filePathName;
+        qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<< _filePathName;
     }
 #ifdef DEBUG_VIDEO_READING
     else{
-         qDebug() << "Library capture success at timestamp " << msToHHMMSS(wanted_ms_place) << " for file " << filename;
+         qDebug() << "Library capture success at timestamp " << msToHHMMSS(wanted_ms_place) << " for file " << _filePathName;
     }
 #endif
     return img;
