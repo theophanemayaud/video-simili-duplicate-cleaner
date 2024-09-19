@@ -35,7 +35,7 @@ FORMS += \
 
 
 macx {
-    QMAKE_MACOSX_DEPLOYMENT_TARGET = 12.0
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
     HEADERS += \
         $$PWD/obj-c.h
     SOURCES += \
@@ -48,11 +48,11 @@ contains(QMAKE_HOST.arch, arm64):{
     message("qmake host is macos arm64 (arm processors)")
 
     # OpenCV libraries
-    INCLUDEPATH += $$PWD/../libraries/macos/opencv-arm/opencv_install/include/opencv4
-    DEPENDPATH += $$PWD/../libraries/macos/opencv-arm/opencv_install/include/opencv4
-    LIBS += -L$$PWD/../libraries/macos/opencv-arm/opencv_install/lib/ -lopencv_imgproc -lopencv_core
+    INCLUDEPATH += $$PWD/../libraries/macos/opencv-arm/opencv-install/include/opencv4
+    DEPENDPATH += $$PWD/../libraries/macos/opencv-arm/opencv-install/include/opencv4
+    LIBS += -L$$PWD/../libraries/macos/opencv-arm/opencv-install/lib/ -lopencv_imgproc -lopencv_core
     ## OpenCV static libs dependencies
-    LIBS += -L$$PWD/../libraries/macos/opencv-arm/opencv_install/lib/opencv4/3rdparty -lzlib -littnotify -framework OpenCL -framework Accelerate
+    LIBS += -L$$PWD/../libraries/macos/opencv-arm/opencv-install/lib/opencv4/3rdparty -lzlib -littnotify -framework OpenCL -framework Accelerate
 
     # ffmpeg libraries
     INCLUDEPATH += $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/include

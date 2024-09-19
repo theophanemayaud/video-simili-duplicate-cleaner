@@ -1,9 +1,9 @@
 {
     "scripts": {
-        "qmake": "~/Qt/6.5.3/macos/bin/qmake '../../app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && make qmake_all",
-        "qmake-arm": "~/Qt/6.5.3/macos/bin/qmake '../../app/app.pro' -spec macx-clang QMAKE_APPLE_DEVICE_ARCHS='x86_64 arm64' CONFIG+=qtquickcompiler && make qmake_all",
+        "qmake": "~/Qt/6.6.2/macos/bin/qmake '../../app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && make qmake_all",
+        "qmake-arm": "~/Qt/6.6.2/macos/bin/qmake '../../app/app.pro' -spec macx-clang QMAKE_APPLE_DEVICE_ARCHS='x86_64 arm64' CONFIG+=qtquickcompiler && make qmake_all",
         "make": "make -j8",
-        "macdeploy": "~/Qt/6.5.3/macos/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
+        "macdeploy": "~/Qt/6.6.2/macos/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
         "build-mac-binaries": "npm run build-mac && npm run sign-and-package",
         "build-mac": "npm run qmake && npm run make && npm run macdeploy",
         "build-mac-arm-binaries": "npm run build-mac-arm && npm run sign-and-package",

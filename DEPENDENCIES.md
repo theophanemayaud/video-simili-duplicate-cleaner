@@ -109,32 +109,26 @@ Then copy from install directory the includes and the lib files to the correct l
 
 ## OpenCV
 
-To build opencv, first follow :
-- [OpenCV Installation in MacOS](https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html)
-- We want a custom install directory to get all the dependencies in one place so use the cmake flag ```-DCMAKE_INSTALL_PREFIX=/Users/theophanemayaud/Dev/opencv_install```
-- If wanting static libraries use flag -DBUILD_SHARED_LIBS=OFF
-
-In the end the cmake command looks like : ```cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/Users/theophanemayaud/Dev/opencv_install -DBUILD_SHARED_LIBS=OFF ../opencv```
-
-You should now have in the ```/Users/theophanemayaud/Dev/opencv_install``` folder all the library files and includes.
-
-Then run ```make```, then run ```make install```
-
-Should try :
-```-DWITH_LAPACK=OFF``` and ```WITH_ITT=OFF```
-```-D OPENCV_GENERATE_PKGCONFIG=YES```
-
-```-DBUILD_LIST=core,imgproc```
-
-In the end :
+### TLDR :
 ```
 mkdir opencv-build
 mkdir opencv-install
 git clone https://github.com/opencv/opencv.git -b 4.8.0 --depth 1
 cd opencv-build
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../opencv_install -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64' -DBUILD_SHARED_LIBS=OFF -DBUILD_LIST=core,imgproc -D OPENCV_GENERATE_PKGCONFIG=YES ../opencv
+cmake -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=../opencv-install \
+      -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64' \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DBUILD_LIST=core,imgproc \
+      -DOPENCV_GENERATE_PKGCONFIG=YES \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+      ../opencv
 make -j8
 make install
+
+#cleanup
+cd ..
+rm -r -f opencv-build opencv ./opencv-install/bin ./opencv-install/share
 ```
 
 Flag `-DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'` is for compiling from arm macs, which creates a universal library (for both intel and arm macs). Witout it, the library will work for arm only qt linking.
@@ -152,6 +146,26 @@ To Test :
 But this needs to have the following line in the terminal .zshrc file (or enter it in the terminal) :
 export MACOSX_DEPLOYMENT_TARGET=10.13
 
+### Details were found with
+
+To build opencv, first follow :
+- [OpenCV Installation in MacOS](https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html)
+- We want a custom install directory to get all the dependencies in one place so use the cmake flag ```-DCMAKE_INSTALL_PREFIX=/Users/theophanemayaud/Dev/opencv_install```
+- If wanting static libraries use flag -DBUILD_SHARED_LIBS=OFF
+
+In the end the cmake command looks like : ```cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/Users/theophanemayaud/Dev/opencv_install -DBUILD_SHARED_LIBS=OFF ../opencv```
+
+You should now have in the ```/Users/theophanemayaud/Dev/opencv_install``` folder all the library files and includes.
+
+Then run ```make```, then run ```make install```
+
+Should try :
+```-DWITH_LAPACK=OFF``` and ```WITH_ITT=OFF```
+```-D OPENCV_GENERATE_PKGCONFIG=YES```
+
+```-DBUILD_LIST=core,imgproc```
+
+
 ## FFmpeg
 
 Similar to guide [FFmpeg Compilation guide macOS](https://trac.ffmpeg.org/wiki/CompilationGuide/macOS)
@@ -163,20 +177,26 @@ FFmpeg doesn't seem to support building as a univeral library (targeting both ar
 For the x86\_64 cross build from arm, ffmpeg configure scripts fails because of missing nasm/yasm (native code assembler), so simply install it with `brew install yasm`
 
 ```
+# build arm
 mkdir ffmpeg-build-arm
 mkdir ffmpeg-install-arm
 mkdir ffmpeg-build-x86-from-arm
 mkdir ffmpeg-install-x86-from-arm
 mkdir ffmpeg-universalized-libs 
-git clone https://github.com/FFmpeg/FFmpeg.git -b n4.4.4 --depth 1
+git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg -b n4.4.5 --depth 1
 cd ffmpeg-build-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=11.0' --extra-ldflags='-mmacosx-version-min=11.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
 make -j8
 make install
+
+# cross build x86
+brew install yasm || brew upgrade yasm
 cd ../ffmpeg-build-x86-from-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=11.0' --extra-ldflags='-mmacosx-version-min=11.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
 make -j8
 make install
+
+# create universalized libs
 cd ../ffmpeg-universalized-libs
 cp -r ../ffmpeg-install-arm/include .
 mkdir lib
@@ -190,6 +210,11 @@ lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libswresample.a -arch x86_64 
 lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libswscale.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libswscale.a -output lib/libswscale.a
 cp -r ../ffmpeg-install-arm/lib/pkgconfig ./lib/pkgconfig-arm
 cp -r ../ffmpeg-install-x86-from-arm/lib/pkgconfig ./lib/pkgconfig-x86_64-from-arm
+
+#cleanup
+cd ..
+rm -r -f ffmpeg-build-arm ffmpeg-install-arm ffmpeg-build-x86-from-arm ffmpeg-install-x86-from-arm ffmpeg-universalized-libs ffmpeg
+
 ```
 
 
