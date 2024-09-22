@@ -5,7 +5,7 @@ QT += core gui widgets sql
 
 QMAKE_TARGET_PRODUCT = \"\\\"$$TARGET\\\"\"
 QMAKE_TARGET_DESCRIPTION = \"\\\"$$TARGET\\\"\"
-QMAKE_TARGET_COPYRIGHT = "Copyright \\251 2018-2019 Kristian Koskim\\344ki"
+QMAKE_TARGET_COPYRIGHT = "Copyright \\251 2020-2024 Théophane Mayaud, 2018-2019 Kristian Koskim\\344ki"
 
 DEFINES += APP_NAME=\"\\\"$$TARGET\\\"\"
 DEFINES += APP_COPYRIGHT=\"\\\"$$QMAKE_TARGET_COPYRIGHT\\\"\"
