@@ -507,10 +507,12 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     if(vs->avg_frame_rate.num!=0 && vs->time_base.num!=0){// avg framerate can be 0/0 -> add 1 and ts_diff can be 0
         ts_diff = vs->avg_frame_rate.den * vs->time_base.den / (vs->avg_frame_rate.num * vs->time_base.num);
     }
+#ifdef DEBUG_VIDEO_READING
     long long start_time=0;
     if(vs->start_time!=AV_NOPTS_VALUE){
         start_time = vs->start_time;
     }
+#endif
     // don't need to offset by vs->start_time as stream duration doesn't seem to include this offset
     int64_t wanted_ts = 0;
     if(vs->time_base.num!=0){

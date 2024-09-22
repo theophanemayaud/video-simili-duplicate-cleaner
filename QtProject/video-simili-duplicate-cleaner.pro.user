@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 12.0.2, 2024-09-15T20:23:37. -->
+<!-- Written by QtCreator 12.0.2, 2024-09-22T18:14:13. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -72,10 +72,22 @@
    <valuemap type="QVariantMap" key="AutoTest.CheckStates">
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:initTestCase">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:test_comparison">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:test_videoToDelete_OnlyTimeDiffs">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:TestMainWindow">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:initTestCase">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:test_case1">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:TestVideo">PartiallyChecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:initTestCase">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_cachedNoThumbsCheck">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_nocache">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp_cached">Unchecked</value>
+    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp_nocache">Unchecked</value>
+    <value type="Qt::CheckState" key="1@:Qt Test">PartiallyChecked</value>
    </valuemap>
    <value type="int" key="AutoTest.RunAfterBuild">0</value>
    <value type="bool" key="AutoTest.UseGlobal">true</value>

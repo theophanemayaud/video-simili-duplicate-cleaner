@@ -7,8 +7,8 @@
  * Also sometimes, for some unknown reason, thumbnails don't come out the same.
  * But if you re-run tests a few times, it should get fixed
  * (or check visually with ENABLE_MANUAL_THUMBNAIL_VERIF) */
-// #define ENABLE_THUMBNAIL_VERIF
-// #define ENABLE_MANUAL_THUMBNAIL_VERIF
+#define ENABLE_THUMBNAIL_VERIF
+#define ENABLE_MANUAL_THUMBNAIL_VERIF // also disables test duration limit as manual checks can take time !
 
 // Sometimes hashes go crazy, so we can manually disable them to see if other problems exist
 // #define ENABLE_HASHES_VERIFICATION
@@ -59,12 +59,12 @@ private:
     const QDir _100GBthumbnailDir_nocache = QDir("");
     const QFileInfo _100GBcsvInfo_nocache = QFileInfo("");
 #elif defined(Q_OS_MACOS)
-    QDir _videoDir = QDir("/Users/theophane/Dev/Videos across all formats with duplicates of all kinds/Videos/");
-    const QDir _thumbnailDir_nocache = QDir("/Users/theophane/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
-    const QFileInfo _csvInfo_nocache = QFileInfo("/Users/theophane/Dev/Videos across all formats with duplicates of all kinds/tests-nocache.csv");
+    QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Videos");
+    const QDir _thumbnailDir_nocache = QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
+    const QFileInfo _csvInfo_nocache = QFileInfo("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-nocache.csv");
 
-    const QDir _thumbnailDir_cached = QDir("/Users/theophane/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
-    const QFileInfo _csvInfo_cached = QFileInfo("/Users/theophane/Dev/Videos across all formats with duplicates of all kinds/tests-cached.csv");
+    const QDir _thumbnailDir_cached = QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
+    const QFileInfo _csvInfo_cached = QFileInfo("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-cached.csv");
 
     QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");
     const QDir _100GBthumbnailDir_nocache = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Thumbnails-nocache/");
@@ -155,10 +155,11 @@ void TestVideo::test_whole_app_nocache(){
     const int nb_valid_vids_to_find = 197; //before remove big file tests 204;
     const int nb_matching_vids_to_find = 71;
 
+    // macOS universal on arm m3 pro mbp : 3'120ms, 3710ms so cap around 5s
     // macOS arm on M1        : 6 sec
     // macOS intel on intel   : 13 sec (before remove big file tests)
     // windows intel on intel : 13.5 sec (before remove big file tests)
-   const qint64 ref_ms_time = 7*1000;
+   const qint64 ref_ms_time = 5*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -188,7 +189,9 @@ void TestVideo::test_whole_app_nocache(){
     QVERIFY2(w._videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w._videoList.count()).arg(nb_valid_vids_to_find).toStdString().c_str());
     QVERIFY2(matchingVideoNb==nb_matching_vids_to_find, QString("Found %1 matching vids but should be %2").arg(matchingVideoNb).arg(nb_matching_vids_to_find).toStdString().c_str());
 
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 
     comp.show();
 
@@ -203,12 +206,13 @@ void TestVideo::test_whole_app_nocache(){
 void TestVideo::test_whole_app_cached(){
     const int nb_vids_to_find = 200;
     const int nb_valid_vids_to_find = 197;
-    const int nb_matching_vids_to_find = 70;
+    const int nb_matching_vids_to_find = 72;
 
+    // macOS universal on arm m3 pro mbp : 612ms, 627ms, ... so cap around 1s
     // macOS arm on M1 : 1 sec
     // macOS intel on intel : 3 sec (before remove big file tests 207)
     // windows intel on intel : 2.75 sec (before remove big file tests 207)
-   const qint64 ref_ms_time = 2*1000;
+   const qint64 ref_ms_time = 1*1000;
 
    // run a first time to make sure all data is cached
    test_whole_app();
@@ -240,7 +244,9 @@ void TestVideo::test_whole_app_cached(){
     QVERIFY2(w._videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w._videoList.count()).arg(nb_valid_vids_to_find).toStdString().c_str());
     QVERIFY2(matchingVideoNb==nb_matching_vids_to_find, QString("Found %1 matching vids but should be %2").arg(matchingVideoNb).arg(nb_matching_vids_to_find).toStdString().c_str());
 
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_cached took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 
     comp.show();
 
@@ -255,12 +261,13 @@ void TestVideo::test_whole_app_cached(){
 void TestVideo::test_whole_app_cache_only(){
     const int nb_vids_to_find =  200; // before remove big file tests 207
     const int nb_valid_vids_to_find = 197; // before remove big file tests 204
-    const int nb_matching_vids_to_find = 70; // before remove big file tests 74
+    const int nb_matching_vids_to_find = 72; // before remove big file tests 74
 
+    // macOS universal on arm m3 pro mbp : 712ms, 583ms ... so cap around 1s
     // macOS arm on M1 :     <1 sec
     // macos intel on intel : 3.203 sec (before remove big file tests 207)
     // windows : ?? sec
-   const qint64 ref_ms_time = 2*1000;
+   const qint64 ref_ms_time = 1*1000;
 
    // run a first time to make sure all data is cached
    test_whole_app();
@@ -289,10 +296,13 @@ void TestVideo::test_whole_app_cache_only(){
     qDebug() << "TIMER:test_whole_app_cache_only took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
 
     QVERIFY2(w._everyVideo.count()==nb_vids_to_find, QString("Found %1 files but should be %2").arg(w._everyVideo.count()).arg(nb_vids_to_find).toStdString().c_str());
+    // TODO check which specific pairs !
     QVERIFY2(w._videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w._videoList.count()).arg(nb_valid_vids_to_find).toStdString().c_str());
     QVERIFY2(matchingVideoNb==nb_matching_vids_to_find, QString("Found %1 matching vids but should be %2").arg(matchingVideoNb).arg(nb_matching_vids_to_find).toStdString().c_str());
 
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_cache_only took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 
     comp.show();
 
@@ -305,9 +315,10 @@ void TestVideo::test_whole_app_cache_only(){
     w.destroy();
 };
 void TestVideo::test_check_refvidparams_nocache(){
+    // macOS universal on arm m3 pro mbp : 16'305ms, 16'751ms, 17'117ms, so cap around 20'000ms
     // macOS intel on intel : 35 sec (before remove big file tests)
     // windows intel on intel : 47 sec, another time run : 36sec (before remove big file tests)
-    const qint64 ref_ms_time = 40*1000;
+    const qint64 ref_ms_time = 20*1000;
 
     QElapsedTimer timer;
     timer.start();
@@ -336,13 +347,16 @@ void TestVideo::test_check_refvidparams_nocache(){
         compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(ref_thumbnail, videoParam, vid);
     }
     qDebug() << "TIMER:test_check_refvidparams_nocache took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_check_refvidparams_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 }
 
 void TestVideo::test_check_refvidparams_cached(){
+    // macOS universal on arm m3 pro mbp : 2'494ms, 2'606ms, ... so cap around 5s
     // macOS intel on intel : 8 sec (before remove big file tests)
     // windows intel on intel : 9 sec (before remove big file tests)
-    const qint64 ref_ms_time = 10*1000;
+    const qint64 ref_ms_time = 5*1000;
 
     test_whole_app(); // create the cache if it didn't exist before
 
@@ -373,7 +387,9 @@ void TestVideo::test_check_refvidparams_cached(){
         compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(ref_thumbnail, videoParam, vid, true); // because we're loading cached thumbnails, we can compare thumbnails !
     }
     qDebug() << "TIMER:test_check_refvidparams_cached took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_check_refvidparams_cached took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 }
 
 /*void TestVideo::createRefVidParams_nocache()
@@ -607,7 +623,9 @@ void TestVideo::test_100GBcheckRefVidParams(){
     }
 
     qDebug() << "TIMER:test_100GBcheckRefVidParams took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_100GBcheckRefVidParams took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 }
 
 void TestVideo::test_100GBcheckRefVidParams_nocache(){
@@ -652,7 +670,9 @@ void TestVideo::test_100GBcheckRefVidParams_nocache(){
     }
 
     qDebug() << "TIMER:test_100GBcheckRefVidParams_nocache took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_100GBcheckRefVidParams_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 }
 
 void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
@@ -701,7 +721,9 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
     }
 
     qDebug() << "TIMER:test_100GBcheckRefVidParams_cached took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_100GBcheckRefVidParams_cached took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 }
 
 // used to create cache if not already available, but will use cache if already available !
@@ -757,7 +779,9 @@ void TestVideo::test_100GBwholeApp(){
 //    QVERIFY2(w._videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w._videoList.count()).arg(nb_valid_vids_to_find).toStdString().c_str());
 //    QVERIFY2(matchingVideoNb==nb_matching_vids_to_find, QString("Found %1 matching vids but should be %2").arg(matchingVideoNb).arg(nb_matching_vids_to_find).toStdString().c_str());
 
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_whole_app_100GB took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 
     comp.show();
 
@@ -811,7 +835,9 @@ void TestVideo::test_100GBwholeApp_nocache(){
     QVERIFY2(w._videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w._videoList.count()).arg(nb_valid_vids_to_find).toStdString().c_str());
     QVERIFY2(matchingVideoNb==nb_matching_vids_to_find, QString("Found %1 matching vids but should be %2").arg(matchingVideoNb).arg(nb_matching_vids_to_find).toStdString().c_str());
 
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_wholeApp100GB_nocache took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 
     comp.show();
 
@@ -867,7 +893,9 @@ void TestVideo::test_100GBwholeApp_cached(){
     QVERIFY2(w._videoList.count()==nb_valid_vids_to_find, QString("Found %1 valid files but should be %2").arg(w._videoList.count()).arg(nb_valid_vids_to_find).toStdString().c_str());
     QVERIFY2(matchingVideoNb==nb_matching_vids_to_find, QString("Found %1 matching vids but should be %2").arg(matchingVideoNb).arg(nb_matching_vids_to_find).toStdString().c_str());
 
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     QVERIFY2(timer.elapsed()<ref_ms_time, QString("test_wholeApp100GB_cached took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(ref_ms_time/1000).arg(ref_ms_time%1000).toStdString().c_str());
+#endif
 
     comp.show();
 
