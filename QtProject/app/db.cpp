@@ -9,81 +9,50 @@
  * @return:
  *      - true if successfully found and connected to db/cache file, false if error
  **/
-bool Db::initDbAndCacheLocation(Prefs *prefs){
-    if(!prefs->cacheFilePathName.isEmpty()){
-        qDebug() << "Already set cache location, should not do it again !";
+bool Db::initDbAndCacheLocation(Prefs &prefs){
+    if(!prefs.cacheFilePathName().isEmpty()
+        && initDbAndCache(prefs))
+    {
+            return true;
+    }
+
+    //attempt with system application local cache folder (doesn't seem to work on windows in dev mode
+    QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    QString dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder.path());
+    if(!cacheFolder.exists())
+        QDir().mkpath(cacheFolder.path());
+    prefs.cacheFilePathName(dbfilename);
+    if(initDbAndCache(prefs))
         return true;
-    }
 
-    const QString uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
-    {
-        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
+    //attempt with application folder path
+    prefs.cacheFilePathName(QStringLiteral("%1/cache.db").arg(QApplication::applicationDirPath()));
+    if(initDbAndCache(prefs))
+        return true;
 
-        //attempt with system application local cache folder (doesn't seem to work on windows in dev mode
-        QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-        if(!cacheFolder.exists())
-            QDir().mkpath(cacheFolder.path());
-        QString dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder.path());
-        db.setDatabaseName(dbfilename);
-
-        if(!db.open()){
-            //attempt with application folder path
-            cacheFolder = QApplication::applicationDirPath();
-            dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder.path());
-            db.setDatabaseName(dbfilename);
-
-            if(!db.open()){
-                // attempt with user specified location
-                QMessageBox::about(prefs->_mainwPtr,
-                                   "Default cache location not accessible",
-                                   "The default cache location was not writable, please manually select a location for the cache file.");
-                dbfilename = getUserSelectedCacheNamePath(prefs);
-                db.setDatabaseName(dbfilename);
-                if(!db.open()){
-                    return false;
-                }
-            }
-        }
-        prefs->cacheFilePathName = dbfilename;
-        createTables(db, prefs->appVersion);
-        db.close();
-    }
-
-    QSqlDatabase().removeDatabase(uniqueConnexionName); // clear the connexion backlog, basically... !
-    return true;
+    return false;
 }
 
-bool Db::initCustomDbAndCacheLocation(Prefs *prefs){
-    const QString uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
-    {
-        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
-        QString dbfilename = getUserSelectedCacheNamePath(prefs);
-        if(dbfilename.isNull())
-            return false;
-        db.setDatabaseName(dbfilename);
-        if(!db.open()){
-            return false;
-        }
-        prefs->cacheFilePathName = dbfilename;
-        createTables(db, prefs->appVersion);
-        db.close();
-    }
-
-    QSqlDatabase().removeDatabase(uniqueConnexionName); // clear the connexion backlog, basically... !
-    return true;
+bool Db::initCustomDbAndCacheLocation(Prefs &prefs){
+    QString dbfilename = getUserSelectedCacheNamePath(prefs);
+    if(dbfilename.isNull())
+        return false;
+    prefs.cacheFilePathName(dbfilename);
+    return initDbAndCache(prefs);
 }
 
-void Db::emptyAllDb(const Prefs prefs){
-    if(prefs.cacheFilePathName.isEmpty()){
+
+bool Db::emptyAllDb(const Prefs prefs){
+    if(prefs.cacheFilePathName().isEmpty()){
         qDebug() << "Database path not set, can't empty cache.";
-        return;
+        return false;
     }
 
     const QString connexionName = QUuid::createUuid().toString();
     {     // isolate queries, so that when we removeDatabase, it doesn't warn of possible problems
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
                                                 connexionName);
-        db.setDatabaseName(prefs.cacheFilePathName);
+        db.setDatabaseName(prefs.cacheFilePathName());
         db.open();
 
         QSqlQuery query(db);
@@ -101,6 +70,7 @@ void Db::emptyAllDb(const Prefs prefs){
     }
 
     QSqlDatabase().removeDatabase(connexionName); // clear the connexion backlog, basically... !
+    return true;
 }
 
 // -------------------- END : public static functions -------------------
@@ -108,6 +78,25 @@ void Db::emptyAllDb(const Prefs prefs){
 
 // ----------------------------------------------------------------------
 // -------------------- START : private static functions ----------------
+bool Db::initDbAndCache(const Prefs& prefs){
+    if(prefs.cacheFilePathName().isEmpty())
+        return false;
+
+    const QString uniqueConnexionName = QUuid::createUuid().toString(); // each instance of Db must connect separately, uniquely
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
+        db.setDatabaseName(prefs.cacheFilePathName());
+        if(!db.open()){
+            return false;
+        }
+        createTables(db, prefs.appVersion);
+        db.close();
+    }
+
+    QSqlDatabase().removeDatabase(uniqueConnexionName); // clear the connexion backlog, basically... !
+    return true;
+}
+
 void Db::createTables(QSqlDatabase db, const QString appVersion)
 {
     QSqlQuery query(db);
@@ -172,9 +161,9 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
     query.exec(QStringLiteral("INSERT OR REPLACE INTO version VALUES('%1');").arg(appVersion));
 }
 
-QString Db::getUserSelectedCacheNamePath(Prefs *prefs){
+QString Db::getUserSelectedCacheNamePath(const Prefs &prefs){
     // attempt with user specified location
-    QString dbfilename = QFileDialog::getSaveFileName(prefs->_mainwPtr, "Save/Load Cache",
+    QString dbfilename = QFileDialog::getSaveFileName(prefs._mainwPtr, "Save/Load Cache",
                                QStandardPaths::writableLocation(QStandardPaths::HomeLocation),
                                "Cache (*.db)");
     return dbfilename;

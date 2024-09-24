@@ -60,8 +60,8 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->progressBar->setVisible(false);
     ui->mainToolBar->setVisible(false);
 
-    if(Db::initDbAndCacheLocation(&_prefs))
-        addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName + "\n");
+    if(Db::initDbAndCacheLocation(_prefs))
+        addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName() + "\n");
     else
         addStatusMessage("\nError accessing cache, will not use any.\n");
 }
@@ -203,7 +203,7 @@ void MainWindow::on_findDuplicates_clicked()
                 ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
         }
         else{
-            _everyVideo = Db(_prefs.cacheFilePathName).getCachedVideoPathnamesInFolders(directories);
+            _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
         }
 
         processVideos();
@@ -399,31 +399,39 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionEmpty_cache_triggered()
 {
-    Db::emptyAllDb(_prefs);
+    if(Db::emptyAllDb(_prefs))
+        addStatusMessage(QString("\nEmptied cache at:  %1\n").arg(_prefs.cacheFilePathName()));
+    else
+        addStatusMessage(QString("\nFailed to empty cache at:  %1\n").arg(_prefs.cacheFilePathName()));
 }
 
 void MainWindow::on_actionSet_custom_cache_location_triggered()
 {
-    if(Db::initCustomDbAndCacheLocation(&_prefs)){
-        ui->actionSet_custom_cache_location->setEnabled(false);
-        ui->actionRestore_default_cache_location->setEnabled(true);
-        addStatusMessage(QString("\nCache now used:  %1\n").arg(_prefs.cacheFilePathName));
+    if(Db::initCustomDbAndCacheLocation(_prefs)){
+        addStatusMessage(QString("\nCache now used:  %1\n").arg(_prefs.cacheFilePathName()));
     }
     else
-        addStatusMessage(QString("\nError selecting custom cache.\n"));
+        addStatusMessage(QString("\nError selecting custom cache. Probably no cache now.\n"));
+}
+
+void MainWindow::on_actionRestore_all_settings_triggered()
+{
+    this->_prefs.resetSettings();
+    if(Db::initDbAndCacheLocation(_prefs))
+        addStatusMessage("\nCache restored to: " + this->_prefs.cacheFilePathName() + "\n");
+    else
+        addStatusMessage(QString("\nError restoring default cache. Probably no cache now.\n"));
+
+    on_actionRestoreMoveToTrash_triggered();
 }
 
 void MainWindow::on_actionRestore_default_cache_location_triggered()
 {
-    _prefs.cacheFilePathName = "";
-    if(Db::initDbAndCacheLocation(&_prefs)){
-        addStatusMessage("\nCache restored to: " + _prefs.cacheFilePathName + "\n");
-    }
+    _prefs.cacheFilePathName("");
+    if(Db::initDbAndCacheLocation(_prefs))
+        addStatusMessage("\nCache restored to: " + _prefs.cacheFilePathName() + "\n");
     else
         addStatusMessage(QString("\nError restoring default cache. Probably no cache now.\n"));
-
-    ui->actionSet_custom_cache_location->setEnabled(true);
-    ui->actionRestore_default_cache_location->setEnabled(false);
 }
 
 void MainWindow::on_actionCredits_triggered()

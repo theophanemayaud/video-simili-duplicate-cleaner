@@ -221,7 +221,7 @@ bool Comparison::bothVideosMatch(const Video *left, const Video *right)
     if(!theyMatch)
         return false;
     // check if pair is flagged as not dupplicate in DB. DB is very slow so only do this after all checks
-    else if(Db(_prefs.cacheFilePathName).isPairToIgnore(left->_filePathName, right->_filePathName))
+    else if(Db(_prefs.cacheFilePathName()).isPairToIgnore(left->_filePathName, right->_filePathName))
         return false;
 
     return true;
@@ -659,7 +659,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                     emit sendStatusMessage(QString("Moved %1 to album 'Trash from %2' of Apple Photos Library")
                                            .arg(QDir::toNativeSeparators(filename), APP_NAME));
 
-                    Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
+                    Db(_prefs.cacheFilePathName()).removeVideo(filename); // remove it from the cache as it is not needed anymore !
                     if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
                         _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
                     return;
@@ -737,7 +737,7 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                 break;
             }
 
-            Db(_prefs.cacheFilePathName).removeVideo(filename); // remove it from the cache as it is not needed anymore !
+            Db(_prefs.cacheFilePathName()).removeVideo(filename); // remove it from the cache as it is not needed anymore !
             if(!auto_trash_mode) // in auto trash mode, the seeking is already handled
                 _seekForwards? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
@@ -813,7 +813,7 @@ void Comparison::on_swapFilenames_clicked() const
 
     // remove both from cache, otherwise they will be stored in the cache inverted from their full path names
     // TODO : could just rename them in the cache... ?
-    Db cache(_prefs.cacheFilePathName); // opening connexion to database
+    Db cache(_prefs.cacheFilePathName()); // opening connexion to database
     cache.removeVideo(oldLeftFilename);
     cache.removeVideo(oldRightFilename);
 }
@@ -1419,7 +1419,7 @@ void Comparison::on_settingNamesInAnotherCheckbox_stateChanged(int arg1)
 
 void Comparison::on_ignoreDuplicatePairButton_clicked()
 {
-    Db cache(_prefs.cacheFilePathName); // opening connexion to database
+    Db cache(_prefs.cacheFilePathName()); // opening connexion to database
     cache.writePairToIgnore(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName);
     on_nextVideo_clicked();
 }

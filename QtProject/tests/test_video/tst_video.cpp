@@ -74,7 +74,7 @@ private:
 private slots:
     void initTestCase();
 
-    void emptyDb(){ Prefs prefs; Db::initDbAndCacheLocation(&prefs); Db::emptyAllDb(prefs); }
+    void emptyDb(){ Prefs prefs; Db::initDbAndCacheLocation(prefs); Db::emptyAllDb(prefs); }
 
 //    void createRefVidParams_nocache();
 //    void createRefVidParams_cached();
@@ -159,8 +159,9 @@ void TestVideo::test_whole_app_nocache(){
     // macOS arm on M1        : 6 sec
     // macOS intel on intel   : 13 sec (before remove big file tests)
     // windows intel on intel : 13.5 sec (before remove big file tests)
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
    const qint64 ref_ms_time = 5*1000;
-
+#endif
     QElapsedTimer timer;
     timer.start();
 
@@ -212,8 +213,9 @@ void TestVideo::test_whole_app_cached(){
     // macOS arm on M1 : 1 sec
     // macOS intel on intel : 3 sec (before remove big file tests 207)
     // windows intel on intel : 2.75 sec (before remove big file tests 207)
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
    const qint64 ref_ms_time = 1*1000;
-
+#endif
    // run a first time to make sure all data is cached
    test_whole_app();
 
@@ -267,8 +269,9 @@ void TestVideo::test_whole_app_cache_only(){
     // macOS arm on M1 :     <1 sec
     // macos intel on intel : 3.203 sec (before remove big file tests 207)
     // windows : ?? sec
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
    const qint64 ref_ms_time = 1*1000;
-
+#endif
    // run a first time to make sure all data is cached
    test_whole_app();
 
@@ -318,8 +321,9 @@ void TestVideo::test_check_refvidparams_nocache(){
     // macOS universal on arm m3 pro mbp : 16'305ms, 16'751ms, 17'117ms, so cap around 20'000ms
     // macOS intel on intel : 35 sec (before remove big file tests)
     // windows intel on intel : 47 sec, another time run : 36sec (before remove big file tests)
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 20*1000;
-
+#endif
     QElapsedTimer timer;
     timer.start();
 
@@ -356,8 +360,9 @@ void TestVideo::test_check_refvidparams_cached(){
     // macOS universal on arm m3 pro mbp : 2'494ms, 2'606ms, ... so cap around 5s
     // macOS intel on intel : 8 sec (before remove big file tests)
     // windows intel on intel : 9 sec (before remove big file tests)
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 5*1000;
-
+#endif
     test_whole_app(); // create the cache if it didn't exist before
 
     QElapsedTimer timer;
@@ -371,7 +376,7 @@ void TestVideo::test_check_refvidparams_cached(){
     // compute params for all videos
     QVERIFY(!_videoDir.isEmpty());
     Prefs prefs;
-    Db::initDbAndCacheLocation(&prefs);
+    Db::initDbAndCacheLocation(prefs);
     foreach(VideoParam videoParam, videoParamList){
         QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
         QVERIFY2(videoParam.thumbnailInfo.exists(), videoParam.thumbnailInfo.absoluteFilePath().toUtf8().constData());
@@ -584,8 +589,9 @@ void TestVideo::test_100GBcheckRefVidParams(){
     // cached thumbs, library(only) metadata, exec captures : 12 min
     // no cached thumbs, lib(only) metadata, lib(only) captures : 48 min
     // cached thumbs, lib(only) metadata, lib(only) captures : 12 min
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 50*60*1000;
-
+#endif
     QElapsedTimer timer;
     timer.start();
 
@@ -631,8 +637,9 @@ void TestVideo::test_100GBcheckRefVidParams(){
 void TestVideo::test_100GBcheckRefVidParams_nocache(){
     // no cached thumbs, library(only) metadata, exec captures : 37
     // no cached thumbs, lib(only) metadata, lib(only) captures : 48 min
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 50*60*1000;
-
+#endif
     QElapsedTimer timer;
     timer.start();
 
@@ -679,8 +686,9 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
     // cached thumbs, mix lib&exec metadata, exec captures : 39 min
     // cached thumbs, library(only) metadata, exec captures : 12 min
     // cached thumbs, lib(only) metadata, lib(only) captures : 12 min
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 50*60*1000;
-
+#endif
     test_100GBwholeApp(); // make sure everything is cached
 
     QElapsedTimer timer;
@@ -697,7 +705,7 @@ void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
     int test_nb = 0;
     const int nb_tests = videoParamList.count();
     Prefs prefs;
-    Db::initDbAndCacheLocation(&prefs);
+    Db::initDbAndCacheLocation(prefs);
     foreach(VideoParam videoParam, videoParamList){
 
         QVERIFY2(videoParam.videoInfo.exists(), videoParam.videoInfo.absoluteFilePath().toUtf8().constData());
@@ -750,8 +758,9 @@ void TestVideo::test_100GBwholeApp(){
     // cached thumbs, lib(only) metadata, exec captures : 6 min
     // no cached thumbs, lib(only) metadata, lib(only) captures : 17 min
     // cached thumbs, lib(only) metadata, lib(only) captures : 6 min
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 20*60*1000;
-
+#endif
     QElapsedTimer timer;
     timer.start();
 
@@ -806,8 +815,9 @@ void TestVideo::test_100GBwholeApp_nocache(){
     // no cached thumbs, mix lib&exec metadata, exec captures : 36 min
     // no cached thumbs, lib(only) metadata, exec captures : 30 min
     // no cached thumbs, lib(only) metadata, lib(only) captures : 17 min
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 20*60*1000;
-
+#endif
     QElapsedTimer timer;
     timer.start();
 
@@ -862,8 +872,9 @@ void TestVideo::test_100GBwholeApp_cached(){
     // cached thumbs, mix lib&exec metadata, exec captures : 17 min
     // cached thumbs, lib(only) metadata, exec captures : 6 min
     // cached thumbs, lib(only) metadata, lib(only) captures : 6 min
+#ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
     const qint64 ref_ms_time = 10*60*1000;
-
+#endif
     test_100GBwholeApp(); // run a first time to make sure everything is cached
 
     QElapsedTimer timer;

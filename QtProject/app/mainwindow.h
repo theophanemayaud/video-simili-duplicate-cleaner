@@ -73,7 +73,6 @@ private slots:
     void addVideo(Video *addMe);
     void removeVideo(Video *deleteMe, QString errorMsg);
     void on_actionAbout_triggered();
-    void on_actionEmpty_cache_triggered();
     void on_actionCredits_triggered();
     void on_actionContact_triggered();
 
@@ -81,8 +80,11 @@ private slots:
     void on_actionEnable_direct_deletion_instead_of_trash_triggered();
     void on_actionRestoreMoveToTrash_triggered();
 
+    void on_actionEmpty_cache_triggered();
     void on_actionSet_custom_cache_location_triggered();
     void on_actionRestore_default_cache_location_triggered();
+
+    void on_actionRestore_all_settings_triggered();
 
     // cache options
     void on_radio_UseCacheNo_clicked() {_useCacheOption = Video::NO_CACHE;};

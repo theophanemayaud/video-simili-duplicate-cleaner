@@ -28,14 +28,15 @@ private:
     QSqlDatabase _db;
     QString _uniqueConnexionName;
     static void createTables(QSqlDatabase db, const QString appVersion);
-    static QString getUserSelectedCacheNamePath(Prefs *prefs);
+    static QString getUserSelectedCacheNamePath(const Prefs &prefs);
+    static bool initDbAndCache(const Prefs& prefs);
 
 public:
-    static bool initDbAndCacheLocation(Prefs *prefs);
+    static bool initDbAndCacheLocation(Prefs &prefs);
 
-    static bool initCustomDbAndCacheLocation(Prefs *prefs);
+    static bool initCustomDbAndCacheLocation(Prefs &prefs);
 
-    static void emptyAllDb(const Prefs prefs);
+    static bool emptyAllDb(const Prefs prefs);
 
 //    //return md5 hash of parameter's file, used internally as "unique id" for each file
 //    static QString pathnameHashId(const QString &filename=QStringLiteral(""));

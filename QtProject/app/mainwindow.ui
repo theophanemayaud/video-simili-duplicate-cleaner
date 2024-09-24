@@ -550,6 +550,7 @@ Errors will be listed in any case.</string>
     <addaction name="actionEnable_direct_deletion_instead_of_trash"/>
     <addaction name="actionRestoreMoveToTrash"/>
     <addaction name="separator"/>
+    <addaction name="actionRestore_all_settings"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -614,7 +615,7 @@ Errors will be listed in any case.</string>
   </action>
   <action name="actionRestore_default_cache_location">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>Restore default cache location</string>
@@ -626,6 +627,11 @@ Errors will be listed in any case.</string>
    </property>
    <property name="text">
     <string>Enable direct deletion instead of trash</string>
+   </property>
+  </action>
+  <action name="actionRestore_all_settings">
+   <property name="text">
+    <string>Restore all settings</string>
    </property>
   </action>
  </widget>

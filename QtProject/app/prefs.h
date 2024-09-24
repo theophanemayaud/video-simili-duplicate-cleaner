@@ -3,6 +3,8 @@
 
 #include <QWidget>
 #include <QDir>
+#include <QSettings>
+
 #include "thumbnail.h"
 
 #define SSIM_THRESHOLD 1.0
@@ -29,9 +31,12 @@ public:
     DeletionModes delMode = STANDARD_TRASH;
     QDir trashDir = QDir::root();
 
-    QString cacheFilePathName = "";
-
     QString appVersion = "undefined";
+
+    QString cacheFilePathName() const {return QSettings(APP_NAME, APP_NAME).value("cache_file_path_name").toString();}
+    void cacheFilePathName(const QString cacheFilePathName) {QSettings(APP_NAME, APP_NAME).setValue("cache_file_path_name", cacheFilePathName);}
+
+    void resetSettings() {QSettings(APP_NAME, APP_NAME).clear();}
 };
 
 #endif // PREFS_H
