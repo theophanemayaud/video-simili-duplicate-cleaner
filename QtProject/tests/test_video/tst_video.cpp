@@ -66,9 +66,9 @@ private:
     const QDir _thumbnailDir_cached = QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
     const QFileInfo _csvInfo_cached = QFileInfo("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-cached.csv");
 
-    QDir _100GBvideoDir = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Videos/");
-    const QDir _100GBthumbnailDir_nocache = QDir("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/Thumbnails-nocache/");
-    const QFileInfo _100GBcsvInfo_nocache = QFileInfo("/Volumes/Mays2TOSSD/ZZ - Temporaires pas backup/Video duplicates - just for checking later my video duplicate program still works/100GBtests-nocache.csv");
+    QDir _100GBvideoDir = QDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Videos/");
+    const QDir _100GBthumbnailDir_nocache = QDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Thumbnails-nocache/");
+    const QFileInfo _100GBcsvInfo_nocache = QFileInfo("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/100GBtests-nocache.csv");
 #endif
 
 private slots:
@@ -89,7 +89,7 @@ private slots:
 //    void create100GBrefVidParams_nocache();
     void test_100GBcheckRefVidParams();
     void test_100GBcheckRefVidParams_nocache();
-    void test_100GBcheckRefVidParams_cachedNoThumbsCheck();
+    void test_100GBcheckRefVidParams_cached();
 
     void test_100GBwholeApp();
     void test_100GBwholeApp_nocache();
@@ -105,6 +105,8 @@ TestVideo::~TestVideo(){}
 // Run before all tests
 void TestVideo::initTestCase(){
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
+    Prefs().resetSettings();
+    qDebug() << "Cleared settings";
 }
 
 // Run after all tests
@@ -635,10 +637,11 @@ void TestVideo::test_100GBcheckRefVidParams(){
 }
 
 void TestVideo::test_100GBcheckRefVidParams_nocache(){
-    // no cached thumbs, library(only) metadata, exec captures : 37
-    // no cached thumbs, lib(only) metadata, lib(only) captures : 48 min
 #ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
-    const qint64 ref_ms_time = 50*60*1000;
+    // 37 min: no cached thumbs, library(only) metadata, exec captures
+    // 48 min: intel i5 no cached thumbs, lib(only) metadata, lib(only) captures
+    // 26 min 36 s: arm m3 Pro with arm build & arm lib 2024 oct. with no thumbnail check
+    const qint64 ref_ms_time = 28*60*1000;
 #endif
     QElapsedTimer timer;
     timer.start();
@@ -682,11 +685,12 @@ void TestVideo::test_100GBcheckRefVidParams_nocache(){
 #endif
 }
 
-void TestVideo::test_100GBcheckRefVidParams_cachedNoThumbsCheck(){
-    // cached thumbs, mix lib&exec metadata, exec captures : 39 min
-    // cached thumbs, library(only) metadata, exec captures : 12 min
-    // cached thumbs, lib(only) metadata, lib(only) captures : 12 min
+void TestVideo::test_100GBcheckRefVidParams_cached(){
 #ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
+    // 39 min: cached thumbs, mix lib&exec metadata, exec captures
+    // 12 min: cached thumbs, library(only) metadata, exec captures
+    // 12 min: cached thumbs, lib(only) metadata, lib(only) captures
+    //
     const qint64 ref_ms_time = 50*60*1000;
 #endif
     test_100GBwholeApp(); // make sure everything is cached
@@ -802,21 +806,26 @@ void TestVideo::test_100GBwholeApp(){
 };
 
 void TestVideo::test_100GBwholeApp_nocache(){
-    // Constants of the test
     const int nb_vids_to_find = 12505;
-    const int nb_valid_vids_to_find = 12328;
-    const int nb_matching_vids_to_find = 6558;
-    // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
-    // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6562 videos with one or more matches. When cached finds 6553...
-    // after redo of caching :
-    //      finds 12328 valid vids when not cached, but 12330 when cached... ?!
-    //      finds 6558 matches with no cache (97.1GB) but 6550 matches when cached (97.0GB) ?!
 
-    // no cached thumbs, mix lib&exec metadata, exec captures : 36 min
-    // no cached thumbs, lib(only) metadata, exec captures : 30 min
-    // no cached thumbs, lib(only) metadata, lib(only) captures : 17 min
+    // 12 328 after redo of caching
+    // 12 330 arm m3 Pro with arm build & arm lib 2024 oct.
+    const int nb_valid_vids_to_find = 12330;
+
+    // Number of vids to find with one or more matches when not cached
+    //      6626 videos with one or more matches : mix lib&exec metadata, exec captures
+    //      6562 videos with one or more matches: lib(only) metadata, lib(only) captures
+    //      6558 matches (97.1GB) arm but intel build
+    //      6568 video(s) (97.2 GB) arm m3 Pro with arm build & arm lib 2024 oct.
+    const int nb_matching_vids_to_find = 6568;
+
 #ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
-    const qint64 ref_ms_time = 20*60*1000;
+    // 36 min: mix lib&exec metadata, exec captures
+    // 30 min: lib(only) metadata, exec captures
+    // 17 min: no cached thumbs, lib(only) metadata, lib(only) captures
+    // 17 min: lib(only) metadata, lib(only) captures
+    // 6 min 30s: arm m3 Pro with arm build & arm lib 2024 oct.
+    const qint64 ref_ms_time = 7*60*1000;
 #endif
     QElapsedTimer timer;
     timer.start();
@@ -859,21 +868,25 @@ void TestVideo::test_100GBwholeApp_nocache(){
 }
 
 void TestVideo::test_100GBwholeApp_cached(){
-    // Constants of the test
     const int nb_vids_to_find = 12505;
-    const int nb_valid_vids_to_find = 12330;
-    const int nb_matching_vids_to_find = 6550;
-    // mix lib&exec metadata, exec captures : finds 6626 videos with one or more matches
-    // no cached thumbs, lib(only) metadata, lib(only) captures : finds 6562 videos with one or more matches. When cached finds 6553...
-    // after redo of caching :
-    //      finds 12328 valid vids when not cached, but 12330 when cached... ?!
-    //      finds 6558 matches with no cache (97.1GB) but 6550 matches when cached (97.0GB) ?!
 
-    // cached thumbs, mix lib&exec metadata, exec captures : 17 min
-    // cached thumbs, lib(only) metadata, exec captures : 6 min
-    // cached thumbs, lib(only) metadata, lib(only) captures : 6 min
+    // 12 330 after redo of caching
+    // 12 330 arm m3 Pro with arm build & arm lib 2024 oct.
+    const int nb_valid_vids_to_find = 12330;
+
+    // Number of vids to find with one or more matches when cached
+    //      6626: mix lib&exec metadata, exec captures
+    //      6553: lib(only) metadata, lib(only) captures
+    //      6550 (97.1GB): after redo of caching
+    //      6555 (97.1 GB): arm with arm build & arm lib oct. 2024
+    const int nb_matching_vids_to_find = 6555;
+
 #ifndef ENABLE_MANUAL_THUMBNAIL_VERIF
-    const qint64 ref_ms_time = 10*60*1000;
+    // 17 min: cached thumbs, mix lib&exec metadata, exec captures
+    // 6 min: cached thumbs, lib(only) metadata, exec captures
+    // 6 min: cached thumbs, lib(only) metadata, lib(only) captures
+    // 2 min 33 s: arm m3 Pro with arm build & arm lib 2024 oct.
+    const qint64 ref_ms_time = 3*60*1000;
 #endif
     test_100GBwholeApp(); // run a first time to make sure everything is cached
 
@@ -929,7 +942,9 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
     const bool compareThumbs
     ) {
     QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2").arg(videoParam.size).arg(vid->size).toUtf8().constData());
+    // TODO finish 100GB tests with QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
     QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8().constData());
+    // TODO finish 100GB tests with QVERIFY2(abs(videoParam.duration - vid->duration) <= 1 , QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.videoInfo.absoluteFilePath()).toUtf8().constData());
     QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.videoInfo.absoluteFilePath()).toUtf8().constData());
     QVERIFY2(videoParam.bitrate == vid->bitrate, QString("ref bitrate=%1 new bitrate=%2").arg(videoParam.bitrate).arg(vid->bitrate).toUtf8().constData());
     QVERIFY2(videoParam.framerate == vid->framerate, QString("framerate ref=%1 new=%2").arg(videoParam.framerate).arg(vid->framerate).toUtf8().constData());
