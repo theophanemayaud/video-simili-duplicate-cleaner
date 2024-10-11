@@ -64,6 +64,9 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
         addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName() + "\n");
     else
         addStatusMessage("\nError accessing cache, will not use any.\n");
+
+    if(this->_prefs.isVerbose())
+        ui->verboseCheckbox->setCheckState(Qt::Checked);
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -372,7 +375,7 @@ void MainWindow::addStatusMessage(const QString &message) const
 
 void MainWindow::addVideo(Video *addMe)
 {
-    if(ui->verboseCheckbox->isChecked()){
+    if(this->_prefs.isVerbose()){
         addStatusMessage(QStringLiteral("[%1] %2").arg(QTime::currentTime().toString(),
                                                        QDir::toNativeSeparators(addMe->_filePathName)));
     }
@@ -433,6 +436,7 @@ void MainWindow::on_actionRestore_all_settings_triggered()
         addStatusMessage(QString("\nError restoring default cache. Probably no cache now.\n"));
 
     on_actionRestoreMoveToTrash_triggered();
+    ui->verboseCheckbox->setCheckState(Qt::Unchecked);
 }
 
 void MainWindow::on_actionRestore_default_cache_location_triggered()
@@ -522,4 +526,3 @@ void MainWindow::on_actionRestoreMoveToTrash_triggered()
 }
 // ------------------- END: File deletion configuration methods -----------
 // ----------------------------------------------------------------------------
-

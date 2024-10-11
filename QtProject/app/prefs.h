@@ -42,6 +42,9 @@ public:
     QString browseFoldersLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_folders_last_path").toString();}
     void browseFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_folders_last_path", dirPath);}
 
+    bool isVerbose() {return QSettings(APP_NAME, APP_NAME).value("verbose_logging").toBool();}
+    void setVerbose(const bool verbose) {QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);}
+
     void resetSettings() {QSettings(APP_NAME, APP_NAME).clear();}
 };
 

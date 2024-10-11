@@ -84,6 +84,8 @@ private slots:
     void on_actionSet_custom_cache_location_triggered();
     void on_actionRestore_default_cache_location_triggered();
 
+    void on_verboseCheckbox_stateChanged(int arg1) {this->_prefs.setVerbose(arg1 == 2); /* 2 -> checked, 0 -> unchecked*/ };
+
     void on_actionRestore_all_settings_triggered();
 
     // cache options
