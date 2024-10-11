@@ -990,10 +990,16 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                         && containedStatus == NOT_CONTAINED)
                     continue; // the file names were not contained in one another : we go to the next comparison
 
-                if(containedStatus == LEFT_CONTAINS_RIGHT)
+                if(containedStatus == LEFT_CONTAINS_RIGHT) {
                     deleteVideo(_leftVideo, true);
-                else // by default and in specific name contained case : delete right video
+                    if(this->_prefs.isVerbose())
+                        emit sendStatusMessage(QString("Auto remove kept %1\n").arg(QDir::toNativeSeparators(_videos[_rightVideo]->_filePathName)));
+                }
+                else { // by default and in specific name contained case : delete right video
                     deleteVideo(_rightVideo, true);
+                    if(this->_prefs.isVerbose())
+                        emit sendStatusMessage(QString("Auto remove kept %1\n").arg(QDir::toNativeSeparators(_videos[_leftVideo]->_filePathName)));
+                }
 
                 // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
                 if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
@@ -1093,10 +1099,16 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 highlightBetterProperties();
                 updateUI();
 
-                if(_videos[_leftVideo]->size > _videos[_rightVideo]->size)
+                if(_videos[_leftVideo]->size > _videos[_rightVideo]->size) {
                     deleteVideo(_rightVideo, true);
-                else
+                    if(this->_prefs.isVerbose())
+                        emit sendStatusMessage(QString("Auto remove kept %1\n").arg(QDir::toNativeSeparators(_videos[_leftVideo]->_filePathName)));
+                }
+                else {
                     deleteVideo(_leftVideo, true);
+                    if(this->_prefs.isVerbose())
+                        emit sendStatusMessage(QString("Auto remove kept %1\n").arg(QDir::toNativeSeparators(_videos[_rightVideo]->_filePathName)));
+                }
 
                 // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
                 if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
@@ -1189,10 +1201,17 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
                 highlightBetterProperties();
                 updateUI();
 
-                if(vidToDeleteMetaPtr == &leftVidMeta)
+                if(vidToDeleteMetaPtr == &leftVidMeta) {
                     deleteVideo(_leftVideo, true);
-                else
+                    if(this->_prefs.isVerbose())
+                        emit sendStatusMessage(QString("Auto remove kept %1\n").arg(QDir::toNativeSeparators(_videos[_rightVideo]->_filePathName)));
+                }
+                else {
                     deleteVideo(_rightVideo, true);
+                    if(this->_prefs.isVerbose())
+                        emit sendStatusMessage(QString("Auto remove kept %1\n").arg(QDir::toNativeSeparators(_videos[_leftVideo]->_filePathName)));
+
+                }
 
                 // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
                 if(!ui->disableDeleteConfirmationCheckbox->isChecked()){
@@ -1423,4 +1442,3 @@ void Comparison::on_ignoreDuplicatePairButton_clicked()
     cache.writePairToIgnore(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName);
     on_nextVideo_clicked();
 }
-
