@@ -128,30 +128,40 @@ void MainWindow::calculateThreshold(const int &value)
     ui->thresholdSlider->setToolTip(thresholdMessage);
 }
 
-void MainWindow::on_browseFolders_clicked() const
+void MainWindow::on_browseFolders_clicked()
 {
-    const QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
-                                                          QByteArrayLiteral("Open folder"),
-                                                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
-                                                          QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString dir = this->_prefs.browseFoldersLastPath();
+    if(dir.isEmpty())
+        dir = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first();
+
+    dir = QFileDialog::getExistingDirectory(ui->browseFolders,
+                                              QByteArrayLiteral("Open folder"),
+                                              dir /*defines where the chooser opens at*/,
+                                              QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         return;
     }
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(dir)));
     ui->directoryBox->setFocus();
+    this->_prefs.browseFoldersLastPath(dir);
 }
 
-void MainWindow::on_browseApplePhotos_clicked() const
+void MainWindow::on_browseApplePhotos_clicked()
 {
+    QString dir = this->_prefs.browseApplePhotosLastPath();
+    if(dir.isEmpty())
+        dir = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation).first();
+
     const QString path = QFileDialog::getOpenFileName(ui->browseFolders,
                                                     QByteArrayLiteral("Select Apple Photos Library"),
-                                                    QStandardPaths::standardLocations(QStandardPaths::PicturesLocation).first() /*defines where the chooser opens at*/,
+                                                    dir /*defines where the chooser opens at*/,
                                                     tr("Apple Photos Library (*.photoslibrary)"));
     if(path.isEmpty()){ //empty because error or none chosen in dialog
         return;
     }
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(path)));
     ui->directoryBox->setFocus();
+    this->_prefs.browseApplePhotosLastPath(QFileInfo(path).absolutePath());
 }
 
 void MainWindow::on_findDuplicates_clicked()

@@ -36,6 +36,12 @@ public:
     QString cacheFilePathName() const {return QSettings(APP_NAME, APP_NAME).value("cache_file_path_name").toString();}
     void cacheFilePathName(const QString cacheFilePathName) {QSettings(APP_NAME, APP_NAME).setValue("cache_file_path_name", cacheFilePathName);}
 
+    QString browseApplePhotosLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_apple_photos_last_path").toString();}
+    void browseApplePhotosLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_apple_photos_last_path", dirPath);}
+
+    QString browseFoldersLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_folders_last_path").toString();}
+    void browseFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_folders_last_path", dirPath);}
+
     void resetSettings() {QSettings(APP_NAME, APP_NAME).clear();}
 };
 
