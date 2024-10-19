@@ -121,7 +121,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF \
       -DBUILD_LIST=core,imgproc \
       -DOPENCV_GENERATE_PKGCONFIG=YES \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
       ../opencv
 make -j8
 make install
@@ -185,14 +185,14 @@ mkdir ffmpeg-install-x86-from-arm
 mkdir ffmpeg-universalized-libs 
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg -b n4.4.5 --depth 1
 cd ffmpeg-build-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=11.0' --extra-ldflags='-mmacosx-version-min=11.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
 make -j8
 make install
 
 # cross build x86
 brew install yasm || brew upgrade yasm
 cd ../ffmpeg-build-x86-from-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=11.0' --extra-ldflags='-mmacosx-version-min=11.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
 make -j8
 make install
 
@@ -213,7 +213,7 @@ cp -r ../ffmpeg-install-x86-from-arm/lib/pkgconfig ./lib/pkgconfig-x86_64-from-a
 
 #cleanup
 cd ..
-rm -r -f ffmpeg-build-arm ffmpeg-install-arm ffmpeg-build-x86-from-arm ffmpeg-install-x86-from-arm ffmpeg-universalized-libs ffmpeg
+rm -r -f ffmpeg-build-arm ffmpeg-install-arm ffmpeg-build-x86-from-arm ffmpeg-install-x86-from-arm ffmpeg
 
 ```
 
