@@ -106,7 +106,9 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
     for(int y=0; y<img1.height(); y++){
         for(int x=0; x<img1.width(); x++){
             QRgb p1 = img1.pixel(x,y);
-            QRgb p2 = img2.pixel(x,y);
+            QRgb p2 = qRgb(0, 0, 0);
+            if(x < img2.width() && y < img2.height())
+                p2 = img2.pixel(x,y);
             r.setPixel(x,y,qRgb(255*sqrt(abs(qRed(p1)-qRed(p2))/255.00),0,0));
             g.setPixel(x,y,qRgb(0,255*sqrt(abs(qGreen(p1)-qGreen(p2))/255.00),0));
             b.setPixel(x,y,qRgb(0,0,255*sqrt(abs(qBlue(p1)-qBlue(p2))/255.00)));
@@ -125,24 +127,25 @@ bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const Q
     diff_imgWidg->setLayout(diff_layout);
     diff_imgWidg->showNormal();
 
+    bool accepted = false;
     while(ui_image->isVisible()){
         QTest::qWait(100);
         if(accept->isChecked()){
-            ui_image->close();
-            return true;
+            accepted = true;
+            break;
         }
         if(reject->isChecked()){
-            ui_image->close();
-            return false;
+            accepted = false;
+            break;
         }
     }
 
-    ui_image->window()->hide();
-    diff_imgWidg->window()->hide();
-    for(QObject *widg : diff_imgWidg->layout()->children()){
-        widg->deleteLater();
-    }
-    return false;
+    ui_image->window()->close();
+    diff_imgWidg->window()->close();
+    delete ui_image;
+    delete diff_imgWidg;
+    QCoreApplication::processEvents();
+    return accepted;
 }
 
 QList<VideoParam> TestHelpers::importCSVtoVideoParamQList(const QFileInfo csvInfo, const QDir videoDir, const QDir thumbDir){
