@@ -367,6 +367,32 @@ void MainWindow::videoSummary()
 void MainWindow::addStatusMessage(const QString &message) const
 {
     ui->statusBox->append(message);
+
+    if(this->_prefs.isVerbose()){
+        QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+        if(!cacheFolder.exists())
+            QDir().mkpath(cacheFolder.path());
+        static QFile logFile = QStringLiteral("%1/%2_%3.vsdc.logs.txt")
+                                   .arg(cacheFolder.path(),
+                                        this->_prefs.appVersion.trimmed(),
+                                        QDateTime::currentDateTime().toString("yyyy-MM-dd hh_mm"));
+        static QTextStream logStream;
+        if (!logFile.isOpen()) {
+            // Open the file in Append mode and keep it open
+            if (!logFile.open(QIODevice::Append | QIODevice::Text)) {
+                ui->statusBox->append("Failed to open log file");
+            }
+            else {
+                // Initialize the QTextStream using the open file
+                logStream.setDevice(&logFile);
+            }
+        }
+        else {
+            logStream << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm")
+                      << ": " << message << Qt::endl;
+        }
+    }
+
     ui->statusBox->repaint();
 #ifdef VID_SIMILI_IN_TESTS
     qDebug() << message;
@@ -526,3 +552,49 @@ void MainWindow::on_actionRestoreMoveToTrash_triggered()
 }
 // ------------------- END: File deletion configuration methods -----------
 // ----------------------------------------------------------------------------
+
+void MainWindow::on_actionDelete_log_files_triggered()
+{
+    QDir logsFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    // Check if the directory exists
+    if (!logsFolder.exists()) {
+        addStatusMessage(QString("Logs folder does not exist: %1").arg(logsFolder.absolutePath()));
+        return;
+    }
+
+    // List all .txt files in the cache folder
+    QStringList txtFiles = logsFolder.entryList(QStringList() << "*.vsdc.logs.txt", QDir::Files);
+
+    if(txtFiles.isEmpty())
+        addStatusMessage(QString("No log files in: %1").arg(logsFolder.absolutePath()));
+
+    // Loop through the list of .txt files and delete them
+    for (const QString &fileName : txtFiles) {
+        QString filePath = logsFolder.absoluteFilePath(fileName);  // Get the full file path
+        if (QFile::remove(filePath)) {
+            addStatusMessage(QString("Deleted log file: %1").arg(filePath));
+        } else {
+            addStatusMessage(QString("Failed to delete log file: %1").arg(filePath));
+        }
+    }
+}
+
+
+void MainWindow::on_actionOpen_logs_folder_triggered()
+{
+    QDir logsFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    if (!logsFolder.exists()) {
+        addStatusMessage(QString("Logs folder does not exist: %1").arg(logsFolder.absolutePath()));
+        return;
+    }
+
+#ifdef Q_OS_WIN
+    QProcess::startDetached("explorer", {"/select,", logsFolder.absolutePath()});
+#elif defined(Q_OS_MACOS)
+    QProcess::startDetached("open", QStringList() << logsFolder.absolutePath());
+#elif defined(Q_OS_X11)
+    QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(logsFolder.absolutePath()));
+#endif
+
+}
+

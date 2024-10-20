@@ -92,6 +92,8 @@ private slots:
     void on_radio_UseCacheNo_clicked() {_useCacheOption = Video::NO_CACHE;};
     void on_radio_UseCacheYes_clicked() {_useCacheOption = Video::WITH_CACHE;};
     void on_radio_UseCacheOnly_clicked() {_useCacheOption = Video::CACHE_ONLY;};
+    void on_actionDelete_log_files_triggered();
+    void on_actionOpen_logs_folder_triggered();
 };
 
 #endif // MAINWINDOW_H

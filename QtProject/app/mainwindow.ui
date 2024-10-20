@@ -122,8 +122,7 @@
         <item>
          <widget class="QCheckBox" name="verboseCheckbox">
           <property name="toolTip">
-           <string>List all processed video names.  
-Errors will be listed in any case.</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;List all processed video names.  &lt;/p&gt;&lt;p&gt;Errors will be listed in any case.&lt;/p&gt;&lt;p&gt;All logs will be kept in log files.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="toolTipDuration">
            <number>-1</number>
@@ -132,7 +131,7 @@ Errors will be listed in any case.</string>
            <locale language="English" country="UnitedStates"/>
           </property>
           <property name="text">
-           <string>Verbose</string>
+           <string>Verbose logs</string>
           </property>
          </widget>
         </item>
@@ -529,7 +528,7 @@ Errors will be listed in any case.</string>
      <x>0</x>
      <y>0</y>
      <width>859</width>
-     <height>24</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGeneral">
@@ -549,6 +548,9 @@ Errors will be listed in any case.</string>
     <addaction name="actionChange_trash_folder"/>
     <addaction name="actionEnable_direct_deletion_instead_of_trash"/>
     <addaction name="actionRestoreMoveToTrash"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpen_logs_folder"/>
+    <addaction name="actionDelete_log_files"/>
     <addaction name="separator"/>
     <addaction name="actionRestore_all_settings"/>
    </widget>
@@ -632,6 +634,16 @@ Errors will be listed in any case.</string>
   <action name="actionRestore_all_settings">
    <property name="text">
     <string>Restore all settings</string>
+   </property>
+  </action>
+  <action name="actionOpen_logs_folder">
+   <property name="text">
+    <string>Open logs folder</string>
+   </property>
+  </action>
+  <action name="actionDelete_log_files">
+   <property name="text">
+    <string>Delete log files</string>
    </property>
   </action>
  </widget>
