@@ -20,15 +20,15 @@
   },
   "standard-version": {
     "scripts": {
-      "postbump": "npm run binaries || npm run win-binaries && git add -A"
+      "postbump": "npm run binaries-arm || npm run win-binaries && git add CHANGELOG.md QtProject/app/version.txt QtProject/release-build/macos/Info.plist QtProject/release-build/windows/appxmanifest.xml package-lock.json package.json"
     }
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "release": "standard-version --sign -a",
-    "release:minor": "standard-version --release-as minor --sign -a && npm run notif-push",
-    "release:patch": "standard-version --release-as patch --sign -a && npm run notif-push",
-    "release:major": "standard-version --release-as major --sign -a && npm run notif-push",
+    "release": "standard-version -a",
+    "release:minor": "standard-version --release-as minor -a && npm run notif-push",
+    "release:patch": "standard-version --release-as patch -a && npm run notif-push",
+    "release:major": "standard-version --release-as major -a && npm run notif-push",
     "notif-push": "echo '\n\n Remember to push commits and tags with \n git push && git push --tags' ",
     "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/app/version.txt && node update-plist-version.js && node update-appxmanifest-version.js",
     "build": "npm run update-build-version && npm run build-mac-binaries --prefix QtProject/release-build/macos",
