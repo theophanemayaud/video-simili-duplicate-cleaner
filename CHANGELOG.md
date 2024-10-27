@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.10.1...v1.11.0) (2024-10-27)
+
+
+### Features
+
+* **auto-remove:** when verbose is enabled, auto remove modes will also log the kept files ([1a5024d](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/1a5024d7bdb30e72e505f094bcf35b7c19cdee8b))
+* **cache:** cache location now saved even when app is restarted ([371a1f9](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/371a1f94112fd2e39d2597d0e69521d41f93d3b9))
+* **folders:** when opening folder explorer, last location will now be reused instead of home/videos ([85ed1b1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/85ed1b1da6e71399c970eae68b621f38bb4b1a9d))
+* **settings:** verbose is now a saved setting across restarts ([9cba0bc](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/9cba0bc4842e74867bc8f7f6368ae20e41a3e5cf))
+* **verbose:** verbose mode will now also log to files for better crash trace ([11aa13f](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/11aa13f9a35f462abfe6590a05a2d0f2c774c732))
+
+
+### Bug Fixes
+
+* **ui:** changed file link color to support both light and dark mode ([e83c96e](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/e83c96eed8aac68728093ece21f9e8faf73190ba))
+
 ## 1.10.0 (2024-01-05)
 
 

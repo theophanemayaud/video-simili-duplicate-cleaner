@@ -1,6 +1,6 @@
 {
   "name": "Video simili duplicate cleaner",
-  "version": "1.10.1",
+  "version": "1.11.0",
   "description": "Video simili duplicate cleaner is a program that can find duplicate and similar video files.",
   "main": "QtProject/video-simili-duplicate-cleaner.pro",
   "cpp-dependencies": {
@@ -20,7 +20,7 @@
   },
   "standard-version": {
     "scripts": {
-      "postbump": "npm run binaries-arm || npm run win-binaries && git add CHANGELOG.md QtProject/app/version.txt QtProject/release-build/macos/Info.plist QtProject/release-build/windows/appxmanifest.xml package-lock.json package.json"
+      "postbump": "npm run binaries-arm || npm run win-binaries && git add -f CHANGELOG.md QtProject/app/version.txt QtProject/release-build/macos/Info.plist QtProject/release-build/windows/appxmanifest.xml package-lock.json package.json"
     }
   },
   "scripts": {
