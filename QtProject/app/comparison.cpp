@@ -100,21 +100,6 @@ int Comparison::reportMatchingVideos()
     return foundMatches;
 }
 
-void Comparison::dragEnterEvent(QDragEnterEvent *event) {
-    if(this->ui->tabWidget->currentIndex() == 2 // third tab, which is the locked folders list
-        && event->mimeData()->hasUrls())
-        event->acceptProposedAction();
-}
-void Comparison::dropEvent(QDropEvent *event) {
-    foreach (QUrl lockedFolder, event->mimeData()->urls()) {
-        QString fileName = lockedFolder.toLocalFile();
-        QFileInfo file(fileName);
-        if(file.isDir())
-            ui->lockedFolderslistWidget->addItem(fileName);
-    }
-    ui->lockedFolderslistWidget->setFocus();
-}
-
 void Comparison::confirmToExit()
 {
     int confirm = QMessageBox::Yes;
@@ -938,6 +923,39 @@ void Comparison::wheelEvent(QWheelEvent *event)
                                          Qt::KeepAspectRatio, Qt::FastTransformation));
 }
 
+// ------------------------------------------------------------------------
+// ------------------ Locked folders functions ----------------------------
+
+void Comparison::on_lockedFolderButton_clicked()
+{
+    const QString dir = QFileDialog::getExistingDirectory(ui->lockedFolderButton,
+                                                          QByteArrayLiteral("Open folder"),
+                                                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                          QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if(dir.isEmpty()){ //empty because error or none chosen in dialog
+        return;
+    }
+    ui->lockedFolderslistWidget->addItem(dir);
+    ui->lockedFolderslistWidget->setFocus();
+
+}
+
+void Comparison::dragEnterEvent(QDragEnterEvent *event) {
+    if(this->ui->tabWidget->currentIndex() == 2 // third tab, which is the locked folders list
+        && event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+
+void Comparison::dropEvent(QDropEvent *event) {
+    foreach (QUrl lockedFolder, event->mimeData()->urls()) {
+        QString fileName = lockedFolder.toLocalFile();
+        QFileInfo file(fileName);
+        if(file.isDir())
+            ui->lockedFolderslistWidget->addItem(fileName);
+    }
+    ui->lockedFolderslistWidget->setFocus();
+}
+
 bool Comparison::isFileInProtectedFolder(const QString filePathName) const {
     const QListWidget* list = ui->lockedFolderslistWidget;
     for (int i = 0; i < list->count(); ++i) {
@@ -947,6 +965,36 @@ bool Comparison::isFileInProtectedFolder(const QString filePathName) const {
     }
     return false;
 }
+
+void Comparison::showLockedFolderContextMenu(const QPoint &pos){
+    // Handle global position
+    QPoint globalPos = ui->lockedFolderslistWidget->mapToGlobal(pos);
+
+    // Create menu and insert some actions
+    QMenu myMenu;
+    myMenu.addAction("Delete selection", this, SLOT(eraseLockedFolderItem()));
+    myMenu.addAction("Add new", this, SLOT(on_lockedFolderButton_clicked()));
+    myMenu.addAction("Clear all", this, SLOT(clearLockedFolderList()));
+
+    // Show context menu at handling position
+    myMenu.exec(globalPos);
+}
+
+void Comparison::eraseLockedFolderItem(){
+    // If multiple selection is on, we need to erase all selected items
+    for (int i = 0; i < ui->lockedFolderslistWidget->selectedItems().size(); ++i) {
+        // Get curent item on selected row
+        QListWidgetItem *item = ui->lockedFolderslistWidget->takeItem(ui->lockedFolderslistWidget->currentRow());
+        // And remove it
+        delete item;
+    }
+}
+
+void Comparison:: clearLockedFolderList() { ui->lockedFolderslistWidget->clear(); }
+
+// ------------------ End of : Locked folders functions -------------------
+// ------------------------------------------------------------------------
+
 // ------------------------------------------------------------------------
 // ------------------ Automatic video deletion functions ------------------
 
@@ -1365,20 +1413,6 @@ void Comparison::on_pushButton_importantFoldersAdd_clicked()
     ui->importantFoldersListWidget->setFocus();
 }
 
-void Comparison::on_lockedFolderButton_clicked()
-{
-    const QString dir = QFileDialog::getExistingDirectory(ui->lockedFolderButton,
-                                                              QByteArrayLiteral("Open folder"),
-                                                              QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
-                                                              QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if(dir.isEmpty()){ //empty because error or none chosen in dialog
-        return;
-    }
-    ui->lockedFolderslistWidget->addItem(dir);
-    ui->lockedFolderslistWidget->setFocus();
-
-}
-
 void Comparison::eraseImportantFolderItem(){
     // If multiple selection is on, we need to erase all selected items
     for (int i = 0; i < ui->importantFoldersListWidget->selectedItems().size(); ++i) {
@@ -1389,18 +1423,7 @@ void Comparison::eraseImportantFolderItem(){
     }
 }
 
-void Comparison::eraseLockedFolderItem(){
-    // If multiple selection is on, we need to erase all selected items
-    for (int i = 0; i < ui->lockedFolderslistWidget->selectedItems().size(); ++i) {
-        // Get curent item on selected row
-        QListWidgetItem *item = ui->lockedFolderslistWidget->takeItem(ui->lockedFolderslistWidget->currentRow());
-        // And remove it
-        delete item;
-    }
-}
-
 void Comparison::clearImportantFolderList(){ ui->importantFoldersListWidget->clear(); }
-void Comparison:: clearLockedFolderList() { ui->lockedFolderslistWidget->clear(); }
 
 void Comparison::showImportantFolderContextMenu(const QPoint &pos){
     // Handle global position
@@ -1411,20 +1434,6 @@ void Comparison::showImportantFolderContextMenu(const QPoint &pos){
     myMenu.addAction("Delete selection", this, SLOT(eraseImportantFolderItem()));
     myMenu.addAction("Add new",  this, SLOT(on_importantFolderButton_clicked()) );
     myMenu.addAction("Clear all",  this, SLOT(clearImportantFolderList()));
-
-    // Show context menu at handling position
-    myMenu.exec(globalPos);
-}
-
-void Comparison::showLockedFolderContextMenu(const QPoint &pos){
-    // Handle global position
-    QPoint globalPos = ui->lockedFolderslistWidget->mapToGlobal(pos);
-
-    // Create menu and insert some actions
-    QMenu myMenu;
-    myMenu.addAction("Delete selection", this, SLOT(eraseLockedFolderItem()));
-    myMenu.addAction("Add new",  this, SLOT(on_lockedFolderButton_clicked()));
-    myMenu.addAction("Clear all",  this, SLOT(clearLockedFolderList()));
 
     // Show context menu at handling position
     myMenu.exec(globalPos);
