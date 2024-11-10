@@ -48,4 +48,22 @@ public:
     void resetSettings() {QSettings(APP_NAME, APP_NAME).clear();}
 };
 
+class Message: public QObject {
+    Q_OBJECT
+public:
+    static Message* Get() {
+        static Message instance;
+        return &instance;
+    }
+    void add(const QString& message){
+        emit statusMessage(message);
+    };
+
+signals:
+    void statusMessage(const QString& message);
+private:
+    Message() = default; // Private constructor to enforce singleton
+    Q_DISABLE_COPY(Message) // Prevent copying
+};
+
 #endif // PREFS_H

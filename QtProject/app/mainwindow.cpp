@@ -1,9 +1,12 @@
 #include "mainwindow.h"
+#include "prefs.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
     _prefs._mainwPtr = this;
+
+    connect(Message::Get(), SIGNAL(statusMessage(const QString &)), this, SLOT(addStatusMessage(const QString &)));
 
     QFile file(":/version.txt");
     if (file.open(QIODevice::ReadOnly)){
@@ -11,7 +14,8 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     }
     file.close();
 
-    addStatusMessage(QStringLiteral("%1 v%2").arg(APP_NAME, _prefs.appVersion));
+    Message::Get()->add(QStringLiteral("%1 v%2").arg(APP_NAME, _prefs.appVersion));
+
 #ifdef Q_OS_MACOS
     // Check mac app store receipt
     QString receiptLocation = QString("%1/../_MASReceipt/receipt").arg(QCoreApplication::applicationDirPath());
@@ -564,7 +568,7 @@ void MainWindow::on_actionDelete_log_files_triggered()
     QStringList txtFiles = logsFolder.entryList(QStringList() << "*.vsdc.logs.txt", QDir::Files);
 
     if(txtFiles.isEmpty())
-        addStatusMessage(QString("No log files in: %1").arg(logsFolder.absolutePath()));
+        addStatusMessage(QString("No log files found in logs folder: %1").arg(logsFolder.absolutePath()));
 
     // Loop through the list of .txt files and delete them
     for (const QString &fileName : txtFiles) {

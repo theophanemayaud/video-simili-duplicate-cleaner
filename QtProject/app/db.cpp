@@ -87,6 +87,7 @@ bool Db::initDbAndCache(const Prefs& prefs){
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), uniqueConnexionName);
         db.setDatabaseName(prefs.cacheFilePathName());
         if(!db.open()){
+            Message::Get()->add(QString("Failed to open db file with driver %1\n    File: %2 - error: %3").arg(db.driverName(), prefs.cacheFilePathName(), db.lastError().text()));
             return false;
         }
         createTables(db, prefs.appVersion);
