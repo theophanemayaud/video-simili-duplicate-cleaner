@@ -1,5 +1,6 @@
 #include "comparison.h"
 
+#include <QMimeData>
 #include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
 
 enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
@@ -19,6 +20,7 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
     ui->setupUi(this);
+    setAcceptDrops(true); // drag and drop events for locked folders list
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
@@ -96,6 +98,21 @@ int Comparison::reportMatchingVideos()
              .arg(QTime::currentTime().toString()).arg(foundMatches).arg(readableFileSize(combinedFilesize)));
 
     return foundMatches;
+}
+
+void Comparison::dragEnterEvent(QDragEnterEvent *event) {
+    if(this->ui->tabWidget->currentIndex() == 2 // third tab, which is the locked folders list
+        && event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+void Comparison::dropEvent(QDropEvent *event) {
+    foreach (QUrl lockedFolder, event->mimeData()->urls()) {
+        QString fileName = lockedFolder.toLocalFile();
+        QFileInfo file(fileName);
+        if(file.isDir())
+            ui->lockedFolderslistWidget->addItem(fileName);
+    }
+    ui->lockedFolderslistWidget->setFocus();
 }
 
 void Comparison::confirmToExit()

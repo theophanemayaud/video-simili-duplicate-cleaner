@@ -100,6 +100,9 @@ public slots:
     int reportMatchingVideos(); // returns number of matching videos found
 
 private slots:
+    void dragEnterEvent(QDragEnterEvent *event); // drag and drop for locked folders list
+    void dropEvent(QDropEvent *event);
+
     void confirmToExit();
     void on_prevVideo_clicked();
     void on_nextVideo_clicked();
