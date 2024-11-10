@@ -20,7 +20,6 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
     ui->setupUi(this);
-    setAcceptDrops(true); // drag and drop events for locked folders list
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
@@ -50,6 +49,8 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
 
     // important and locked folders list stuff
     ui->pushButton_importantFoldersAdd->setIcon(ui->pushButton_importantFoldersAdd->style()->standardIcon(QStyle::SP_DirOpenIcon));
+    setAcceptDrops(true); // drag and drop events for locked folders list
+    loadLockedFolderFromPrefs();
     ui->lockedFolderButton->setIcon(ui->lockedFolderButton->style()->standardIcon(QStyle::SP_DirOpenIcon));
     connect(ui->importantFoldersListWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showImportantFolderContextMenu(QPoint)));
     connect(ui->lockedFolderslistWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLockedFolderContextMenu(QPoint)));
@@ -926,6 +927,12 @@ void Comparison::wheelEvent(QWheelEvent *event)
 // ------------------------------------------------------------------------
 // ------------------ Locked folders functions ----------------------------
 
+void Comparison::loadLockedFolderFromPrefs(){
+    foreach (QString folderPath, this->_prefs.lockedFoldersList()) {
+        this->ui->lockedFolderslistWidget->addItem(folderPath);
+    }
+}
+
 void Comparison::on_lockedFolderButton_clicked()
 {
     const QString dir = QFileDialog::getExistingDirectory(ui->lockedFolderButton,
@@ -935,9 +942,15 @@ void Comparison::on_lockedFolderButton_clicked()
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         return;
     }
-    ui->lockedFolderslistWidget->addItem(dir);
+    addLockedFolderToList(dir);
     ui->lockedFolderslistWidget->setFocus();
+}
 
+void Comparison::addLockedFolderToList(QString folderPath){
+    this->ui->lockedFolderslistWidget->addItem(folderPath);
+    QStringList lockedList = this->_prefs.lockedFoldersList();
+    lockedList.append(folderPath);
+    this->_prefs.lockedFoldersList(lockedList);
 }
 
 void Comparison::dragEnterEvent(QDragEnterEvent *event) {
@@ -951,7 +964,7 @@ void Comparison::dropEvent(QDropEvent *event) {
         QString fileName = lockedFolder.toLocalFile();
         QFileInfo file(fileName);
         if(file.isDir())
-            ui->lockedFolderslistWidget->addItem(fileName);
+            addLockedFolderToList(fileName);
     }
     ui->lockedFolderslistWidget->setFocus();
 }
@@ -981,16 +994,22 @@ void Comparison::showLockedFolderContextMenu(const QPoint &pos){
 }
 
 void Comparison::eraseLockedFolderItem(){
+    QStringList lockedFolders = this->_prefs.lockedFoldersList();
     // If multiple selection is on, we need to erase all selected items
     for (int i = 0; i < ui->lockedFolderslistWidget->selectedItems().size(); ++i) {
         // Get curent item on selected row
         QListWidgetItem *item = ui->lockedFolderslistWidget->takeItem(ui->lockedFolderslistWidget->currentRow());
         // And remove it
+        lockedFolders.removeAll(item->text());
         delete item;
     }
+    this->_prefs.lockedFoldersList(lockedFolders);
 }
 
-void Comparison:: clearLockedFolderList() { ui->lockedFolderslistWidget->clear(); }
+void Comparison:: clearLockedFolderList() {
+    this->_prefs.lockedFoldersList(QStringList());
+    ui->lockedFolderslistWidget->clear();
+}
 
 // ------------------ End of : Locked folders functions -------------------
 // ------------------------------------------------------------------------

@@ -60,6 +60,9 @@ private:
     bool _someWereMovedInApplePhotosLibrary = false;
     bool _firstScriptingAskPermission = true;
 
+    void loadLockedFolderFromPrefs();
+    void addLockedFolderToList(QString folderPath);
+
     // --- \\
     // --- auto deletion internal stuff
     enum AUTO_DELETE_CONFIG : int
