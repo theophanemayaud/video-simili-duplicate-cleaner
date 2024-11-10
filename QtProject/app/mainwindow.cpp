@@ -456,10 +456,8 @@ void MainWindow::on_actionSet_custom_cache_location_triggered()
 void MainWindow::on_actionRestore_all_settings_triggered()
 {
     this->_prefs.resetSettings();
-    if(Db::initDbAndCacheLocation(_prefs))
-        addStatusMessage("\nCache restored to: " + this->_prefs.cacheFilePathName() + "\n");
-    else
-        addStatusMessage(QString("\nError restoring default cache. Probably no cache now.\n"));
+
+    on_actionRestore_default_cache_location_triggered();
 
     on_actionRestoreMoveToTrash_triggered();
     ui->verboseCheckbox->setCheckState(Qt::Unchecked);
