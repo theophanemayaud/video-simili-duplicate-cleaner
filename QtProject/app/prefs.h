@@ -33,7 +33,7 @@ public:
 
     QString appVersion = "undefined";
 
-    QString cacheFilePathName() const {return QSettings(APP_NAME, APP_NAME).value("cache_file_path_name").toString();}
+    QString cacheFilePathName() const {return QFileInfo(QSettings(APP_NAME, APP_NAME).value("cache_file_path_name").toString()).absoluteFilePath();}
     void cacheFilePathName(const QString cacheFilePathName) {QSettings(APP_NAME, APP_NAME).setValue("cache_file_path_name", cacheFilePathName);}
 
     QString browseApplePhotosLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_apple_photos_last_path").toString();}
