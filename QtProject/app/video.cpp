@@ -25,6 +25,9 @@ Video::Video(const Prefs &prefsParam, const QString &filePathName, const USE_CAC
 
 void Video::run()
 {
+    if(this->_prefs.isVerbose())
+        Message::Get()->add(QString("Starting to process video: %1").arg(this->_filePathName));
+
     if(!QFileInfo::exists(_filePathName))
     {
         qDebug() << "Rejected : file doesn't seem to exist : "+ _filePathName;
@@ -226,6 +229,7 @@ int Video::takeScreenCaptures(const Db &cache)
 
     while(--capture >= 0)           //screen captures are taken in reverse order so errors are found early
     {
+        QApplication::processEvents();
         QImage frame;
         QByteArray cachedImage;
         if(_useCacheDb!=Video::NO_CACHE) // TODO-REFACTOR could maybe load from cache in same condition as frame loading and resizing... ?
