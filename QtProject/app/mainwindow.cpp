@@ -69,8 +69,11 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     else
         addStatusMessage("\nError accessing cache, will not use any.\n");
 
+    // load saved settings
     if(this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
+    foreach(QString folder, this->_prefs.scanLocations())
+        this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -84,14 +87,6 @@ void MainWindow::deleteTemporaryFiles() const
         if(dir.dirName().compare(QStringLiteral("DupVids-")) == 1) //TODO : temporary vids have new identifier...
             dir.removeRecursively();
     }
-}
-
-void MainWindow::dropEvent(QDropEvent *event)
-{
-    const QString fileName = event->mimeData()->urls().first().toLocalFile();
-    const QFileInfo file(fileName);
-    if(file.isDir())
-        ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(fileName)));
 }
 
 void MainWindow::loadExtensions()
@@ -135,6 +130,8 @@ void MainWindow::calculateThreshold(const int &value)
     ui->thresholdSlider->setToolTip(thresholdMessage);
 }
 
+// ---------------------------------------------------------------------------------------------
+// -----------------------START: add scan locations  -------------------------------------------
 void MainWindow::on_browseFolders_clicked()
 {
     QString dir = this->_prefs.browseFoldersLastPath();
@@ -151,6 +148,14 @@ void MainWindow::on_browseFolders_clicked()
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(dir)));
     ui->directoryBox->setFocus();
     this->_prefs.browseFoldersLastPath(dir);
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    const QString fileName = event->mimeData()->urls().first().toLocalFile();
+    const QFileInfo file(fileName);
+    if(file.isDir())
+        ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(fileName)));
 }
 
 void MainWindow::on_browseApplePhotos_clicked()
@@ -170,6 +175,8 @@ void MainWindow::on_browseApplePhotos_clicked()
     ui->directoryBox->setFocus();
     this->_prefs.browseApplePhotosLastPath(QFileInfo(path).absolutePath());
 }
+// ----------------------- END: add scan locations ---------------------------------------------
+// ---------------------------------------------------------------------------------------------
 
 void MainWindow::on_findDuplicates_clicked()
 {
@@ -201,6 +208,7 @@ void MainWindow::on_findDuplicates_clicked()
         _everyVideo.clear();
 
         const QStringList directories = foldersToSearch.split(QStringLiteral(";"));
+        this->_prefs.scanLocations(directories);
         if(_useCacheOption!=Video::CACHE_ONLY){
             QString notFound;
             for(auto directory : directories)               //add all video files from entered paths to list

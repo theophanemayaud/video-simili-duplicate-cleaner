@@ -42,6 +42,9 @@ public:
     QString browseFoldersLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_folders_last_path").toString();}
     void browseFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_folders_last_path", dirPath);}
 
+    QStringList scanLocations() const {return QSettings(APP_NAME, APP_NAME).value("scan_locations").toStringList();}
+    void scanLocations(const QStringList folders) {QSettings(APP_NAME, APP_NAME).setValue("scan_locations", folders);}
+
     QStringList lockedFoldersList() const {return QSettings(APP_NAME, APP_NAME).value("locked_folders_list").toStringList();}
     void lockedFoldersList(const QStringList folders) {QSettings(APP_NAME, APP_NAME).setValue("locked_folders_list", folders);}
 
