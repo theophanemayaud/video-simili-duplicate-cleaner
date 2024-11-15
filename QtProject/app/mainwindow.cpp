@@ -72,8 +72,10 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     // load saved settings
     if(this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
-    foreach(QString folder, this->_prefs.scanLocations())
-        this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
+    foreach(QString folder, this->_prefs.scanLocations()){
+        if(!folder.isEmpty())
+            this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
+    }
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -177,6 +179,12 @@ void MainWindow::on_browseApplePhotos_clicked()
 }
 // ----------------------- END: add scan locations ---------------------------------------------
 // ---------------------------------------------------------------------------------------------
+
+void MainWindow::on_directoryBox_textChanged(const QString &arg1)
+{
+    if(arg1.trimmed().isEmpty())
+        this->_prefs.scanLocations(QStringList());
+}
 
 void MainWindow::on_findDuplicates_clicked()
 {
