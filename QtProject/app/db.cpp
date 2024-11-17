@@ -348,8 +348,8 @@ bool Db::removeVideo(const QString &filePathname) const
     return true;
 }
 
-QStringList Db::getCachedVideoPathnamesInFolders(QStringList directoriesPaths) const{
-    QStringList videoPathNames;
+QSet<QString> Db::getCachedVideoPathnamesInFolders(QStringList directoriesPaths) const{
+    QSet<QString> videoPathNames;
     directoriesPaths.removeAll("");
 
     if(!_db.isOpen()){
@@ -381,10 +381,10 @@ QStringList Db::getCachedVideoPathnamesInFolders(QStringList directoriesPaths) c
     }
 
     while(query.next()){
-        if(videoPathNames.contains(query.value(0))){
-            qDebug() << query.value(0) << " was already in list !!!"; // this shouldn't happen but debug just in case...
+        if(videoPathNames.contains(query.value(0).toString())){
+            continue;
         }
-        videoPathNames.append(query.value(0).toString());
+        videoPathNames.insert(query.value(0).toString());
     }
 
     return videoPathNames;

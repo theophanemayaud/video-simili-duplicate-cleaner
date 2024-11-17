@@ -31,7 +31,7 @@ private:
     Comparison *_comparison = nullptr;
 
     QVector<Video *> _videoList;
-    QStringList _everyVideo;
+    QSet<QString> _everyVideo; // set as we need to avoid duplicates
     QStringList _rejectedVideos;
     QStringList _extensionList;
 
@@ -60,6 +60,7 @@ private slots:
     void on_thresholdSlider_valueChanged(const int &value) { ui->thresholdSlider->setValue(value); calculateThreshold(value); ui->directoryBox->setFocus(); }
     void calculateThreshold(const int &value);
 
+    void on_directoryBox_textChanged(const QString &arg1);
     void on_browseFolders_clicked();
     void on_browseApplePhotos_clicked();
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }

@@ -60,7 +60,7 @@ public:
     bool removeVideo(const QString &filePathname) const;
 
     // returns a list of unique cached video pathNames within specified folders
-    QStringList getCachedVideoPathnamesInFolders(QStringList directoriesPaths) const;
+    QSet<QString> getCachedVideoPathnamesInFolders(QStringList directoriesPaths) const;
 
     // when wanting to save a pair or videos to be ignored on next runs, this will save a record in cache
     void writePairToIgnore(const QString filePathName1, const QString filePathName2) const;

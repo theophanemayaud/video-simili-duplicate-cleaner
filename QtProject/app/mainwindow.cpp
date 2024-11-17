@@ -221,6 +221,7 @@ void MainWindow::on_findDuplicates_clicked()
             QString notFound;
             for(auto directory : directories)               //add all video files from entered paths to list
             {
+                QApplication::processEvents();
                 if(directory.isEmpty())
                     continue;
                 QDir dir = directory.remove(QStringLiteral("\""));
@@ -272,26 +273,20 @@ void MainWindow::findVideos(QDir &dir)
     QDirIterator iter(dir, QDirIterator::Subdirectories);
     while(iter.hasNext())
     {
+        QApplication::processEvents();
         if(_userPressedStop){
             _userPressedStop=false; //user needs to press 2x to stop the find videos process, then process videos process.
             return;
         }
         const QString filePathName = iter.nextFileInfo().canonicalFilePath();
 
-        bool duplicate = false;                 //don't want duplicates of same file
-        for(const auto &alreadyAddedFile : _everyVideo)
-            if(filePathName.toLower() == alreadyAddedFile.toLower())
-            {
-                duplicate = true;
-                break;
-            }
-        if(!duplicate)
-            _everyVideo << filePathName;
+        if(_everyVideo.contains(filePathName)) //don't want duplicates of same file
+            continue;
+        _everyVideo.insert(filePathName);
 
         ui->statusBar->showMessage(QStringLiteral("Found %1 videos | %2")
                                    .arg(_everyVideo.size())
                                    .arg(QDir::toNativeSeparators(filePathName)), 10);
-        QApplication::processEvents();
     }
 }
 
@@ -342,17 +337,18 @@ void MainWindow::processVideos()
     else return;
 
     QThreadPool threadPool;
-    for(const auto &filePathName : _everyVideo)
+    for(auto vidIter = _everyVideo.constBegin(), end = _everyVideo.constEnd(); vidIter != end; ++vidIter)
     {
         if(_userPressedStop)
         {
             threadPool.clear();
             break;
         }
-        while(threadPool.activeThreadCount() == threadPool.maxThreadCount())
-//        while(threadPool.activeThreadCount() == 1) // useful to debug manually, where threading causes debug logs confusion !
+        while(threadPool.activeThreadCount() == threadPool.maxThreadCount()){
+//        while(threadPool.activeThreadCount() == 1){ // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
-        auto *videoTask = new Video(_prefs, filePathName, _useCacheOption);
+        }
+        auto *videoTask = new Video(_prefs, *vidIter, _useCacheOption);
         videoTask->setAutoDelete(false);
         threadPool.start(videoTask);
     }
@@ -615,4 +611,3 @@ void MainWindow::on_actionOpen_logs_folder_triggered()
 #endif
 
 }
-
