@@ -831,7 +831,7 @@ void Comparison::on_thresholdSlider_valueChanged(const int &value)
                 "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
                 "Smaller: less strict, can match different videos (false positive)\n"
                 "Larger: more strict, can miss identical videos (false negative)")
-            .arg(value).arg(matchingBitsOf64).arg((int)(100*SSIM_THRESHOLD+0.5));
+                .arg(value).arg(matchingBitsOf64).arg((int)(100*Prefs::DEFAULT_SSIM_THRESHOLD+0.5));
     ui->thresholdSlider->setToolTip(thresholdMessage);
 
     emit adjustThresholdSlider(ui->thresholdSlider->value());

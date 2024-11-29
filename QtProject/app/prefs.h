@@ -7,13 +7,13 @@
 
 #include "thumbnail.h"
 
-#define SSIM_THRESHOLD 1.0
-
 class Prefs
 {
 public:
     enum VisualComparisonModes { _PHASH, _SSIM };
     enum DeletionModes { STANDARD_TRASH, CUSTOM_TRASH, DIRECT_DELETION };
+    static constexpr double DEFAULT_SSIM_THRESHOLD = 1.0;
+    static constexpr int DEFAULT_MATCH_SIMILARITY_THRESHOLD = 100; // used for slider, as in % similarity
 
     QWidget *_mainwPtr = nullptr;               //pointer to MainWindow, for connecting signals to it's slots
 
@@ -26,10 +26,19 @@ public:
     }
     void comparisonMode(const VisualComparisonModes mode) {QSettings(APP_NAME, APP_NAME).setValue("comparison_mode", mode);}
 
+    int matchSimilarityThreshold() const {
+        auto readOk = false;
+        auto threshold = QSettings(APP_NAME, APP_NAME).value("match_similarity_threshold").toInt(&readOk);
+        if(!readOk)
+            return DEFAULT_MATCH_SIMILARITY_THRESHOLD;
+        return threshold;
+    }
+    void matchSimilarityThreshold(const int threshold) {QSettings(APP_NAME, APP_NAME).setValue("match_similarity_threshold", threshold);}
+
     int _numberOfVideos = 0;
     int _ssimBlockSize = 16;
 
-    double _thresholdSSIM = SSIM_THRESHOLD;
+    double _thresholdSSIM = DEFAULT_SSIM_THRESHOLD;
     int _thresholdPhash = 57;
 
     int _differentDurationModifier = 4;

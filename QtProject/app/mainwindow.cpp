@@ -37,7 +37,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
 
     deleteTemporaryFiles();
     loadExtensions();
-    calculateThreshold(ui->thresholdSlider->sliderPosition());
+    setMatchSimilarityThreshold(this->_prefs.matchSimilarityThreshold());
 
     ui->blocksizeCombo->addItems( { QStringLiteral("2"), QStringLiteral("4"),
                                     QStringLiteral("8"), QStringLiteral("16") } );
@@ -117,22 +117,6 @@ void MainWindow::loadExtensions()
         addStatusMessage(line.remove(QStringLiteral("*")));
     }
     file.close();
-}
-
-void MainWindow::calculateThreshold(const int &value)
-{
-    ui->threshPercent->setNum(value);
-
-    _prefs._thresholdSSIM = value / 100.0;
-    const int matchingBitsOf64 = static_cast<int>(round(64 * _prefs._thresholdSSIM));
-    _prefs._thresholdPhash = matchingBitsOf64;
-
-    const QString thresholdMessage = QStringLiteral(
-                "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
-                "Smaller: less strict, can match different videos (false positive)\n"
-                "Larger: more strict, can miss identical videos (false negative)")
-            .arg(value).arg(matchingBitsOf64).arg((int)(100*SSIM_THRESHOLD+0.5));
-    ui->thresholdSlider->setToolTip(thresholdMessage);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -486,6 +470,8 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     on_selectThumbnails_activated(cutEnds);
 
     setComparisonMode(this->_prefs.comparisonMode());
+
+    setMatchSimilarityThreshold(this->_prefs.matchSimilarityThreshold());
 }
 
 void MainWindow::on_actionRestore_default_cache_location_triggered()
@@ -658,9 +644,24 @@ void MainWindow::on_sameDurationCombo_activated(const int &index) {
     ui->directoryBox->setFocus();
 }
 void MainWindow::on_thresholdSlider_valueChanged(const int &value) {
-    ui->thresholdSlider->setValue(value);
-    calculateThreshold(value);
+    setMatchSimilarityThreshold(value);
     ui->directoryBox->setFocus();
+}
+void MainWindow::setMatchSimilarityThreshold(const int &value) {
+    this->_prefs.matchSimilarityThreshold(value);
+
+    _prefs._thresholdSSIM = value / 100.0;
+    const int matchingBitsOf64 = static_cast<int>(round(64 * _prefs._thresholdSSIM));
+    _prefs._thresholdPhash = matchingBitsOf64;
+
+    this->ui->thresholdSlider->setValue(value);
+    this->ui->threshPercent->setNum(value);
+    const QString thresholdMessage = QStringLiteral(
+        "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
+        "Smaller: less strict, can match different videos (false positive)\n"
+        "Larger: more strict, can miss identical videos (false negative)")
+        .arg(value).arg(matchingBitsOf64).arg((int)(100*Prefs::DEFAULT_SSIM_THRESHOLD+0.5));
+    ui->thresholdSlider->setToolTip(thresholdMessage);
 }
 // ------------------- END: Scan settings -------------------------------------
 // ----------------------------------------------------------------------------

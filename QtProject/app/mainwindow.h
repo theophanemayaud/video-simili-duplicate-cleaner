@@ -57,7 +57,7 @@ private slots:
     void on_differentDurationCombo_activated(const int &index);
     void on_sameDurationCombo_activated(const int &index);
     void on_thresholdSlider_valueChanged(const int &value);
-    void calculateThreshold(const int &value);
+    void setMatchSimilarityThreshold(const int &value);
 
     void on_directoryBox_textChanged(const QString &arg1);
     void on_browseFolders_clicked();
