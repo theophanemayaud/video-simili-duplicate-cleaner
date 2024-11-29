@@ -45,7 +45,6 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     Thumbnail thumb;
     for(int i=0; i<thumb.countModes(); i++)
         ui->selectThumbnails->addItem(thumb.modeName(i));
-    ui->selectThumbnails->setCurrentIndex(cutEnds);
 
     for(int i=0; i<=5; i++)
     {
@@ -69,17 +68,15 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     else
         addStatusMessage("\nError accessing cache, will not use any.\n");
 
-    // load saved settings
+    // load saved/default settings
     if(this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
     foreach(QString folder, this->_prefs.scanLocations()){
         if(!folder.isEmpty())
             this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
     }
-    bool thumbModeReadOk = false;
-    auto thumbMode = this->_prefs.thumbnailsMode(&thumbModeReadOk);
-    if(thumbModeReadOk)
-        on_selectThumbnails_activated(thumbMode);
+    auto thumbMode = this->_prefs.thumbnailsMode();
+    on_selectThumbnails_activated(thumbMode);
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -209,7 +206,7 @@ void MainWindow::on_findDuplicates_clicked()
     }
 
     const QString foldersToSearch = ui->directoryBox->text();   //search only if folder or thumbnail settings have changed
-    if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
+    if(foldersToSearch != _previousRunFolders || this->_prefs.thumbnailsMode() != _previousRunThumbnails)
     {
         addStatusMessage(QStringLiteral("\n\rSearching for videos..."));
         ui->statusBar->setVisible(true);
@@ -250,7 +247,7 @@ void MainWindow::on_findDuplicates_clicked()
     if(_videoList.count() > 1)
     {
         _comparison = new Comparison(sortVideosBySize(), _prefs);
-        if(foldersToSearch != _previousRunFolders || _prefs._thumbnails != _previousRunThumbnails)
+        if(foldersToSearch != _previousRunFolders || this->_prefs.thumbnailsMode() != _previousRunThumbnails)
         {
             QFuture<int> future = QtConcurrent::run(&Comparison::reportMatchingVideos, _comparison);   //run in background
             _comparison->exec();          //open dialog, but if it is closed while reportMatchingVideos() still running...
@@ -265,7 +262,7 @@ void MainWindow::on_findDuplicates_clicked()
         _comparison = nullptr;
 
         _previousRunFolders = foldersToSearch;                  //videos are still held in memory until
-        _previousRunThumbnails = _prefs._thumbnails;            //folders to search or thumbnail mode are changed
+        _previousRunThumbnails = this->_prefs.thumbnailsMode();            //folders to search or thumbnail mode are changed
     }
 
     ui->findDuplicates->setText(QStringLiteral("Find duplicates"));
@@ -631,10 +628,9 @@ void MainWindow::setComparisonMode(const int &mode) {
 void MainWindow::on_selectThumbnails_activated(const int &index) {
     this->_prefs.thumbnailsMode(index);
     this->ui->directoryBox->setFocus();
-    this->_prefs._thumbnails = index;
     this->ui->selectThumbnails->setCurrentIndex(index); // set even if was just selected as function is also called in code
-    if(_prefs._thumbnails == cutEnds)
-        this->ui->differentDurationCombo->setCurrentIndex(0);
+    if(index == cutEnds)
+        this->ui->differentDurationCombo->setCurrentIndex(0); // cutends already implicitely raises bar for duration, so no need to adjust threshold higher
 }
 void MainWindow::on_selectPhash_clicked(const bool &checked) {
     if(checked)

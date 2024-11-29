@@ -18,7 +18,6 @@ public:
     QWidget *_mainwPtr = nullptr;               //pointer to MainWindow, for connecting signals to it's slots
 
     int _comparisonMode = _PHASH;
-    int _thumbnails = cutEnds;
     int _numberOfVideos = 0;
     int _ssimBlockSize = 16;
 
@@ -51,7 +50,13 @@ public:
     QString browseLockedFoldersLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_locked_folders_last_path").toString();}
     void browseLockedFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_locked_folders_last_path", dirPath);}
 
-    int thumbnailsMode(bool* readOk) const {return QSettings(APP_NAME, APP_NAME).value("thumbnails_mode").toInt(readOk);}
+    int thumbnailsMode() const {
+        auto readOk = false;
+        auto thumbMode = QSettings(APP_NAME, APP_NAME).value("thumbnails_mode").toInt(&readOk);
+        if(!readOk)
+            return cutEnds;
+        return thumbMode;
+    }
     void thumbnailsMode(const int mode) {QSettings(APP_NAME, APP_NAME).setValue("thumbnails_mode", mode);}
 
     bool isVerbose() const {return QSettings(APP_NAME, APP_NAME).value("verbose_logging").toBool();}

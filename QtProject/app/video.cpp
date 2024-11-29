@@ -88,8 +88,8 @@ void Video::run()
         qDebug() << "Rejected : failed to take capture : "+ _filePathName;
         emit rejectVideo(this, "failed to take capture");
     }
-    else if((_prefs._thumbnails != cutEnds && hash[0] == 0 ) ||
-            (_prefs._thumbnails == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
+    else if((this->_prefs.thumbnailsMode() != cutEnds && hash[0] == 0 ) || // only cutends separates hashes for captures, other just treat as one big capture
+            (this->_prefs.thumbnailsMode() == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
         qDebug() << "Rejected : all screen captures black : "+ _filePathName;
         emit rejectVideo(this, "all screen captures black");
     }
@@ -221,7 +221,7 @@ bool Video::getMetadata(const QString &filename)
 
 int Video::takeScreenCaptures(const Db &cache)
 {
-    Thumbnail thumb(_prefs._thumbnails);
+    Thumbnail thumb(this->_prefs.thumbnailsMode());
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
     const QVector<int> percentages = thumb.percentages(); // percent from 1 to 100
     int capture = percentages.count();
@@ -278,7 +278,7 @@ int Video::takeScreenCaptures(const Db &cache)
         }
     }
 
-    const int hashes = _prefs._thumbnails == cutEnds? 2 : 1;    //if cutEnds mode: separate hash for beginning and end
+    const int hashes = this->_prefs.thumbnailsMode() == cutEnds? 2 : 1;    //if cutEnds mode: separate hash for beginning and end
     processThumbnail(thumbnail, hashes);
     return _success;
 }
@@ -288,7 +288,7 @@ void Video::processThumbnail(QImage &thumbnail, const int &hashes)
     for(int hash=0; hash<hashes; hash++)
     {
         QImage image = thumbnail;
-        if(_prefs._thumbnails == cutEnds)           //if cutEnds mode: separate thumbnail into first and last frames
+        if(this->_prefs.thumbnailsMode() == cutEnds)           //if cutEnds mode: separate thumbnail into first and last frames
             image = thumbnail.copy(hash*thumbnail.width()/2, 0, thumbnail.width()/2, thumbnail.height());
 
         cv::Mat mat = cv::Mat(image.height(), image.width(), CV_8UC3, image.bits(), static_cast<uint>(image.bytesPerLine()));
