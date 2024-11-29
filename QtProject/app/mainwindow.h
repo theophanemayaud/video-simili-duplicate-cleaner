@@ -49,15 +49,14 @@ private slots:
     void dropEvent(QDropEvent *event);
     void loadExtensions();
 
-    void setComparisonMode(const int &mode) { if(mode == _prefs._PHASH) ui->selectPhash->click(); else ui->selectSSIM->click(); ui->directoryBox->setFocus(); }
-    void on_selectThumbnails_activated(const int &index) { ui->directoryBox->setFocus(); _prefs._thumbnails = index;
-                                                           if(_prefs._thumbnails == cutEnds) ui->differentDurationCombo->setCurrentIndex(0); }
-    void on_selectPhash_clicked(const bool &checked) { if(checked) _prefs._comparisonMode = _prefs._PHASH; ui->directoryBox->setFocus(); }
-    void on_selectSSIM_clicked(const bool &checked) { if(checked) _prefs._comparisonMode = _prefs._SSIM; ui->directoryBox->setFocus(); }
-    void on_blocksizeCombo_activated(const int &index) { _prefs._ssimBlockSize = static_cast<int>(pow(2, index+1)); ui->directoryBox->setFocus(); }
-    void on_differentDurationCombo_activated(const int &index) { _prefs._differentDurationModifier = index; ui->directoryBox->setFocus(); }
-    void on_sameDurationCombo_activated(const int &index) { _prefs._sameDurationModifier = index; ui->directoryBox->setFocus(); }
-    void on_thresholdSlider_valueChanged(const int &value) { ui->thresholdSlider->setValue(value); calculateThreshold(value); ui->directoryBox->setFocus(); }
+    void setComparisonMode(const int &mode);
+    void on_selectThumbnails_activated(const int &index);
+    void on_selectPhash_clicked(const bool &checked);
+    void on_selectSSIM_clicked(const bool &checked);
+    void on_blocksizeCombo_activated(const int &index);
+    void on_differentDurationCombo_activated(const int &index);
+    void on_sameDurationCombo_activated(const int &index);
+    void on_thresholdSlider_valueChanged(const int &value);
     void calculateThreshold(const int &value);
 
     void on_directoryBox_textChanged(const QString &arg1);

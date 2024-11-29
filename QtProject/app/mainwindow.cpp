@@ -45,7 +45,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     Thumbnail thumb;
     for(int i=0; i<thumb.countModes(); i++)
         ui->selectThumbnails->addItem(thumb.modeName(i));
-    ui->selectThumbnails->setCurrentIndex(7);
+    ui->selectThumbnails->setCurrentIndex(cutEnds);
 
     for(int i=0; i<=5; i++)
     {
@@ -76,6 +76,10 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
         if(!folder.isEmpty())
             this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
     }
+    bool thumbModeReadOk = false;
+    auto thumbMode = this->_prefs.thumbnailsMode(&thumbModeReadOk);
+    if(thumbModeReadOk)
+        on_selectThumbnails_activated(thumbMode);
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -477,6 +481,8 @@ void MainWindow::on_actionRestore_all_settings_triggered()
 
     on_actionRestoreMoveToTrash_triggered();
     ui->verboseCheckbox->setCheckState(Qt::Unchecked);
+
+    ui->selectThumbnails->setCurrentIndex(cutEnds);
 }
 
 void MainWindow::on_actionRestore_default_cache_location_triggered()
@@ -593,7 +599,6 @@ void MainWindow::on_actionDelete_log_files_triggered()
     }
 }
 
-
 void MainWindow::on_actionOpen_logs_folder_triggered()
 {
     QDir logsFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
@@ -611,3 +616,50 @@ void MainWindow::on_actionOpen_logs_folder_triggered()
 #endif
 
 }
+
+// ----------------------------------------------------------------------------
+// ------------------- BEGIN: Scan settings -----------------------------------
+void MainWindow::setComparisonMode(const int &mode) {
+    if(mode == _prefs._PHASH)
+        ui->selectPhash->click();
+    else
+        ui->selectSSIM->click();
+    ui->directoryBox->setFocus();
+}
+void MainWindow::on_selectThumbnails_activated(const int &index) {
+    this->_prefs.thumbnailsMode(index);
+    this->ui->directoryBox->setFocus();
+    this->_prefs._thumbnails = index;
+    this->ui->selectThumbnails->setCurrentIndex(index); // set even if was just selected as function is also called in code
+    if(_prefs._thumbnails == cutEnds)
+        this->ui->differentDurationCombo->setCurrentIndex(0);
+}
+void MainWindow::on_selectPhash_clicked(const bool &checked) {
+    if(checked)
+        _prefs._comparisonMode = _prefs._PHASH;
+    ui->directoryBox->setFocus();
+}
+void MainWindow::on_selectSSIM_clicked(const bool &checked) {
+    if(checked)
+        _prefs._comparisonMode = _prefs._SSIM;
+    ui->directoryBox->setFocus();
+}
+void MainWindow::on_blocksizeCombo_activated(const int &index) {
+    _prefs._ssimBlockSize = static_cast<int>(pow(2, index+1));
+    ui->directoryBox->setFocus();
+}
+void MainWindow::on_differentDurationCombo_activated(const int &index) {
+    _prefs._differentDurationModifier = index;
+    ui->directoryBox->setFocus();
+}
+void MainWindow::on_sameDurationCombo_activated(const int &index) {
+    _prefs._sameDurationModifier = index;
+    ui->directoryBox->setFocus();
+}
+void MainWindow::on_thresholdSlider_valueChanged(const int &value) {
+    ui->thresholdSlider->setValue(value);
+    calculateThreshold(value);
+    ui->directoryBox->setFocus();
+}
+// ------------------- END: Scan settings -------------------------------------
+// ----------------------------------------------------------------------------
