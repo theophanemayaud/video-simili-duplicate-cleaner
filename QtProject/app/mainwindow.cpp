@@ -482,6 +482,8 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     on_actionRestoreMoveToTrash_triggered();
     ui->verboseCheckbox->setCheckState(Qt::Unchecked);
 
+    this->ui->directoryBox->clear();
+
     on_selectThumbnails_activated(cutEnds);
 }
 
