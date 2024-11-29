@@ -12,12 +12,20 @@
 class Prefs
 {
 public:
-    enum _modes { _PHASH, _SSIM };
+    enum VisualComparisonModes { _PHASH, _SSIM };
     enum DeletionModes { STANDARD_TRASH, CUSTOM_TRASH, DIRECT_DELETION };
 
     QWidget *_mainwPtr = nullptr;               //pointer to MainWindow, for connecting signals to it's slots
 
-    int _comparisonMode = _PHASH;
+    VisualComparisonModes comparisonMode() const {
+        auto readOk = false;
+        auto thumbMode = QSettings(APP_NAME, APP_NAME).value("comparison_mode").toInt(&readOk);
+        if(!readOk)
+            return _PHASH;
+        return (VisualComparisonModes)thumbMode;
+    }
+    void comparisonMode(const VisualComparisonModes mode) {QSettings(APP_NAME, APP_NAME).setValue("comparison_mode", mode);}
+
     int _numberOfVideos = 0;
     int _ssimBlockSize = 16;
 

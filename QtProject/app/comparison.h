@@ -120,10 +120,10 @@ private slots:
     void updateUI();
     int comparisonsSoFar() const;
 
-    void on_selectPhash_clicked ( const bool &checked) { if(checked) _prefs._comparisonMode = _prefs._PHASH;
-                                                         emit switchComparisonMode(_prefs._comparisonMode); }
-    void on_selectSSIM_clicked ( const bool &checked) { if(checked) _prefs._comparisonMode = _prefs._SSIM;
-                                                        emit switchComparisonMode(_prefs._comparisonMode); }
+    void on_selectPhash_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_PHASH);
+                                                         emit switchComparisonMode(this->_prefs.comparisonMode()); }
+    void on_selectSSIM_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_SSIM);
+                                                        emit switchComparisonMode(this->_prefs.comparisonMode()); }
 
     void on_leftImage_clicked() { openMedia(_videos[_leftVideo]->_filePathName); }
     void on_rightImage_clicked() { openMedia(_videos[_rightVideo]->_filePathName); }

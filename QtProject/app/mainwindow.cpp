@@ -77,6 +77,8 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     }
     auto thumbMode = this->_prefs.thumbnailsMode();
     on_selectThumbnails_activated(thumbMode);
+
+    setComparisonMode(this->_prefs.comparisonMode());
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -482,6 +484,8 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     this->ui->directoryBox->clear();
 
     on_selectThumbnails_activated(cutEnds);
+
+    setComparisonMode(this->_prefs.comparisonMode());
 }
 
 void MainWindow::on_actionRestore_default_cache_location_triggered()
@@ -618,11 +622,12 @@ void MainWindow::on_actionOpen_logs_folder_triggered()
 
 // ----------------------------------------------------------------------------
 // ------------------- BEGIN: Scan settings -----------------------------------
-void MainWindow::setComparisonMode(const int &mode) {
-    if(mode == _prefs._PHASH)
-        ui->selectPhash->click();
+void MainWindow::setComparisonMode(const int &mode) { // slot used from comparison.cpp to stay in sync
+    this->_prefs.comparisonMode(static_cast<Prefs::VisualComparisonModes>(mode));
+    if(mode == Prefs::_PHASH)
+        ui->selectPhash->setChecked(true);
     else
-        ui->selectSSIM->click();
+        ui->selectSSIM->setChecked(true);
     ui->directoryBox->setFocus();
 }
 void MainWindow::on_selectThumbnails_activated(const int &index) {
@@ -634,13 +639,11 @@ void MainWindow::on_selectThumbnails_activated(const int &index) {
 }
 void MainWindow::on_selectPhash_clicked(const bool &checked) {
     if(checked)
-        _prefs._comparisonMode = _prefs._PHASH;
-    ui->directoryBox->setFocus();
+        setComparisonMode(Prefs::_PHASH);
 }
 void MainWindow::on_selectSSIM_clicked(const bool &checked) {
     if(checked)
-        _prefs._comparisonMode = _prefs._SSIM;
-    ui->directoryBox->setFocus();
+        setComparisonMode(_prefs._SSIM);
 }
 void MainWindow::on_blocksizeCombo_activated(const int &index) {
     _prefs._ssimBlockSize = static_cast<int>(pow(2, index+1));

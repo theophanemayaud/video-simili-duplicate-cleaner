@@ -27,7 +27,7 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), ui->percentSim, SLOT(setNum(const int &)));
     connect(ui->progressBar, SIGNAL(valueChanged(const int &)), ui->currentVideo, SLOT(setNum(const int &)));
 
-    if(_prefs._comparisonMode == _prefs._SSIM)
+    if(this->_prefs.comparisonMode() == Prefs::_SSIM)
         ui->selectSSIM->setChecked(true);
     ui->thresholdSlider->setValue(QVariant(_prefs._thresholdSSIM * 100).toInt());
     ui->percentSim->setNum(QVariant(_prefs._thresholdSSIM * 100).toInt());
@@ -206,7 +206,7 @@ bool Comparison::bothVideosMatch(const Video *left, const Video *right)
     for(int hash=0; hash<hashes; hash++)
     {                               //if cutEnds mode: similarity is always the best one of both comparisons
         _phashSimilarity = qMax( _phashSimilarity, phashSimilarity(left, right, hash));
-        if(_prefs._comparisonMode == _prefs._PHASH)
+        if(this->_prefs.comparisonMode() == Prefs::_PHASH)
         {
             if(_phashSimilarity >= _prefs._thresholdPhash)
                 theyMatch = true;
@@ -495,9 +495,9 @@ void Comparison::updateUI()
         ui->rightMove->setDisabled(false);
     }
 
-    if(_prefs._comparisonMode == _prefs._PHASH)
+    if(this->_prefs.comparisonMode() == Prefs::_PHASH)
         ui->identicalBits->setText(QString("%1/64 same bits").arg(_phashSimilarity));
-    if(_prefs._comparisonMode == _prefs._SSIM)
+    if(this->_prefs.comparisonMode() == Prefs::_SSIM)
         ui->identicalBits->setText(QString("%1 SSIM index").arg(QString::number(qMin(_ssimSimilarity, 1.0), 'f', 3)));
     _zoomLevel = 0;
     ui->progressBar->setValue(comparisonsSoFar());
