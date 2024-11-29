@@ -935,13 +935,19 @@ void Comparison::loadLockedFolderFromPrefs(){
 
 void Comparison::on_lockedFolderButton_clicked()
 {
+    auto chooseLockedAt = this->_prefs.browseLockedFoldersLastPath();
+    if(chooseLockedAt.isEmpty() || !QDir(chooseLockedAt).exists())
+        chooseLockedAt = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first(); /*defines where the chooser opens at*/
     const QString dir = QFileDialog::getExistingDirectory(ui->lockedFolderButton,
                                                           QByteArrayLiteral("Open folder"),
-                                                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                          chooseLockedAt,
                                                           QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         return;
     }
+    auto parentDir = QDir(dir);
+    parentDir.cdUp(); // when a locked folder is selected, it's never children of it that will want to be selected next, rather those next to it
+    this->_prefs.browseLockedFoldersLastPath(parentDir.absolutePath());
     addLockedFolderToList(dir);
     ui->lockedFolderslistWidget->setFocus();
 }

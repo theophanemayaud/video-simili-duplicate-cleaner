@@ -48,6 +48,9 @@ public:
     QStringList lockedFoldersList() const {return QSettings(APP_NAME, APP_NAME).value("locked_folders_list").toStringList();}
     void lockedFoldersList(const QStringList folders) {QSettings(APP_NAME, APP_NAME).setValue("locked_folders_list", folders);}
 
+    QString browseLockedFoldersLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_locked_folders_last_path").toString();}
+    void browseLockedFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_locked_folders_last_path", dirPath);}
+
     int thumbnailsMode(bool* readOk) const {return QSettings(APP_NAME, APP_NAME).value("thumbnails_mode").toInt(readOk);}
     void thumbnailsMode(const int mode) {QSettings(APP_NAME, APP_NAME).setValue("thumbnails_mode", mode);}
 

@@ -1706,8 +1706,7 @@ In each scenario where only one of the two files is either in a protected folder
               <enum>Qt::CustomContextMenu</enum>
              </property>
              <property name="toolTip">
-              <string>Right click on the list for more options.
-Use up/down arrows to navigate options.</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Right click on the list for more options.&lt;/p&gt;&lt;p&gt;Use up/down arrows to navigate options.&lt;/p&gt;&lt;p&gt;You can also drag and drop to add multiple folders at once.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="verticalScrollBarPolicy">
               <enum>Qt::ScrollBarAsNeeded</enum>
