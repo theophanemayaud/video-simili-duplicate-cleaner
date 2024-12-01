@@ -86,7 +86,7 @@ private:
     class wholeAppTestConfig
     {
     public:
-        Video::USE_CACHE_OPTION cacheOption;
+        Prefs::USE_CACHE_OPTION cacheOption;
 
         // inside the app it default to 100, but for tests it's could be interesting if lower
         uint videoSimilarityThreshold = 100;
@@ -196,7 +196,7 @@ private:
          * Also sometimes, for some unknown reason, thumbnails don't come out the same.
          * But if you re-run tests a few times, it should get fixed
          * (or check visually with compareThumbsVisualConfig) */
-        Video::USE_CACHE_OPTION cacheOption;
+        Prefs::USE_CACHE_OPTION cacheOption;
 
         /* Small test set
          *  - No cache
@@ -278,7 +278,7 @@ void TestVideo::initTestCase(){
 // Test whole app
 void TestVideo::test_whole_app_nocache(){
     wholeAppTestConfig conf;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.ref_ms_time = 3.5*1000;
     conf.nb_vids_to_find = 200;
     conf.nb_valid_vids_to_find = 197;
@@ -291,7 +291,7 @@ void TestVideo::test_whole_app_nocache(){
 
 void TestVideo::test_whole_app_cached(){
     wholeAppTestConfig conf;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.ref_ms_time = 5*1000;
     conf.nb_vids_to_find = 200;
     conf.nb_valid_vids_to_find = 197;
@@ -304,7 +304,7 @@ void TestVideo::test_whole_app_cached(){
 
 void TestVideo::test_whole_app_cache_only(){
         wholeAppTestConfig conf;
-        conf.cacheOption = Video::CACHE_ONLY;
+        conf.cacheOption = Prefs::CACHE_ONLY;
         conf.ref_ms_time = 1*1000;
         conf.nb_vids_to_find = 200;
         conf.nb_valid_vids_to_find = 197;
@@ -319,7 +319,7 @@ void TestVideo::test_whole_app_cache_only(){
 void TestVideo::test_check_refvidparams_nocache_exact_identical(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -330,7 +330,7 @@ void TestVideo::test_check_refvidparams_nocache_exact_identical(){
 void TestVideo::test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -343,7 +343,7 @@ void TestVideo::test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSma
 void TestVideo::test_check_refvidparams_nocache_noThumbHashesCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -355,7 +355,7 @@ void TestVideo::test_check_refvidparams_nocache_noThumbHashesCheck(){
 void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -369,7 +369,7 @@ void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck(){
 void TestVideo::test_check_refvidparams_cached_exact_identical(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -380,7 +380,7 @@ void TestVideo::test_check_refvidparams_cached_exact_identical(){
 void TestVideo::test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -393,7 +393,7 @@ void TestVideo::test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmal
 void TestVideo::test_check_refvidparams_cached_noThumbHashesCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -405,7 +405,7 @@ void TestVideo::test_check_refvidparams_cached_noThumbHashesCheck(){
 void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
     conf.videoDir = _videoDir;
@@ -600,7 +600,7 @@ void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck(){
 // Test whole app
 void TestVideo::test_100GBwholeApp_nocache(){
     wholeAppTestConfig conf;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.ref_ms_time = 7*60*1000;
     conf.nb_vids_to_find = 12505;
     conf.nb_valid_vids_to_find = 12330;
@@ -613,7 +613,7 @@ void TestVideo::test_100GBwholeApp_nocache(){
 
 void TestVideo::test_100GBwholeApp_cached(){
     wholeAppTestConfig conf;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.ref_ms_time = 3*60*1000;
     conf.nb_vids_to_find = 12505;
     conf.nb_valid_vids_to_find = 12330;
@@ -628,7 +628,7 @@ void TestVideo::test_100GBwholeApp_cached(){
 void TestVideo::test_100GBcheckRefVidParams_nocache_manualCompare500Sampled_AcceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _100GBcsvInfo_nocache;
     conf.videoDir = _100GBvideoDir;
     conf.thumbsDir = _100GBthumbnailDir_nocache;
@@ -642,7 +642,7 @@ void TestVideo::test_100GBcheckRefVidParams_nocache_manualCompare500Sampled_Acce
 void TestVideo::test_100GBcheckRefVidParams_nocache_noVisualThumbCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _100GBcsvInfo_nocache;
     conf.videoDir = _100GBvideoDir;
     conf.thumbsDir = _100GBthumbnailDir_nocache;
@@ -656,7 +656,7 @@ void TestVideo::test_100GBcheckRefVidParams_nocache_noVisualThumbCheck(){
 void TestVideo::test_100GBcheckRefVidParams_nocache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::NO_CACHE;
+    conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _100GBcsvInfo_nocache;
     conf.videoDir = _100GBvideoDir;
     conf.thumbsDir = _100GBthumbnailDir_nocache;
@@ -673,7 +673,7 @@ void TestVideo::test_100GBcheckRefVidParams_nocache_noVisualThumbCheck_AcceptSma
 void TestVideo::test_100GBcheckRefVidParams_cache_manualCompare500Sampled_AcceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.paramsCSV = _100GBcsvInfo_nocache;
     conf.videoDir = _100GBvideoDir;
     conf.thumbsDir = _100GBthumbnailDir_nocache;
@@ -686,7 +686,7 @@ void TestVideo::test_100GBcheckRefVidParams_cache_manualCompare500Sampled_Accept
 void TestVideo::test_100GBcheckRefVidParams_cache_noVisualThumbCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.paramsCSV = _100GBcsvInfo_nocache;
     conf.videoDir = _100GBvideoDir;
     conf.thumbsDir = _100GBthumbnailDir_nocache;
@@ -700,7 +700,7 @@ void TestVideo::test_100GBcheckRefVidParams_cache_noVisualThumbCheck(){
 void TestVideo::test_100GBcheckRefVidParams_cache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Video::WITH_CACHE;
+    conf.cacheOption = Prefs::WITH_CACHE;
     conf.paramsCSV = _100GBcsvInfo_nocache;
     conf.videoDir = _100GBvideoDir;
     conf.thumbsDir = _100GBthumbnailDir_nocache;
@@ -731,15 +731,15 @@ void TestVideo::runWholeAppScan(
         w.on_thresholdSlider_valueChanged(conf->videoSimilarityThreshold);
 
         switch (conf->cacheOption) {
-        case Video::CACHE_ONLY:
+        case Prefs::CACHE_ONLY:
             runWholeAppScan(videoDir); // run once to make sure all is cached
             w.ui->radio_UseCacheOnly->click();
             break;
-        case Video::WITH_CACHE:
+        case Prefs::WITH_CACHE:
             runWholeAppScan(videoDir);
             w.ui->radio_UseCacheYes->click();
             break;
-        case Video::NO_CACHE:
+        case Prefs::NO_CACHE:
             w.ui->radio_UseCacheNo->click();
         default:
             break;
@@ -781,7 +781,7 @@ void TestVideo::checkRefVidParamsList(
     QVERIFY(conf.thumbsDir.exists());
     QVERIFY(conf.videoDir.exists());
 
-    if(conf.cacheOption != Video::NO_CACHE)
+    if(conf.cacheOption != Prefs::NO_CACHE)
         runWholeAppScan(conf.videoDir); // create the cache if it didn't exist before
 
     QElapsedTimer timer;
@@ -811,7 +811,7 @@ void TestVideo::checkRefVidParamsList(
         QByteArray ref_thumbnail = ref_thumbFile.readAll();
         ref_thumbFile.close();
 
-        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath(), conf.cacheOption);
+        Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath());
         vid->run();
 
         if(conf.compareThumbsVisualConfig != nullptr

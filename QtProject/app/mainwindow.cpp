@@ -79,6 +79,8 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     on_selectThumbnails_activated(thumbMode);
 
     setComparisonMode(this->_prefs.comparisonMode());
+
+    setUseCacheOption(this->_prefs.useCacheOption());
 }
 
 void MainWindow::deleteTemporaryFiles() const
@@ -204,7 +206,7 @@ void MainWindow::on_findDuplicates_clicked()
 
         const QStringList directories = foldersToSearch.split(QStringLiteral(";"));
         this->_prefs.scanLocations(directories);
-        if(_useCacheOption!=Video::CACHE_ONLY){
+        if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY){
             QString notFound;
             for(auto directory : directories)               //add all video files from entered paths to list
             {
@@ -302,7 +304,7 @@ QVector<Video *> MainWindow::sortVideosBySize() const {
 void MainWindow::processVideos()
 {
     _prefs._numberOfVideos = _everyVideo.count();
-    if(_useCacheOption!=Video::CACHE_ONLY)
+    if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
         addStatusMessage(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
     else
         addStatusMessage(QStringLiteral("\nFound %1 cached video file(s):\n").arg(_prefs._numberOfVideos));
@@ -310,7 +312,7 @@ void MainWindow::processVideos()
     {
         ui->selectThumbnails->setDisabled(true);
         ui->processedFiles->setVisible(true);
-        if(_useCacheOption!=Video::CACHE_ONLY)
+        if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
             ui->processedFiles->setText(QStringLiteral("0/%1").arg(_prefs._numberOfVideos));
         else
             ui->processedFiles->setText(QStringLiteral("Loading cache 0/%1").arg(_prefs._numberOfVideos));
@@ -335,7 +337,7 @@ void MainWindow::processVideos()
 //        while(threadPool.activeThreadCount() == 1){ // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
         }
-        auto *videoTask = new Video(_prefs, *vidIter, _useCacheOption);
+        auto *videoTask = new Video(_prefs, *vidIter);
         videoTask->setAutoDelete(false);
         threadPool.start(videoTask);
     }
@@ -409,7 +411,7 @@ void MainWindow::addVideo(Video *addMe)
                                                        QDir::toNativeSeparators(addMe->_filePathName)));
     }
     ui->progressBar->setValue(ui->progressBar->value() + 1);
-    if(_useCacheOption!=Video::CACHE_ONLY)
+    if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
         ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
     else
         ui->processedFiles->setText(QStringLiteral("Loading cache %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
@@ -472,6 +474,8 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     setComparisonMode(this->_prefs.comparisonMode());
 
     setMatchSimilarityThreshold(this->_prefs.matchSimilarityThreshold());
+
+    setUseCacheOption(this->_prefs.useCacheOption());
 }
 
 void MainWindow::on_actionRestore_default_cache_location_triggered()
@@ -662,6 +666,20 @@ void MainWindow::setMatchSimilarityThreshold(const int &value) {
         "Larger: more strict, can miss identical videos (false negative)")
         .arg(value).arg(matchingBitsOf64).arg((int)(100*Prefs::DEFAULT_SSIM_THRESHOLD+0.5));
     ui->thresholdSlider->setToolTip(thresholdMessage);
+}
+void MainWindow::setUseCacheOption(Prefs::USE_CACHE_OPTION opt) {
+    this->_prefs.useCacheOption(opt);
+    switch (opt) {
+    case Prefs::NO_CACHE:
+        this->ui->radio_UseCacheNo->setChecked(true);
+        break;
+    case Prefs::CACHE_ONLY:
+        this->ui->radio_UseCacheOnly->setChecked(true);
+        break;
+    default:
+        this->ui->radio_UseCacheYes->setChecked(true);
+        break;
+    }
 }
 // ------------------- END: Scan settings -------------------------------------
 // ----------------------------------------------------------------------------

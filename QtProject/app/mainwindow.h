@@ -40,8 +40,6 @@ private:
     QString _previousRunFolders = QStringLiteral("");
     int _previousRunThumbnails = -1;
 
-    Video::USE_CACHE_OPTION _useCacheOption = Video::WITH_CACHE;
-
 private slots:
     void deleteTemporaryFiles() const;
     void closeEvent(QCloseEvent *event) { Q_UNUSED (event) _userPressedStop = true; }
@@ -58,6 +56,7 @@ private slots:
     void on_sameDurationCombo_activated(const int &index);
     void on_thresholdSlider_valueChanged(const int &value);
     void setMatchSimilarityThreshold(const int &value);
+    void setUseCacheOption(Prefs::USE_CACHE_OPTION opt);
 
     void on_directoryBox_textChanged(const QString &arg1);
     void on_browseFolders_clicked();
@@ -89,9 +88,9 @@ private slots:
     void on_actionRestore_all_settings_triggered();
 
     // cache options
-    void on_radio_UseCacheNo_clicked() {_useCacheOption = Video::NO_CACHE;};
-    void on_radio_UseCacheYes_clicked() {_useCacheOption = Video::WITH_CACHE;};
-    void on_radio_UseCacheOnly_clicked() {_useCacheOption = Video::CACHE_ONLY;};
+    void on_radio_UseCacheNo_clicked() { setUseCacheOption(Prefs::NO_CACHE); };
+    void on_radio_UseCacheYes_clicked() { setUseCacheOption(Prefs::WITH_CACHE); };
+    void on_radio_UseCacheOnly_clicked() { setUseCacheOption(Prefs::CACHE_ONLY); };
     void on_actionDelete_log_files_triggered();
     void on_actionOpen_logs_folder_triggered();
 };

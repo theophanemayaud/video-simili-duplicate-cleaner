@@ -14,6 +14,11 @@ public:
     enum DeletionModes { STANDARD_TRASH, CUSTOM_TRASH, DIRECT_DELETION };
     static constexpr double DEFAULT_SSIM_THRESHOLD = 1.0;
     static constexpr int DEFAULT_MATCH_SIMILARITY_THRESHOLD = 100; // used for slider, as in % similarity
+    enum USE_CACHE_OPTION : int {
+        NO_CACHE,
+        WITH_CACHE,
+        CACHE_ONLY
+    };
 
     QWidget *_mainwPtr = nullptr;               //pointer to MainWindow, for connecting signals to it's slots
 
@@ -48,6 +53,15 @@ public:
     QDir trashDir = QDir::root();
 
     QString appVersion = "undefined";
+
+    USE_CACHE_OPTION useCacheOption() const {
+        auto readOk = false;
+        auto opt = QSettings(APP_NAME, APP_NAME).value("use_cache_option").toInt(&readOk);
+        if(!readOk)
+            return WITH_CACHE;
+        return static_cast<USE_CACHE_OPTION>(opt);
+    }
+    void useCacheOption(const USE_CACHE_OPTION opt) {QSettings(APP_NAME, APP_NAME).setValue("use_cache_option", opt);}
 
     QString cacheFilePathName() const {return QFileInfo(QSettings(APP_NAME, APP_NAME).value("cache_file_path_name").toString()).absoluteFilePath();}
     void cacheFilePathName(const QString cacheFilePathName) {QSettings(APP_NAME, APP_NAME).setValue("cache_file_path_name", cacheFilePathName);}
