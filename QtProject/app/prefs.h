@@ -23,13 +23,21 @@ public:
     QWidget *_mainwPtr = nullptr;               //pointer to MainWindow, for connecting signals to it's slots
 
     VisualComparisonModes comparisonMode() const {
-        auto readOk = false;
-        auto thumbMode = QSettings(APP_NAME, APP_NAME).value("comparison_mode").toInt(&readOk);
-        if(!readOk)
-            return _PHASH;
-        return (VisualComparisonModes)thumbMode;
+        if(this->compMode == nullptr){
+            auto readOk = false;
+            auto mode = static_cast<VisualComparisonModes>(QSettings(APP_NAME, APP_NAME).value("comparison_mode").toInt(&readOk));
+            if(!readOk)
+                mode = _PHASH;
+            this->compMode = std::make_unique<VisualComparisonModes>(mode);
+        }
+        return *this->compMode;
     }
-    void comparisonMode(const VisualComparisonModes mode) {QSettings(APP_NAME, APP_NAME).setValue("comparison_mode", mode);}
+    void comparisonMode(const VisualComparisonModes mode) {
+        if(this->compMode == nullptr)
+            this->compMode = std::make_unique<VisualComparisonModes>(_PHASH);
+        else
+            *this->compMode = mode;
+        QSettings(APP_NAME, APP_NAME).setValue("comparison_mode", mode);}
 
     int matchSimilarityThreshold() const {
         auto readOk = false;
@@ -55,16 +63,38 @@ public:
     QString appVersion = "undefined";
 
     USE_CACHE_OPTION useCacheOption() const {
-        auto readOk = false;
-        auto opt = QSettings(APP_NAME, APP_NAME).value("use_cache_option").toInt(&readOk);
-        if(!readOk)
-            return WITH_CACHE;
-        return static_cast<USE_CACHE_OPTION>(opt);
+        if(this->useCacheOptionStatic == nullptr){
+            auto readOk = false;
+            auto mode = static_cast<USE_CACHE_OPTION>(QSettings(APP_NAME, APP_NAME).value("use_cache_option").toInt(&readOk));
+            if(!readOk)
+                mode = WITH_CACHE;
+            this->useCacheOptionStatic = std::make_unique<USE_CACHE_OPTION>(mode);
+        }
+        return *this->useCacheOptionStatic;
     }
-    void useCacheOption(const USE_CACHE_OPTION opt) {QSettings(APP_NAME, APP_NAME).setValue("use_cache_option", opt);}
+    void useCacheOption(const USE_CACHE_OPTION opt) {
+        if(this->useCacheOptionStatic == nullptr)
+            this->useCacheOptionStatic = std::make_unique<USE_CACHE_OPTION>(WITH_CACHE);
+        else
+            *this->useCacheOptionStatic = opt;
 
-    QString cacheFilePathName() const {return QFileInfo(QSettings(APP_NAME, APP_NAME).value("cache_file_path_name").toString()).absoluteFilePath();}
-    void cacheFilePathName(const QString cacheFilePathName) {QSettings(APP_NAME, APP_NAME).setValue("cache_file_path_name", cacheFilePathName);}
+        QSettings(APP_NAME, APP_NAME).setValue("use_cache_option", opt);
+    }
+
+    QString cacheFilePathName() const {
+        if(cacheFilePathNameStatic == nullptr){
+            auto path = QFileInfo(QSettings(APP_NAME, APP_NAME).value("cache_file_path_name").toString()).absoluteFilePath();
+            this->cacheFilePathNameStatic = std::make_unique<QString>(path);
+        }
+        return *this->cacheFilePathNameStatic;
+    }
+    void cacheFilePathName(const QString cacheFilePathName) {
+        if(this->cacheFilePathNameStatic == nullptr)
+            this->cacheFilePathNameStatic = std::make_unique<QString>(cacheFilePathName);
+        else
+            *this->cacheFilePathNameStatic = cacheFilePathName;
+        QSettings(APP_NAME, APP_NAME).setValue("cache_file_path_name", cacheFilePathName);
+    }
 
     QString browseApplePhotosLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_apple_photos_last_path").toString();}
     void browseApplePhotosLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_apple_photos_last_path", dirPath);}
@@ -82,18 +112,32 @@ public:
     void browseLockedFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_locked_folders_last_path", dirPath);}
 
     int thumbnailsMode() const {
-        auto readOk = false;
-        auto thumbMode = QSettings(APP_NAME, APP_NAME).value("thumbnails_mode").toInt(&readOk);
-        if(!readOk)
-            return cutEnds;
-        return thumbMode;
+        if(thumbMode == nullptr){
+            auto readOk = false;
+            this->thumbMode = std::make_unique<int>(QSettings(APP_NAME, APP_NAME).value("thumbnails_mode").toInt(&readOk));
+            if(!readOk){
+                *this->thumbMode = cutEnds;
+            }
+        }
+        return *this->thumbMode;
     }
-    void thumbnailsMode(const int mode) {QSettings(APP_NAME, APP_NAME).setValue("thumbnails_mode", mode);}
+    void thumbnailsMode(const int mode) {
+        if(this->thumbMode == nullptr)
+            this->thumbMode = std::make_unique<int>(cutEnds);
+        else
+            *this->thumbMode = mode;
+        QSettings(APP_NAME, APP_NAME).setValue("thumbnails_mode", mode);
+    }
 
     bool isVerbose() const {return QSettings(APP_NAME, APP_NAME).value("verbose_logging").toBool();}
     void setVerbose(const bool verbose) {QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);}
 
     void resetSettings() {QSettings(APP_NAME, APP_NAME).clear();}
+private:
+    inline static std::unique_ptr<int> thumbMode = nullptr;
+    inline static std::unique_ptr<VisualComparisonModes> compMode = nullptr;
+    inline static std::unique_ptr<QString> cacheFilePathNameStatic = nullptr;
+    inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
 };
 
 class Message: public QObject {

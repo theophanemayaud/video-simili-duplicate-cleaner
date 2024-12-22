@@ -724,6 +724,9 @@ void TestVideo::runWholeAppScan(
     ){
     QVERIFY(videoDir.exists());
 
+    if(conf != nullptr && conf->cacheOption != Prefs::NO_CACHE)
+        runWholeAppScan(videoDir); // run once to make sure all is cached
+
     MainWindow w = MainWindow();
     w.show();
 
@@ -732,11 +735,9 @@ void TestVideo::runWholeAppScan(
 
         switch (conf->cacheOption) {
         case Prefs::CACHE_ONLY:
-            runWholeAppScan(videoDir); // run once to make sure all is cached
             w.ui->radio_UseCacheOnly->click();
             break;
         case Prefs::WITH_CACHE:
-            runWholeAppScan(videoDir);
             w.ui->radio_UseCacheYes->click();
             break;
         case Prefs::NO_CACHE:
@@ -793,6 +794,7 @@ void TestVideo::checkRefVidParamsList(
 
     // compute params for all videos
     Prefs prefs;
+    prefs.useCacheOption(conf.cacheOption);
     Db::initDbAndCacheLocation(prefs);
 
     int test_nb = 0;
