@@ -75,8 +75,8 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
         if(!folder.isEmpty())
             this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
     }
-    auto thumbMode = this->_prefs.thumbnailsMode();
-    on_selectThumbnails_activated(thumbMode);
+
+    on_selectThumbnails_activated(this->_prefs.thumbnailsMode());
 
     setComparisonMode(this->_prefs.comparisonMode());
 

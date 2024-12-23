@@ -24,13 +24,12 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), _prefs._mainwPtr, SLOT(on_thresholdSlider_valueChanged(const int &)));
-    connect(this, SIGNAL(adjustThresholdSlider(const int &)), ui->percentSim, SLOT(setNum(const int &)));
     connect(ui->progressBar, SIGNAL(valueChanged(const int &)), ui->currentVideo, SLOT(setNum(const int &)));
 
     if(this->_prefs.comparisonMode() == Prefs::_SSIM)
         ui->selectSSIM->setChecked(true);
-    ui->thresholdSlider->setValue(QVariant(_prefs._thresholdSSIM * 100).toInt());
-    ui->percentSim->setNum(QVariant(_prefs._thresholdSSIM * 100).toInt());
+    on_thresholdSlider_valueChanged(this->_prefs.matchSimilarityThreshold());
+
     ui->progressBar->setMaximum(_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2);
 
     ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
@@ -139,7 +138,7 @@ void Comparison::on_prevVideo_clicked()
     QVector<Video*>::const_iterator left, right, begin = _videos.cbegin();
     for(_rightVideo--, left=begin+_leftVideo; left>=begin; left--, _leftVideo--)
     {
-        for(right=begin+_rightVideo; right>left; right--, _rightVideo--)
+        for(right=begin+_rightVideo; right>left; right--, _rightVideo--){
             if(bothVideosMatch(*left, *right)
                     && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
                     && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed
@@ -153,6 +152,7 @@ void Comparison::on_prevVideo_clicked()
                 updateUI();
                 return;
             }
+        }
         ui->progressBar->setValue(comparisonsSoFar());
         _rightVideo = _prefs._numberOfVideos - 1;
     }
@@ -169,7 +169,7 @@ void Comparison::on_nextVideo_clicked()
     QVector<Video*>::const_iterator left, right, begin = _videos.cbegin(), end = _videos.cend();
     for(left=begin+_leftVideo; left<end; left++, _leftVideo++)
     {
-        for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++)
+        for(_rightVideo++, right=begin+_rightVideo; right<end; right++, _rightVideo++){
             if(bothVideosMatch(*left, *right)
                     && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
                     && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed
@@ -183,6 +183,7 @@ void Comparison::on_nextVideo_clicked()
                 updateUI();
                 return;
             }
+        }
         ui->progressBar->setValue(comparisonsSoFar());
         _rightVideo = _leftVideo + 1;
     }
@@ -823,9 +824,13 @@ void Comparison::on_swapFilenames_clicked() const
 
 void Comparison::on_thresholdSlider_valueChanged(const int &value)
 {
+    this->_prefs.matchSimilarityThreshold(value);
+
     _prefs._thresholdSSIM = value / 100.0;
     const int matchingBitsOf64 = static_cast<int>(round(64 * _prefs._thresholdSSIM));
     _prefs._thresholdPhash = matchingBitsOf64;
+    this->ui->percentSim->setNum(value);
+    this->ui->thresholdSlider->setValue(value);
 
     const QString thresholdMessage = QStringLiteral(
                 "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
@@ -834,7 +839,7 @@ void Comparison::on_thresholdSlider_valueChanged(const int &value)
                 .arg(value).arg(matchingBitsOf64).arg((int)(100*Prefs::DEFAULT_SSIM_THRESHOLD+0.5));
     ui->thresholdSlider->setToolTip(thresholdMessage);
 
-    emit adjustThresholdSlider(ui->thresholdSlider->value());
+    emit adjustThresholdSlider(ui->thresholdSlider->value()); // sync with main window
 }
 
 void Comparison::resizeEvent(QResizeEvent *event)
