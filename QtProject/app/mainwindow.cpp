@@ -234,14 +234,11 @@ void MainWindow::on_findDuplicates_clicked()
 
     if(_videoList.count() > 1)
     {
-        _comparison = new Comparison(sortVideosBySize(), _prefs);
+        this->_comparison = new Comparison(sortVideosBySize(), _prefs);
         if(foldersToSearch != _previousRunFolders || this->_prefs.thumbnailsMode() != _previousRunThumbnails)
         {
-            QFuture<int> future = QtConcurrent::run(&Comparison::reportMatchingVideos, _comparison);   //run in background
-            _comparison->exec();          //open dialog, but if it is closed while reportMatchingVideos() still running...
-            QApplication::setOverrideCursor(Qt::WaitCursor);
-            future.waitForFinished();   //...must wait until finished (crash when going out of scope destroys instance)
-            QApplication::restoreOverrideCursor();
+            this->_comparison->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with static prefs
+            this->_comparison->exec();
         }
         else
             _comparison->exec();
