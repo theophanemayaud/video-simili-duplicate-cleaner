@@ -393,8 +393,8 @@ void MainWindow::addStatusMessage(const QString &message) const
             }
         }
         else {
-            logStream << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm")
-                      << ": " << message << Qt::endl;
+            logStream << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
+                      << "->" << message << Qt::endl;
         }
     }
 
@@ -407,7 +407,7 @@ void MainWindow::addStatusMessage(const QString &message) const
 void MainWindow::addVideo(Video *addMe)
 {
     if(this->_prefs.isVerbose()){
-        addStatusMessage(QStringLiteral("[%1] %2").arg(QTime::currentTime().toString(),
+        addStatusMessage(QStringLiteral("[%1] SUCCESS %2").arg(QTime::currentTime().toString(),
                                                        QDir::toNativeSeparators(addMe->_filePathName)));
     }
     ui->progressBar->setValue(ui->progressBar->value() + 1);

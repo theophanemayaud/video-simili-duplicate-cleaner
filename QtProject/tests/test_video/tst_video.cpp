@@ -165,16 +165,18 @@ private:
          *      -- <1 sec (0.566, 0.538,...): arm m3 Pro with arm build & arm lib - 2024 oct.
          * 100GB test set
          *  - No cache
-         *      -- 36 min: mix lib&exec metadata, exec captures
-         *      -- 30 min: lib(only) metadata, exec captures
-         *      -- 17 min: lib(only) metadata, lib(only) captures
-         *      -- 17 min: lib(only) metadata, lib(only) captures
-         *      -- 6 min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 36min: mix lib&exec metadata, exec captures
+         *      -- 30min: lib(only) metadata, exec captures
+         *      -- 17min: lib(only) metadata, lib(only) captures
+         *      -- 17min: lib(only) metadata, lib(only) captures
+         *      -- 6min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 4min 16s (250s, ...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
          *  - Cached
-         *      -- 17 min: mix lib&exec metadata, exec captures
-         *      -- 6 min: lib(only) metadata, exec captures
-         *      -- 6 min: lib(only) metadata, lib(only) captures
-         *      -- 2 min 33 s: arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 17min: mix lib&exec metadata, exec captures
+         *      -- 6min: lib(only) metadata, exec captures
+         *      -- 6min: lib(only) metadata, lib(only) captures
+         *      -- 2min 33s: arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 50s (44s, ...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
          *  */
         qint64 ref_ms_time;
     };
@@ -200,23 +202,23 @@ private:
 
         /* Small test set
          *  - No cache
-         *      -- 35 s: macOS intel on intel (before remove big file tests)
-         *      -- 36 s: windows intel on intel (before remove big file tests)
-         *      -- 17 s: macOS arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 35s: macOS intel on intel (before remove big file tests)
+         *      -- 36s: windows intel on intel (before remove big file tests)
+         *      -- 17s: macOS arm m3 Pro with arm build & arm lib - 2024 oct.
          *  - Cached
-         *      -- 8 s: macOS intel on intel (before remove big file tests)
-         *      -- 9 s: windows intel on intel (before remove big file tests)
-         *      -- 2.5 s: macOS arm m3 Pro with arm build & arm lib (2'494ms, 2'606ms, ... so cap around 5s) - 2024 oct.
+         *      -- 8s: macOS intel on intel (before remove big file tests)
+         *      -- 9s: windows intel on intel (before remove big file tests)
+         *      -- 2.5s: macOS arm m3 Pro with arm build & arm lib (2'494ms, 2'606ms, ... so cap around 5s) - 2024 oct.
          * 100GB test set
          *  - No cache
-         *      -- 37 min: library(only) metadata, exec captures
-         *      -- 48 min: intel i5 lib(only) metadata, lib(only) captures
-         *      -- 26 min 36 s: arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 37min: library(only) metadata, exec captures
+         *      -- 48min: intel i5 lib(only) metadata, lib(only) captures
+         *      -- 26min (1568s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *  - Cached
-         *      -- 39 min: mix lib&exec metadata, exec captures
-         *      -- 12 min: library(only) metadata, exec captures
-         *      -- 12 min: lib(only) metadata, lib(only) captures
-         *      - 3 min 27 s: arm m3 Pro with arm build & arm lib (no thumb check) - 2024 oct. */
+         *      -- 39min: mix lib&exec metadata, exec captures
+         *      -- 12min: library(only) metadata, exec captures
+         *      -- 12min: lib(only) metadata, lib(only) captures
+         *      -- 3min 27s (205s, ...: arm m3 Pro with arm build & arm lib (no thumb check) - 2024 oct. */
         qint64 refDuration_ms;
 
         // inside the app it default to 100, but for tests it's could be interesting if lower

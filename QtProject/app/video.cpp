@@ -26,7 +26,7 @@ Video::Video(const Prefs &prefsParam, const QString &filePathName) :
 void Video::run()
 {
     if(this->_prefs.isVerbose())
-        Message::Get()->add(QString("Starting to process video: %1").arg(this->_filePathName));
+        Message::Get()->add(QString("[%1] STARTING %2").arg(QTime::currentTime().toString(), this->_filePathName));
 
     if(!QFileInfo::exists(_filePathName))
     {
