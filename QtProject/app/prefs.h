@@ -112,7 +112,7 @@ public:
     void browseLockedFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_locked_folders_last_path", dirPath);}
 
     int thumbnailsMode() const {
-        if(thumbMode == nullptr){
+        if(this->thumbMode == nullptr){
             auto readOk = false;
             this->thumbMode = std::make_unique<int>(QSettings(APP_NAME, APP_NAME).value("thumbnails_mode").toInt(&readOk));
             if(!readOk){
@@ -129,8 +129,20 @@ public:
         QSettings(APP_NAME, APP_NAME).setValue("thumbnails_mode", mode);
     }
 
-    bool isVerbose() const {return QSettings(APP_NAME, APP_NAME).value("verbose_logging").toBool();}
-    void setVerbose(const bool verbose) {QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);}
+    bool isVerbose() const {
+        if(this->verboseStatic == nullptr){
+            this->verboseStatic = std::make_unique<bool>(QSettings(APP_NAME, APP_NAME).value("verbose_logging").toBool());
+        }
+
+        return *this->verboseStatic;
+    }
+    void setVerbose(const bool verbose) {
+        if(this->verboseStatic == nullptr)
+            this->verboseStatic = std::make_unique<bool>(verbose);
+        else
+            *this->verboseStatic = verbose;
+        QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);
+    }
 
     void resetSettings() {QSettings(APP_NAME, APP_NAME).clear();}
 private:
@@ -138,6 +150,7 @@ private:
     inline static std::unique_ptr<VisualComparisonModes> compMode = nullptr;
     inline static std::unique_ptr<QString> cacheFilePathNameStatic = nullptr;
     inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
+    inline static std::unique_ptr<bool> verboseStatic = nullptr;
 };
 
 class Message: public QObject {
