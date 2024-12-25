@@ -235,9 +235,10 @@ void MainWindow::on_findDuplicates_clicked()
     if(_videoList.count() > 1)
     {
         this->_comparison = new Comparison(sortVideosBySize(), _prefs);
+        this->_comparison->hide();
         if(foldersToSearch != _previousRunFolders || this->_prefs.thumbnailsMode() != _previousRunThumbnails)
         {
-            this->_comparison->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with static prefs
+            this->_comparison->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with comparison window (non const function)
             this->_comparison->exec();
         }
         else

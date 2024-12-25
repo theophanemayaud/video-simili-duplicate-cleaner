@@ -1,6 +1,8 @@
 #include "comparison.h"
 
 #include <QMimeData>
+#include <QProgressDialog>
+
 #include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
 
 enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
@@ -78,20 +80,28 @@ Comparison::~Comparison()
     delete ui;
 }
 
+// todo should be made const and run in background from mainwindow
 int Comparison::reportMatchingVideos()
 {
     int64_t combinedFilesize = 0;
     int foundMatches = 0;
+    QProgressDialog progress("Estimating total pairs", QString(), 0, this->_prefs._numberOfVideos, this->_prefs._mainwPtr);
+    progress.setWindowModality(Qt::WindowModal);
+    int numScanned = 0;
 
     QVector<Video*>::const_iterator left, right, end = _videos.cend();
-    for(left=_videos.cbegin(); left<end; left++)
-        for(right=left+1; right<end; right++)
+    for(left=_videos.cbegin(); left<end; left++){
+        for(right=left+1; right<end; right++){
             if(bothVideosMatch(*left, *right))
             {   //smaller of two matching videos is likely the one to be deleted
                 combinedFilesize += std::min((*left)->size , (*right)->size);
                 foundMatches++;
                 break;
             }
+        }
+        if(numScanned++%1000==999)
+            progress.setValue(numScanned++);
+    }
 
     if(foundMatches)
         emit sendStatusMessage(QStringLiteral("\n[%1] Found %2 video(s) (%3) with one or more matches")
@@ -135,9 +145,11 @@ void Comparison::confirmToExit()
 void Comparison::on_prevVideo_clicked()
 {
     _seekForwards = false;
+    QProgressDialog progress("Searching for previous pair", QString(), -comparisonsSoFar(), 0, this);
+    progress.setWindowModality(Qt::WindowModal);
+
     QVector<Video*>::const_iterator left, right, begin = _videos.cbegin();
-    for(_rightVideo--, left=begin+_leftVideo; left>=begin; left--, _leftVideo--)
-    {
+    for(_rightVideo--, left=begin+_leftVideo; left>=begin; left--, _leftVideo--){
         for(right=begin+_rightVideo; right>left; right--, _rightVideo--){
             if(bothVideosMatch(*left, *right)
                     && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
@@ -153,6 +165,8 @@ void Comparison::on_prevVideo_clicked()
                 return;
             }
         }
+        if(_leftVideo%1000==999) // ui refresh slow so limit number of updates
+            progress.setValue(comparisonsSoFar());
         ui->progressBar->setValue(comparisonsSoFar());
         _rightVideo = _prefs._numberOfVideos - 1;
     }
@@ -165,6 +179,8 @@ void Comparison::on_nextVideo_clicked()
     _seekForwards = true;
     const int oldLeft = _leftVideo;
     const int oldRight = _rightVideo;
+    QProgressDialog progress("Searching for next pair", QString(), comparisonsSoFar(), this->_prefs._numberOfVideos*(this->_prefs._numberOfVideos-1)/2, this);
+    progress.setWindowModality(Qt::WindowModal);
 
     QVector<Video*>::const_iterator left, right, begin = _videos.cbegin(), end = _videos.cend();
     for(left=begin+_leftVideo; left<end; left++, _leftVideo++)
@@ -184,6 +200,8 @@ void Comparison::on_nextVideo_clicked()
                 return;
             }
         }
+        if(_leftVideo%1000==999) // ui refresh slow so limit number of updates
+            progress.setValue(comparisonsSoFar());
         ui->progressBar->setValue(comparisonsSoFar());
         _rightVideo = _leftVideo + 1;
     }
@@ -193,6 +211,7 @@ void Comparison::on_nextVideo_clicked()
     confirmToExit();
 }
 
+// TODO should be made const
 bool Comparison::bothVideosMatch(const Video *left, const Video *right)
 {
     bool theyMatch = false;
@@ -231,6 +250,7 @@ bool Comparison::bothVideosMatch(const Video *left, const Video *right)
     return true;
 }
 
+// TODO should be made const
 int Comparison::phashSimilarity(const Video *left, const Video *right, const int &nthHash)
 {
     if(left->hash[nthHash] == 0 && right->hash[nthHash] == 0)

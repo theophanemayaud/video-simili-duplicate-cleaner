@@ -98,7 +98,6 @@ private:
     // -- end auto deletion internal stuff
     // --- //
 
-
 public slots:
     int reportMatchingVideos(); // returns number of matching videos found
 
