@@ -1,10 +1,9 @@
-[![Bountysource](https://www.bountysource.com/badge/team?team_id=599354&style=bounties_posted)](https://www.bountysource.com/teams/video-simili-duplicate-cleaner/issues)
 # Video simili duplicate cleaner
 
 Find and remove duplicates : *Video simili duplicate cleaner* is a program that can find duplicate or simply similar video files.
 Video simili duplicate cleaner compares the actual video content regardless of different format or compression used, while other software only find identical files (digital video fingerprinting).
 
-<a href="https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308?mt=12&amp;itsct=apps_box_badge&amp;itscg=30200" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img src="https://tools.applemediaservices.com/api/badges/download-on-the-mac-app-store/black/en-us?size=250x83&amp;releaseDate=1616457600&h=4be3dd1f8904662edbb0885807d87ea3" alt="Download on the Mac App Store" style="border-radius: 13px; width: 250px; height: 83px;"></a>
+<a href="https://apps.apple.com/us/app/video-simili-duplicate-cleaner/id1557271308?mt=12&amp;itsct=apps_box_badge&amp;itscg=30200" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img src="https://raw.githubusercontent.com/theophanemayaud/video-simili-duplicate-cleaner/master/Download_on_the_Mac_App_Store_Badge_US-UK_RGB_blk_092917.svg" alt="Download on the Mac App Store" style="border-radius: 13px; width: 250px; height: 83px;"></a>
 
 <a href="https://www.microsoft.com/store/apps/9n3vr2kx3vxm" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img src="https://user-images.githubusercontent.com/25605953/158606068-b30a1fb7-d67c-4ff2-8d80-fd3deccfe027.svg" alt="Download on the Microsoft Windows" style=" width: 250px; height: 83px;"></a>
 
