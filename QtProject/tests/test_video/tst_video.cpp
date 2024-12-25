@@ -170,13 +170,13 @@ private:
          *      -- 17min: lib(only) metadata, lib(only) captures
          *      -- 17min: lib(only) metadata, lib(only) captures
          *      -- 6min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 4min 16s (250s, ...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
+         *      -- 4min 16s (250s, 263s, ...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
          *  - Cached
          *      -- 17min: mix lib&exec metadata, exec captures
          *      -- 6min: lib(only) metadata, exec captures
          *      -- 6min: lib(only) metadata, lib(only) captures
          *      -- 2min 33s: arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 50s (44s, ...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
+         *      -- 50s (44s, 46s, 51s,...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
          *  */
         qint64 ref_ms_time;
     };
@@ -208,12 +208,12 @@ private:
          *  - Cached
          *      -- 8s: macOS intel on intel (before remove big file tests)
          *      -- 9s: windows intel on intel (before remove big file tests)
-         *      -- 2.5s: macOS arm m3 Pro with arm build & arm lib (2'494ms, 2'606ms, ... so cap around 5s) - 2024 oct.
+         *      -- 2.5s (2'494ms, 2'606ms, ...): macOS arm m3 Pro with arm build & arm lib - 2024 oct.
          * 100GB test set
          *  - No cache
          *      -- 37min: library(only) metadata, exec captures
          *      -- 48min: intel i5 lib(only) metadata, lib(only) captures
-         *      -- 26min (1568s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 26min (1568s, 1594s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *  - Cached
          *      -- 39min: mix lib&exec metadata, exec captures
          *      -- 12min: library(only) metadata, exec captures
