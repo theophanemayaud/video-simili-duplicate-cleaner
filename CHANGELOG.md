@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.11.0...v1.11.1) (2024-12-25)
+
+
+### Features
+
+* **comparison:** locked folders are now saved and reloaded even after app is closed ([12604c2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/12604c28fef952d703821f0086c07dc79149529f))
+* **locked-folders:** can now use drag and drop of folders to locked folders list ([5ea335a](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/5ea335a0b144d43dc97ff229de5f85242e2cda33))
+* **locked-folders:** last opened location for selecting locked folders is now reused each time ([19ec825](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/19ec8250ab707412343247b5906e688767bcde52))
+* **logs:** message now raised when db is not accessible ([8506ffd](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/8506ffdecb0bc851970b5dd7ca20642031fa609a))
+* **logs:** verbose mode will now also log when starting to process a video, not only when finished ([767d1f3](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/767d1f3671496b70d0138e6d1137c419de1e3a30))
+* **preferences:** the chosen scan folders are now remembered between app restarts ([474ef41](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/474ef41462fbda8a94553cd16b9ebc4646daac12))
+* **settings:** comparison mode now saved between restarts ([3c4de00](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/3c4de00f9a4efeba6cdf6f5a51340f14bcd0169f))
+* **settings:** comparison threshold now saved between restarts ([c61403d](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/c61403d09869968526d05e4d4c0c8c60009a7425))
+* **settings:** thumbnails mode now saved between app restarts ([615e6d8](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/615e6d84de975b4319b37dc6aa4ac00bb5067b6c))
+* **settings:** use/don't use/use only cache option now saved between app restarts ([b211ba2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/b211ba26613f2148262335cc8e3947ac3ab07dd2))
+
+
+### Bug Fixes
+
+* **comparison:** removed parallel reporting of estimated pairs as it was colliding with comp window ([163a58f](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/163a58f35e2ffc739d3b6fc8ae739cfd41c41b8b))
+
 ## [1.11.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.10.1...v1.11.0) (2024-10-27)
 
 
