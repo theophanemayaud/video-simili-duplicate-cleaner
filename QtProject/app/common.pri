@@ -66,6 +66,12 @@ contains(QMAKE_HOST.arch, arm64):{
                       $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib/libavformat.a
                       $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib/libswresample.a
                       $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib/libavcodec.a
+
+    # dav1d lib for decoding av1 videos
+    INCLUDEPATH    += $$PWD/../libraries/macos/lib-dav1d/universalized/include
+    LIBS         += -L$$PWD/../libraries/macos/lib-dav1d/universalized -ldav1d
+    # QMAKE_RPATHDIR += $$PWD/../libraries/macos/lib-dav1d/universalized
+    PRE_TARGETDEPS += $$PWD/../libraries/macos/lib-dav1d/universalized/libdav1d.dylib
 }
 
 contains(QMAKE_HOST.arch, x86_64):{

@@ -177,6 +177,28 @@ FFmpeg doesn't seem to support building as a univeral library (targeting both ar
 For the x86\_64 cross build from arm, ffmpeg configure scripts fails because of missing nasm/yasm (native code assembler), so simply install it with `brew install yasm`
 
 ```
+# manually install brew x86 if not already installed : 
+# arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# install dav1d for av1 decoding and get libs
+mkdir -p lib-dav1d/{x86,arm}
+# pkg-config needed for ffmpeg to discover dav1d lib
+brew install pkg-config
+brew install dav1d
+# output to lib folder for easily copying into app build ressources
+cp -r /opt/homebrew/include lib-dav1d/arm/include
+# for some reason .7 is the one that is required at runtime when linked from qt built app
+cp /opt/homebrew/lib/libdav1d.dylib lib-dav1d/arm/libdav1d.7.dylib
+# repeat but for x86 version via x86 version of brew
+arch -x86_64 /usr/local/bin/brew install pkg-config
+arch -x86_64 /usr/local/bin/brew install dav1d
+cp -r /usr/local/include lib-dav1d/x86/include
+cp /usr/local/lib/libdav1d.dylib lib-dav1d/x86/libdav1d.7.dylib
+#arm brew lib path
+export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+#x86 brew lib path
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+
 # build arm
 mkdir ffmpeg-build-arm
 mkdir ffmpeg-install-arm
@@ -185,14 +207,14 @@ mkdir ffmpeg-install-x86-from-arm
 mkdir ffmpeg-universalized-libs 
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg -b n4.4.5 --depth 1
 cd ffmpeg-build-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --enable-libdav1d --disable-lzma
 make -j8
 make install
 
 # cross build x86
 brew install yasm || brew upgrade yasm
 cd ../ffmpeg-build-x86-from-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --pkg-config='/usr/local/bin/pkg-config' --enable-libdav1d --disable-lzma
 make -j8
 make install
 
