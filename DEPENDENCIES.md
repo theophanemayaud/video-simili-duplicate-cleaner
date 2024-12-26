@@ -203,7 +203,7 @@ git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg -b n4.4.5 --depth 1
 cd ffmpeg-arm-build
 #arm lib path
 export PKG_CONFIG_PATH="../libaom-arm-install/lib/pkgconfig:$PKG_CONFIG_PATH"
-../ffmpeg/configure --prefix='../ffmpeg-arm-install' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --enable-avformat --enable-libaom --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-arm-install' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --disable-filters --enable-avformat --enable-libaom --disable-lzma
 make -j
 make install
 
@@ -212,7 +212,7 @@ brew install yasm || brew upgrade yasm
 cd ../ffmpeg-x86_64-build
 #x86 lib path
 export PKG_CONFIG_PATH="../libaom-x86_64-install/lib/pkgconfig:$PKG_CONFIG_PATH"
-../ffmpeg/configure --prefix='../ffmpeg-x86_64-install' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --enable-avformat --enable-libaom --disable-lzma
+../ffmpeg/configure --prefix='../ffmpeg-x86_64-install' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --disable-filters --enable-avformat --enable-libaom --disable-lzma
 make -j
 make install
 
@@ -233,8 +233,7 @@ cp -r ../ffmpeg-x86_64-install/lib/pkgconfig ./lib/pkgconfig-x86_64-from-arm
 
 #cleanup
 cd ..
-rm -r -f ffmpeg-arm-build ffmpeg-arm-install ffmpeg-x86_64-build ffmpeg-x86_64-install ffmpeg
-
+rm -r -f ffmpeg-arm-build ffmpeg-arm-install ffmpeg-x86_64-build ffmpeg-x86_64-install ffmpeg libaom-arm-build libaom-arm-install libaom-x86_64-build libaom-x86_64-install libaom
 ```
 
 NB : 
@@ -244,6 +243,9 @@ NB :
     - But then I'd need to install the arm brew and x86_64 brew (`arch -x86_64 [usual brew install curl and script]` which installs in /usr/local/bin/brew)
     - It is then possible to install x86_64 brew packages with `arch -x86_64 /usr/local/bin/brew [brew commands]`, and packages are then installed in /usr/local/include and /usr/local/lib/, compared to arm brew installing in /opt/homebrew/lib
     - And then from those arm and x86_64 brew installed libs, create a universalized aom lib... But that's not much simpler in the end so I just build from scratch
+- I disabled encoders with `--disable-encoders` (and accompanying muxers) as we don't create new videos in the app, only read them, which together with disabling filters which we also don't use in the app, reducing lib sizes (which used to be commited to github) a lot although the end app doesn't change as static linking already removed the bloat.
+- I tried disabling ffmpeg protocols with `--disable-protocols` but the app then doesn't work and fails to open any video (probably at least requires file protocol). It added ~0.1MB of size to the app
+- I tried disabling ffmpeg bitstream filters with `--disable-bsfs` but the app then fails to do avcodec_send_packet on specific formats (saw some MPG vids but not sure codec) so just left it on. It added ~0.8MB of size to the app.
 
 ### More explanations
 
