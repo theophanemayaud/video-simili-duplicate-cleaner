@@ -55,23 +55,22 @@ contains(QMAKE_HOST.arch, arm64):{
     LIBS += -L$$PWD/../libraries/macos/opencv-arm/opencv-install/lib/opencv4/3rdparty -lzlib -littnotify -framework OpenCL -framework Accelerate
 
     # ffmpeg libraries
-    INCLUDEPATH += $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/include
+    INCLUDEPATH += $$PWD/../libraries/macos/ffmpeg-universalized-libs/include
     ## libavformat and libavutil static libs dependencies (from pckgconfig file)
-    LIBS += -L$$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
+    LIBS += -L$$PWD/../libraries/macos/ffmpeg-universalized-libs/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
                                          -lswresample -lavcodec \
                                          -lswscale \
                                          -lbz2 -liconv -Wl,-no_compact_unwind \
                                          -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
-    PRE_TARGETDEPS += $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib/libavutil.a \
-                      $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib/libavformat.a
-                      $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib/libswresample.a
-                      $$PWD/../libraries/macos/ffmpeg-arm/ffmpeg-universalized-libs/lib/libavcodec.a
+    PRE_TARGETDEPS += $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libavutil.a \
+                      $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libavformat.a
+                      $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libswresample.a
+                      $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libavcodec.a
 
-    # dav1d lib for decoding av1 videos
-    INCLUDEPATH    += $$PWD/../libraries/macos/lib-dav1d/universalized/include
-    LIBS         += -L$$PWD/../libraries/macos/lib-dav1d/universalized -ldav1d
-    # QMAKE_RPATHDIR += $$PWD/../libraries/macos/lib-dav1d/universalized
-    PRE_TARGETDEPS += $$PWD/../libraries/macos/lib-dav1d/universalized/libdav1d.dylib
+    # aom lib for decoding av1 videos
+    INCLUDEPATH    += $$PWD/../libraries/macos/libaom-universalized/include
+    LIBS         += -L$$PWD/../libraries/macos/libaom-universalized/lib -laom
+    PRE_TARGETDEPS += $$PWD/../libraries/macos/libaom-universalized/lib/libaom.a
 }
 
 contains(QMAKE_HOST.arch, x86_64):{

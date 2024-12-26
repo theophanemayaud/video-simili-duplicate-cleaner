@@ -1,0 +1,4 @@
+# libs can be easily rebuild using the instructions from DEPENDENCIES.md
+# but should be placed in this folder
+include
+lib

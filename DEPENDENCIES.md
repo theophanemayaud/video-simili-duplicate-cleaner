@@ -109,7 +109,7 @@ Then copy from install directory the includes and the lib files to the correct l
 
 ## OpenCV
 
-### TLDR :
+### TLDR script
 ```
 mkdir opencv-build
 mkdir opencv-install
@@ -146,7 +146,7 @@ To Test :
 But this needs to have the following line in the terminal .zshrc file (or enter it in the terminal) :
 export MACOSX_DEPLOYMENT_TARGET=10.13
 
-### Details were found with
+### More explanations
 
 To build opencv, first follow :
 - [OpenCV Installation in MacOS](https://docs.opencv.org/master/d0/db2/tutorial_macos_install.html)
@@ -160,13 +160,92 @@ You should now have in the ```/Users/theophanemayaud/Dev/opencv_install``` folde
 Then run ```make```, then run ```make install```
 
 Should try :
-```-DWITH_LAPACK=OFF``` and ```WITH_ITT=OFF```
-```-D OPENCV_GENERATE_PKGCONFIG=YES```
+`-DWITH_LAPACK=OFF` and `WITH_ITT=OFF`
+`-D OPENCV_GENERATE_PKGCONFIG=YES`
 
-```-DBUILD_LIST=core,imgproc```
+`-DBUILD_LIST=core,imgproc`
 
 
 ## FFmpeg
+
+### TLDR script
+
+```bash
+# build aom libs for av1 decoding
+mkdir -p libaom-{x86_64-build,x86_64-install,arm-build,arm-install,universalized}
+# pkg-config needed for ffmpeg to discover dav1d lib
+brew install pkg-config
+git clone --depth=1 https://aomedia.googlesource.com/aom.git libaom
+cd libaom-arm-build
+cmake ../libaom \
+    -DCMAKE_INSTALL_PREFIX=../libaom-arm-install \
+    -DBUILD_SHARED_LIBS=0 -DENABLE_DOCS=0 -DENABLE_EXAMPLES=0 -DENABLE_TESTDATA=0 -DENABLE_TESTS=0 -DENABLE_TOOLS=0 -DCONFIG_AV1_ENCODER=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+make -j
+make install
+cd ../libaom-x86_64-build
+cmake ../libaom \
+    -DCMAKE_TOOLCHAIN_FILE=../libaom/build/cmake/toolchains/x86_64-macos.cmake \
+    -DCMAKE_INSTALL_PREFIX=../libaom-x86_64-install \
+	-DBUILD_SHARED_LIBS=0 -DENABLE_DOCS=0 -DENABLE_EXAMPLES=0 -DENABLE_TESTDATA=0 -DENABLE_TESTS=0 -DENABLE_TOOLS=0 -DCONFIG_AV1_ENCODER=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+make -j
+make install
+cd ../libaom-universalized
+cp -r ../libaom-arm-install/include .
+mkdir lib
+lipo -create -arch arm64 ../libaom-arm-install/lib/libaom.a -arch x86_64 ../libaom-x86_64-install/lib/libaom.a -output lib/libaom.a
+cp -r ../libaom-arm-install/lib/pkgconfig ./lib/pkgconfig-arm
+cp -r ../libaom-x86_64-install/lib/pkgconfig ./lib/pkgconfig-x86_64-from-arm
+
+# build ffmpeg arm
+cd ..
+mkdir ffmpeg-{arm,x86_64}-{build,install} ffmpeg-universalized-libs
+git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg -b n4.4.5 --depth 1
+cd ffmpeg-arm-build
+#arm lib path
+export PKG_CONFIG_PATH="../libaom-arm-install/lib/pkgconfig:$PKG_CONFIG_PATH"
+../ffmpeg/configure --prefix='../ffmpeg-arm-install' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --enable-avformat --enable-libaom --disable-lzma
+make -j
+make install
+
+# cross build ffmpeg x86
+brew install yasm || brew upgrade yasm
+cd ../ffmpeg-x86_64-build
+#x86 lib path
+export PKG_CONFIG_PATH="../libaom-x86_64-install/lib/pkgconfig:$PKG_CONFIG_PATH"
+../ffmpeg/configure --prefix='../ffmpeg-x86_64-install' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --enable-avformat --enable-libaom --disable-lzma
+make -j
+make install
+
+# create universalized libs
+cd ../ffmpeg-universalized-libs
+cp -r ../ffmpeg-arm-install/include .
+mkdir lib
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavcodec.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavcodec.a -output lib/libavcodec.a
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavdevice.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavdevice.a -output lib/libavdevice.a
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavfilter.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavfilter.a -output lib/libavfilter.a
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavformat.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavformat.a -output lib/libavformat.a
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavutil.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavutil.a -output lib/libavutil.a
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libpostproc.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libpostproc.a -output lib/libpostproc.a
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libswresample.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libswresample.a -output lib/libswresample.a
+lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libswscale.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libswscale.a -output lib/libswscale.a
+cp -r ../ffmpeg-arm-install/lib/pkgconfig ./lib/pkgconfig-arm
+cp -r ../ffmpeg-x86_64-install/lib/pkgconfig ./lib/pkgconfig-x86_64-from-arm
+
+#cleanup
+cd ..
+rm -r -f ffmpeg-arm-build ffmpeg-arm-install ffmpeg-x86_64-build ffmpeg-x86_64-install ffmpeg
+
+```
+
+NB : 
+- ```--disable-lzma``` is because it has a private api, incompatible with apple app store. It's only for some tiff file compressions.
+- aom is adding a lot of complexity just for supporting only one more codec: av1. It would really be nice if ffmpeg included one by default. 
+    - The process could be a bit simpler using brew as the brew aom lib also includes static libs
+    - But then I'd need to install the arm brew and x86_64 brew (`arch -x86_64 [usual brew install curl and script]` which installs in /usr/local/bin/brew)
+    - It is then possible to install x86_64 brew packages with `arch -x86_64 /usr/local/bin/brew [brew commands]`, and packages are then installed in /usr/local/include and /usr/local/lib/, compared to arm brew installing in /opt/homebrew/lib
+    - And then from those arm and x86_64 brew installed libs, create a universalized aom lib... But that's not much simpler in the end so I just build from scratch
+
+### More explanations
 
 Similar to guide [FFmpeg Compilation guide macOS](https://trac.ffmpeg.org/wiki/CompilationGuide/macOS)
 
@@ -176,76 +255,9 @@ FFmpeg doesn't seem to support building as a univeral library (targeting both ar
 
 For the x86\_64 cross build from arm, ffmpeg configure scripts fails because of missing nasm/yasm (native code assembler), so simply install it with `brew install yasm`
 
-```
-# manually install brew x86 if not already installed : 
-# arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+See the [full ffmpeg build script below](#full-ffmpeg-build-script)
 
-# install dav1d for av1 decoding and get libs
-mkdir -p lib-dav1d/{x86,arm}
-# pkg-config needed for ffmpeg to discover dav1d lib
-brew install pkg-config
-brew install dav1d
-# output to lib folder for easily copying into app build ressources
-cp -r /opt/homebrew/include lib-dav1d/arm/include
-# for some reason .7 is the one that is required at runtime when linked from qt built app
-cp /opt/homebrew/lib/libdav1d.dylib lib-dav1d/arm/libdav1d.7.dylib
-# repeat but for x86 version via x86 version of brew
-arch -x86_64 /usr/local/bin/brew install pkg-config
-arch -x86_64 /usr/local/bin/brew install dav1d
-cp -r /usr/local/include lib-dav1d/x86/include
-cp /usr/local/lib/libdav1d.dylib lib-dav1d/x86/libdav1d.7.dylib
-#arm brew lib path
-export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
-#x86 brew lib path
-export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
-
-# build arm
-mkdir ffmpeg-build-arm
-mkdir ffmpeg-install-arm
-mkdir ffmpeg-build-x86-from-arm
-mkdir ffmpeg-install-x86-from-arm
-mkdir ffmpeg-universalized-libs 
-git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg -b n4.4.5 --depth 1
-cd ffmpeg-build-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-arm' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --enable-libdav1d --disable-lzma
-make -j8
-make install
-
-# cross build x86
-brew install yasm || brew upgrade yasm
-cd ../ffmpeg-build-x86-from-arm
-../ffmpeg/configure --prefix='../ffmpeg-install-x86-from-arm' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --enable-avformat --pkg-config='/usr/local/bin/pkg-config' --enable-libdav1d --disable-lzma
-make -j8
-make install
-
-# create universalized libs
-cd ../ffmpeg-universalized-libs
-cp -r ../ffmpeg-install-arm/include .
-mkdir lib
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavcodec.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavcodec.a -output lib/libavcodec.a
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavdevice.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavdevice.a -output lib/libavdevice.a
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavfilter.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavfilter.a -output lib/libavfilter.a
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavformat.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavformat.a -output lib/libavformat.a
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libavutil.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libavutil.a -output lib/libavutil.a
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libpostproc.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libpostproc.a -output lib/libpostproc.a
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libswresample.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libswresample.a -output lib/libswresample.a
-lipo -create -arch arm64 ../ffmpeg-install-arm/lib/libswscale.a -arch x86_64 ../ffmpeg-install-x86-from-arm/lib/libswscale.a -output lib/libswscale.a
-cp -r ../ffmpeg-install-arm/lib/pkgconfig ./lib/pkgconfig-arm
-cp -r ../ffmpeg-install-x86-from-arm/lib/pkgconfig ./lib/pkgconfig-x86_64-from-arm
-
-#cleanup
-cd ..
-rm -r -f ffmpeg-build-arm ffmpeg-install-arm ffmpeg-build-x86-from-arm ffmpeg-install-x86-from-arm ffmpeg
-
-```
-
-
-NB : 
-- ```--disable-lzma``` is because it has a private api, incompatible with apple app store. It's only for some tiff file compressions.
-
-Then make (NB flag -j means parallel threads, so -j8 will be much faster because of 8 threads !!!), then make install
-
-I then needed to include a bunch of libraries, looking each time I got "undefined symbols for architecture x86_64" at the symbol name, looking it up on internet, and seeing what people said was the missing library. In the end I had to use :
+For configuring in QT the libs to use, I then needed to include a bunch of libraries, looking each time I got "undefined symbols for architecture x86_64" at the symbol name, looking it up on internet, and seeing what people said was the missing library. In the end I had to use :
 ```
 ## libavformat static libs dependencies (from pckgconfig file)
 macx: LIBS += -L$$PWD/libraries/ffmpeg/lib -lavutil -lavformat -lswresample -lavcodec \
@@ -258,4 +270,3 @@ macx: PRE_TARGETDEPS += $$PWD/libraries/ffmpeg/lib/libavutil.a \
                         $$PWD/libraries/ffmpeg/lib/libavcodec.a
 
 ```
-
