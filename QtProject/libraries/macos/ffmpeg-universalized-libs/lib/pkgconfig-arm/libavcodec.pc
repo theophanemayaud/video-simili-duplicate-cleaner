@@ -1,0 +1,14 @@
+prefix=../ffmpeg-arm-install
+exec_prefix=${prefix}
+libdir=../ffmpeg-arm-install/lib
+includedir=../ffmpeg-arm-install/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 58.134.100
+Requires: libswresample >= 3.9.100, libavutil >= 56.70.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavcodec -pthread -liconv -lm -lz -framework AudioToolbox -L/Users/theophanemayaud/Dev/libaom-arm-install/lib -laom -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Libs.private: 
+Cflags: -I${includedir}

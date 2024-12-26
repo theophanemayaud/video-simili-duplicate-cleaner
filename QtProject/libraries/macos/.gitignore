@@ -1,0 +1,4 @@
+# libs can be easily rebuild using the instructions from DEPENDENCIES.md
+# but should be placed in this folder
+# we keep the headers as it is an easy way to track changes in the dependencies used yet is small to manage for git
+**/*.a

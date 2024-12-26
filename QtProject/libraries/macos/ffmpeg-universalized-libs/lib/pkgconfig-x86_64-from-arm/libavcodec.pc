@@ -1,0 +1,14 @@
+prefix=../ffmpeg-x86_64-install
+exec_prefix=${prefix}
+libdir=../ffmpeg-x86_64-install/lib
+includedir=../ffmpeg-x86_64-install/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 58.134.100
+Requires: libswresample >= 3.9.100, libavutil >= 56.70.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavcodec -pthread -liconv -lm -lz -framework AudioToolbox -L/Users/theophanemayaud/Dev/libaom-x86_64-install/lib -laom -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Libs.private: 
+Cflags: -I${includedir}

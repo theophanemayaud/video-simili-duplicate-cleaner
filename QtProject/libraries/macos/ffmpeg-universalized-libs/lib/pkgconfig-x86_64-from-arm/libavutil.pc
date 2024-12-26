@@ -1,0 +1,14 @@
+prefix=../ffmpeg-x86_64-install
+exec_prefix=${prefix}
+libdir=../ffmpeg-x86_64-install/lib
+includedir=../ffmpeg-x86_64-install/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 56.70.100
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil -pthread -lm -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Libs.private: 
+Cflags: -I${includedir}

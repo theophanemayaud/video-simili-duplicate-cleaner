@@ -1,6 +1,6 @@
 # Package Information for pkg-config
 
-prefix=/Users/theophane/Dev/video-simili-duplicate-cleaner/QtProject/libraries/macos/opencv-arm/opencv_install
+prefix=/Users/theophanemayaud/Dev/opencv-install
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include/opencv4
@@ -9,5 +9,5 @@ Name: OpenCV
 Description: Open Source Computer Vision Library
 Version: 4.8.0
 Libs: -L${exec_prefix}/lib -lopencv_imgproc -lopencv_core
-Libs.private: -L${exec_prefix}/lib/opencv4/3rdparty -lzlib -littnotify -framework OpenCL -L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk/System/Library/Frameworks -lAccelerate.framework -lm -ldl
+Libs.private: -L${exec_prefix}/lib/opencv4/3rdparty -lzlib -littnotify -framework OpenCL -L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks -lAccelerate.framework -lm -ldl
 Cflags: -I${includedir}
