@@ -144,7 +144,14 @@ public:
         QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);
     }
 
-    void resetSettings() {QSettings(APP_NAME, APP_NAME).clear();}
+    void resetSettings() {
+        this->thumbMode = nullptr;
+        this->compMode = nullptr;
+        this->cacheFilePathNameStatic = nullptr;
+        this->useCacheOptionStatic = nullptr;
+        this->verboseStatic = nullptr;
+        QSettings(APP_NAME, APP_NAME).clear();
+    }
 private:
     inline static std::unique_ptr<int> thumbMode = nullptr;
     inline static std::unique_ptr<VisualComparisonModes> compMode = nullptr;
