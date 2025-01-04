@@ -16,34 +16,31 @@ Video::Video(const Prefs &prefsParam, const QString &filePathName) :
     _prefs = prefsParam;
     //if(_prefs._numberOfVideos > _hugeAmountVideos)       //save memory to avoid crash due to 32 bit limit
     //   _jpegQuality = _lowJpegQuality;
-
-    if(_prefs._mainwPtr){ // during testing, mainPtr is not always defined, giving warnings : here we supress them !
-        QObject::connect(this, SIGNAL(rejectVideo(Video*,QString)), _prefs._mainwPtr, SLOT(removeVideo(Video*,QString)));
-        QObject::connect(this, SIGNAL(acceptVideo(Video*)), _prefs._mainwPtr, SLOT(addVideo(Video*)));
-    }
 }
 
-void Video::run()
+Video::ProcessingResult Video::process()
 {
+    ProcessingResult result;
+    result.success = false;
+    result.video = this;
     if(this->_prefs.isVerbose())
         Message::Get()->add(QString("[%1] STARTING %2").arg(QTime::currentTime().toString(), this->_filePathName));
 
     if(!QFileInfo::exists(_filePathName))
     {
-        qDebug() << "Rejected : file doesn't seem to exist : "+ _filePathName;
-        emit rejectVideo(this, "file doesn't seem to exist");
-        return;
+        result.errorMsg = "file doesn't seem to exist";
+        return result;
     }
 #ifdef Q_OS_MACOS
     else if(_filePathName.contains(".photoslibrary")){
         const QString fileNameNoExt = QFileInfo(_filePathName).completeBaseName();
         if(!_filePathName.contains(".photoslibrary/originals/")){
-            emit rejectVideo(this, "file is an Apple Photos derivative");
-            return;
+            result.errorMsg = "file is an Apple Photos derivative";
+            return result;
         }
         else if(fileNameNoExt.contains("_")){
-            emit rejectVideo(this, "Video seems to be a live photo, so deal with it as a photo.");
-            return;
+            result.errorMsg = "video seems to be a live photo, so deal with it as a photo.";
+            return result;
         }
     }
 #endif
@@ -57,16 +54,18 @@ void Video::run()
     }
     else if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY) {
         if(QFileInfo(_filePathName).size()==0){ // check this before, as it's faster, but getMetadata also does this but stores the info
-            qDebug() << "File size = 0 : rejected " << _filePathName;
-            emit rejectVideo(this, "File size = 0 : rejected ");
-            return;
+            result.errorMsg = "file size = 0 ";
+            return result;
         }
-        if(!getMetadata(_filePathName))         //as not cached, read metadata with ffmpeg (NB : getMetadata handles rejection)
-            return;
+        auto err = getMetadata(_filePathName);
+        if(!err.isEmpty()){        //as not cached, read metadata with ffmpeg
+            result.errorMsg = QString("could not read metadata: %1").arg(err);
+            return result;
+        }
     }
     else{
-        emit rejectVideo(this, "Video was not fully cached ");
-        return;
+        result.errorMsg = "video was not fully cached ";
+        return result;
     }
     if(this->_prefs.useCacheOption()==Prefs::WITH_CACHE) // TODO-REFACTOR could we move this into the case when we actually cache data ?
         cache.writeMetadata(*this); // cache so next run will be faster
@@ -76,36 +75,36 @@ void Video::run()
 
     if(width == 0 || height == 0)// || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
-        qDebug() << "Height ("<<height<<") or width ("<<width<<") = 0 : rejected " << _filePathName;
-        emit rejectVideo(this, QString("Height (%1) or width (%2) = 0 ").arg(height).arg(width));
-        return;
+        result.errorMsg = QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
+        return result;
     }
 
-    const int ret = takeScreenCaptures(cache);
+    auto err = takeScreenCaptures(cache);
     if(this->_prefs.useCacheOption()==Prefs::WITH_CACHE && durationWasZero && duration!=0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
-    if(ret == _failure){
-        qDebug() << "Rejected : failed to take capture : "+ _filePathName;
-        emit rejectVideo(this, "failed to take capture");
+    if(!err.isEmpty()){
+        result.errorMsg = QString("capture failed: %1").arg(err);
+        return result;
     }
     else if((this->_prefs.thumbnailsMode() != cutEnds && hash[0] == 0 ) || // only cutends separates hashes for captures, other just treat as one big capture
             (this->_prefs.thumbnailsMode() == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
-        qDebug() << "Rejected : all screen captures black : "+ _filePathName;
-        emit rejectVideo(this, "all screen captures black");
+        result.errorMsg = "all screen captures black";
+        return result;
     }
     else{
-        //qDebug() << "Accepted video "+ filename;
-        emit acceptVideo(this);
+        ProcessingResult result;
+        result.success = true;
+        result.video = this;
+        return result;
     }
 }
 
-bool Video::getMetadata(const QString &filename)
+const QString Video::getMetadata(const QString &filename)
 {
     const QFileInfo videoFile(filename);
     size = videoFile.size();
     if(size==0){
-        qDebug() << "Video file size=0 : rejected "<<filename;
-        return false;
+        return "video file size=0";
     }
 
     // Get Video stream metadata with new methods using ffmpeg library
@@ -116,16 +115,15 @@ bool Video::getMetadata(const QString &filename)
     ffmpeg::AVFormatContext *fmt_ctx = NULL;
     int ret;
     ret = ffmpeg::avformat_open_input(&fmt_ctx, QDir::toNativeSeparators(filename).toStdString().c_str(), NULL, NULL);
+    // TODO: get error description with ffmpeg::av_strerror
     if (ret < 0) {
-        qDebug() << "Could not open input, file is probably broken : " + filename;
-        emit rejectVideo(this, "Could not open input, file is probably broken");
         avformat_close_input(&fmt_ctx);
-        return false; // error
+        return "could not open input, file is probably broken";
     }
     ret = ffmpeg::avformat_find_stream_info(fmt_ctx, NULL);
     if (ret < 0) {
-        qDebug() << "Could not find stream information : " + filename;
-        emit rejectVideo(this, "Could not find stream information");
+        avformat_close_input(&fmt_ctx);
+        return "could not find stream information";
     }
 #ifdef DEBUG_VIDEO_READING
     // Helpful for debugging : dumps as the executable would
@@ -155,7 +153,7 @@ bool Video::getMetadata(const QString &filename)
                                       -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
     if(ret<0){ // Didn't find a video stream
         ffmpeg::avformat_close_input(&fmt_ctx);
-        return false;
+        return "could not find a video stream, only audio or others";
     }
     ffmpeg::AVStream *vs = fmt_ctx->streams[ret]; // not necessary, but shorter for next calls
     codec = ffmpeg::avcodec_get_name(vs->codecpar->codec_id); //inspired from avcodec_string function
@@ -216,10 +214,11 @@ bool Video::getMetadata(const QString &filename)
     if(videoFile.birthTime().isValid())
         _fileCreateDate = videoFile.birthTime();
 
-    return true; // success !
+    return ""; // success !
 }
 
-int Video::takeScreenCaptures(const Db &cache)
+// returns empty string if success or string with error message
+const QString Video::takeScreenCaptures(const Db &cache)
 {
     Thumbnail thumb(this->_prefs.thumbnailsMode());
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
@@ -227,9 +226,9 @@ int Video::takeScreenCaptures(const Db &cache)
     int capture = percentages.count();
     int ofDuration = 100; // used to "rescale" total duration... as duration*percent*ofDuration
 
+    // TODO: investigate if sometimes takes very long time or just cap at x number of tried captures or something not only %
     while(--capture >= 0)           //screen captures are taken in reverse order so errors are found early
     {
-        QApplication::processEvents();
         QImage frame;
         QByteArray cachedImage;
         if(this->_prefs.useCacheOption()!=Prefs::NO_CACHE) // TODO-REFACTOR could maybe load from cache in same condition as frame loading and resizing... ?
@@ -256,16 +255,20 @@ int Video::takeScreenCaptures(const Db &cache)
                 capture = percentages.count();
                 continue;
             }
+            QString err;
             if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
-                qDebug() << "Failing because not enough video seems useable at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<_filePathName;
+                err = QString("not enough useable video at %1%, even after total duration rescaled to %2%").arg(percentages[capture]).arg(ofDuration);
             else
-                qDebug() << "Cache only mode is failing because capture was not cached at "<< percentages[capture]<< "% ofdur "<< ofDuration << " for "<<_filePathName;
-            return _failure;
+                err = QString("cache only mode but capture was not cached at %1%, even after total duration rescaled to %2%").arg(percentages[capture]).arg(ofDuration);
+            return err;
         }
 
         if(frame.width() > width || frame.height() > height){    //metadata parsing error or variable resolution
-            qDebug() << "Failing because capture height="<<frame.height()<<",width="<<frame.width()<<" is different to vid metadata height="<<width<<",width="<<height<< "for file "<< _filePathName;
-            return _failure;
+            return QString("capture height=%1 width=%2 is different from metadata height=%3 width=%4")
+                .arg(frame.height())
+                .arg(frame.width())
+                .arg(height)
+                .arg(width);
         }
 
         QPainter painter(&thumbnail);                           //copy captured frame into right place in thumbnail
@@ -280,7 +283,7 @@ int Video::takeScreenCaptures(const Db &cache)
 
     const int hashes = this->_prefs.thumbnailsMode() == cutEnds? 2 : 1;    //if cutEnds mode: separate hash for beginning and end
     processThumbnail(thumbnail, hashes);
-    return _success;
+    return "";
 }
 
 void Video::processThumbnail(QImage &thumbnail, const int &hashes)

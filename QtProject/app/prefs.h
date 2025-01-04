@@ -172,6 +172,8 @@ public:
     };
 
 signals:
+    // DO NOT USE SIGNAL, this is only for internal use / mainwindow connection
+    // Instead use Mesage::Get().add("your message")
     void statusMessage(const QString& message);
 private:
     Message() = default; // Private constructor to enforce singleton

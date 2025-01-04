@@ -816,7 +816,7 @@ void TestVideo::checkRefVidParamsList(
         ref_thumbFile.close();
 
         Video *vid = new Video(prefs, videoParam.videoInfo.absoluteFilePath());
-        vid->run();
+        auto res = vid->process();
 
         if(conf.compareThumbsVisualConfig != nullptr
             && (test_nb % conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval != 0)) {

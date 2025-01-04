@@ -2,28 +2,34 @@
 #define VIDEO_H
 
 #include <QDebug>               //generic includes go here as video.h is used by many files
-#include <QRunnable>
 #include <QProcess>
 #include <QBuffer>
 #include <QTemporaryDir>
 #include <QPainter>
 
 #include "opencv2/imgproc.hpp"
+#include "ffmpeg.h"
 
 #include "prefs.h"
 #include "db.h"
-#include "ffmpeg.h"
 #include "videometadata.h"
 
 class Db;
 
-class Video : public QObject, public QRunnable
+class Video : public QObject
 {
     Q_OBJECT
 
 public:
+    struct ProcessingResult {
+        bool success;
+        QString errorMsg; // Empty if success is true
+        Video *video;
+    };
+
+public:
     Video(const Prefs &prefsParam, const QString &filenameParam);
-    void run();
+    ProcessingResult process();
 
     VideoMetadata meta;
     QString _filePathName;
@@ -45,30 +51,23 @@ public:
 
     static VideoMetadata videoToMetadata(const Video& vid);
 
-private slots:
-    bool getMetadata(const QString &filename); // return success=true or error=false. It handles video rejection on those with error
-    int takeScreenCaptures(const Db &cache);
+    // returns empty image if ffmpegLib_captureAt failed and returned empty image
+    QImage ffmpegLib_captureAt(const int percent, const int ofDuration=100);   // new methods for capture of image, using ffmpeg library
+
+private:
+    const QString getMetadata(const QString &filename); // returns error message or empty string if success
+    const QString takeScreenCaptures(const Db &cache);
     void processThumbnail(QImage &thumbnail, const int &hashes);
     uint64_t computePhash(const cv::Mat &input) const;
     QImage minimizeImage(const QImage &image) const;
     QString msToHHMMSS(const int64_t &time) const;
     QImage getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const;
 
-public slots:
-    // returns empty image if ffmpegLib_captureAt failed and returned empty image
-    QImage ffmpegLib_captureAt(const int percent, const int ofDuration=100);   // new methods for capture of image, using ffmpeg library
-
-signals:
-    void acceptVideo(Video *addMe) const;
-    void rejectVideo(Video *deleteMe, QString errorMsg) const;
-
 private:
     int _rotateAngle=0;
 
     static Prefs _prefs;
     static int _jpegQuality;
-
-    enum _returnValues { _success, _failure };
 
     static constexpr int _okJpegQuality      = 60;
     static constexpr int _lowJpegQuality     = 25;

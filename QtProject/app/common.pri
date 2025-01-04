@@ -1,7 +1,7 @@
 TARGET = "Video simili duplicate cleaner"
 message($$TARGET)
 
-QT += core gui widgets sql
+QT += core gui widgets sql concurrent
 
 QMAKE_TARGET_PRODUCT = \"\\\"$$TARGET\\\"\"
 QMAKE_TARGET_DESCRIPTION = \"\\\"$$TARGET\\\"\"

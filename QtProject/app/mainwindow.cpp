@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include <QProgressDialog>
 #include "prefs.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
@@ -6,7 +7,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->setupUi(this);
     _prefs._mainwPtr = this;
 
-    connect(Message::Get(), SIGNAL(statusMessage(const QString &)), this, SLOT(addStatusMessage(const QString &)));
+    connect(Message::Get(), &Message::statusMessage, this, &MainWindow::addStatusMessage);
 
     QFile file(":/version.txt");
     if (file.open(QIODevice::ReadOnly)){
@@ -323,23 +324,95 @@ void MainWindow::processVideos()
     }
     else return;
 
-    QThreadPool threadPool;
+    // QThreadPool threadPool;
+    QMap<QString, QFutureWatcher<Video::ProcessingResult>*> activeVidWatchers;
+
     for(auto vidIter = _everyVideo.constBegin(), end = _everyVideo.constEnd(); vidIter != end; ++vidIter)
     {
         if(_userPressedStop)
         {
-            threadPool.clear();
+            for(auto watcherIter = activeVidWatchers.constBegin(); watcherIter != activeVidWatchers.constEnd(); watcherIter++){
+                if(!watcherIter.value()->future().isStarted()){
+                    watcherIter.value()->future().cancel(); // will only cancel any tasks not yet started or tasks that handle canceling
+                    activeVidWatchers.remove(watcherIter.key());
+                }
+            }
             break;
         }
-        while(threadPool.activeThreadCount() == threadPool.maxThreadCount()){
-//        while(threadPool.activeThreadCount() == 1){ // useful to debug manually, where threading causes debug logs confusion !
+
+        while(QThreadPool::globalInstance()->activeThreadCount() >= QThreadPool::globalInstance()->maxThreadCount()){
+//        while(activeVidWatchers.size() >= 1){ // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
         }
-        auto *videoTask = new Video(_prefs, *vidIter);
-        videoTask->setAutoDelete(false);
-        threadPool.start(videoTask);
+
+        // Run each video processing task concurrently
+        auto elapsedTimer = QElapsedTimer();
+        elapsedTimer.start(); // doesn't actually represent start as it might be queued for some time, but just keep this for stats purposes
+        QFuture<Video::ProcessingResult> future = QtConcurrent::run([=]() {
+            Video *video = new Video(_prefs, *vidIter);
+            return video->process();
+        });
+
+        // Create a watcher for each task
+        auto watcher = new QFutureWatcher<Video::ProcessingResult>();
+        activeVidWatchers[*vidIter] = watcher;
+
+        // Connect to the started signal to log long running tasks
+        QObject::connect(watcher, &QFutureWatcher<Video::ProcessingResult>::started, this, [=]() {
+            // Start a logging timer for this specific task
+            QTimer* taskTimer = new QTimer(this);
+
+            QObject::connect(taskTimer, &QTimer::timeout, this, [=]() {
+                if(watcher->isRunning()) {
+                    Message::Get()->add(
+                        QString("[%1] DELAYED : %2 : this video is taking longer than usual to process, already at %3s")
+                            .arg(QTime::currentTime().toString())
+                            .arg(*vidIter)
+                            .arg(elapsedTimer.elapsed()/1000.0)
+                    );
+                }
+                else if(watcher->isFinished()){
+                    // qDebug() << "FINISHED: " << *vidIter << " after less than" << elapsedTimer->elapsed()/1000.0 << "s";
+                    taskTimer->stop();
+                    taskTimer->deleteLater();
+                    // NB we rely on the timer timeout signal with watcher finished coming after handling of the watcher finished signal
+                    // otherwise we are deleting here the watcher which might be needed in the watcher finished handler below... Hope this never happens !
+                    watcher->deleteLater();
+                }
+            });
+
+            taskTimer->start(10*1000); // Log every 10 seconds
+        });
+
+        QObject::connect(watcher, &QFutureWatcher<Video::ProcessingResult>::finished, this, [=, &activeVidWatchers]() {
+            Video::ProcessingResult result = watcher->result();
+            activeVidWatchers.remove(result.video->_filePathName);
+            if (result.success) {
+                addVideo(result.video);
+            } else {
+                removeVideo(result.video, result.errorMsg);
+            }
+        });
+
+        watcher->setFuture(future);
     }
-    threadPool.waitForDone();
+    // qDebug() << "Finished adding videos to be processed";
+    // qDebug() << "Active threads " << QThreadPool::globalInstance()->activeThreadCount();
+    // qDebug() << "Max threads " << QThreadPool::globalInstance()->maxThreadCount();
+    // Wait for all watchers
+    QProgressDialog progress("Waiting for videos still processing", QString(), -activeVidWatchers.size(), 0, this);
+    progress.setWindowModality(Qt::WindowModal);
+
+    while(activeVidWatchers.size() > 0){
+        QApplication::processEvents();
+        progress.setValue(-activeVidWatchers.size());
+        // qDebug() << "running watchers: " << vidWatchers.count();
+        // for (auto it = vidWatchers.constBegin(); it != vidWatchers.constEnd(); ++it) {
+        //     qDebug() << it.key();
+        // }
+    }
+
+    // threadPool.waitForDone();
     QApplication::processEvents();                  //process signals from last threads
 
     ui->selectThumbnails->setDisabled(false);
