@@ -229,6 +229,10 @@ const QString Video::takeScreenCaptures(const Db &cache)
     // TODO: investigate if sometimes takes very long time or just cap at x number of tried captures or something not only %
     while(--capture >= 0)           //screen captures are taken in reverse order so errors are found early
     {
+        if(this->shouldAbort){
+            this->abortedFrom = QString("abort requested, so stopped trying to take captures, at total duration rescaled %1%").arg(ofDuration);
+            return QString("abort requested");
+        }
         QImage frame;
         QByteArray cachedImage;
         if(this->_prefs.useCacheOption()!=Prefs::NO_CACHE) // TODO-REFACTOR could maybe load from cache in same condition as frame loading and resizing... ?
@@ -249,6 +253,8 @@ const QString Video::takeScreenCaptures(const Db &cache)
 
         if(frame.isNull())                                  //taking screen capture may fail if video is broken
         {
+            if(!this->abortedFrom.isEmpty())
+                return QString("abort reaction: %1").arg(this->abortedFrom);
             ofDuration = ofDuration - _goBackwardsPercent;
             if(ofDuration >= _videoStillUsable)             //retry a few times, always closer to beginning
             {
@@ -550,6 +556,12 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
         return img;
     }
     while (readFrame == false){
+        if(this->shouldAbort){
+            this->abortedFrom = QString("abort requested, so stopped before reading ffmpeg frame at time base %1 for stream duration %2 with %3 previous failed frames")
+                                    .arg(wanted_ts).arg(vs->duration).arg(failedFrames);
+            break;
+        }
+
         int ret = ffmpeg::av_read_frame(fmt_ctx, vPacket); // reads packet frames, but buffers some so at the end,
                                                             // even if it says EOF we need to decode again until there's no frames returned
 #ifdef DEBUG_VIDEO_READING
@@ -697,7 +709,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     ffmpeg::avcodec_free_context(&codec_ctx);
     ffmpeg::avformat_close_input(&fmt_ctx);
 
-    if(img.isNull()){
+    if(img.isNull() && this->abortedFrom.isEmpty()){
         qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<< _filePathName;
     }
 #ifdef DEBUG_VIDEO_READING

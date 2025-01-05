@@ -30,6 +30,10 @@ public:
 public:
     Video(const Prefs &prefsParam, const QString &filenameParam);
     ProcessingResult process();
+    // sets flag to abort process() call if still running
+    // TODO should probably use qtconcurrent's integrated canceling/reporting features
+    void abortProcess(){shouldAbort = true;};
+    const QString getAbortReport() const {return abortedFrom;}; // if abort was asked and process was able to end early, this will contain information about status when aborted
 
     VideoMetadata meta;
     QString _filePathName;
@@ -62,6 +66,8 @@ private:
     QImage minimizeImage(const QImage &image) const;
     QString msToHHMMSS(const int64_t &time) const;
     QImage getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const;
+    bool shouldAbort = false;
+    QString abortedFrom; // if abort is asked for, the first place reacting and stopping should add a message here
 
 private:
     int _rotateAngle=0;

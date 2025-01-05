@@ -325,17 +325,23 @@ void MainWindow::processVideos()
     else return;
 
     // QThreadPool threadPool;
-    QMap<QString, QFutureWatcher<Video::ProcessingResult>*> activeVidWatchers;
+    struct VideoTask {
+        Video* video;
+        QFutureWatcher<Video::ProcessingResult>* watcher;
+    };
+    QMap<QString, VideoTask> activeVidWatchers;
 
     for(auto vidIter = _everyVideo.constBegin(), end = _everyVideo.constEnd(); vidIter != end; ++vidIter)
     {
         if(_userPressedStop)
         {
             for(auto watcherIter = activeVidWatchers.constBegin(); watcherIter != activeVidWatchers.constEnd(); watcherIter++){
-                if(!watcherIter.value()->future().isStarted()){
-                    watcherIter.value()->future().cancel(); // will only cancel any tasks not yet started or tasks that handle canceling
+                if(!watcherIter.value().watcher->future().isStarted()){
+                    watcherIter.value().watcher->future().cancel(); // will only cancel any tasks not yet started or tasks that handle canceling
                     activeVidWatchers.remove(watcherIter.key());
                 }
+                if(!watcherIter.value().watcher->isFinished())
+                    watcherIter.value().video->abortProcess();
             }
             break;
         }
@@ -344,18 +350,18 @@ void MainWindow::processVideos()
 //        while(activeVidWatchers.size() >= 1){ // useful to debug manually, where threading causes debug logs confusion !
             QApplication::processEvents();          //avoid blocking signals in event loop
         }
+        Video *video = new Video(_prefs, *vidIter);
 
         // Run each video processing task concurrently
         auto elapsedTimer = QElapsedTimer();
         elapsedTimer.start(); // doesn't actually represent start as it might be queued for some time, but just keep this for stats purposes
         QFuture<Video::ProcessingResult> future = QtConcurrent::run([=]() {
-            Video *video = new Video(_prefs, *vidIter);
             return video->process();
         });
 
         // Create a watcher for each task
         auto watcher = new QFutureWatcher<Video::ProcessingResult>();
-        activeVidWatchers[*vidIter] = watcher;
+        activeVidWatchers[*vidIter] = {video, watcher};
 
         // Connect to the started signal to log long running tasks
         QObject::connect(watcher, &QFutureWatcher<Video::ProcessingResult>::started, this, [=]() {
@@ -364,12 +370,23 @@ void MainWindow::processVideos()
 
             QObject::connect(taskTimer, &QTimer::timeout, this, [=]() {
                 if(watcher->isRunning()) {
-                    Message::Get()->add(
-                        QString("[%1] DELAYED : %2 : this video is taking longer than usual to process, already at %3s")
-                            .arg(QTime::currentTime().toString())
-                            .arg(*vidIter)
-                            .arg(elapsedTimer.elapsed()/1000.0)
-                    );
+                    if(elapsedTimer.elapsed()>30000){ // threshold at 30 seconds which is very very high but should avoid complete stuck states
+                        Message::Get()->add(
+                            QString("[%1] TIMEOUT : %2 : attempting to abort processing of this video as it seems stuck, already after %3s")
+                                .arg(QTime::currentTime().toString())
+                                .arg(*vidIter)
+                                .arg(elapsedTimer.elapsed()/1000.0)
+                            );
+                        activeVidWatchers[*vidIter].video->abortProcess();
+                    }
+                    else {
+                        Message::Get()->add(
+                            QString("[%1] DELAYED : %2 : this video is taking longer than usual to process, already after %3s")
+                                .arg(QTime::currentTime().toString())
+                                .arg(*vidIter)
+                                .arg(elapsedTimer.elapsed()/1000.0)
+                        );
+                    }
                 }
                 else if(watcher->isFinished()){
                     // qDebug() << "FINISHED: " << *vidIter << " after less than" << elapsedTimer->elapsed()/1000.0 << "s";
@@ -390,7 +407,10 @@ void MainWindow::processVideos()
             if (result.success) {
                 addVideo(result.video);
             } else {
-                removeVideo(result.video, result.errorMsg);
+                if(!result.video->getAbortReport().isEmpty())
+                    removeVideo(result.video, result.video->getAbortReport());
+                else
+                    removeVideo(result.video, result.errorMsg);
             }
         });
 
