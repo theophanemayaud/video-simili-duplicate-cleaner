@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.12.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.11.1...v1.12.0) (2025-01-05)
+
+
+### Features
+
+* **video:** added av1 video support through aom library in ffmpeg ([873859c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/873859cf54cf9d44bf351ba5c3918936aeba64f6))
+* **video:** warn about videos taking a long time to process ([14f7d47](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/14f7d478741081aeda47b819f6b0a427329e90ce))
+
+
+### Bug Fixes
+
+* **prefs:** actually reset settings as they wouldn't all reset because of static variables ([a9e6cf5](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/a9e6cf58e91b615c3e4c205578e959c1daed7099))
+* **videos:** attempt to cancel video processing for more than 30s to avoid stuck state ([6b3ca7b](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/6b3ca7b970bda7575d449aee144e46bcca56d60a))
+
 ### [1.11.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.11.0...v1.11.1) (2024-12-25)
 
 
