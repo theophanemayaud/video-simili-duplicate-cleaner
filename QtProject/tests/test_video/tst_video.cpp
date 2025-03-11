@@ -616,7 +616,7 @@ void TestVideo::test_100GBwholeApp_nocache(){
 void TestVideo::test_100GBwholeApp_cached(){
     wholeAppTestConfig conf;
     conf.cacheOption = Prefs::WITH_CACHE;
-    conf.ref_ms_time = 3*60*1000;
+    conf.ref_ms_time = 50*1000;
     conf.nb_vids_to_find = 12505;
     conf.nb_valid_vids_to_find = 12330;
     conf.nb_matching_vids_to_find = 6555;

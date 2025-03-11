@@ -20,14 +20,16 @@ HEADERS += \
     $$PWD/thumbnail.h \
     $$PWD/db.h \
     $$PWD/comparison.h \
-    $$PWD/videometadata.h
+    $$PWD/videometadata.h \
+    $$PWD/videoprocessingpool.h
 
 SOURCES += \
     $$PWD/mainwindow.cpp \
     $$PWD/video.cpp \
     $$PWD/db.cpp \
     $$PWD/comparison.cpp \
-    $$PWD/ssim.cpp
+    $$PWD/ssim.cpp \
+    $$PWD/videoprocessingpool.cpp
 
 FORMS += \
     $$PWD/mainwindow.ui \

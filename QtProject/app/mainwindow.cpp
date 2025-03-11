@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include <QProgressDialog>
 #include "prefs.h"
+#include "videoprocessingpool.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
@@ -41,7 +42,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     setMatchSimilarityThreshold(this->_prefs.matchSimilarityThreshold());
 
     ui->blocksizeCombo->addItems( { QStringLiteral("2"), QStringLiteral("4"),
-                                    QStringLiteral("8"), QStringLiteral("16") } );
+                                  QStringLiteral("8"), QStringLiteral("16") } );
     ui->blocksizeCombo->setCurrentIndex(3);
     Thumbnail thumb;
     for(int i=0; i<thumb.countModes(); i++)
@@ -131,9 +132,9 @@ void MainWindow::on_browseFolders_clicked()
         dir = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first();
 
     dir = QFileDialog::getExistingDirectory(ui->browseFolders,
-                                              QByteArrayLiteral("Open folder"),
-                                              dir /*defines where the chooser opens at*/,
-                                              QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+                                            QByteArrayLiteral("Open folder"),
+                                            dir /*defines where the chooser opens at*/,
+                                            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         return;
     }
@@ -157,9 +158,9 @@ void MainWindow::on_browseApplePhotos_clicked()
         dir = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation).first();
 
     const QString path = QFileDialog::getOpenFileName(ui->browseFolders,
-                                                    QByteArrayLiteral("Select Apple Photos Library"),
-                                                    dir /*defines where the chooser opens at*/,
-                                                    tr("Apple Photos Library (*.photoslibrary)"));
+                                                      QByteArrayLiteral("Select Apple Photos Library"),
+                                                      dir /*defines where the chooser opens at*/,
+                                                      tr("Apple Photos Library (*.photoslibrary)"));
     if(path.isEmpty()){ //empty because error or none chosen in dialog
         return;
     }
@@ -273,8 +274,8 @@ void MainWindow::findVideos(QDir &dir)
         _everyVideo.insert(filePathName);
 
         ui->statusBar->showMessage(QStringLiteral("Found %1 videos | %2")
-                                   .arg(_everyVideo.size())
-                                   .arg(QDir::toNativeSeparators(filePathName)), 10);
+                                       .arg(_everyVideo.size())
+                                       .arg(QDir::toNativeSeparators(filePathName)), 10);
     }
 }
 
@@ -324,117 +325,57 @@ void MainWindow::processVideos()
     }
     else return;
 
-    // QThreadPool threadPool;
-    struct VideoTask {
-        Video* video;
-        QFutureWatcher<Video::ProcessingResult>* watcher;
-    };
-    QMap<QString, VideoTask> activeVidWatchers;
+    // Create video processing pool
+    auto videoPool = new VideoProcessingPool();
+    connect(videoPool, &VideoProcessingPool::TaskResult, this, [this](Video::ProcessingResult result) {
+        if (result.success) {
+            addVideo(result.video);
+        } else {
+            removeVideo(result.video, result.errorMsg);
+        }
+    });
 
-    for(auto vidIter = _everyVideo.constBegin(), end = _everyVideo.constEnd(); vidIter != end; ++vidIter)
+    // for reproduceability and easier user experience, we want to process videos in alphabetical order
+    QStringList sortedVids = QStringList(_everyVideo.begin(), _everyVideo.end());
+    sortedVids.sort(Qt::CaseInsensitive);
+
+    for(auto &vidIter : sortedVids)
     {
         if(_userPressedStop)
         {
-            for(auto watcherIter = activeVidWatchers.constBegin(); watcherIter != activeVidWatchers.constEnd(); watcherIter++){
-                if(!watcherIter.value().watcher->future().isStarted()){
-                    watcherIter.value().watcher->future().cancel(); // will only cancel any tasks not yet started or tasks that handle canceling
-                    activeVidWatchers.remove(watcherIter.key());
-                }
-                if(!watcherIter.value().watcher->isFinished())
-                    watcherIter.value().video->abortProcess();
-            }
+            this->ui->findDuplicates->setDisabled(true);
+            videoPool->ClearWaiting();
             break;
         }
 
-        while(QThreadPool::globalInstance()->activeThreadCount() >= QThreadPool::globalInstance()->maxThreadCount()){
-//        while(activeVidWatchers.size() >= 1){ // useful to debug manually, where threading causes debug logs confusion !
-            QApplication::processEvents();          //avoid blocking signals in event loop
-        }
-        Video *video = new Video(_prefs, *vidIter);
-
-        // Run each video processing task concurrently
-        auto elapsedTimer = QElapsedTimer();
-        elapsedTimer.start(); // doesn't actually represent start as it might be queued for some time, but just keep this for stats purposes
-        QFuture<Video::ProcessingResult> future = QtConcurrent::run([=]() {
-            return video->process();
-        });
-
-        // Create a watcher for each task
-        auto watcher = new QFutureWatcher<Video::ProcessingResult>();
-        activeVidWatchers[*vidIter] = {video, watcher};
-
-        // Connect to the started signal to log long running tasks
-        QObject::connect(watcher, &QFutureWatcher<Video::ProcessingResult>::started, this, [=]() {
-            // Start a logging timer for this specific task
-            QTimer* taskTimer = new QTimer(this);
-
-            QObject::connect(taskTimer, &QTimer::timeout, this, [=]() {
-                if(watcher->isRunning()) {
-                    if(elapsedTimer.elapsed()>30000){ // threshold at 30 seconds which is very very high but should avoid complete stuck states
-                        Message::Get()->add(
-                            QString("[%1] TIMEOUT : %2 : attempting to abort processing of this video as it seems stuck, already after %3s")
-                                .arg(QTime::currentTime().toString())
-                                .arg(*vidIter)
-                                .arg(elapsedTimer.elapsed()/1000.0)
-                            );
-                        activeVidWatchers[*vidIter].video->abortProcess();
-                    }
-                    else {
-                        Message::Get()->add(
-                            QString("[%1] DELAYED : %2 : this video is taking longer than usual to process, already after %3s")
-                                .arg(QTime::currentTime().toString())
-                                .arg(*vidIter)
-                                .arg(elapsedTimer.elapsed()/1000.0)
-                        );
-                    }
-                }
-                else if(watcher->isFinished()){
-                    // qDebug() << "FINISHED: " << *vidIter << " after less than" << elapsedTimer->elapsed()/1000.0 << "s";
-                    taskTimer->stop();
-                    taskTimer->deleteLater();
-                    // NB we rely on the timer timeout signal with watcher finished coming after handling of the watcher finished signal
-                    // otherwise we are deleting here the watcher which might be needed in the watcher finished handler below... Hope this never happens !
-                    watcher->deleteLater();
-                }
-            });
-
-            taskTimer->start(10*1000); // Log every 10 seconds
-        });
-
-        QObject::connect(watcher, &QFutureWatcher<Video::ProcessingResult>::finished, this, [=, &activeVidWatchers]() {
-            Video::ProcessingResult result = watcher->result();
-            activeVidWatchers.remove(result.video->_filePathName);
-            if (result.success) {
-                addVideo(result.video);
-            } else {
-                if(!result.video->getAbortReport().isEmpty())
-                    removeVideo(result.video, result.video->getAbortReport());
-                else
-                    removeVideo(result.video, result.errorMsg);
-            }
-        });
-
-        watcher->setFuture(future);
-    }
-    // qDebug() << "Finished adding videos to be processed";
-    // qDebug() << "Active threads " << QThreadPool::globalInstance()->activeThreadCount();
-    // qDebug() << "Max threads " << QThreadPool::globalInstance()->maxThreadCount();
-    // Wait for all watchers
-    QProgressDialog progress("Waiting for videos still processing", QString(), -activeVidWatchers.size(), 0, this);
-    progress.setWindowModality(Qt::WindowModal);
-
-    while(activeVidWatchers.size() > 0){
+        Video *video = new Video(_prefs, vidIter);
+        videoPool->AddTask(video);
         QApplication::processEvents();
-        progress.setValue(-activeVidWatchers.size());
-        // qDebug() << "running watchers: " << vidWatchers.count();
-        // for (auto it = vidWatchers.constBegin(); it != vidWatchers.constEnd(); ++it) {
-        //     qDebug() << it.key();
-        // }
     }
 
-    // threadPool.waitForDone();
-    QApplication::processEvents();                  //process signals from last threads
+    while (videoPool->CountTasksLeftToProcess() > 0) {
+        QApplication::processEvents();
+        if(_userPressedStop) {
+            this->ui->findDuplicates->setDisabled(true);
+            videoPool->ClearWaiting();
+            break;
+        }
+    }
 
+    videoPool->RequestShutdown();
+    auto countLeftToDo = videoPool->CountWorkersStillRunning();
+    QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, countLeftToDo, this);
+    progress.setWindowModality(Qt::WindowModal);
+    while (countLeftToDo > 0) {
+        countLeftToDo = videoPool->CountWorkersStillRunning();
+        progress.setValue(countLeftToDo);
+        QApplication::processEvents();
+    }
+
+    QApplication::processEvents();                  //process signals from last threads
+    videoPool->deleteLater();
+
+    this->ui->findDuplicates->setDisabled(false);
     ui->selectThumbnails->setDisabled(false);
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
@@ -450,12 +391,12 @@ void MainWindow::videoSummary()
     else
     {
         addStatusMessage(QStringLiteral("\n\r%1 intact video(s) out of %2 total").arg(_prefs._numberOfVideos)
-                                                                             .arg(_everyVideo.count()));
+                             .arg(_everyVideo.count()));
         //Following prints are not necessary as it already prints each error as it happens.
-//        addStatusMessage(QStringLiteral("\nThe following %1 video(s) could not be added due to errors:")
-//                         .arg(_rejectedVideos.count()));
-//        for(const auto &filename : _rejectedVideos)
-//            addStatusMessage(filename);
+        //        addStatusMessage(QStringLiteral("\nThe following %1 video(s) could not be added due to errors:")
+        //                         .arg(_rejectedVideos.count()));
+        //        for(const auto &filename : _rejectedVideos)
+        //            addStatusMessage(filename);
     }
     _rejectedVideos.clear();
 }
@@ -499,7 +440,7 @@ void MainWindow::addVideo(Video *addMe)
 {
     if(this->_prefs.isVerbose()){
         addStatusMessage(QStringLiteral("[%1] SUCCESS %2").arg(QTime::currentTime().toString(),
-                                                       QDir::toNativeSeparators(addMe->_filePathName)));
+                                                               QDir::toNativeSeparators(addMe->_filePathName)));
     }
     ui->progressBar->setValue(ui->progressBar->value() + 1);
     if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
@@ -514,9 +455,9 @@ void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
 {
     if (deleteMe != nullptr) {
         addStatusMessage(QStringLiteral("[%1] ERROR with %2 : %3")
-                         .arg(QTime::currentTime().toString())
-                         .arg(QDir::toNativeSeparators(deleteMe->_filePathName))
-                         .arg(errorMsg));
+                             .arg(QTime::currentTime().toString())
+                             .arg(QDir::toNativeSeparators(deleteMe->_filePathName))
+                             .arg(errorMsg));
         ui->progressBar->setValue(ui->progressBar->value() + 1);
         ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
         _rejectedVideos << QDir::toNativeSeparators(deleteMe->_filePathName);
@@ -614,9 +555,9 @@ void MainWindow::on_actionChange_trash_folder_triggered()
     // initially, files will be moved to trash. With this button, another folder can be selected
     // into which to move files upon removal, instead of trash.
     QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
-                          QByteArrayLiteral("Open folder"),
-                          QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
-                          QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+                                                    QByteArrayLiteral("Open folder"),
+                                                    QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
         return;
@@ -752,10 +693,10 @@ void MainWindow::setMatchSimilarityThreshold(const int &value) {
     this->ui->thresholdSlider->setValue(value);
     this->ui->threshPercent->setNum(value);
     const QString thresholdMessage = QStringLiteral(
-        "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
-        "Smaller: less strict, can match different videos (false positive)\n"
-        "Larger: more strict, can miss identical videos (false negative)")
-        .arg(value).arg(matchingBitsOf64).arg((int)(100*Prefs::DEFAULT_SSIM_THRESHOLD+0.5));
+                                         "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
+                                         "Smaller: less strict, can match different videos (false positive)\n"
+                                         "Larger: more strict, can miss identical videos (false negative)")
+                                         .arg(value).arg(matchingBitsOf64).arg((int)(100*Prefs::DEFAULT_SSIM_THRESHOLD+0.5));
     ui->thresholdSlider->setToolTip(thresholdMessage);
 }
 void MainWindow::setUseCacheOption(Prefs::USE_CACHE_OPTION opt) {
