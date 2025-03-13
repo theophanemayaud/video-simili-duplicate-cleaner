@@ -195,8 +195,21 @@ void MainWindow::on_findDuplicates_clicked()
         return;
     }
 
-    const QString foldersToSearch = ui->directoryBox->text();   //search only if folder or thumbnail settings have changed
-    if(foldersToSearch != _previousRunFolders || this->_prefs.thumbnailsMode() != _previousRunThumbnails)
+    int rescan = QMessageBox::No;
+    if(_videoList.count() > 0) {
+        // ask user if they want to rescan
+        auto question = QMessageBox(this);
+        question.setWindowTitle("Rescan?");
+        question.setText(QStringLiteral("Do you want to rescan the videos or reopen the results of the last %1 scanned videos?").arg(_videoList.count()));
+        // display Rescan button as default and Reopen as escape button
+        question.addButton("Rescan", QMessageBox::YesRole);
+        question.addButton("Reopen", QMessageBox::NoRole);
+        question.exec();
+        if(question.clickedButton()->text() == "Rescan")
+            rescan = QMessageBox::Yes;
+    }
+
+    if(_videoList.count() == 0 || rescan == QMessageBox::Yes)
     {
         addStatusMessage(QStringLiteral("\n\rSearching for videos..."));
         ui->statusBar->setVisible(true);
@@ -206,6 +219,7 @@ void MainWindow::on_findDuplicates_clicked()
         _videoList.clear();
         _everyVideo.clear();
 
+        const QString foldersToSearch = ui->directoryBox->text();
         const QStringList directories = foldersToSearch.split(QStringLiteral(";"));
         this->_prefs.scanLocations(directories);
         if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY){
@@ -228,8 +242,8 @@ void MainWindow::on_findDuplicates_clicked()
                 ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
         }
         else{
-            _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
-        }
+        _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
+    }
 
         processVideos();
     }
@@ -238,7 +252,7 @@ void MainWindow::on_findDuplicates_clicked()
     {
         this->_comparison = new Comparison(sortVideosBySize(), _prefs);
         this->_comparison->hide();
-        if(foldersToSearch != _previousRunFolders || this->_prefs.thumbnailsMode() != _previousRunThumbnails)
+        if(rescan)
         {
             this->_comparison->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with comparison window (non const function)
             this->_comparison->exec();
@@ -248,9 +262,6 @@ void MainWindow::on_findDuplicates_clicked()
 
         delete _comparison;
         _comparison = nullptr;
-
-        _previousRunFolders = foldersToSearch;                  //videos are still held in memory until
-        _previousRunThumbnails = this->_prefs.thumbnailsMode();            //folders to search or thumbnail mode are changed
     }
 
     ui->findDuplicates->setText(QStringLiteral("Find duplicates"));

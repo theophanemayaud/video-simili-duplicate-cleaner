@@ -37,8 +37,6 @@ private:
 
     Prefs _prefs;
     bool _userPressedStop = false;
-    QString _previousRunFolders = QStringLiteral("");
-    int _previousRunThumbnails = -1;
 
 private slots:
     void deleteTemporaryFiles() const;
