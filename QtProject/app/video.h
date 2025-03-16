@@ -37,10 +37,6 @@ public:
         QMutexLocker locker(&progressLock);
         return progress;
     };
-    void stopProcess(){
-        QMutexLocker locker(&progressLock);
-        shouldStop = true;
-    };
 
     VideoMetadata meta;
     QString _filePathName;

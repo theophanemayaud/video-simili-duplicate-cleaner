@@ -230,9 +230,6 @@ const QString Video::takeScreenCaptures(const Db &cache)
     while(--capture >= 0)           //screen captures are taken in reverse order so errors are found early
     {
         QMutexLocker locker(&this->progressLock);
-        if (this->shouldStop) {
-            return "Cancelled processing video as requested";
-        }
         this->progress++;
         locker.unlock();
 
@@ -254,8 +251,6 @@ const QString Video::takeScreenCaptures(const Db &cache)
                 writeToCache = true;
         }
 
-        if(this->shouldStop)
-            return "Cancelled processing video as requested";
         if(frame.isNull())                                  //taking screen capture may fail if video is broken
         {
             ofDuration = ofDuration - _goBackwardsPercent;
@@ -560,9 +555,6 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     }
     while (readFrame == false){
         QMutexLocker locker(&this->progressLock);
-        if (this->shouldStop) {
-            break;
-        }
         this->progress++;
         locker.unlock();
 
@@ -713,7 +705,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     ffmpeg::avcodec_free_context(&codec_ctx);
     ffmpeg::avformat_close_input(&fmt_ctx);
 
-    if(img.isNull() && !this->shouldStop){
+    if(img.isNull()){
         qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<< _filePathName;
     }
 #ifdef DEBUG_VIDEO_READING

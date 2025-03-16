@@ -70,8 +70,7 @@ void VideoProcessingPool::spawnWorker()
     qDebug() << "Spawning worker with already" << workers.size() << "workers running";
     auto worker = new VideoWorkerThread(&waitingTasksQueueMutex, &waitingQueueNotEmpty, &waitingTasksQueue);
     
-    connect(worker, &VideoWorkerThread::taskStarted, this, [this](Video* video) {
-        auto worker = qobject_cast<VideoWorkerThread*>(sender());
+    connect(worker, &VideoWorkerThread::taskStarted, this, [this, worker](Video* video) {
         activeTasksProgress[video->_filePathName] = video->getProgress();
 
         auto stuckTimer = new QTimer();
@@ -88,6 +87,7 @@ void VideoProcessingPool::spawnWorker()
             QMutexLocker locker(&waitingTasksQueueMutex); // take lock on waiting tasks so thread being killed suddently gets unstuck and doesn't pick up new task
             auto newProgress = video->getProgress();
             if (activeTasksProgress[video->_filePathName] == newProgress) { // progress did not change after 1s, so it is stuck
+                auto stop = worker->isStopped();
                 worker->terminate();
                 // worker->wait(); // can't do this, for some reason never returns, seems like terminate doesn't work...
                 // worker->deleteLater(); // also therefore can't delete a running thread...
@@ -99,7 +99,8 @@ void VideoProcessingPool::spawnWorker()
                     false, QString("Terminated process as video processing seemed to be stuck, after %1s").arg(elapsedTimer->elapsed()/1000), video
                 };
                 emit TaskResult(canceledResult);
-                spawnWorker();
+                if (!stop)
+                    spawnWorker();
                 return;
             }
             activeTasksProgress[video->_filePathName] = newProgress;
@@ -112,9 +113,6 @@ void VideoProcessingPool::spawnWorker()
         activeTasksProgress.remove(result.video->_filePathName);
 
         emit TaskResult(result);
-
-        // In case there are tasks waiting, wake a worker again
-        waitingQueueNotEmpty.wakeOne();
     });
 
     connect(worker, &VideoWorkerThread::finished, this, [this, worker]() {
@@ -139,6 +137,12 @@ void VideoWorkerThread::requestStop()
 {
     QMutexLocker locker(&stopMutex);
     shouldStop = true;
+}
+
+bool VideoWorkerThread::isStopped()
+{
+    QMutexLocker locker(&stopMutex);
+    return shouldStop;
 }
 
 void VideoWorkerThread::run()

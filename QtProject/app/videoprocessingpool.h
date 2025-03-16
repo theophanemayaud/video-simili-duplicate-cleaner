@@ -67,6 +67,7 @@ public:
     explicit VideoWorkerThread(QMutex* queueMutex, QWaitCondition* queueNotEmpty, QQueue<Video*>* taskQueue);
     void run() override;
     void requestStop();
+    bool isStopped();
 
 signals:
     void taskStarted(Video* video);
