@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QObject>
 
+const int STOP_CHECK_INTERVAL = 10*1000; // 5s
 VideoProcessingPool::VideoProcessingPool()
 {
 }
@@ -105,7 +106,7 @@ void VideoProcessingPool::spawnWorker()
             }
             activeTasksProgress[video->_filePathName] = newProgress;
         });
-        stuckTimer->start(1*1000); // check every second
+        stuckTimer->start(STOP_CHECK_INTERVAL);
         elapsedTimer->start();
     });
 
