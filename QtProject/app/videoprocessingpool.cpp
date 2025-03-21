@@ -38,6 +38,8 @@ void VideoProcessingPool::AddTask(Video* video)
     if (workers.size() < QThread::idealThreadCount()) {
     // if (workers.size() < 1) { // for local debugging if parallelism is causing issues
         spawnWorker();
+    } else {
+        waitingQueueNotEmpty.wakeOne(); // no need when spawning worker, as it will wake up anyway
     }
 }
 
