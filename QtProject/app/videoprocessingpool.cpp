@@ -6,7 +6,7 @@
 #include <QDebug>
 #include <QObject>
 
-const int STOP_CHECK_INTERVAL = 10*1000; // 5s
+const int STOP_CHECK_INTERVAL = 5*1000;
 VideoProcessingPool::VideoProcessingPool()
 {
 }
