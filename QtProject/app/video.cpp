@@ -23,24 +23,33 @@ Video::ProcessingResult Video::process()
     ProcessingResult result;
     result.success = false;
     result.video = this;
+
+    auto err = this->internalProcess();
+    if(!err.isEmpty()){
+        result.errorMsg = err;
+    }
+    else{
+        result.success = true;
+    }
+    return result;
+}
+
+QString Video::internalProcess(){
     if(this->_prefs.isVerbose())
         Message::Get()->add(QString("[%1] STARTING %2").arg(QTime::currentTime().toString(), this->_filePathName));
 
     if(!QFileInfo::exists(_filePathName))
     {
-        result.errorMsg = "file doesn't seem to exist";
-        return result;
+        return "file doesn't seem to exist";
     }
 #ifdef Q_OS_MACOS
     else if(_filePathName.contains(".photoslibrary")){
         const QString fileNameNoExt = QFileInfo(_filePathName).completeBaseName();
         if(!_filePathName.contains(".photoslibrary/originals/")){
-            result.errorMsg = "file is an Apple Photos derivative";
-            return result;
+            return "file is an Apple Photos derivative";
         }
         else if(fileNameNoExt.contains("_")){
-            result.errorMsg = "video seems to be a live photo, so deal with it as a photo.";
-            return result;
+            return "video seems to be a live photo, so deal with it as a photo.";
         }
     }
 #endif
@@ -54,18 +63,15 @@ Video::ProcessingResult Video::process()
     }
     else if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY) {
         if(QFileInfo(_filePathName).size()==0){ // check this before, as it's faster, but getMetadata also does this but stores the info
-            result.errorMsg = "file size = 0 ";
-            return result;
+            return "file size = 0 ";
         }
         auto err = getMetadata(_filePathName);
         if(!err.isEmpty()){        //as not cached, read metadata with ffmpeg
-            result.errorMsg = QString("could not read metadata: %1").arg(err);
-            return result;
+            return QString("could not read metadata: %1").arg(err);
         }
     }
     else{
-        result.errorMsg = "video was not fully cached ";
-        return result;
+        return "video was not fully cached ";
     }
     if(this->_prefs.useCacheOption()==Prefs::WITH_CACHE) // TODO-REFACTOR could we move this into the case when we actually cache data ?
         cache.writeMetadata(*this); // cache so next run will be faster
@@ -75,27 +81,21 @@ Video::ProcessingResult Video::process()
 
     if(width == 0 || height == 0)// || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
-        result.errorMsg = QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
-        return result;
+        return QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
     }
 
     auto err = takeScreenCaptures(cache);
     if(this->_prefs.useCacheOption()==Prefs::WITH_CACHE && durationWasZero && duration!=0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if(!err.isEmpty()){
-        result.errorMsg = QString("capture failed: %1").arg(err);
-        return result;
+        return QString("capture failed: %1").arg(err);
     }
     else if((this->_prefs.thumbnailsMode() != cutEnds && hash[0] == 0 ) || // only cutends separates hashes for captures, other just treat as one big capture
-            (this->_prefs.thumbnailsMode() == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
-        result.errorMsg = "all screen captures black";
-        return result;
+             (this->_prefs.thumbnailsMode() == cutEnds && hash[0] == 0 && hash[1] == 0)){   //all screen captures black
+        return "all screen captures black";
     }
     else{
-        ProcessingResult result;
-        result.success = true;
-        result.video = this;
-        return result;
+        return "";
     }
 }
 
@@ -140,7 +140,7 @@ const QString Video::getMetadata(const QString &filename)
         duration = 0;
     }
     if (fmt_ctx->bit_rate) {
-      bitrate = fmt_ctx->bit_rate / 1000;
+        bitrate = fmt_ctx->bit_rate / 1000;
     }
     else {
         bitrate = 0;
@@ -229,10 +229,10 @@ const QString Video::takeScreenCaptures(const Db &cache)
     // TODO: investigate if sometimes takes very long time or just cap at x number of tried captures or something not only %
     while(--capture >= 0)           //screen captures are taken in reverse order so errors are found early
     {
-        if(this->shouldAbort){
-            this->abortedFrom = QString("abort requested, so stopped trying to take captures, at total duration rescaled %1%").arg(ofDuration);
-            return QString("abort requested");
-        }
+        QMutexLocker locker(&this->progressLock);
+        this->progress++;
+        locker.unlock();
+
         QImage frame;
         QByteArray cachedImage;
         if(this->_prefs.useCacheOption()!=Prefs::NO_CACHE) // TODO-REFACTOR could maybe load from cache in same condition as frame loading and resizing... ?
@@ -253,8 +253,6 @@ const QString Video::takeScreenCaptures(const Db &cache)
 
         if(frame.isNull())                                  //taking screen capture may fail if video is broken
         {
-            if(!this->abortedFrom.isEmpty())
-                return QString("abort reaction: %1").arg(this->abortedFrom);
             ofDuration = ofDuration - _goBackwardsPercent;
             if(ofDuration >= _videoStillUsable)             //retry a few times, always closer to beginning
             {
@@ -465,10 +463,10 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 
     /* Open the codec */
     if(ffmpeg::avcodec_open2(codec_ctx, codec, NULL /* no options*/)<0){
-       qDebug() << "Failed to open video codec for file " << _filePathName;
-       ffmpeg::avcodec_free_context(&codec_ctx);
-       ffmpeg::avformat_close_input(&fmt_ctx);
-       return img;
+        qDebug() << "Failed to open video codec for file " << _filePathName;
+        ffmpeg::avcodec_free_context(&codec_ctx);
+        ffmpeg::avformat_close_input(&fmt_ctx);
+        return img;
     }
 
     /* Allocate packet for storing decoded data */
@@ -539,8 +537,8 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     qDebug() << "start pts="<< start_time << "in terms of time "<< msToHHMMSS(1000*start_time*vs->time_base.num/vs->time_base.den);
     qDebug() << "stream duration="<< vs->duration << " in terms of time " << msToHHMMSS(ms_stream_duration) << " in terms of ms "<< ms_stream_duration;
     qDebug() << "Seeking to timestamp " <<
-                msToHHMMSS(ms_stream_duration * (percent * ofDuration) / (100 * 100))<<
-                " for file (of duration " << msToHHMMSS(ms_stream_duration) << " ) ";
+        msToHHMMSS(ms_stream_duration * (percent * ofDuration) / (100 * 100))<<
+        " for file (of duration " << msToHHMMSS(ms_stream_duration) << " ) ";
     qDebug() << "(in terms of stream time base wanted : "<< wanted_ts << " for stream duration " << vs->duration<<")";
 #endif
     // From http://ffmpeg.org/ffmpeg.html#Main-options see -ss option (as was previously used with executable)
@@ -556,14 +554,12 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
         return img;
     }
     while (readFrame == false){
-        if(this->shouldAbort){
-            this->abortedFrom = QString("abort requested, so stopped before reading ffmpeg frame at time base %1 for stream duration %2 with %3 previous failed frames")
-                                    .arg(wanted_ts).arg(vs->duration).arg(failedFrames);
-            break;
-        }
+        QMutexLocker locker(&this->progressLock);
+        this->progress++;
+        locker.unlock();
 
         int ret = ffmpeg::av_read_frame(fmt_ctx, vPacket); // reads packet frames, but buffers some so at the end,
-                                                            // even if it says EOF we need to decode again until there's no frames returned
+            // even if it says EOF we need to decode again until there's no frames returned
 #ifdef DEBUG_VIDEO_READING
         if(ret == AVERROR_EOF){
             qDebug() << "av_read_frame said eof for file " << _filePathName;
@@ -622,17 +618,17 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                     curr_ts = vFrame->pkt_dts;
                 }
 #ifdef DEBUG_VIDEO_READING
-//                saveToJPEG(codec_ctx, vFrame, imgPathname +  " pts" + msToHHMMSS((long long)1000*vFrame->pts*vs->time_base.num/vs->time_base.den) + ".bmp");
+                //                saveToJPEG(codec_ctx, vFrame, imgPathname +  " pts" + msToHHMMSS((long long)1000*vFrame->pts*vs->time_base.num/vs->time_base.den) + ".bmp");
                 qDebug() << "Frame " <<
-                            "type "<< av_get_picture_type_char(vFrame->pict_type) <<
-                            " frame number " << codec_ctx->frame_number;
+                    "type "<< av_get_picture_type_char(vFrame->pict_type) <<
+                    " frame number " << codec_ctx->frame_number;
                 qDebug() << " wanted ts (from start)"<<wanted_ts<<" in time (from 0)"<<msToHHMMSS(1000*(wanted_ts-start_time)*vs->time_base.num/vs->time_base.den)<<
-                            " vFrame pts "<<vFrame->pts << " in time (from0)"<< msToHHMMSS(1000*(vFrame->pts-start_time)*vs->time_base.num/vs->time_base.den) <<
-                            " pkt dts " << vFrame->pkt_dts<<
-                            " curr_ts "<<curr_ts <<
-                            " best effort ts "<<vFrame->best_effort_timestamp;
+                    " vFrame pts "<<vFrame->pts << " in time (from0)"<< msToHHMMSS(1000*(vFrame->pts-start_time)*vs->time_base.num/vs->time_base.den) <<
+                    " pkt dts " << vFrame->pkt_dts<<
+                    " curr_ts "<<curr_ts <<
+                    " best effort ts "<<vFrame->best_effort_timestamp;
 #endif
-                // try to find estimate of frame rate TODO : find another way to do this, with frame ts maybe... ?
+    // try to find estimate of frame rate TODO : find another way to do this, with frame ts maybe... ?
                 if(this->framerate==0){
                     ffmpeg::AVRational est_fps = ffmpeg::av_guess_frame_rate(fmt_ctx, vs,vFrame);
                     if(est_fps.num!=0 && est_fps.den!=0){
@@ -641,7 +637,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                 }
                 // try to find estimate stream duration from frame size and file size
                 if(frames_estimated!=-1 && frames_estimated<ESTIMATE_DURATION_FROM_FRAME_NB && vFrame->pkt_size!=0
-                        && vs->time_base.num!=0 /*avoid 0 divisions*/){
+                    && vs->time_base.num!=0 /*avoid 0 divisions*/){
                     avg_frame_bytes_size = (frames_estimated*avg_frame_bytes_size + vFrame->pkt_size)/(1+frames_estimated);
                     frames_estimated++;
                     ms_stream_duration = (double)ESTIMATE_DURATION_FROM_FRAME_RESCALE*1000*this->size*vs->avg_frame_rate.den/(avg_frame_bytes_size*vs->avg_frame_rate.num+1); // rescale to avoid over estimating, add 1 because avg_frame_rate can be 0 !
@@ -649,12 +645,12 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                     wanted_ts = vs->time_base.den * wanted_ms_place / (vs->time_base.num * 1000 /*we have ms duration*/);
                     this->duration = ms_stream_duration;
 #ifdef DEBUG_VIDEO_READING
-              qDebug() <<"No video duration : trying to estimate from file size and frame size : "<<
-                         " frame pkt size "<<vFrame->pkt_size<<
-                         " avg "<< frames_estimated<<" frames size "<<avg_frame_bytes_size<<
-                         " for file size (in bytes)"<<size <<
-                         " making estimated nb frames "<<size/avg_frame_bytes_size<<
-                         " or estimated duration " << msToHHMMSS(1000*vs->avg_frame_rate.den*size/(avg_frame_bytes_size*vs->avg_frame_rate.num));
+                    qDebug() <<"No video duration : trying to estimate from file size and frame size : "<<
+                        " frame pkt size "<<vFrame->pkt_size<<
+                        " avg "<< frames_estimated<<" frames size "<<avg_frame_bytes_size<<
+                        " for file size (in bytes)"<<size <<
+                        " making estimated nb frames "<<size/avg_frame_bytes_size<<
+                        " or estimated duration " << msToHHMMSS(1000*vs->avg_frame_rate.den*size/(avg_frame_bytes_size*vs->avg_frame_rate.num));
 #endif
                     if(frames_estimated==ESTIMATE_DURATION_FROM_FRAME_NB){
                         if(ffmpeg::av_seek_frame(fmt_ctx, stream_index, wanted_ts, AVSEEK_FLAG_BACKWARD /* 0 for no flags*/) < 0){ // will seek to closest previous keyframe
@@ -709,12 +705,12 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     ffmpeg::avcodec_free_context(&codec_ctx);
     ffmpeg::avformat_close_input(&fmt_ctx);
 
-    if(img.isNull() && this->abortedFrom.isEmpty()){
+    if(img.isNull()){
         qDebug() << "ERROR with taking frame function, it is empty but shouldn't be !!! "<< _filePathName;
     }
 #ifdef DEBUG_VIDEO_READING
     else{
-         qDebug() << "Library capture success at timestamp " << msToHHMMSS(wanted_ms_place) << " for file " << _filePathName;
+        qDebug() << "Library capture success at timestamp " << msToHHMMSS(wanted_ms_place) << " for file " << _filePathName;
     }
 #endif
     return img;
@@ -724,13 +720,13 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
 {
     // first convert frame to rgb24
     ffmpeg::SwsContext* img_convert_ctx = ffmpeg::sws_getContext(
-                                     pFrame->width,
-                                     pFrame->height,
-                                     (ffmpeg::AVPixelFormat)pFrame->format,
-                                     pFrame->width,
-                                     pFrame->height,
-                                     ffmpeg::AV_PIX_FMT_RGB24,
-                                     SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
+        pFrame->width,
+        pFrame->height,
+        (ffmpeg::AVPixelFormat)pFrame->format,
+        pFrame->width,
+        pFrame->height,
+        ffmpeg::AV_PIX_FMT_RGB24,
+        SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
     if(!img_convert_ctx){
         qDebug() << "Failed to create sws context "<< _filePathName;
         return QImage();
@@ -738,84 +734,84 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
 
     // ---------------------------
     // Possibility 1 : convert to second frame, then load into QImage : has memory leak issue !!!
-//    ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
-//    frameRGB->width = pFrame->width;
-//    frameRGB->height = pFrame->height;
-//    frameRGB->format = ffmpeg::AV_PIX_FMT_RGB24;
-//    ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
-//                            ffmpeg::AV_PIX_FMT_RGB24,
-//                            pFrame->width,
-//                            pFrame->height);
+    //    ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
+    //    frameRGB->width = pFrame->width;
+    //    frameRGB->height = pFrame->height;
+    //    frameRGB->format = ffmpeg::AV_PIX_FMT_RGB24;
+    //    ffmpeg::avpicture_alloc((ffmpeg::AVPicture*)frameRGB,
+    //                            ffmpeg::AV_PIX_FMT_RGB24,
+    //                            pFrame->width,
+    //                            pFrame->height);
 
-//    if(ffmpeg::sws_scale(img_convert_ctx,
-//                pFrame->data,
-//                pFrame->linesize, 0,
-//                pFrame->height,
-//                frameRGB->data,
-//                frameRGB->linesize)
-//            != pFrame->height){
-//        qDebug() << "Error changing frame color range "<<filename;
-//        ffmpeg::av_frame_free(&frameRGB);
-//        ffmpeg::sws_freeContext(img_convert_ctx);
-//        return QImage();
-//    }
+    //    if(ffmpeg::sws_scale(img_convert_ctx,
+    //                pFrame->data,
+    //                pFrame->linesize, 0,
+    //                pFrame->height,
+    //                frameRGB->data,
+    //                frameRGB->linesize)
+    //            != pFrame->height){
+    //        qDebug() << "Error changing frame color range "<<filename;
+    //        ffmpeg::av_frame_free(&frameRGB);
+    //        ffmpeg::sws_freeContext(img_convert_ctx);
+    //        return QImage();
+    //    }
 
-//    QImage image(frameRGB->data[0],
-//                     pFrame->width,
-//                     pFrame->height,
-//                     frameRGB->linesize[0],
-//                     QImage::Format_RGB888);
+    //    QImage image(frameRGB->data[0],
+    //                     pFrame->width,
+    //                     pFrame->height,
+    //                     frameRGB->linesize[0],
+    //                     QImage::Format_RGB888);
 
-////    ffmpeg::avpicture_free((ffmpeg::AVPicture*)frameRGB); // Problem as this frees the underlying data which QImage share
-//    ffmpeg::av_frame_free(&frameRGB);
+    ////    ffmpeg::avpicture_free((ffmpeg::AVPicture*)frameRGB); // Problem as this frees the underlying data which QImage share
+    //    ffmpeg::av_frame_free(&frameRGB);
 
     // ---------------------------
     // Possibility 2 : directly convert into QImage -> has problem when source frame width is not multiple of 4 (QImage ligns are 32 bit aligned)
-//    QImage image(pFrame->width,
-//                 pFrame->height,
-//                 QImage::Format_RGB888);
+    //    QImage image(pFrame->width,
+    //                 pFrame->height,
+    //                 QImage::Format_RGB888);
 
-//    int rgb_linesizes[8] = {0};
-//    rgb_linesizes[0] = 3*pFrame->width;
+    //    int rgb_linesizes[8] = {0};
+    //    rgb_linesizes[0] = 3*pFrame->width;
 
-//    if(ffmpeg::sws_scale(img_convert_ctx,
-//                pFrame->data,
-//                pFrame->linesize, 0,
-//                pFrame->height,
-//                (uint8_t *[]){image.bits()},
-//                rgb_linesizes)
-//            != pFrame->height){
-//        qDebug() << "Error changing frame color range "<<filename;
-//        ffmpeg::sws_freeContext(img_convert_ctx);
-//        return QImage();
-//    }
+    //    if(ffmpeg::sws_scale(img_convert_ctx,
+    //                pFrame->data,
+    //                pFrame->linesize, 0,
+    //                pFrame->height,
+    //                (uint8_t *[]){image.bits()},
+    //                rgb_linesizes)
+    //            != pFrame->height){
+    //        qDebug() << "Error changing frame color range "<<filename;
+    //        ffmpeg::sws_freeContext(img_convert_ctx);
+    //        return QImage();
+    //    }
 
     // ---------------------------
     // Possibility 3 : modif attempt of 1 without deprecated stuff
-//    int rgb_linesizes[8] = {0};
-//    rgb_linesizes[0] = 3*pFrame->width;
+    //    int rgb_linesizes[8] = {0};
+    //    rgb_linesizes[0] = 3*pFrame->width;
 
-//    unsigned char* rgbData[8];
-//    int imgBytesSyze = 3*pFrame->height*pFrame->width;
-//    rgbData[0] = (unsigned char *)malloc(imgBytesSyze);
-//    if(ffmpeg::sws_scale(img_convert_ctx,
-//                pFrame->data,
-//                pFrame->linesize, 0,
-//                pFrame->height,
-//                rgbData,
-//                rgb_linesizes)
-//            != pFrame->height){
-//        qDebug() << "Error changing frame color range "<<filename;
-//        free(rgbData[0]);
-//        ffmpeg::sws_freeContext(img_convert_ctx);
-//        return QImage();
-//    }
+    //    unsigned char* rgbData[8];
+    //    int imgBytesSyze = 3*pFrame->height*pFrame->width;
+    //    rgbData[0] = (unsigned char *)malloc(imgBytesSyze);
+    //    if(ffmpeg::sws_scale(img_convert_ctx,
+    //                pFrame->data,
+    //                pFrame->linesize, 0,
+    //                pFrame->height,
+    //                rgbData,
+    //                rgb_linesizes)
+    //            != pFrame->height){
+    //        qDebug() << "Error changing frame color range "<<filename;
+    //        free(rgbData[0]);
+    //        ffmpeg::sws_freeContext(img_convert_ctx);
+    //        return QImage();
+    //    }
 
-//    QImage image(rgbData[0],
-//                 pFrame->width,
-//                 pFrame->height,
-//                 rgb_linesizes[0],
-//                 QImage::Format_RGB888);
+    //    QImage image(rgbData[0],
+    //                 pFrame->width,
+    //                 pFrame->height,
+    //                 rgb_linesizes[0],
+    //                 QImage::Format_RGB888);
 
     // ---------------------------
     // Possibility 4 : modif attempt of 3 to do memcopy
@@ -836,12 +832,12 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
         return QImage();
     }
     if(ffmpeg::sws_scale(img_convert_ctx,
-                pFrame->data,
-                pFrame->linesize, 0,
-                pFrame->height,
-                rgbData, // ideally should be (uint8_t *[]){image.bits()} but not possible as explained below, QImage lines are at least 32 bit aligned
-                rgb_linesizes)
-            != pFrame->height){
+                          pFrame->data,
+                          pFrame->linesize, 0,
+                          pFrame->height,
+                          rgbData, // ideally should be (uint8_t *[]){image.bits()} but not possible as explained below, QImage lines are at least 32 bit aligned
+                          rgb_linesizes)
+        != pFrame->height){
         qDebug() << "Error changing frame color range "<<_filePathName;
         free(rgbData[0]);
         ffmpeg::sws_freeContext(img_convert_ctx);
@@ -896,4 +892,3 @@ VideoMetadata Video::videoToMetadata(const Video & vid) {
 }
 // ------------ End: Public STATIC member functions ----------
 // ------------------------------------------------------------
-

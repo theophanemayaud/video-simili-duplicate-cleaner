@@ -170,13 +170,13 @@ private:
          *      -- 17min: lib(only) metadata, lib(only) captures
          *      -- 17min: lib(only) metadata, lib(only) captures
          *      -- 6min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 4min 16s (250s, 263s, ...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
+         *      -- 5min (250s, 263s, 287s...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
          *  - Cached
          *      -- 17min: mix lib&exec metadata, exec captures
          *      -- 6min: lib(only) metadata, exec captures
          *      -- 6min: lib(only) metadata, lib(only) captures
          *      -- 2min 33s: arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 50s (44s, 46s, 51s,...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking
+         *      -- 50s (44s, 46s, 51s, 43s,...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
          *  */
         qint64 ref_ms_time;
     };
@@ -603,7 +603,7 @@ void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck(){
 void TestVideo::test_100GBwholeApp_nocache(){
     wholeAppTestConfig conf;
     conf.cacheOption = Prefs::NO_CACHE;
-    conf.ref_ms_time = 7*60*1000;
+    conf.ref_ms_time = 5*60*1000;
     conf.nb_vids_to_find = 12505;
     conf.nb_valid_vids_to_find = 12330;
     conf.nb_matching_vids_to_find = 6568;
@@ -616,7 +616,7 @@ void TestVideo::test_100GBwholeApp_nocache(){
 void TestVideo::test_100GBwholeApp_cached(){
     wholeAppTestConfig conf;
     conf.cacheOption = Prefs::WITH_CACHE;
-    conf.ref_ms_time = 3*60*1000;
+    conf.ref_ms_time = 50*1000;
     conf.nb_vids_to_find = 12505;
     conf.nb_valid_vids_to_find = 12330;
     conf.nb_matching_vids_to_find = 6555;
