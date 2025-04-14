@@ -173,6 +173,7 @@ void MainWindow::on_browseApplePhotos_clicked()
 
 void MainWindow::on_directoryBox_textChanged(const QString &arg1)
 {
+    this->shouldScan = true; // reset to true, as we are changing directories
     if(arg1.trimmed().isEmpty())
         this->_prefs.scanLocations(QStringList());
 }
@@ -195,9 +196,10 @@ void MainWindow::on_findDuplicates_clicked()
         return;
     }
 
-    int rescan = QMessageBox::No;
-    if(_videoList.count() > 0) {
-        // ask user if they want to rescan
+    if(_videoList.count() == 0)
+        this->shouldScan = true;
+
+    if(this->shouldScan == false) {
         auto question = QMessageBox(this);
         question.setWindowTitle("Rescan?");
         question.setText(QStringLiteral("Do you want to rescan the videos or reopen the results of the last %1 scanned videos?").arg(_videoList.count()));
@@ -206,11 +208,10 @@ void MainWindow::on_findDuplicates_clicked()
         question.addButton("Reopen", QMessageBox::NoRole);
         question.exec();
         if(question.clickedButton()->text() == "Rescan")
-            rescan = QMessageBox::Yes;
+            this->shouldScan = true;
     }
 
-    if(_videoList.count() == 0 || rescan == QMessageBox::Yes)
-    {
+    if(this->shouldScan) {
         addStatusMessage(QStringLiteral("\n\rSearching for videos..."));
         ui->statusBar->setVisible(true);
 
@@ -222,6 +223,7 @@ void MainWindow::on_findDuplicates_clicked()
         const QString foldersToSearch = ui->directoryBox->text();
         const QStringList directories = foldersToSearch.split(QStringLiteral(";"));
         this->_prefs.scanLocations(directories);
+        Message::Get()->add(QStringLiteral("Re scanning: %1").arg(directories.join(", ")));
         if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY){
             QString notFound;
             for(auto directory : directories)               //add all video files from entered paths to list
@@ -248,12 +250,10 @@ void MainWindow::on_findDuplicates_clicked()
         processVideos();
     }
 
-    if(_videoList.count() > 1)
-    {
+    if(_videoList.count() > 1) {
         this->_comparison = new Comparison(sortVideosBySize(), _prefs);
         this->_comparison->hide();
-        if(rescan)
-        {
+        if(this->shouldScan) {
             this->_comparison->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with comparison window (non const function)
             this->_comparison->exec();
         }
@@ -265,6 +265,7 @@ void MainWindow::on_findDuplicates_clicked()
     }
 
     ui->findDuplicates->setText(QStringLiteral("Find duplicates"));
+    this->shouldScan = false; //set to false, as we are done scanning
 }
 
 void MainWindow::findVideos(QDir &dir)
@@ -664,6 +665,7 @@ void MainWindow::setComparisonMode(const int &mode) { // slot used from comparis
     ui->directoryBox->setFocus();
 }
 void MainWindow::on_selectThumbnails_activated(const int &index) {
+    this->shouldScan = true; // reset to true, as we are changing the mode
     this->_prefs.thumbnailsMode(index);
     this->ui->directoryBox->setFocus();
     this->ui->selectThumbnails->setCurrentIndex(index); // set even if was just selected as function is also called in code

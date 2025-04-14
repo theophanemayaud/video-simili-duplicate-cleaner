@@ -37,6 +37,7 @@ private:
 
     Prefs _prefs;
     bool _userPressedStop = false;
+    bool shouldScan = true;
 
 private slots:
     void deleteTemporaryFiles() const;
