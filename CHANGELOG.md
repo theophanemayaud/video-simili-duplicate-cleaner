@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.12.0...v1.12.1) (2025-04-14)
+
+
+### Features
+
+* **comparison:** option to rescan or reopen last results ([1fc0d2c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/1fc0d2c554b94a44e9c868772e4c3dace711e5f1))
+
+
+### Bug Fixes
+
+* **videos:** add custom thread pool to prevent stuck videos ([#146](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/146)) ([f18fb8d](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/f18fb8de7a23e48468d53d36e8b14cc3ce048783))
+
 ## [1.12.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.11.1...v1.12.0) (2025-01-05)
 
 
