@@ -57,53 +57,54 @@ contains(QMAKE_HOST.arch, arm64):{
     LIBS += -L$$PWD/../libraries/macos/opencv-arm/opencv-install/lib/opencv4/3rdparty -lzlib -littnotify -framework OpenCL -framework Accelerate
 
     # ffmpeg libraries
-    INCLUDEPATH += $$PWD/../libraries/macos/ffmpeg-universalized-libs/include
+    INCLUDEPATH += $$PWD/../libraries/macos/ffmpeg/ffmpeg-universalized-libs/include
     ## libavformat and libavutil static libs dependencies (from pckgconfig file)
-    LIBS += -L$$PWD/../libraries/macos/ffmpeg-universalized-libs/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
+    LIBS += -L$$PWD/../libraries/macos/ffmpeg/ffmpeg-universalized-libs/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
                                          -lswresample -lavcodec \
                                          -lswscale \
                                          -lbz2 -liconv -Wl,-no_compact_unwind \
                                          -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
-    PRE_TARGETDEPS += $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libavutil.a \
-                      $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libavformat.a
-                      $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libswresample.a
-                      $$PWD/../libraries/macos/ffmpeg-universalized-libs/lib/libavcodec.a
+    PRE_TARGETDEPS += $$PWD/../libraries/macos/ffmpeg/ffmpeg-universalized-libs/lib/libavutil.a \
+                      $$PWD/../libraries/macos/ffmpeg/ffmpeg-universalized-libs/lib/libavformat.a
+                      $$PWD/../libraries/macos/ffmpeg/ffmpeg-universalized-libs/lib/libswresample.a
+                      $$PWD/../libraries/macos/ffmpeg/ffmpeg-universalized-libs/lib/libavcodec.a
 
     # aom lib for decoding av1 videos
-    INCLUDEPATH    += $$PWD/../libraries/macos/libaom-universalized/include
-    LIBS         += -L$$PWD/../libraries/macos/libaom-universalized/lib -laom
-    PRE_TARGETDEPS += $$PWD/../libraries/macos/libaom-universalized/lib/libaom.a
+    INCLUDEPATH    += $$PWD/../libraries/macos/ffmpeg/libaom-universalized/include
+    LIBS         += -L$$PWD/../libraries/macos/ffmpeg/libaom-universalized/lib -laom
+    PRE_TARGETDEPS += $$PWD/../libraries/macos/ffmpeg/libaom-universalized/lib/libaom.a
 }
 
+# old macos intel build stepts, now only build from arm although univeralized build
 contains(QMAKE_HOST.arch, x86_64):{
-    message("qmake host is macos x86_64 (intel processors)")
+    message("qmake host is macos x86_64 (intel processors) but only arm is supported now")
 
     # OpenCV libraries
-    INCLUDEPATH += $$PWD/../libraries/macos/opencv/include
-    DEPENDPATH += $$PWD/../libraries/macos/opencv/include
+#    INCLUDEPATH += $$PWD/../libraries/macos/opencv/include
+#    DEPENDPATH += $$PWD/../libraries/macos/opencv/include
 
-    LIBS += -L$$PWD/../libraries/macos/opencv/lib/ -lopencv_imgproc -lopencv_core
+#    LIBS += -L$$PWD/../libraries/macos/opencv/lib/ -lopencv_imgproc -lopencv_core
 
-    PRE_TARGETDEPS += $$PWD/../libraries/macos/opencv/lib/libopencv_core.a \
-                            $$PWD/../libraries/macos/opencv/lib/libopencv_imgproc.a
+#    PRE_TARGETDEPS += $$PWD/../libraries/macos/opencv/lib/libopencv_core.a \
+#                            $$PWD/../libraries/macos/opencv/lib/libopencv_imgproc.a
 
     ## OpenCV static libs dependencies
-    LIBS += -L$$PWD/../libraries/macos/opencv/lib/opencv4/3rdparty -lzlib -littnotify -lippiw -lippicv -framework OpenCL -framework Accelerate
+#    LIBS += -L$$PWD/../libraries/macos/opencv/lib/opencv4/3rdparty -lzlib -littnotify -lippiw -lippicv -framework OpenCL -framework Accelerate
 
     # ffmpeg libraries
-    INCLUDEPATH += $$PWD/../libraries/macos/ffmpeg/include
+#    INCLUDEPATH += $$PWD/../libraries/macos/ffmpeg/include
 
     ## libavformat and libavutil static libs dependencies (from pckgconfig file)
-    LIBS += -L$$PWD/../libraries/macos/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
-                                         -lswresample -lavcodec \
-                                         -lswscale \
-                                         -lbz2 -liconv -Wl,-no_compact_unwind \
-                                         -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
+#    LIBS += -L$$PWD/../libraries/macos/ffmpeg/lib -lavutil -lavformat \ # wanted libraries, below are other libraries that were needed to make it work
+#                                         -lswresample -lavcodec \
+#                                         -lswscale \
+#                                         -lbz2 -liconv -Wl,-no_compact_unwind \
+#                                         -framework CoreVideo -framework Security  -framework AudioToolbox -framework CoreMedia -framework VideoToolbox
 
-    PRE_TARGETDEPS += $$PWD/../libraries/macos/ffmpeg/lib/libavutil.a \
-                      $$PWD/../libraries/macos/ffmpeg/lib/libavformat.a
-                      $$PWD/../libraries/macos/ffmpeg/lib/libswresample.a
-                      $$PWD/../libraries/macos/ffmpeg/lib/libavcodec.a
+#    PRE_TARGETDEPS += $$PWD/../libraries/macos/ffmpeg/lib/libavutil.a \
+#                      $$PWD/../libraries/macos/ffmpeg/lib/libavformat.a
+#                      $$PWD/../libraries/macos/ffmpeg/lib/libswresample.a
+#                      $$PWD/../libraries/macos/ffmpeg/lib/libavcodec.a
 
     # Old way that FFMPEG was included as an executable : now it's only a library !
     #APP_QML_FILES.files = \

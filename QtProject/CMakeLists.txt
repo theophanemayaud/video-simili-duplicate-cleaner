@@ -84,7 +84,7 @@ if(APPLE)
         )
         
         # FFMPEG
-        set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg-universalized-libs")
+        set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
         include_directories(${FFMPEG_ROOT}/include)
         target_link_directories(video-simili-duplicate-cleaner PRIVATE
             ${FFMPEG_ROOT}/lib
@@ -100,7 +100,7 @@ if(APPLE)
         )
         
         # AOM
-        set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/libaom-universalized")
+        set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/libaom-universalized")
         include_directories(${AOM_ROOT}/include)
         target_link_directories(video-simili-duplicate-cleaner PRIVATE
             ${AOM_ROOT}/lib
