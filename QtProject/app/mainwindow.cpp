@@ -421,10 +421,10 @@ void MainWindow::addStatusMessage(const QString &message) const
         QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
         if(!cacheFolder.exists())
             QDir().mkpath(cacheFolder.path());
-        static QFile logFile = QStringLiteral("%1/%2_%3.vsdc.logs.txt")
+        static QFile logFile(QStringLiteral("%1/%2_%3.vsdc.logs.txt")
                                    .arg(cacheFolder.path(),
                                         this->_prefs.appVersion.trimmed(),
-                                        QDateTime::currentDateTime().toString("yyyy-MM-dd hh_mm"));
+                                        QDateTime::currentDateTime().toString("yyyy-MM-dd hh_mm")));
         static QTextStream logStream;
         if (!logFile.isOpen()) {
             // Open the file in Append mode and keep it open
