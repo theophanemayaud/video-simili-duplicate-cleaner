@@ -73,23 +73,7 @@ if(APPLE)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         # OpenCV
         set(OPENCV_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/opencv-arm/opencv-install")
-        include_directories(
-            ${OPENCV_ROOT}/include/opencv4
-        )
-        
-        # FFMPEG
-        set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg-universalized-libs")
-        include_directories(${FFMPEG_ROOT}/include)
-        
-        # AOM
-        set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/libaom-universalized")
-        include_directories(${AOM_ROOT}/include)
-        
-        target_link_directories(video-simili-duplicate-cleaner PRIVATE
-            ${FFMPEG_ROOT}/lib
-            ${AOM_ROOT}/lib
-        )
-        
+        include_directories(${OPENCV_ROOT}/include/opencv4)
         target_link_libraries(video-simili-duplicate-cleaner PRIVATE
             ${OPENCV_ROOT}/lib/libopencv_imgproc.a
             ${OPENCV_ROOT}/lib/libopencv_core.a
@@ -102,7 +86,9 @@ if(APPLE)
         # FFMPEG
         set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg-universalized-libs")
         include_directories(${FFMPEG_ROOT}/include)
-        
+        target_link_directories(video-simili-duplicate-cleaner PRIVATE
+            ${FFMPEG_ROOT}/lib
+        )
         target_link_libraries(video-simili-duplicate-cleaner PRIVATE
             avutil avformat swresample avcodec swscale
             bz2 iconv
@@ -117,10 +103,8 @@ if(APPLE)
         set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/libaom-universalized")
         include_directories(${AOM_ROOT}/include)
         target_link_directories(video-simili-duplicate-cleaner PRIVATE
-            ${FFMPEG_ROOT}/lib
             ${AOM_ROOT}/lib
         )
-        
         target_link_libraries(video-simili-duplicate-cleaner PRIVATE
             aom
         )

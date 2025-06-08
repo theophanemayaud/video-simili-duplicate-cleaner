@@ -1,8 +1,8 @@
 #!/bin/bash
+set -ex
+
 # Build OpenCV static lib for macOS (universal: arm64 + x86_64)
 # Usage: ./opencv.sh
-
-set -xe
 
 OPENCV_VERSION=4.8.0
 SOURCE_DIR="opencv-source"
@@ -43,7 +43,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       "../$SOURCE_DIR"
 
 # Build and install
-make -j$(sysctl -n hw.ncpu)
+make -j
 make install
 
 cd ..

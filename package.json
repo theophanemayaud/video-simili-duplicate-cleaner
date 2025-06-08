@@ -47,7 +47,8 @@
     "win-copy-binaries": "copy \"QtProject\\release-build\\windows\\Video simili duplicate cleaner.msix\" \"..\\Video simili duplicate cleaner.msix\"",
     "win-copy-vcredist": "copy \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\14.29.30036\\vc_redist.x64.exe\" \"..\\vc_redist.x64.exe\"",
     "win-binaries": "npm run win-clean && npm run win-build && npm run win-copy-binaries && npm run win-copy-vcredist && npm run win-clean",
-    "opencv-macos": "cd ./QtProject/libraries/macos/opencv-arm && ./opencv.sh"
+    "opencv-macos": "cd ./QtProject/libraries/macos/opencv-arm && ./opencv.sh",
+    "ffmpeg-macos": "cd ./QtProject/libraries/macos/ffmpeg && ./ffmpeg.sh"
   },
   "repository": {
     "type": "git",
