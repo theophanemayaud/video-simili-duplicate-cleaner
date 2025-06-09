@@ -5,8 +5,8 @@ includedir=../ffmpeg-arm-install/include
 
 Name: libswscale
 Description: FFmpeg image rescaling library
-Version: 5.9.100
-Requires: libavutil >= 56.70.100
+Version: 8.3.100
+Requires: libavutil >= 59.39.100
 Requires.private: 
 Conflicts:
 Libs: -L${libdir}  -lswscale -lm

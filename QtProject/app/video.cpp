@@ -191,21 +191,25 @@ const QString Video::getMetadata(const QString &filename)
 
         const QString audioCodec = ffmpeg::avcodec_get_name(as->codecpar->codec_id);// from avcodec_string function
         const QString rate = QString::number(as->codecpar->sample_rate);
-        char buf[50];
-        ffmpeg::av_get_channel_layout_string(buf, sizeof(buf), as->codecpar->channels, as->codecpar->channel_layout); // handles channel layout and number of channels !
-        QString channels = buf;
-        if(channels == "1 channels")
-            channels = QStringLiteral("mono");
-        else if(channels == QLatin1String("2 channels"))
-            channels = QStringLiteral("stereo");
+        // FFmpeg 7.x: Use AVChannelLayout and av_channel_layout_describe
+        ffmpeg::AVCodecContext *audio_ctx = ffmpeg::avcodec_alloc_context3(NULL);
+        if (audio_ctx && ffmpeg::avcodec_parameters_to_context(audio_ctx, as->codecpar) >= 0) {
+            char buf[128] = {0};
+            ffmpeg::av_channel_layout_describe(&audio_ctx->ch_layout, buf, sizeof(buf));
+            QString channels = QString::fromUtf8(buf);
+            if (audio_ctx->ch_layout.nb_channels == 1)
+                channels = QStringLiteral("mono");
+            else if (audio_ctx->ch_layout.nb_channels == 2)
+                channels = QStringLiteral("stereo");
+            audio = QStringLiteral("%1 %2 Hz %3").arg(audioCodec, rate, channels);
 
-        audio = QStringLiteral("%1 %2 Hz %3").arg(audioCodec, rate, channels);
-
-        const int bits_per_sample = ffmpeg::av_get_bits_per_sample(as->codecpar->codec_id);
-        const int bitrate = bits_per_sample ? as->codecpar->sample_rate * (int64_t)as->codecpar->channels * bits_per_sample/1000 : as->codecpar->bit_rate/1000;
-        const QString kbps = QString::number(bitrate);
-        if(!kbps.isEmpty() && kbps != QStringLiteral("0"))
-            audio = QStringLiteral("%1 %2 kb/s").arg(audio, kbps);
+            const int bits_per_sample = ffmpeg::av_get_bits_per_sample(as->codecpar->codec_id);
+            const int bitrate = bits_per_sample ? as->codecpar->sample_rate * (int64_t)audio_ctx->ch_layout.nb_channels * bits_per_sample/1000 : as->codecpar->bit_rate/1000;
+            const QString kbps = QString::number(bitrate);
+            if(!kbps.isEmpty() && kbps != QStringLiteral("0"))
+                audio = QStringLiteral("%1 %2 kb/s").arg(audio, kbps);
+        }
+        if (audio_ctx) ffmpeg::avcodec_free_context(&audio_ctx);
     }
 
     ffmpeg::avformat_close_input(&fmt_ctx);
@@ -437,7 +441,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     }
 
     // find decoder for the stream
-    ffmpeg::AVCodec *codec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
+    const ffmpeg::AVCodec *codec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
     if (!codec) {
         qDebug() << "Failed to find video codec "<< ffmpeg::avcodec_get_name(vs->codecpar->codec_id) << " for file " << _filePathName;
         ffmpeg::avformat_close_input(&fmt_ctx);

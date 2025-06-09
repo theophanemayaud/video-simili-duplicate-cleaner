@@ -1,12 +1,12 @@
 # libaom pkg-config.
-prefix=/Users/theophanemayaud/Dev/libaom-x86_64-install
+prefix=/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/libraries/macos/ffmpeg/libaom-x86_64-install
 exec_prefix=${prefix}
 includedir=${prefix}/include
 libdir=${exec_prefix}/lib
 
 Name: aom
-Description: Alliance for Open Media AV1 codec library v3.11.0.
-Version: 3.11.0
+Description: Alliance for Open Media AV1 codec library v3.12.1.
+Version: 3.12.1
 Requires:
 Conflicts:
 Libs: -L${libdir} -laom

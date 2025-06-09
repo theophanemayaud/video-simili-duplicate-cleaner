@@ -5,8 +5,8 @@ includedir=../ffmpeg-arm-install/include
 
 Name: libavfilter
 Description: FFmpeg audio/video filtering library
-Version: 7.110.100
-Requires: libavutil >= 56.70.100
+Version: 10.4.100
+Requires: libavutil >= 59.39.100
 Requires.private: 
 Conflicts:
 Libs: -L${libdir}  -lavfilter -pthread -lm

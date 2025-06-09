@@ -5,8 +5,8 @@ includedir=../ffmpeg-arm-install/include
 
 Name: libavdevice
 Description: FFmpeg device handling library
-Version: 58.13.100
-Requires: libavfilter >= 7.110.100, libavformat >= 58.76.100, libavcodec >= 58.134.100, libswresample >= 3.9.100, libavutil >= 56.70.100
+Version: 61.3.100
+Requires: libavfilter >= 10.4.100, libavformat >= 61.7.100, libavcodec >= 61.19.101, libswresample >= 5.3.100, libavutil >= 59.39.100
 Requires.private: 
 Conflicts:
 Libs: -L${libdir}  -lavdevice -framework Foundation -framework AudioToolbox -framework CoreAudio -lm -framework AVFoundation -framework CoreVideo -framework CoreMedia -framework CoreGraphics -framework AudioToolbox -pthread

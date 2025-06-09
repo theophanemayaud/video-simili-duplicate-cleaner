@@ -5,7 +5,7 @@ set -ex
 # FFmpeg and libaom (for AV1 support)
 # Prerequisites: Homebrew (for yasm, pkg-config), git, cmake, lipo, make
 
-FFMPEG_VERSION=n4.4.5
+FFMPEG_VERSION=n7.1.1
 AOM_REPO_URL=https://aomedia.googlesource.com/aom.git
 FFMPEG_REPO_URL=https://github.com/FFmpeg/FFmpeg.git
 

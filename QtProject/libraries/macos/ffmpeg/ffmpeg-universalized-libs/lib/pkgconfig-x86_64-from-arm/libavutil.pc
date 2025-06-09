@@ -5,7 +5,7 @@ includedir=../ffmpeg-x86_64-install/include
 
 Name: libavutil
 Description: FFmpeg utility library
-Version: 56.70.100
+Version: 59.39.100
 Requires: 
 Requires.private: 
 Conflicts:
