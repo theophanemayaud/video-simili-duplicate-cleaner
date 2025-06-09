@@ -19,6 +19,7 @@ public:
     QString audio;
     short width = 0;
     short height = 0;
+    QString gpsCoordinates;
 };
 
 #endif // VIDEOMETADATA_H

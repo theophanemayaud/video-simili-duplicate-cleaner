@@ -310,6 +310,36 @@
                  </item>
                 </layout>
                </item>
+               <item row="6" column="0">
+                <layout class="QHBoxLayout" name="horizontalLayout_rightGps">
+                 <item>
+                  <widget class="QLabel" name="labelRightGps">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>GPS:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="rightGpsCoordinates">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
                <item row="2" column="1">
                 <layout class="QHBoxLayout" name="horizontalLayoutLeftFileSize">
                  <item>
@@ -373,7 +403,7 @@
               </layout>
              </item>
              <item>
-              <layout class="QGridLayout" name="gridLayoutLeftDetails" rowstretch="0,0,0,0,0,0" rowminimumheight="0,0,0,0,0,0">
+              <layout class="QGridLayout" name="gridLayoutLeftDetails" rowstretch="0,0,0,0,0,0,0" rowminimumheight="0,0,0,0,0,0,0">
                <property name="topMargin">
                 <number>0</number>
                </property>
@@ -399,6 +429,36 @@
                   <widget class="QLabel" name="leftDuration">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item row="6" column="0">
+                <layout class="QHBoxLayout" name="horizontalLayout_leftGps">
+                 <item>
+                  <widget class="QLabel" name="labelLeftGps">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>GPS:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="leftGpsCoordinates">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
                      <horstretch>0</horstretch>
                      <verstretch>0</verstretch>
                     </sizepolicy>

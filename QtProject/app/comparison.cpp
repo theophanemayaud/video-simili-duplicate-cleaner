@@ -353,6 +353,23 @@ void Comparison::showVideo(const QString &side)
 
     auto *Audio = this->findChild<QLabel *>(side + QStringLiteral("Audio"));
     Audio->setText(_videos[thisVideo]->audio);
+
+    // Add these lines for GPS Coordinates
+    auto *GpsCoordinatesLabel = this->findChild<QLabel *>(side + QStringLiteral("GpsCoordinates"));
+    if (GpsCoordinatesLabel) { // Check if the label exists
+        if (!_videos[thisVideo]->meta.gpsCoordinates.isEmpty()) {
+            GpsCoordinatesLabel->setText(_videos[thisVideo]->meta.gpsCoordinates);
+            GpsCoordinatesLabel->setVisible(true);
+            // Also ensure the static label "GPS:" is visible
+            QLabel* staticGpsLabel = this->findChild<QLabel *>("label" + side.left(1).toUpper() + side.mid(1) + "Gps");
+            if(staticGpsLabel) staticGpsLabel->setVisible(true);
+        } else {
+            GpsCoordinatesLabel->setText(QStringLiteral("N/A")); // Or clear it: GpsCoordinatesLabel->clear();
+            GpsCoordinatesLabel->setVisible(false); // Optionally hide if no data
+            QLabel* staticGpsLabel = this->findChild<QLabel *>("label" + side.left(1).toUpper() + side.mid(1) + "Gps");
+            if(staticGpsLabel) staticGpsLabel->setVisible(false); // Optionally hide "GPS:" label
+        }
+    }
 }
 
 QString Comparison::readableDuration(const int64_t &milliseconds) const
@@ -501,6 +518,20 @@ void Comparison::highlightBetterProperties() const
         ui->leftAudio->setStyleSheet(TEXT_STYLE_ORANGE);
         ui->rightAudio->setStyleSheet(TEXT_STYLE_ORANGE);
     }
+
+    // Add these lines for GPS Coordinates styling
+    ui->leftGpsCoordinates->setStyleSheet(QStringLiteral(""));
+    ui->rightGpsCoordinates->setStyleSheet(QStringLiteral(""));
+    if (!_videos[_leftVideo]->meta.gpsCoordinates.isEmpty() &&
+        _videos[_leftVideo]->meta.gpsCoordinates == _videos[_rightVideo]->meta.gpsCoordinates) {
+        ui->leftGpsCoordinates->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightGpsCoordinates->setStyleSheet(TEXT_STYLE_ORANGE);
+    } else if (_videos[_leftVideo]->meta.gpsCoordinates.isEmpty() && _videos[_rightVideo]->meta.gpsCoordinates.isEmpty()) {
+        // Both empty, could also style as orange or leave default
+        ui->leftGpsCoordinates->setStyleSheet(QStringLiteral("")); // Default or some indication
+        ui->rightGpsCoordinates->setStyleSheet(QStringLiteral(""));
+    }
+    // No specific "better" styling for different GPS coordinates
 }
 
 void Comparison::updateUI()

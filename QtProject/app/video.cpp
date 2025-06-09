@@ -1,4 +1,5 @@
 #include "video.h"
+#include <QStringList> // Added for GPS metadata processing
 
 #define FAIL_ON_FRAME_DECODE_NB_FAIL 10
 
@@ -182,6 +183,31 @@ const QString Video::getMetadata(const QString &filename)
             height = temp;
         }
     }
+
+    // ***** START OF GPS EXTRACTION MODIFICATION *****
+    // Initialize gpsCoordinates
+    this->meta.gpsCoordinates = "";
+
+    // Attempt to get 'location' tag from format context metadata
+    ffmpeg::AVDictionaryEntry *location_tag = ffmpeg::av_dict_get(fmt_ctx->metadata, "location", NULL, 0);
+    if (location_tag) {
+        this->meta.gpsCoordinates = QString::fromUtf8(location_tag->value);
+    } else {
+        // Fallback to individual GPS tags from format context metadata
+        ffmpeg::AVDictionaryEntry *lat_tag = ffmpeg::av_dict_get(fmt_ctx->metadata, "GPSLatitude", NULL, 0);
+        ffmpeg::AVDictionaryEntry *lat_ref_tag = ffmpeg::av_dict_get(fmt_ctx->metadata, "GPSLatitudeRef", NULL, 0);
+        ffmpeg::AVDictionaryEntry *lon_tag = ffmpeg::av_dict_get(fmt_ctx->metadata, "GPSLongitude", NULL, 0);
+        ffmpeg::AVDictionaryEntry *lon_ref_tag = ffmpeg::av_dict_get(fmt_ctx->metadata, "GPSLongitudeRef", NULL, 0);
+
+        if (lat_tag && lat_ref_tag && lon_tag && lon_ref_tag) {
+            this->meta.gpsCoordinates = QString("Lat: %1 %2, Lon: %3 %4")
+                                        .arg(QString::fromUtf8(lat_tag->value))
+                                        .arg(QString::fromUtf8(lat_ref_tag->value))
+                                        .arg(QString::fromUtf8(lon_tag->value))
+                                        .arg(QString::fromUtf8(lon_ref_tag->value));
+        }
+    }
+    // ***** END OF GPS EXTRACTION MODIFICATION *****
 
     // Find audio stream information (we don't care if we don't find any, though)
     ret = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_AUDIO, -1 /* auto stream selection*/,
@@ -892,6 +918,7 @@ VideoMetadata Video::videoToMetadata(const Video & vid) {
     meta.audio = vid.audio;
     meta.width = vid.width;
     meta.height = vid.height;
+    meta.gpsCoordinates = vid.meta.gpsCoordinates; // Added to include GPS data
     return meta;
 }
 // ------------ End: Public STATIC member functions ----------
