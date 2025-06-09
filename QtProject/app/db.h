@@ -22,7 +22,7 @@ class Db
 
 public:
     explicit Db(const QString cacheFilePathName);
-    ~Db() { _db.close(); _db = QSqlDatabase(); _db.removeDatabase(_uniqueConnexionName); }
+    ~Db();
 
 private:
     QSqlDatabase _db;

@@ -183,6 +183,13 @@ Db::Db(const QString cacheFilePathName)
     _db.open();
 }
 
+Db::~Db()
+{
+    _db.close();
+    _db = QSqlDatabase(); // clear the database
+    QSqlDatabase::removeDatabase(_uniqueConnexionName); // clear the connexion backlog, basically... !
+}
+
 bool Db::readMetadata(Video &video) const
 {
     if(!_db.isOpen()){
