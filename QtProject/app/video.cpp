@@ -1,5 +1,4 @@
 #include "video.h"
-#include <QStringList> // Added for GPS metadata processing
 
 #define FAIL_ON_FRAME_DECODE_NB_FAIL 10
 
