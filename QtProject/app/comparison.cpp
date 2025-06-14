@@ -362,8 +362,8 @@ void Comparison::showVideo(const QString &side)
     Audio->setText(_videos[thisVideo]->audio);
 
     auto *GpsCoordinatesLabel = this->findChild<QLabel *>(side + QStringLiteral("GpsCoordinates"));
-    if (!_videos[thisVideo]->meta.gpsCoordinates.isEmpty()) {
-        GpsCoordinatesLabel->setText(_videos[thisVideo]->meta.gpsCoordinates);
+    GpsCoordinatesLabel->setText(_videos[thisVideo]->meta.gpsCoordinates); // set even when empty to clear previous comparison
+    if (!GpsCoordinatesLabel->text().isEmpty()) {
         // as soon as one has gps, show the data and labels for both
         this->ui->labelLeftGps->setVisible(true);
         this->ui->leftGpsCoordinates->setVisible(true);
@@ -526,6 +526,9 @@ void Comparison::highlightBetterProperties() const
         ui->rightAudio->setStyleSheet(TEXT_STYLE_ORANGE);
     }
 
+    // show if GPS coordinates are the same
+    ui->leftGpsCoordinates->setStyleSheet(QString(""));
+    ui->rightGpsCoordinates->setStyleSheet(QString(""));
     if(!ui->leftGpsCoordinates->text().isEmpty() && ui->rightGpsCoordinates->text().isEmpty()){
         ui->leftGpsCoordinates->setStyleSheet(TEXT_STYLE_GREEN);
     }
