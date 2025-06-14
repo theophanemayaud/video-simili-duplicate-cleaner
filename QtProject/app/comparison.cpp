@@ -374,7 +374,7 @@ void Comparison::showVideo(const QString &side)
     auto *metadata = this->findChild<QTextEdit *>(QStringLiteral("textEdit_%1Metadata").arg(side));
     if (metadata){
         metadata->clear();
-        for (auto it = _videos[thisVideo]->meta.fileMetadata.cbegin(); it != _videos[thisVideo]->meta.fileMetadata.cend(); ++it)
+        for (auto it = _videos[thisVideo]->meta.additionalMetadata.cbegin(); it != _videos[thisVideo]->meta.additionalMetadata.cend(); ++it)
             metadata->append(QStringLiteral("%1: %2").arg(it.key(), it.value()));
     }
 }
@@ -382,7 +382,7 @@ void Comparison::showVideo(const QString &side)
 QString Comparison::readableDuration(const int64_t &milliseconds) const
 {
     if(milliseconds == 0)
-        return QStringLiteral("");
+        return QString("");
 
     const int hours   = milliseconds / (1000*60*60) % 24;
     const int minutes = milliseconds / (1000*60) % 60;
@@ -413,14 +413,14 @@ QString Comparison::readableFileSize(const int64_t &filesize) const
 QString Comparison::readableBitRate(const double &kbps) const
 {
     if(kbps == 0.0)
-        return QStringLiteral("");
+        return QString("");
     return QStringLiteral("%1 kb/s").arg(kbps);
 }
 
 void Comparison::highlightBetterProperties() const
 {
-    ui->leftFileSize->setStyleSheet(QStringLiteral(""));
-    ui->rightFileSize->setStyleSheet(QStringLiteral(""));       //both filesizes within 100 kB
+    ui->leftFileSize->setStyleSheet(QString(""));
+    ui->rightFileSize->setStyleSheet(QString(""));       //both filesizes within 100 kB
     if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) <= FILE_SIZE_BYTES_DIFF_STILL_EQUALS)
     {
         ui->leftFileSize->setStyleSheet(TEXT_STYLE_ORANGE);
@@ -431,8 +431,8 @@ void Comparison::highlightBetterProperties() const
     else if(_videos[_leftVideo]->size < _videos[_rightVideo]->size)
         ui->rightFileSize->setStyleSheet(TEXT_STYLE_GREEN);
 
-    ui->leftDuration->setStyleSheet(QStringLiteral(""));
-    ui->rightDuration->setStyleSheet(QStringLiteral(""));       //both runtimes within 1 second
+    ui->leftDuration->setStyleSheet(QString(""));
+    ui->rightDuration->setStyleSheet(QString(""));       //both runtimes within 1 second
     if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) <= VIDEO_DURATION_STILL_EQUALS_MS)
     {
         ui->leftDuration->setStyleSheet(TEXT_STYLE_ORANGE);
@@ -443,8 +443,8 @@ void Comparison::highlightBetterProperties() const
     else if(_videos[_leftVideo]->duration < _videos[_rightVideo]->duration)
         ui->rightDuration->setStyleSheet(TEXT_STYLE_GREEN);
 
-    ui->leftBitRate->setStyleSheet(QStringLiteral(""));
-    ui->rightBitRate->setStyleSheet(QStringLiteral(""));
+    ui->leftBitRate->setStyleSheet(QString(""));
+    ui->rightBitRate->setStyleSheet(QString(""));
     if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)<=BITRATE_DIFF_STILL_EQUAL_kbs) //leave some margin due to decoding error
     {
         ui->leftBitRate->setStyleSheet(TEXT_STYLE_ORANGE);
@@ -455,8 +455,8 @@ void Comparison::highlightBetterProperties() const
     else if(_videos[_leftVideo]->bitrate < _videos[_rightVideo]->bitrate)
         ui->rightBitRate->setStyleSheet(TEXT_STYLE_GREEN);
 
-    ui->leftFrameRate->setStyleSheet(QStringLiteral(""));
-    ui->rightFrameRate->setStyleSheet(QStringLiteral(""));      //both framerates within 0.1 fps
+    ui->leftFrameRate->setStyleSheet(QString(""));
+    ui->rightFrameRate->setStyleSheet(QString(""));      //both framerates within 0.1 fps
     if(qAbs(_videos[_leftVideo]->framerate - _videos[_rightVideo]->framerate) <= 0.1)
     {
         ui->leftFrameRate->setStyleSheet(TEXT_STYLE_ORANGE);
@@ -468,8 +468,8 @@ void Comparison::highlightBetterProperties() const
         ui->rightFrameRate->setStyleSheet(TEXT_STYLE_GREEN);
 
     // Set file modified date
-    ui->leftModified->setStyleSheet(QStringLiteral(""));
-    ui->rightModified->setStyleSheet(QStringLiteral(""));
+    ui->leftModified->setStyleSheet(QString(""));
+    ui->rightModified->setStyleSheet(QString(""));
     if(_videos[_leftVideo]->modified == _videos[_rightVideo]->modified)
     {
         ui->leftModified->setStyleSheet(TEXT_STYLE_ORANGE);
@@ -481,8 +481,8 @@ void Comparison::highlightBetterProperties() const
         ui->rightModified->setStyleSheet(TEXT_STYLE_GREEN);
 
     // Set file create date (earlier is better, ie green)
-    ui->leftFileCreated->setStyleSheet(QStringLiteral(""));
-    ui->rightFileCreated->setStyleSheet(QStringLiteral(""));
+    ui->leftFileCreated->setStyleSheet(QString(""));
+    ui->rightFileCreated->setStyleSheet(QString(""));
     if(_videos[_leftVideo]->_fileCreateDate == _videos[_rightVideo]->_fileCreateDate)
     {
         ui->leftFileCreated->setStyleSheet(TEXT_STYLE_ORANGE);
@@ -494,8 +494,8 @@ void Comparison::highlightBetterProperties() const
         ui->rightFileCreated->setStyleSheet(TEXT_STYLE_GREEN);
 
     // Set resolution
-    ui->leftResolution->setStyleSheet(QStringLiteral(""));
-    ui->rightResolution->setStyleSheet(QStringLiteral(""));
+    ui->leftResolution->setStyleSheet(QString(""));
+    ui->rightResolution->setStyleSheet(QString(""));
 
     if(_videos[_leftVideo]->width * _videos[_leftVideo]->height ==
        _videos[_rightVideo]->width * _videos[_rightVideo]->height)

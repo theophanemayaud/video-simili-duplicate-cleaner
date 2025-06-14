@@ -188,7 +188,7 @@ const QString Video::getMetadata(const QString &filename)
     while ((entry = ffmpeg::av_dict_iterate(fmt_ctx->metadata, entry))) {
         auto key = QString::fromUtf8(entry->key);
         auto value = QString::fromUtf8(entry->value);
-        this->meta.fileMetadata.insert(key, value);
+        this->meta.additionalMetadata.insert(key, value);
         if(this->meta.gpsCoordinates.isEmpty()
            && key == "location") {
             this->meta.gpsCoordinates = value;

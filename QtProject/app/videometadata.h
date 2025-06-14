@@ -20,7 +20,7 @@ public:
     short width = 0;
     short height = 0;
     QString gpsCoordinates;
-    QMap<QString, QString> fileMetadata;
+    QMap<QString, QString> additionalMetadata;
 };
 
 #endif // VIDEOMETADATA_H
