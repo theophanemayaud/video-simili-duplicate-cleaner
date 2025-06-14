@@ -189,11 +189,8 @@ const QString Video::getMetadata(const QString &filename)
         auto key = QString::fromUtf8(entry->key);
         auto value = QString::fromUtf8(entry->value);
         this->meta.additionalMetadata.insert(key, value);
-        if(this->meta.gpsCoordinates.isEmpty()
-           && key == "location") {
-            this->meta.gpsCoordinates = value;
-        }
     }
+    this->meta.setRelevantValuesFromAdditionalMetadata();
 
     // Find audio stream information (we don't care if we don't find any, though)
     ret = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_AUDIO, -1 /* auto stream selection*/,

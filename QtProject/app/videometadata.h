@@ -21,6 +21,18 @@ public:
     short height = 0;
     QString gpsCoordinates;
     QMap<QString, QString> additionalMetadata;
+
+    void setRelevantValuesFromAdditionalMetadata(){
+        // This function is called to set the relevant values from additional metadata
+        // It can be used to set values like GPS coordinates, or in the future if we start using others, camera model, etc.
+
+        for (auto meta = this->additionalMetadata.constBegin(); meta != this->additionalMetadata.constEnd(); ++meta) {
+            if(this->gpsCoordinates.isEmpty()
+                && meta.key() == "location") {
+                this->gpsCoordinates = meta.value();
+            }
+        };
+    };
 };
 
 #endif // VIDEOMETADATA_H

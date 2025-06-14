@@ -1,5 +1,9 @@
 #include "db.h"
 
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QVariantMap>
+
 // ----------------------------------------------------------------------
 // -------------------- START : public static functions -----------------
 /**
@@ -115,7 +119,8 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
                     "codec TEXT, "
                     "audio TEXT, "
                     "width INTEGER, "
-                    "height INTEGER"
+                    "height INTEGER, "
+                    "additional_metadata TEXT"
                 ");"
         ));
 
@@ -208,7 +213,7 @@ bool Db::readMetadata(Video &video) const
 
     while(query.next())
     {
-//        video.modified = _modified;
+        //        video.modified = _modified;
         video.size = query.value(1).toLongLong();
         video.duration = query.value(2).toLongLong();
         video.bitrate = query.value(3).toInt();
@@ -217,6 +222,18 @@ bool Db::readMetadata(Video &video) const
         video.audio = query.value(6).toString();
         video.width = static_cast<short>(query.value(7).toInt());
         video.height = static_cast<short>(query.value(8).toInt());
+
+        QString jsonString = query.value(9).toString();
+        QMap<QString, QString> map;
+        if (!jsonString.isEmpty()) {
+            QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+            QVariantMap vmap = doc.object().toVariantMap();
+            for (auto it = vmap.constBegin(); it != vmap.constEnd(); ++it) {
+                map[it.key()] = it.value().toString();
+            }
+        }
+        video.meta.additionalMetadata = map;
+        video.meta.setRelevantValuesFromAdditionalMetadata();
         return true;
     } // TODO : should proooobably delete others if there are multiple results !!! Or produce error !
     return false;
@@ -231,8 +248,8 @@ void Db::writeMetadata(const Video &video) const
 
     QSqlQuery query(_db);
     query.prepare("INSERT OR REPLACE INTO metadata "
-                  "VALUES(:id,:size,:duration,:bitrate,:framerate,"
-                  ":codec,:audio,:width,:height);");
+                  "(id, size, duration, bitrate, framerate, codec, audio, width, height, additional_metadata) "
+                  "VALUES(:id,:size,:duration,:bitrate,:framerate,:codec,:audio,:width,:height,:additional_metadata);");
     query.bindValue(":id",          video._filePathName);
     query.bindValue(":size",        video.size);
     query.bindValue(":duration",    video.duration);
@@ -242,11 +259,17 @@ void Db::writeMetadata(const Video &video) const
     query.bindValue(":audio",       video.audio);
     query.bindValue(":width",       video.width);
     query.bindValue(":height",      video.height);
+
+    QVariantMap vmap;
+    for (auto it = video.meta.additionalMetadata.constBegin(); it != video.meta.additionalMetadata.constEnd(); ++it)
+        vmap.insert(it.key(), it.value());
+    QString jsonString = QJsonDocument(QJsonObject::fromVariantMap(vmap)).toJson(QJsonDocument::Compact);
+    query.bindValue(":additional_metadata", jsonString);
     query.exec();
 
     QSqlError error = query.lastError();
     if(error.isValid()){
-        qDebug() << "Error with readmetadata query for video=" << video._filePathName << " query="<<query.lastQuery();
+        qDebug() << "Error with writeMetadata query for video=" << video._filePathName << " query="<<query.lastQuery();
         qDebug() << error.text();
     }
 }
