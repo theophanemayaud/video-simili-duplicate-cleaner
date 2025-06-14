@@ -9,7 +9,7 @@
         "build-mac-arm-binaries": "npm run build-mac-arm && npm run sign-and-package",
         "build-mac-arm": "npm run qmake-arm && npm run make && npm run macdeploy",
         "sign-and-package": "cp Info.plist 'Video simili duplicate cleaner.app/Contents/Info.plist' && npm run sign-app && npm run package-app",
-        "sign-app": "codesign --deep --sign 'Apple Distribution: THEOPHANE MAYAUD (XZ4FY5SXW7)' --entitlements parent.plist --options=runtime --timestamp 'Video simili duplicate cleaner.app'",
+        "sign-app": "codesign --deep --force --sign 'Apple Distribution: THEOPHANE MAYAUD (XZ4FY5SXW7)' --entitlements parent.plist --options=runtime --timestamp 'Video simili duplicate cleaner.app'",
         "package-app": "productbuild --component 'Video simili duplicate cleaner.app' /Applications --sign '3rd Party Mac Developer Installer: THEOPHANE MAYAUD (XZ4FY5SXW7)' --timestamp 'Video simili duplicate cleaner.pkg'",
         "make-clean" : "make clean -j || exit 0",
         "clean-leftovers" : "npm run make-clean && rm -f 'Video simili duplicate cleaner.dmg' && rm -f Makefile && rm -f .qmake.stash && rm -f -r 'Video simili duplicate cleaner.app' && rm -f 'Video simili duplicate cleaner.pkg'",
