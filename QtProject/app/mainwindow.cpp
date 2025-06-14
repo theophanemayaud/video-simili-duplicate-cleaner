@@ -83,6 +83,9 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     setComparisonMode(this->_prefs.comparisonMode());
 
     setUseCacheOption(this->_prefs.useCacheOption());
+
+    // Add Cmd+W to quit, default cmd+q already handled by qt on mainwindow
+    connect(new QShortcut(QKeySequence::Close, this), &QShortcut::activated, this, &QApplication::quit);
 }
 
 void MainWindow::deleteTemporaryFiles() const

@@ -72,13 +72,10 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QShortcut* upShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousLine), ui->tabManual);
     connect(upShortcut, SIGNAL(activated()), this, SLOT(on_prevVideo_clicked()));
 
-    // Add Cmd+W shortcut to close the comparison window
-    QShortcut* closeShortcut = new QShortcut(QKeySequence::Close, this);
-    connect(closeShortcut, &QShortcut::activated, this, &Comparison::accept);
-
-    // Add Cmd+Q shortcut to quit the application from the comparison window
-    QShortcut* quitShortcut = new QShortcut(QKeySequence::Quit, this);
-    connect(quitShortcut, &QShortcut::activated, qApp, &QApplication::quit);
+    // Add Cmd+W shortcut to close the comparison window (actually a dialog so closes with accept)
+    connect(new QShortcut(QKeySequence::Close, this), &QShortcut::activated, this, &Comparison::accept);
+    // Cmd+Q shortcut to quit the application from the comparison dialog, not handled by default
+    connect(new QShortcut(QKeySequence::Quit, this), &QShortcut::activated, qApp, &QApplication::quit);
 
     on_nextVideo_clicked();
 }
@@ -145,7 +142,8 @@ void Comparison::confirmToExit()
             emit sendStatusMessage(QStringLiteral("\nComparison window closed because no matching videos found "
                                                  "(a lower threshold may help to find more matches)"));
 
-        this->accept(); // Directly close the dialog
+        QKeyEvent *closeEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+        QApplication::postEvent(this, closeEvent);  //"pressing" ESC closes dialog
     }
 }
 
