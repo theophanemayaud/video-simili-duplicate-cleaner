@@ -73,6 +73,12 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     QShortcut* upShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousLine), ui->tabManual);
     connect(upShortcut, SIGNAL(activated()), this, SLOT(on_prevVideo_clicked()));
 
+    // we only show gps info if at least one of the files has it
+    ui->labelLeftGps->setVisible(false);
+    ui->leftGpsCoordinates->setVisible(false);
+    ui->labelRightGps->setVisible(false);
+    ui->rightGpsCoordinates->setVisible(false);
+
     on_nextVideo_clicked();
 }
 
@@ -363,6 +369,13 @@ void Comparison::showVideo(const QString &side)
         this->ui->leftGpsCoordinates->setVisible(true);
         this->ui->labelRightGps->setVisible(true);
         this->ui->rightGpsCoordinates->setVisible(true);
+    }
+
+    auto *metadata = this->findChild<QTextEdit *>(QStringLiteral("textEdit_%1Metadata").arg(side));
+    if (metadata){
+        metadata->clear();
+        for (auto it = _videos[thisVideo]->meta.fileMetadata.cbegin(); it != _videos[thisVideo]->meta.fileMetadata.cend(); ++it)
+            metadata->append(QStringLiteral("%1: %2").arg(it.key(), it.value()));
     }
 }
 

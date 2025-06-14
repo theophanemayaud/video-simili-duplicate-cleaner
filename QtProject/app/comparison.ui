@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>890</width>
-    <height>593</height>
+    <height>597</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -139,8 +139,8 @@
      </property>
      <property name="minimumSize">
       <size>
-       <width>100</width>
-       <height>100</height>
+       <width>500</width>
+       <height>500</height>
       </size>
      </property>
      <property name="currentIndex">
@@ -184,7 +184,7 @@
              <item>
               <widget class="ClickableLabel" name="leftImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -279,7 +279,7 @@
               </layout>
              </item>
              <item>
-              <layout class="QGridLayout" name="gridLayoutLeftSizeBrFr">
+              <layout class="QGridLayout" name="gridLayout_leftSizeBitFrame">
                <item row="2" column="1">
                 <layout class="QHBoxLayout" name="horizontalLayoutLeftBitRate">
                  <item>
@@ -373,7 +373,10 @@
               </layout>
              </item>
              <item>
-              <layout class="QGridLayout" name="gridLayoutLeftDetails" rowstretch="0,0,0,0,0,0,0" rowminimumheight="0,0,0,0,0,0,0">
+              <layout class="QGridLayout" name="gridLayout_LeftDetails" rowstretch="0,0,0,0,0,0" rowminimumheight="0,0,0,0,0,0">
+               <property name="sizeConstraint">
+                <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
+               </property>
                <property name="topMargin">
                 <number>0</number>
                </property>
@@ -567,7 +570,7 @@
                <item>
                 <widget class="QLabel" name="labelLeftGps">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
@@ -580,13 +583,58 @@
                <item>
                 <widget class="QLabel" name="leftGpsCoordinates">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
                  <property name="text">
                   <string/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_leftMetadata">
+               <property name="spacing">
+                <number>1</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_leftMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Other metadata:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTextEdit" name="textEdit_leftMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>70</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="readOnly">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -602,7 +650,7 @@
              <item>
               <widget class="ClickableLabel" name="rightImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -622,7 +670,7 @@
               </widget>
              </item>
              <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_12">
+              <layout class="QHBoxLayout" name="horizontalLayout_rightFileName">
                <item>
                 <widget class="QLabel" name="label_28">
                  <property name="sizePolicy">
@@ -788,7 +836,7 @@
               </layout>
              </item>
              <item>
-              <layout class="QGridLayout" name="gridLayout_3">
+              <layout class="QGridLayout" name="gridLayout_RightDetails">
                <property name="topMargin">
                 <number>0</number>
                </property>
@@ -981,6 +1029,12 @@
               <layout class="QHBoxLayout" name="horizontalLayout_rightGps">
                <item>
                 <widget class="QLabel" name="labelRightGps">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
                  <property name="text">
                   <string>GPS:</string>
                  </property>
@@ -989,13 +1043,55 @@
                <item>
                 <widget class="QLabel" name="rightGpsCoordinates">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
                  <property name="text">
                   <string/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_rightMetadata">
+               <property name="spacing">
+                <number>1</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_rightMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Other metadata:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTextEdit" name="textEdit_rightMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>70</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>60</height>
+                  </size>
                  </property>
                 </widget>
                </item>
