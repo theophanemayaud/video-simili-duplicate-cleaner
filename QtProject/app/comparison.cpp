@@ -12,6 +12,7 @@ enum FILENAME_CONTAINED_WITHIN_ANOTHER : int
     RIGHT_CONTAINS_LEFT
 };
 
+const QString TEXT_STYLE_GREEN = QStringLiteral("QLabel { color : green; }");
 const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 
 const int64_t FILE_SIZE_BYTES_DIFF_STILL_EQUALS = 100*1024;
@@ -71,6 +72,12 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     connect(downShortcut, SIGNAL(activated()), this, SLOT(on_nextVideo_clicked()));
     QShortcut* upShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousLine), ui->tabManual);
     connect(upShortcut, SIGNAL(activated()), this, SLOT(on_prevVideo_clicked()));
+
+    // we only show gps info if at least one of the files has it
+    ui->labelLeftGps->setVisible(false);
+    ui->leftGpsCoordinates->setVisible(false);
+    ui->labelRightGps->setVisible(false);
+    ui->rightGpsCoordinates->setVisible(false);
 
     on_nextVideo_clicked();
 }
@@ -353,6 +360,23 @@ void Comparison::showVideo(const QString &side)
 
     auto *Audio = this->findChild<QLabel *>(side + QStringLiteral("Audio"));
     Audio->setText(_videos[thisVideo]->audio);
+
+    auto *GpsCoordinatesLabel = this->findChild<QLabel *>(side + QStringLiteral("GpsCoordinates"));
+    if (!_videos[thisVideo]->meta.gpsCoordinates.isEmpty()) {
+        GpsCoordinatesLabel->setText(_videos[thisVideo]->meta.gpsCoordinates);
+        // as soon as one has gps, show the data and labels for both
+        this->ui->labelLeftGps->setVisible(true);
+        this->ui->leftGpsCoordinates->setVisible(true);
+        this->ui->labelRightGps->setVisible(true);
+        this->ui->rightGpsCoordinates->setVisible(true);
+    }
+
+    auto *metadata = this->findChild<QTextEdit *>(QStringLiteral("textEdit_%1Metadata").arg(side));
+    if (metadata){
+        metadata->clear();
+        for (auto it = _videos[thisVideo]->meta.fileMetadata.cbegin(); it != _videos[thisVideo]->meta.fileMetadata.cend(); ++it)
+            metadata->append(QStringLiteral("%1: %2").arg(it.key(), it.value()));
+    }
 }
 
 QString Comparison::readableDuration(const int64_t &milliseconds) const
@@ -399,75 +423,75 @@ void Comparison::highlightBetterProperties() const
     ui->rightFileSize->setStyleSheet(QStringLiteral(""));       //both filesizes within 100 kB
     if(qAbs(_videos[_leftVideo]->size - _videos[_rightVideo]->size) <= FILE_SIZE_BYTES_DIFF_STILL_EQUALS)
     {
-        ui->leftFileSize->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
-        ui->rightFileSize->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->leftFileSize->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightFileSize->setStyleSheet(TEXT_STYLE_ORANGE);
     }
     else if(_videos[_leftVideo]->size > _videos[_rightVideo]->size)
-        ui->leftFileSize->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->leftFileSize->setStyleSheet(TEXT_STYLE_GREEN);
     else if(_videos[_leftVideo]->size < _videos[_rightVideo]->size)
-        ui->rightFileSize->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->rightFileSize->setStyleSheet(TEXT_STYLE_GREEN);
 
     ui->leftDuration->setStyleSheet(QStringLiteral(""));
     ui->rightDuration->setStyleSheet(QStringLiteral(""));       //both runtimes within 1 second
     if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) <= VIDEO_DURATION_STILL_EQUALS_MS)
     {
-        ui->leftDuration->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
-        ui->rightDuration->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->leftDuration->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightDuration->setStyleSheet(TEXT_STYLE_ORANGE);
     }
     else if(_videos[_leftVideo]->duration > _videos[_rightVideo]->duration)
-        ui->leftDuration->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->leftDuration->setStyleSheet(TEXT_STYLE_GREEN);
     else if(_videos[_leftVideo]->duration < _videos[_rightVideo]->duration)
-        ui->rightDuration->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->rightDuration->setStyleSheet(TEXT_STYLE_GREEN);
 
     ui->leftBitRate->setStyleSheet(QStringLiteral(""));
     ui->rightBitRate->setStyleSheet(QStringLiteral(""));
     if(qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)<=BITRATE_DIFF_STILL_EQUAL_kbs) //leave some margin due to decoding error
     {
-        ui->leftBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
-        ui->rightBitRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->leftBitRate->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightBitRate->setStyleSheet(TEXT_STYLE_ORANGE);
     }
     else if(_videos[_leftVideo]->bitrate > _videos[_rightVideo]->bitrate)
-        ui->leftBitRate->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->leftBitRate->setStyleSheet(TEXT_STYLE_GREEN);
     else if(_videos[_leftVideo]->bitrate < _videos[_rightVideo]->bitrate)
-        ui->rightBitRate->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->rightBitRate->setStyleSheet(TEXT_STYLE_GREEN);
 
     ui->leftFrameRate->setStyleSheet(QStringLiteral(""));
     ui->rightFrameRate->setStyleSheet(QStringLiteral(""));      //both framerates within 0.1 fps
     if(qAbs(_videos[_leftVideo]->framerate - _videos[_rightVideo]->framerate) <= 0.1)
     {
-        ui->leftFrameRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
-        ui->rightFrameRate->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->leftFrameRate->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightFrameRate->setStyleSheet(TEXT_STYLE_ORANGE);
     }
     else if(_videos[_leftVideo]->framerate > _videos[_rightVideo]->framerate)
-        ui->leftFrameRate->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->leftFrameRate->setStyleSheet(TEXT_STYLE_GREEN);
     else if(_videos[_leftVideo]->framerate < _videos[_rightVideo]->framerate)
-        ui->rightFrameRate->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->rightFrameRate->setStyleSheet(TEXT_STYLE_GREEN);
 
     // Set file modified date
     ui->leftModified->setStyleSheet(QStringLiteral(""));
     ui->rightModified->setStyleSheet(QStringLiteral(""));
     if(_videos[_leftVideo]->modified == _videos[_rightVideo]->modified)
     {
-        ui->leftModified->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
-        ui->rightModified->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->leftModified->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightModified->setStyleSheet(TEXT_STYLE_ORANGE);
     }
     else if(_videos[_leftVideo]->modified < _videos[_rightVideo]->modified)
-        ui->leftModified->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->leftModified->setStyleSheet(TEXT_STYLE_GREEN);
     else if(_videos[_leftVideo]->modified > _videos[_rightVideo]->modified)
-        ui->rightModified->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->rightModified->setStyleSheet(TEXT_STYLE_GREEN);
 
     // Set file create date (earlier is better, ie green)
     ui->leftFileCreated->setStyleSheet(QStringLiteral(""));
     ui->rightFileCreated->setStyleSheet(QStringLiteral(""));
     if(_videos[_leftVideo]->_fileCreateDate == _videos[_rightVideo]->_fileCreateDate)
     {
-        ui->leftFileCreated->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
-        ui->rightFileCreated->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->leftFileCreated->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightFileCreated->setStyleSheet(TEXT_STYLE_ORANGE);
     }
     else if(_videos[_leftVideo]->_fileCreateDate < _videos[_rightVideo]->_fileCreateDate)
-        ui->leftFileCreated->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->leftFileCreated->setStyleSheet(TEXT_STYLE_GREEN);
     else if(_videos[_leftVideo]->_fileCreateDate > _videos[_rightVideo]->_fileCreateDate)
-        ui->rightFileCreated->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->rightFileCreated->setStyleSheet(TEXT_STYLE_GREEN);
 
     // Set resolution
     ui->leftResolution->setStyleSheet(QStringLiteral(""));
@@ -476,15 +500,15 @@ void Comparison::highlightBetterProperties() const
     if(_videos[_leftVideo]->width * _videos[_leftVideo]->height ==
        _videos[_rightVideo]->width * _videos[_rightVideo]->height)
     {
-        ui->leftResolution->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
-        ui->rightResolution->setStyleSheet(QStringLiteral("QLabel { color : peru; }"));
+        ui->leftResolution->setStyleSheet(TEXT_STYLE_ORANGE);
+        ui->rightResolution->setStyleSheet(TEXT_STYLE_ORANGE);
     }
     else if(_videos[_leftVideo]->width * _videos[_leftVideo]->height >
        _videos[_rightVideo]->width * _videos[_rightVideo]->height)
-        ui->leftResolution->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->leftResolution->setStyleSheet(TEXT_STYLE_GREEN);
     else if(_videos[_leftVideo]->width * _videos[_leftVideo]->height <
             _videos[_rightVideo]->width * _videos[_rightVideo]->height)
-        ui->rightResolution->setStyleSheet(QStringLiteral("QLabel { color : green; }"));
+        ui->rightResolution->setStyleSheet(TEXT_STYLE_GREEN);
 
     // show if video codecs are the same
     ui->leftCodec->setStyleSheet("");
@@ -500,6 +524,13 @@ void Comparison::highlightBetterProperties() const
     if(_videos[_leftVideo]->audio.localeAwareCompare(_videos[_rightVideo]->audio)==0){
         ui->leftAudio->setStyleSheet(TEXT_STYLE_ORANGE);
         ui->rightAudio->setStyleSheet(TEXT_STYLE_ORANGE);
+    }
+
+    if(!ui->leftGpsCoordinates->text().isEmpty() && ui->rightGpsCoordinates->text().isEmpty()){
+        ui->leftGpsCoordinates->setStyleSheet(TEXT_STYLE_GREEN);
+    }
+    else if(ui->leftGpsCoordinates->text().isEmpty() && !ui->rightGpsCoordinates->text().isEmpty()){
+        ui->rightGpsCoordinates->setStyleSheet(TEXT_STYLE_GREEN);
     }
 }
 

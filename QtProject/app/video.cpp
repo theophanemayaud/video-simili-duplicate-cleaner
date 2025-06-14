@@ -183,6 +183,18 @@ const QString Video::getMetadata(const QString &filename)
         }
     }
 
+    // Get GPS and other video metadata
+    const ffmpeg::AVDictionaryEntry *entry = NULL;
+    while ((entry = ffmpeg::av_dict_iterate(fmt_ctx->metadata, entry))) {
+        auto key = QString::fromUtf8(entry->key);
+        auto value = QString::fromUtf8(entry->value);
+        this->meta.fileMetadata.insert(key, value);
+        if(this->meta.gpsCoordinates.isEmpty()
+           && key == "location") {
+            this->meta.gpsCoordinates = value;
+        }
+    }
+
     // Find audio stream information (we don't care if we don't find any, though)
     ret = ffmpeg::av_find_best_stream(fmt_ctx,ffmpeg::AVMEDIA_TYPE_AUDIO, -1 /* auto stream selection*/,
                                       -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
@@ -892,6 +904,7 @@ VideoMetadata Video::videoToMetadata(const Video & vid) {
     meta.audio = vid.audio;
     meta.width = vid.width;
     meta.height = vid.height;
+    meta.gpsCoordinates = vid.meta.gpsCoordinates; // Added to include GPS data
     return meta;
 }
 // ------------ End: Public STATIC member functions ----------

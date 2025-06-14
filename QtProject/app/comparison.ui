@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>995</width>
-    <height>650</height>
+    <width>890</width>
+    <height>597</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,7 +29,7 @@
      <item>
       <spacer name="horizontalSpacer_6">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -59,10 +59,10 @@
      <item>
       <spacer name="horizontalSpacer_8">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeType">
-        <enum>QSizePolicy::Expanding</enum>
+        <enum>QSizePolicy::Policy::Expanding</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -100,7 +100,7 @@
         <number>100</number>
        </property>
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
       </widget>
      </item>
@@ -116,7 +116,7 @@
         <string>1</string>
        </property>
        <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
        </property>
       </widget>
      </item>
@@ -139,8 +139,8 @@
      </property>
      <property name="minimumSize">
       <size>
-       <width>100</width>
-       <height>100</height>
+       <width>500</width>
+       <height>500</height>
       </size>
      </property>
      <property name="currentIndex">
@@ -168,7 +168,7 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout">
            <property name="sizeConstraint">
-            <enum>QLayout::SetDefaultConstraint</enum>
+            <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
            </property>
            <property name="topMargin">
             <number>0</number>
@@ -184,7 +184,7 @@
              <item>
               <widget class="ClickableLabel" name="leftImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -199,7 +199,7 @@
                 <string>Click to launch video in default player, scroll mouse wheel to zoom</string>
                </property>
                <property name="layoutDirection">
-                <enum>Qt::LeftToRight</enum>
+                <enum>Qt::LayoutDirection::LeftToRight</enum>
                </property>
                <property name="text" stdset="0">
                 <string/>
@@ -272,18 +272,18 @@
                   <string/>
                  </property>
                  <property name="alignment">
-                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
                  </property>
                 </widget>
                </item>
               </layout>
              </item>
              <item>
-              <layout class="QGridLayout" name="gridLayoutLeftSizeBrFr">
-               <item row="2" column="3">
-                <layout class="QHBoxLayout" name="horizontalLayoutLeftFrameRate">
+              <layout class="QGridLayout" name="gridLayout_leftSizeBitFrame">
+               <item row="2" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayoutLeftBitRate">
                  <item>
-                  <widget class="QLabel" name="labelLeftFrameRate">
+                  <widget class="QLabel" name="labelLeftBitRate">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -291,12 +291,12 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Frame rate:</string>
+                    <string>Bit rate:</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="leftFrameRate">
+                  <widget class="QLabel" name="leftBitRate">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -310,7 +310,7 @@
                  </item>
                 </layout>
                </item>
-               <item row="2" column="1">
+               <item row="2" column="0">
                 <layout class="QHBoxLayout" name="horizontalLayoutLeftFileSize">
                  <item>
                   <widget class="QLabel" name="labelLeftFileSize">
@@ -341,9 +341,9 @@
                 </layout>
                </item>
                <item row="2" column="2">
-                <layout class="QHBoxLayout" name="horizontalLayoutLeftBitRate">
+                <layout class="QHBoxLayout" name="horizontalLayoutLeftFrameRate">
                  <item>
-                  <widget class="QLabel" name="labelLeftBitRate">
+                  <widget class="QLabel" name="labelLeftFrameRate">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -351,12 +351,12 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Bit rate:</string>
+                    <string>Frame rate:</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="leftBitRate">
+                  <widget class="QLabel" name="leftFrameRate">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -373,7 +373,10 @@
               </layout>
              </item>
              <item>
-              <layout class="QGridLayout" name="gridLayoutLeftDetails" rowstretch="0,0,0,0,0,0" rowminimumheight="0,0,0,0,0,0">
+              <layout class="QGridLayout" name="gridLayout_LeftDetails" rowstretch="0,0,0,0,0,0" rowminimumheight="0,0,0,0,0,0">
+               <property name="sizeConstraint">
+                <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
+               </property>
                <property name="topMargin">
                 <number>0</number>
                </property>
@@ -451,7 +454,7 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>File created:</string>
+                    <string>Created:</string>
                    </property>
                   </widget>
                  </item>
@@ -541,7 +544,7 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>File modified:</string>
+                    <string>Modified:</string>
                    </property>
                   </widget>
                  </item>
@@ -562,6 +565,81 @@
                </item>
               </layout>
              </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_leftGps">
+               <item>
+                <widget class="QLabel" name="labelLeftGps">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>GPS:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="leftGpsCoordinates">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_leftMetadata">
+               <property name="spacing">
+                <number>1</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_leftMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Other metadata:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTextEdit" name="textEdit_leftMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>70</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="readOnly">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
             </layout>
            </item>
            <item>
@@ -572,7 +650,7 @@
              <item>
               <widget class="ClickableLabel" name="rightImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -592,7 +670,7 @@
               </widget>
              </item>
              <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_12">
+              <layout class="QHBoxLayout" name="horizontalLayout_rightFileName">
                <item>
                 <widget class="QLabel" name="label_28">
                  <property name="sizePolicy">
@@ -657,7 +735,7 @@
                   <string/>
                  </property>
                  <property name="alignment">
-                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
                  </property>
                 </widget>
                </item>
@@ -758,7 +836,7 @@
               </layout>
              </item>
              <item>
-              <layout class="QGridLayout" name="gridLayout_3">
+              <layout class="QGridLayout" name="gridLayout_RightDetails">
                <property name="topMargin">
                 <number>0</number>
                </property>
@@ -836,7 +914,7 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>File created:</string>
+                    <string>Created:</string>
                    </property>
                   </widget>
                  </item>
@@ -947,6 +1025,78 @@
                </item>
               </layout>
              </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_rightGps">
+               <item>
+                <widget class="QLabel" name="labelRightGps">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>GPS:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="rightGpsCoordinates">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_rightMetadata">
+               <property name="spacing">
+                <number>1</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_rightMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Other metadata:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTextEdit" name="textEdit_rightMetadata">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>70</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
             </layout>
            </item>
           </layout>
@@ -969,10 +1119,10 @@
            <item>
             <spacer name="horizontalSpacer_4">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeType">
-              <enum>QSizePolicy::Minimum</enum>
+              <enum>QSizePolicy::Policy::Minimum</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -998,7 +1148,7 @@
            <item>
             <spacer name="horizontalSpacer_2">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -1027,10 +1177,10 @@
            <item>
             <spacer name="horizontalSpacer_10">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeType">
-              <enum>QSizePolicy::Maximum</enum>
+              <enum>QSizePolicy::Policy::Maximum</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -1053,7 +1203,7 @@
            <item>
             <spacer name="horizontalSpacer">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -1073,10 +1223,10 @@
            <item>
             <spacer name="horizontalSpacer_5">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeType">
-              <enum>QSizePolicy::Minimum</enum>
+              <enum>QSizePolicy::Policy::Minimum</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -1112,7 +1262,7 @@
               </size>
              </property>
              <property name="layoutDirection">
-              <enum>Qt::LeftToRight</enum>
+              <enum>Qt::LayoutDirection::LeftToRight</enum>
              </property>
              <property name="text">
               <string>Swap filenames</string>
@@ -1122,7 +1272,7 @@
            <item>
             <spacer name="horizontalSpacer_11">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -1145,7 +1295,7 @@
            <item>
             <spacer name="horizontalSpacer_9">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -1158,10 +1308,10 @@
            <item>
             <spacer name="horizontalSpacer_7">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeType">
-              <enum>QSizePolicy::Maximum</enum>
+              <enum>QSizePolicy::Policy::Maximum</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -1202,10 +1352,10 @@
          <item>
           <spacer name="verticalSpacer_2">
            <property name="orientation">
-            <enum>Qt::Vertical</enum>
+            <enum>Qt::Orientation::Vertical</enum>
            </property>
            <property name="sizeType">
-            <enum>QSizePolicy::Maximum</enum>
+            <enum>QSizePolicy::Policy::Maximum</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -1232,21 +1382,21 @@
             <string>Take care,  the following use the comparison threshold,  so be careful to set it as wanted.</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignCenter</set>
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
          <item>
           <widget class="Line" name="line_5">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
           </widget>
          </item>
          <item>
           <widget class="Line" name="line_4">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -1294,10 +1444,10 @@
              <item>
               <spacer name="verticalSpacer">
                <property name="orientation">
-                <enum>Qt::Vertical</enum>
+                <enum>Qt::Orientation::Vertical</enum>
                </property>
                <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
+                <enum>QSizePolicy::Policy::Fixed</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
@@ -1361,7 +1511,7 @@
          <item>
           <widget class="Line" name="line_2">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -1464,7 +1614,7 @@
          <item>
           <widget class="Line" name="line">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -1703,16 +1853,16 @@ In each scenario where only one of the two files is either in a protected folder
               </size>
              </property>
              <property name="contextMenuPolicy">
-              <enum>Qt::CustomContextMenu</enum>
+              <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
              </property>
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Right click on the list for more options.&lt;/p&gt;&lt;p&gt;Use up/down arrows to navigate options.&lt;/p&gt;&lt;p&gt;You can also drag and drop to add multiple folders at once.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="verticalScrollBarPolicy">
-              <enum>Qt::ScrollBarAsNeeded</enum>
+              <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
              </property>
              <property name="horizontalScrollBarPolicy">
-              <enum>Qt::ScrollBarAlwaysOn</enum>
+              <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOn</enum>
              </property>
              <property name="showDropIndicator" stdset="0">
               <bool>false</bool>
@@ -1721,16 +1871,16 @@ In each scenario where only one of the two files is either in a protected folder
               <bool>false</bool>
              </property>
              <property name="dragDropMode">
-              <enum>QAbstractItemView::NoDragDrop</enum>
+              <enum>QAbstractItemView::DragDropMode::NoDragDrop</enum>
              </property>
              <property name="selectionMode">
-              <enum>QAbstractItemView::ExtendedSelection</enum>
+              <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
              </property>
              <property name="textElideMode">
-              <enum>Qt::ElideLeft</enum>
+              <enum>Qt::TextElideMode::ElideLeft</enum>
              </property>
              <property name="horizontalScrollMode">
-              <enum>QAbstractItemView::ScrollPerPixel</enum>
+              <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
              </property>
             </widget>
            </item>
@@ -1803,28 +1953,28 @@ In each scenario where only one of the two files is either in a protected folder
               </size>
              </property>
              <property name="contextMenuPolicy">
-              <enum>Qt::CustomContextMenu</enum>
+              <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
              </property>
              <property name="horizontalScrollBarPolicy">
-              <enum>Qt::ScrollBarAlwaysOn</enum>
+              <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOn</enum>
              </property>
              <property name="dragEnabled">
               <bool>true</bool>
              </property>
              <property name="dragDropMode">
-              <enum>QAbstractItemView::InternalMove</enum>
+              <enum>QAbstractItemView::DragDropMode::InternalMove</enum>
              </property>
              <property name="defaultDropAction">
-              <enum>Qt::MoveAction</enum>
+              <enum>Qt::DropAction::MoveAction</enum>
              </property>
              <property name="selectionMode">
-              <enum>QAbstractItemView::ExtendedSelection</enum>
+              <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
              </property>
              <property name="textElideMode">
-              <enum>Qt::ElideLeft</enum>
+              <enum>Qt::TextElideMode::ElideLeft</enum>
              </property>
              <property name="horizontalScrollMode">
-              <enum>QAbstractItemView::ScrollPerPixel</enum>
+              <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
              </property>
              <property name="sortingEnabled">
               <bool>true</bool>
@@ -1869,7 +2019,7 @@ In each scenario where only one of the two files is either in a protected folder
         </sizepolicy>
        </property>
        <property name="frameShape">
-        <enum>QFrame::Box</enum>
+        <enum>QFrame::Shape::Box</enum>
        </property>
        <property name="text">
         <string>Identical bits</string>
@@ -1879,10 +2029,10 @@ In each scenario where only one of the two files is either in a protected folder
      <item>
       <spacer name="horizontalSpacer_3">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeType">
-        <enum>QSizePolicy::Fixed</enum>
+        <enum>QSizePolicy::Policy::Fixed</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>

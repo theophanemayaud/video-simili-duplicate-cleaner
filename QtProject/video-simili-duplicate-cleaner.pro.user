@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 12.0.2, 2025-04-06T10:36:20. -->
+<!-- Written by QtCreator 16.0.2, 2025-06-09T18:19:05. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -8,13 +8,13 @@
  </data>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
-  <value type="qlonglong">1</value>
+  <value type="qlonglong">0</value>
  </data>
  <data>
   <variable>ProjectExplorer.Project.EditorSettings</variable>
   <valuemap type="QVariantMap">
+   <value type="bool" key="EditorConfiguration.AutoDetect">true</value>
    <value type="bool" key="EditorConfiguration.AutoIndent">true</value>
-   <value type="bool" key="EditorConfiguration.AutoSpacesForTabs">false</value>
    <value type="bool" key="EditorConfiguration.CamelCaseNavigation">true</value>
    <valuemap type="QVariantMap" key="EditorConfiguration.CodeStyle.0">
     <value type="QString" key="language">Cpp</value>
@@ -33,6 +33,7 @@
    <value type="bool" key="EditorConfiguration.ConstrainTooltips">false</value>
    <value type="int" key="EditorConfiguration.IndentSize">4</value>
    <value type="bool" key="EditorConfiguration.KeyboardTooltips">false</value>
+   <value type="int" key="EditorConfiguration.LineEndingBehavior">0</value>
    <value type="int" key="EditorConfiguration.MarginColumn">80</value>
    <value type="bool" key="EditorConfiguration.MouseHiding">true</value>
    <value type="bool" key="EditorConfiguration.MouseNavigation">true</value>
@@ -69,35 +70,16 @@
     <value type="bool" key="AutoTest.Framework.QtQuickTest">true</value>
     <value type="bool" key="AutoTest.Framework.QtTest">true</value>
    </valuemap>
+   <value type="bool" key="AutoTest.ApplyFilter">false</value>
    <valuemap type="QVariantMap" key="AutoTest.CheckStates">
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:initTestCase">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:test_comparison">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/tst_test_comparison.cpp:test_videoToDelete_OnlyTimeDiffs">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:TestMainWindow">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:cleanupTestCase">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:initTestCase">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/tst_mainwindow.cpp:test_case1">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:TestVideo">PartiallyChecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:cleanupTestCase">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:emptyDb">Unchecked</value>
     <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:initTestCase">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_cache_manualCompare500Sampled_AcceptSmallDurationDiffs">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_cache_noVisualThumbCheck">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_cache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_nocache_manualCompare500Sampled_AcceptSmallDurationDiffs">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_nocache_noVisualThumbCheck">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBcheckRefVidParams_nocache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp_cached">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_100GBwholeApp_nocache">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_cached_exact_identical">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmallDurationDiffs">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_cached_noThumbHashesCheck">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_nocache_exact_identical">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs">Unchecked</value>
-    <value type="Qt::CheckState" key="1@/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/tst_video.cpp:test_check_refvidparams_nocache_noThumbHashesCheck">Unchecked</value>
-    <value type="Qt::CheckState" key="1@:Qt Test">PartiallyChecked</value>
    </valuemap>
+   <valuelist type="QVariantList" key="AutoTest.PathFilters"/>
    <value type="int" key="AutoTest.RunAfterBuild">0</value>
    <value type="bool" key="AutoTest.UseGlobal">true</value>
    <valuemap type="QVariantMap" key="ClangTools">
@@ -120,21 +102,21 @@
   <variable>ProjectExplorer.Project.Target.0</variable>
   <valuemap type="QVariantMap">
    <value type="QString" key="DeviceType">Desktop</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Qt 6.8.1 for macOS</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Qt 6.8.1 for macOS</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">qt.qt6.681.clang_64_kit</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Qt 6.9.1 for macOS</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Qt 6.9.1 for macOS</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">qt.qt6.691.clang_64_kit</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveBuildConfiguration">0</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveRunConfiguration">0</value>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.0">
     <value type="int" key="EnableQmlDebugging">0</value>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">%{ActiveProject:NativePath}/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Debug</value>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory.shadowDir">%{ActiveProject:NativePath}/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Debug</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">%{ActiveProject:NativePath}/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Debug</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory.shadowDir">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Debug</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">QtProjectManager.QMakeBuildStep</value>
-      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">true</value>
+      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">false</value>
       <valuelist type="QVariantList" key="QtProjectManager.QMakeBuildStep.SelectedAbis"/>
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
@@ -167,13 +149,13 @@
     <value type="int" key="Qt4ProjectManager.Qt4BuildConfiguration.BuildConfiguration">2</value>
    </valuemap>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.1">
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">%{ActiveProject:NativePath}/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Release</value>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory.shadowDir">%{ActiveProject:NativePath}/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Release</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">%{ActiveProject:NativePath}/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Release</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory.shadowDir">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Release</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">QtProjectManager.QMakeBuildStep</value>
-      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">true</value>
+      <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">false</value>
       <valuelist type="QVariantList" key="QtProjectManager.QMakeBuildStep.SelectedAbis"/>
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
@@ -229,14 +211,15 @@
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph dwarf,4096 -F 250</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/app/app.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/app/app.pro</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Debug/app/Video simili duplicate cleaner.app/Contents/MacOS</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Debug/app/Video simili duplicate cleaner.app/Contents/MacOS</value>
    </valuemap>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.1">
     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
@@ -247,14 +230,15 @@
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph dwarf,4096 -F 250</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/test_comparison.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_comparison/test_comparison.pro</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Debug/tests/test_comparison/Video simili duplicate cleaner.app/Contents/MacOS</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Debug/tests/test_comparison/Video simili duplicate cleaner.app/Contents/MacOS</value>
    </valuemap>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.2">
     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
@@ -265,14 +249,15 @@
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph dwarf,4096 -F 250</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/test_mainwindow.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_mainwindow/test_mainwindow.pro</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Debug/tests/test_mainwindow/test_mainwindow.app/Contents/MacOS</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Debug/tests/test_mainwindow/test_mainwindow.app/Contents/MacOS</value>
    </valuemap>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.3">
     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
@@ -283,14 +268,15 @@
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph dwarf,4096 -F 250</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/test_video.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/test_video.pro</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_8_1_for_macOS-Debug/tests/test_video/Video simili duplicate cleaner.app/Contents/MacOS</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/builds/build-video-simili-duplicate-cleaner-Qt_6_9_1_for_macOS-Debug/tests/test_video/Video simili duplicate cleaner.app/Contents/MacOS</value>
    </valuemap>
    <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">4</value>
   </valuemap>
