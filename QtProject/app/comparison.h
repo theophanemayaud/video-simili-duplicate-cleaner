@@ -30,7 +30,7 @@ class Comparison : public QDialog
     friend class test_comparison;
 
 public:
-    Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam);
+    Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, const QRect &mainWindowGeometry);
     ~Comparison();
 
 private:

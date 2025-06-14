@@ -19,10 +19,11 @@ const int64_t FILE_SIZE_BYTES_DIFF_STILL_EQUALS = 100*1024;
 const int64_t VIDEO_DURATION_STILL_EQUALS_MS = 1000; //if this close in duration then it's considered equal
 const int BITRATE_DIFF_STILL_EQUAL_kbs = 5;
 
-Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
+Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, const QRect &mainWindowGeometry) :
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
     ui->setupUi(this);
+    this->setGeometry(mainWindowGeometry);
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
