@@ -79,6 +79,11 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam) :
     ui->labelRightGps->setVisible(false);
     ui->rightGpsCoordinates->setVisible(false);
 
+    // Add Cmd+W shortcut to close the comparison window (actually a dialog so closes with accept)
+    connect(new QShortcut(QKeySequence::Close, this), &QShortcut::activated, this, &Comparison::accept);
+    // Cmd+Q shortcut to quit the application from the comparison dialog, not handled by default
+    connect(new QShortcut(QKeySequence::Quit, this), &QShortcut::activated, qApp, &QApplication::quit);
+
     on_nextVideo_clicked();
 }
 
