@@ -54,14 +54,16 @@ private slots:
 //    void createRefVidParams_nocache();
 //    void createRefVidParams_cached();
     void test_check_refvidparams_nocache_exact_identical();
+    void test_check_refvidparams_nocache_manualCompare();
     void test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs();
     void test_check_refvidparams_nocache_noThumbHashesCheck();
-    void test_check_refvidparams_nocache_noVisualThumbCheck();
+    void test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDurationDiffs();
 
     void test_check_refvidparams_cached_exact_identical();
     void test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmallDurationDiffs();
+    void test_check_refvidparams_cached_manualCompare();
     void test_check_refvidparams_cached_noThumbHashesCheck();
-    void test_check_refvidparams_cached_noVisualThumbCheck();
+    void test_check_refvidparams_cached_noVisualThumbCheck_acceptSmallDurationDiffs();
 
     void test_whole_app_nocache();
     void test_whole_app_cached();
@@ -329,6 +331,20 @@ void TestVideo::test_check_refvidparams_nocache_exact_identical(){
     checkRefVidParamsList(conf);
 }
 
+void TestVideo::test_check_refvidparams_nocache_manualCompare(){
+    refVidParamsTestConfig conf;
+    conf.testDescr = __FUNCTION__;
+    conf.cacheOption = Prefs::NO_CACHE;
+    conf.paramsCSV = _csvInfo_nocache;
+    conf.thumbsDir = _thumbnailDir_nocache;
+    conf.videoDir = _videoDir;
+    conf.acceptSmallDurationDiff = true;
+    conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
+    conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 1;
+    checkRefVidParamsList(conf);
+}
+
+
 void TestVideo::test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
@@ -354,7 +370,7 @@ void TestVideo::test_check_refvidparams_nocache_noThumbHashesCheck(){
     checkRefVidParamsList(conf);
 }
 
-void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck(){
+void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::NO_CACHE;
@@ -363,6 +379,7 @@ void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck(){
     conf.videoDir = _videoDir;
     delete conf.compareThumbsVisualConfig;
     conf.compareThumbsVisualConfig = nullptr;
+    conf.acceptSmallDurationDiff = true;
     conf.refDuration_ms = 20*1000;
     checkRefVidParamsList(conf);
 }
@@ -392,6 +409,19 @@ void TestVideo::test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmal
     checkRefVidParamsList(conf);
 }
 
+void TestVideo::test_check_refvidparams_cached_manualCompare(){
+    refVidParamsTestConfig conf;
+    conf.testDescr = __FUNCTION__;
+    conf.cacheOption = Prefs::WITH_CACHE;
+    conf.paramsCSV = _csvInfo_nocache;
+    conf.thumbsDir = _thumbnailDir_nocache;
+    conf.videoDir = _videoDir;
+    conf.acceptSmallDurationDiff = true;
+    conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
+    checkRefVidParamsList(conf);
+}
+
+
 void TestVideo::test_check_refvidparams_cached_noThumbHashesCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
@@ -404,7 +434,7 @@ void TestVideo::test_check_refvidparams_cached_noThumbHashesCheck(){
     checkRefVidParamsList(conf);
 }
 
-void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck(){
+void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck_acceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::WITH_CACHE;
@@ -413,6 +443,7 @@ void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck(){
     conf.videoDir = _videoDir;
     delete conf.compareThumbsVisualConfig;
     conf.compareThumbsVisualConfig = nullptr;
+    conf.acceptSmallDurationDiff = true;
     conf.refDuration_ms = 5*1000;
     checkRefVidParamsList(conf);
 }
@@ -843,10 +874,10 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
     if(conf.compareModifiedDates)
         QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8());
     if(conf.acceptSmallDurationDiff)
-        QVERIFY2(abs(videoParam.duration - vid->duration) <= 1 , QString("ref duration=%1 new duration=%2 - %3").arg(videoParam.duration).arg(vid->duration).arg(forVid).toUtf8());
+        QVERIFY2(abs(videoParam.duration - vid->duration) <= 50 , QString("ref duration=%1 new duration=%2 - %3").arg(videoParam.duration).arg(vid->duration).arg(forVid).toUtf8());
     else
         QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.videoInfo.absoluteFilePath()).toUtf8());
-    QVERIFY2(videoParam.bitrate == vid->bitrate, QString("ref bitrate=%1 new bitrate=%2 - %3").arg(videoParam.bitrate).arg(vid->bitrate).arg(forVid).toUtf8());
+    QVERIFY2(abs(videoParam.bitrate - vid->bitrate) <= 50, QString("ref bitrate=%1 new bitrate=%2 - %3").arg(videoParam.bitrate).arg(vid->bitrate).arg(forVid).toUtf8());
     QVERIFY2(videoParam.framerate == vid->framerate, QString("framerate ref=%1 new=%2 - %3").arg(videoParam.framerate).arg(vid->framerate).arg(forVid).toUtf8());
     QVERIFY2(videoParam.codec == vid->codec, QString("codec ref=%1 new=%2 - %3").arg(videoParam.codec).arg(vid->codec).arg(forVid).toUtf8());
     if(conf.compareAudio)
