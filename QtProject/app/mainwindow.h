@@ -13,6 +13,7 @@
 #include "video.h"
 #include "comparison.h"
 #include "db.h"
+#include "prefs.h" // Added to include Prefs::SortCriterion
 
 namespace Ui { class MainWindow; }
 
@@ -63,7 +64,8 @@ private slots:
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
     void findVideos(QDir &dir);
-    QVector<Video *> sortVideosBySize() const;
+    // QVector<Video *> sortVideosBySize() const; // Removed
+    // QVector<Video *> sortVideos(const QVector<Video *> &videos, Prefs::SortCriterion criterion) const; // Removed
     void processVideos();
     void videoSummary();
 

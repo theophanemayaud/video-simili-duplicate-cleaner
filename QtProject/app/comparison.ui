@@ -27,6 +27,32 @@
       </widget>
      </item>
      <item>
+      <widget class="QLabel" name="label_sortBy_comparison">
+       <property name="text">
+        <string>Sort by:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="sortOrderComboBox_comparison">
+       <item>
+        <property name="text">
+         <string>File size (largest first)</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>File name (A-Z)</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Creation time (oldest first)</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer_6">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>
