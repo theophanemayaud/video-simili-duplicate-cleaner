@@ -149,9 +149,10 @@ private slots:
     double covariance(const cv::Mat &m0, const cv::Mat &m1, const int &i, const int &j, const int &block_size) const;
     double ssim(const cv::Mat &m0, const cv::Mat &m1, const int &block_size) const;
 
+    // auto delete methods
     void on_identicalFilesAutoTrash_clicked();
-
     void on_autoDelOnlySizeDiffersButton_clicked();
+    void on_pushButton_onlyTimeDiffersAutoTrash_clicked() {autoDeleteLoopthrough(AutoDeleteConfig(AUTO_DELETE_ONLY_TIMES_DIFF)); }
 
     void on_pushButton_importantFoldersAdd_clicked();
     void on_lockedFolderButton_clicked();
@@ -166,8 +167,6 @@ private slots:
     void displayApplePhotosAlbumDeletionMessage();
 
     void on_settingNamesInAnotherCheckbox_stateChanged(int arg1);
-
-    void on_pushButton_onlyTimeDiffersAutoTrash_clicked() {autoDeleteLoopthrough(AutoDeleteConfig(AUTO_DELETE_ONLY_TIMES_DIFF)); }
 
     void on_ignoreDuplicatePairButton_clicked();
 

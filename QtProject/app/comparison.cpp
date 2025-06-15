@@ -369,13 +369,6 @@ void Comparison::showVideo(const QString &side)
 
     auto *GpsCoordinatesLabel = this->findChild<QLabel *>(side + QStringLiteral("GpsCoordinates"));
     GpsCoordinatesLabel->setText(_videos[thisVideo]->meta.gpsCoordinates); // set even when empty to clear previous comparison
-    if (!GpsCoordinatesLabel->text().isEmpty()) {
-        // as soon as one has gps, show the data and labels for both
-        this->ui->labelLeftGps->setVisible(true);
-        this->ui->leftGpsCoordinates->setVisible(true);
-        this->ui->labelRightGps->setVisible(true);
-        this->ui->rightGpsCoordinates->setVisible(true);
-    }
 
     auto *metadata = this->findChild<QTextEdit *>(QStringLiteral("textEdit_%1Metadata").arg(side));
     if (metadata){
@@ -532,7 +525,15 @@ void Comparison::highlightBetterProperties() const
         ui->rightAudio->setStyleSheet(TEXT_STYLE_ORANGE);
     }
 
-    // show if GPS coordinates are the same
+    
+    auto showGps = false;
+    if(!this->ui->leftGpsCoordinates->text().isEmpty() || !this->ui->rightGpsCoordinates->text().isEmpty())
+        showGps = true; // as soon as one has gps, show the data and labels for both
+    this->ui->labelLeftGps->setVisible(showGps);
+    this->ui->leftGpsCoordinates->setVisible(showGps);
+    this->ui->labelRightGps->setVisible(showGps);
+    this->ui->rightGpsCoordinates->setVisible(showGps);
+    // now hightligh if only one has gps coordinates
     ui->leftGpsCoordinates->setStyleSheet(QString(""));
     ui->rightGpsCoordinates->setStyleSheet(QString(""));
     if(!ui->leftGpsCoordinates->text().isEmpty() && ui->rightGpsCoordinates->text().isEmpty()){
@@ -1138,6 +1139,8 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     continue;
                 if(_videos[_leftVideo]->audio != _videos[_rightVideo]->audio)
                     continue;
+                if(_videos[_leftVideo]->meta.gpsCoordinates != _videos[_rightVideo]->meta.gpsCoordinates)
+                    continue;
 
                 int containedStatus = whichFilenameContainsTheOther((*left)->_filePathName, (*right)->_filePathName);
 
@@ -1430,6 +1433,8 @@ const VideoMetadata* Comparison::AutoDeleteConfig::videoToDelete(const VideoMeta
         if(meta1->codec != meta2->codec)
             return nullptr;
         if(meta1->audio != meta2->audio)
+            return nullptr;
+        if(meta1->gpsCoordinates != meta2->gpsCoordinates)
             return nullptr;
 
         // check the dates and which is earlier
