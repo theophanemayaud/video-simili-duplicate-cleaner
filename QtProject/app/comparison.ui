@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>890</width>
-    <height>597</height>
+    <width>925</width>
+    <height>598</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,21 +20,20 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QCheckBox" name="settingNamesInAnotherCheckbox">
+      <widget class="QLabel" name="label_sortBy">
        <property name="text">
-        <string>Names must be contained in one another</string>
+        <string>Sort:</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_sortBy_comparison">
-       <property name="text">
-        <string>Sort by:</string>
+      <widget class="QComboBox" name="comboBox_sortBy">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="sortOrderComboBox_comparison">
        <item>
         <property name="text">
          <string>File size (largest first)</string>
@@ -50,6 +49,29 @@
          <string>Creation time (oldest first)</string>
         </property>
        </item>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_12">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="settingNamesInAnotherCheckbox">
+       <property name="toolTip">
+        <string>Only show matches whose names are contained in one another\nVideoA.mp4 and VideoA-2.mp4</string>
+       </property>
+       <property name="text">
+        <string>Matching names</string>
+       </property>
       </widget>
      </item>
      <item>
@@ -115,7 +137,7 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>230</width>
+         <width>150</width>
          <height>0</height>
         </size>
        </property>
@@ -1118,6 +1140,9 @@
                    <width>16777215</width>
                    <height>60</height>
                   </size>
+                 </property>
+                 <property name="readOnly">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>

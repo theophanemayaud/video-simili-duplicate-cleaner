@@ -145,23 +145,6 @@ public:
         QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);
     }
 
-    void resetSettings() {
-        this->thumbMode = nullptr;
-        this->compMode = nullptr;
-        this->cacheFilePathNameStatic = nullptr;
-        this->useCacheOptionStatic = nullptr;
-        this->verboseStatic = nullptr;
-        QSettings(APP_NAME, APP_NAME).clear();
-    }
-private:
-    inline static std::unique_ptr<int> thumbMode = nullptr;
-    inline static std::unique_ptr<VisualComparisonModes> compMode = nullptr;
-    inline static std::unique_ptr<QString> cacheFilePathNameStatic = nullptr;
-    inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
-    inline static std::unique_ptr<bool> verboseStatic = nullptr;
-    inline static std::unique_ptr<SortCriterion> sortCriterionStatic = nullptr;
-
-public:
     SortCriterion sortCriterion() const {
         if(this->sortCriterionStatic == nullptr){
             auto readOk = false;
@@ -179,6 +162,23 @@ public:
             *this->sortCriterionStatic = criterion;
         QSettings(APP_NAME, APP_NAME).setValue("sort_criterion", criterion);
     }
+
+    void resetSettings() {
+        this->thumbMode = nullptr;
+        this->compMode = nullptr;
+        this->cacheFilePathNameStatic = nullptr;
+        this->useCacheOptionStatic = nullptr;
+        this->verboseStatic = nullptr;
+        this->sortCriterionStatic = nullptr;
+        QSettings(APP_NAME, APP_NAME).clear();
+    }
+private:
+    inline static std::unique_ptr<int> thumbMode = nullptr;
+    inline static std::unique_ptr<VisualComparisonModes> compMode = nullptr;
+    inline static std::unique_ptr<QString> cacheFilePathNameStatic = nullptr;
+    inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
+    inline static std::unique_ptr<bool> verboseStatic = nullptr;
+    inline static std::unique_ptr<SortCriterion> sortCriterionStatic = nullptr;
 };
 
 class Message: public QObject {

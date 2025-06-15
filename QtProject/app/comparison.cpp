@@ -20,28 +20,12 @@ const int64_t VIDEO_DURATION_STILL_EQUALS_MS = 1000; //if this close in duration
 const int BITRATE_DIFF_STILL_EQUAL_kbs = 5;
 
 Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, const QRect &mainWindowGeometry) :
-    QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _originalUnsortedVideos(videosParam), _prefs(prefsParam)
+    QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
     ui->setupUi(this);
-    // DO NOT REORDER: _originalUnsortedVideos must be initialized before applySortOrder is called.
-    // _videos is also initialized with videosParam to ensure it has a valid state before applySortOrder modifies it.
 
-    // Initialize sort order combo box
-    switch (_prefs.sortCriterion()) {
-        case Prefs::SortCriterion::BySizeDescending:
-            ui->sortOrderComboBox_comparison->setCurrentIndex(0);
-            break;
-        case Prefs::SortCriterion::ByNameAscending:
-            ui->sortOrderComboBox_comparison->setCurrentIndex(1);
-            break;
-        case Prefs::SortCriterion::ByCreationDateAscending:
-            ui->sortOrderComboBox_comparison->setCurrentIndex(2);
-            break;
-    }
-    // Connect signal after setting initial index to avoid premature trigger if needed, though for currentIndexChanged it's usually fine.
-    connect(ui->sortOrderComboBox_comparison, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Comparison::onSortOrderChanged);
+    initSortOrder(); // Apply initial sort order based on prefs
 
-    applySortOrder(); // Apply initial sort order based on prefs
     this->setGeometry(mainWindowGeometry);
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
@@ -107,6 +91,26 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     // on_nextVideo_clicked(); // This will be called by applySortOrder
 }
 
+
+void Comparison::initSortOrder()
+{
+    switch (_prefs.sortCriterion()) {
+    case Prefs::SortCriterion::BySizeDescending:
+        ui->comboBox_sortBy->setCurrentIndex(0);
+        break;
+    case Prefs::SortCriterion::ByNameAscending:
+        ui->comboBox_sortBy->setCurrentIndex(1);
+        break;
+    case Prefs::SortCriterion::ByCreationDateAscending:
+        ui->comboBox_sortBy->setCurrentIndex(2);
+        break;
+    }
+    // Connect signal after setting initial index to avoid premature trigger if needed
+    connect(ui->comboBox_sortBy, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Comparison::onSortOrderChanged);
+
+    applySortOrder();
+}
+
 void Comparison::onSortOrderChanged(int index)
 {
     switch (index) {
@@ -125,135 +129,26 @@ void Comparison::onSortOrderChanged(int index)
 
 void Comparison::applySortOrder()
 {
-    QVector<Video *> sortedList = _originalUnsortedVideos; // Work with a copy
-
-    // Remove videos that might have been deleted (marked as trashed or no longer exist)
-    // from _originalUnsortedVideos to prevent issues with sorting/accessing invalid pointers.
-    // And also update the working copy `sortedList`.
-    _originalUnsortedVideos.erase(std::remove_if(_originalUnsortedVideos.begin(), _originalUnsortedVideos.end(),
-                                               [](const Video *v){ return v->trashed || !QFileInfo::exists(v->_filePathName); }),
-                                 _originalUnsortedVideos.end());
-    sortedList = _originalUnsortedVideos;
-
-
-    if (sortedList.isEmpty()) {
-        _videos.clear(); // Ensure _videos is also empty
-        // Clear UI fields or show "no videos" message
-        ui->leftImage->clear();
-        ui->rightImage->clear();
-        ui->leftFileName->clear();
-        ui->rightFileName->clear();
-        ui->leftPathName->clear();
-        ui->rightPathName->clear();
-        ui->leftFileSize->clear();
-        ui->rightFileSize->clear();
-        ui->leftDuration->clear();
-        ui->rightDuration->clear();
-        ui->leftModified->clear();
-        ui->rightModified->clear();
-        ui->leftFileCreated->clear();
-        ui->rightFileCreated->clear();
-        ui->leftResolution->clear();
-        ui->rightResolution->clear();
-        ui->leftFrameRate->clear();
-        ui->rightFrameRate->clear();
-        ui->leftBitRate->clear();
-        ui->rightBitRate->clear();
-        ui->leftCodec->clear();
-        ui->rightCodec->clear();
-        ui->leftAudio->clear();
-        ui->rightAudio->clear();
-        ui->leftGpsCoordinates->clear();
-        ui->rightGpsCoordinates->clear();
-        ui->textEdit_leftMetadata->clear();
-        ui->textEdit_rightMetadata->clear();
-        ui->identicalBits->setText("No videos to compare.");
-        ui->currentVideo->setText("0");
-        ui->totalVideos->setText("0");
-        ui->progressBar->setValue(0);
-        ui->progressBar->setMaximum(0);
-        return; // No videos to sort or display
-    }
-
     switch (_prefs.sortCriterion()) {
         case Prefs::SortCriterion::BySizeDescending:
-            {
-                QMultiMap<int64_t, Video *> mappedVideos;
-                for (Video *video : sortedList) {
-                    mappedVideos.insert(video->size, video);
-                }
-                _videos.clear(); // Clear before repopulating
-                QMultiMapIterator<int64_t, Video *> it(mappedVideos);
-                it.toBack(); // Move iterator to the end (largest size)
-                while (it.hasPrevious()) {
-                    it.previous();
-                    _videos.append(it.value());
-                }
-            }
-            break;
-        case Prefs::SortCriterion::ByNameAscending:
-            std::sort(sortedList.begin(), sortedList.end(), [](const Video *a, const Video *b) {
-                QFileInfo fileInfoA(a->_filePathName);
-                QFileInfo fileInfoB(b->_filePathName);
-                return QString::localeAwareCompare(fileInfoA.fileName(), fileInfoB.fileName()) < 0;
+            std::sort(_videos.begin(), _videos.end(), [](const Video *a, const Video *b) {
+                return a->size > b->size; // Sort by size in descending order
             });
-            _videos = sortedList;
+        break;
+        case Prefs::SortCriterion::ByNameAscending:
+            std::sort(this->_videos.begin(), this->_videos.end(), [](const Video *a, const Video *b) {
+                return QString::localeAwareCompare(a->_filePathName, b->_filePathName) < 0;
+            });
             break;
         case Prefs::SortCriterion::ByCreationDateAscending:
-            std::sort(sortedList.begin(), sortedList.end(), [](const Video *a, const Video *b) {
+            std::sort(this->_videos.begin(), this->_videos.end(), [](const Video *a, const Video *b) {
                 return a->_fileCreateDate < b->_fileCreateDate;
             });
-            _videos = sortedList;
             break;
     }
 
-    // Reset navigation and UI for the new sort order
     _leftVideo = 0;
-    _rightVideo = 0; // on_nextVideo_clicked will increment _rightVideo before use in its loop.
-                     // Or, if _rightVideo starts at 0, the first pair will be _leftVideo=0, _rightVideo=0, then _rightVideo becomes 1.
-                     // Let's ensure on_nextVideo_clicked handles this correctly by starting with _rightVideo = 0 and _seekForwards = true.
-
-    // Clear current display to avoid showing stale info from previous sort order
-    ui->leftImage->clear();
-    ui->rightImage->clear();
-    ui->leftFileName->clear();
-    ui->rightFileName->clear();
-    // ... clear other UI fields as necessary ... (already done above if sortedList is empty, good to have here too for robustness)
-    ui->leftPathName->clear();
-    ui->rightPathName->clear();
-    ui->leftFileSize->clear();
-    ui->rightFileSize->clear();
-    ui->leftDuration->clear();
-    ui->rightDuration->clear();
-    ui->leftModified->clear();
-    ui->rightModified->clear();
-    ui->leftFileCreated->clear();
-    ui->rightFileCreated->clear();
-    ui->leftResolution->clear();
-    ui->rightResolution->clear();
-    ui->leftFrameRate->clear();
-    ui->rightFrameRate->clear();
-    ui->leftBitRate->clear();
-    ui->rightBitRate->clear();
-    ui->leftCodec->clear();
-    ui->rightCodec->clear();
-    ui->leftAudio->clear();
-    ui->rightAudio->clear();
-    ui->leftGpsCoordinates->clear();
-    ui->rightGpsCoordinates->clear();
-    ui->textEdit_leftMetadata->clear();
-    ui->textEdit_rightMetadata->clear();
-    ui->identicalBits->clear();
-
-
-    // Update progress bar max based on the potentially filtered _videos list
-    // This is tricky because _prefs._numberOfVideos is used in comparisonsSoFar()
-    // and might not reflect the actual size of the _videos vector after filtering.
-    // For now, let's assume _prefs._numberOfVideos is still the relevant count for total possible pairs.
-    // If _videos becomes empty, on_nextVideo_clicked will handle it.
-    ui->progressBar->setMaximum(_videos.size() * (_videos.size() - 1) / 2); // Update max for progress bar
-    ui->totalVideos->setNum(int(_videos.size() * (_videos.size() - 1) / 2));
-
+    _rightVideo = 0;
 
     _seekForwards = true; // Ensure we start seeking forward for the first pair.
     on_nextVideo_clicked(); // Find and display the first pair from the newly sorted list.

@@ -37,7 +37,6 @@ private:
     Ui::Comparison *ui;
 
     QVector<Video *> _videos;
-    QVector<Video *> _originalUnsortedVideos; // Added for storing the original list
     Prefs &_prefs;
     int _leftVideo = 0; // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
@@ -171,8 +170,9 @@ private slots:
     void on_pushButton_onlyTimeDiffersAutoTrash_clicked() {autoDeleteLoopthrough(AutoDeleteConfig(AUTO_DELETE_ONLY_TIMES_DIFF)); }
 
     void on_ignoreDuplicatePairButton_clicked();
-    void onSortOrderChanged(int index); // New slot for sort order changes
-    void applySortOrder(); // New helper function to apply sorting
+    void initSortOrder();
+    void onSortOrderChanged(int index);
+    void applySortOrder();
 
 signals:
     void sendStatusMessage(const QString &message) const;
