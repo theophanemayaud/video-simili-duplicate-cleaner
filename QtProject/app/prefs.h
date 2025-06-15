@@ -102,7 +102,12 @@ public:
     QString browseFoldersLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_folders_last_path").toString();}
     void browseFoldersLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_folders_last_path", dirPath);}
 
-    QStringList scanLocations() const {return QSettings(APP_NAME, APP_NAME).value("scan_locations").toStringList();}
+    QStringList scanLocations() const {
+        // TODO temporarily disabled as it doesn't work on macOS because of sandbox
+        // Need to implement bookmark system to store access rights before we can use this again
+        // return QSettings(APP_NAME, APP_NAME).value("scan_locations").toStringList();}
+        return QStringList();
+    }
     void scanLocations(const QStringList folders) {QSettings(APP_NAME, APP_NAME).setValue("scan_locations", folders);}
 
     QStringList lockedFoldersList() const {return QSettings(APP_NAME, APP_NAME).value("locked_folders_list").toStringList();}
