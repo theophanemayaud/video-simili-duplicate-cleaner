@@ -1485,7 +1485,7 @@
              <item>
               <widget class="QLabel" name="label_4">
                <property name="text">
-                <string>If both files have all equal parameters (or very very close, eg. if bitrate is within 1kB/s or file size within 100kB), except name and path : randomly keep one of the two and trash the other, or if both names are similar keep the file with shortest name.</string>
+                <string>If both files have all equal parameters (or very very close, eg. if bitrate is within 1kB/s or file size within 100kB), except name, path and extra metadada : randomly keep one of the two and trash the other, or if both names are similar keep the file with shortest name.</string>
                </property>
                <property name="wordWrap">
                 <bool>true</bool>
@@ -1553,7 +1553,10 @@
               </size>
              </property>
              <property name="text">
-              <string>Move one of each to trash</string>
+              <string>Auto trash identical</string>
+             </property>
+             <property name="autoDefault">
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -1588,7 +1591,7 @@
               </font>
              </property>
              <property name="text">
-              <string>Only size differs</string>
+              <string>Keep biggest</string>
              </property>
             </widget>
            </item>
@@ -1604,7 +1607,7 @@
  - max 1 second time duration difference
  - same resolution
  - same FPS
- - different file sizes</string>
+ - different file sizes (and any other metadata differences)</string>
                </property>
               </widget>
              </item>
@@ -1656,7 +1659,10 @@
               </size>
              </property>
              <property name="text">
-              <string>Move all smaller to trash</string>
+              <string>Auto trash by size</string>
+             </property>
+             <property name="autoDefault">
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -1694,7 +1700,7 @@
               </font>
              </property>
              <property name="text">
-              <string>Only time differs</string>
+              <string>Keep by date</string>
              </property>
             </widget>
            </item>
@@ -1706,7 +1712,7 @@
                 <bool>true</bool>
                </property>
                <property name="text">
-                <string>If both have all same parameters except time, choose either (first by creation date or if equal by modification date):</string>
+                <string>If both have all same parameters except date, choose either (first by creation date or if equal by modification date):</string>
                </property>
                <property name="wordWrap">
                 <bool>true</bool>
@@ -1763,7 +1769,10 @@
               </size>
              </property>
              <property name="text">
-              <string>Auto move to trash</string>
+              <string>Auto trash by date</string>
+             </property>
+             <property name="autoDefault">
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -1831,6 +1840,9 @@ In each scenario where only one of the two files is either in a protected folder
              </property>
              <property name="text">
               <string>Auto move to trash</string>
+             </property>
+             <property name="autoDefault">
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -1946,6 +1958,9 @@ In each scenario where only one of the two files is either in a protected folder
              <property name="text">
               <string/>
              </property>
+             <property name="autoDefault">
+              <bool>false</bool>
+             </property>
             </widget>
            </item>
           </layout>
@@ -2045,6 +2060,9 @@ In each scenario where only one of the two files is either in a protected folder
              </property>
              <property name="text">
               <string/>
+             </property>
+             <property name="autoDefault">
+              <bool>false</bool>
              </property>
             </widget>
            </item>

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.13.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.12.1...v1.13.0) (2025-06-15)
+
+
+### Features
+
+* **comparison:** add GPS and other ffmpeg metadata ([#148](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/148)) ([d41ab06](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/d41ab06f8228fa2d7faa93e52c7bfeaec0c6a452))
+* **ffmpeg:** update ffmpeg from 4.4 to 7.1 ([be69fb0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/be69fb0e87b58c88b23f9997347c44cbcf07ed2d))
+
+
+### Bug Fixes
+
+* **prefs:** disable saving of selected folders because of macos permissions issue ([862618c](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/862618c99645826bb45319a8e74bf2d4cc2f0a56))
+* **shortcuts:** ensure close and quit shortcuts work as expected ([0a594a4](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/0a594a48110da08670c7adf008ade05d35980e55))
+
 ### [1.12.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.12.0...v1.12.1) (2025-04-14)
 
 
