@@ -791,7 +791,7 @@ void TestVideo::runWholeAppScan(
     qDebug() << "runWholeAppScan found "<< w._everyVideo.count() << " files of which " << w._videoList.count() << " valid ones";
     qDebug() << "runWholeAppScan before match report took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
 
-    Comparison comp(w.sortVideosBySize(), w._prefs, w.geometry());
+    Comparison comp(w._videoList, w._prefs, w.geometry());
     int matchingVideoNb = comp.reportMatchingVideos();
     qDebug() << "runWholeAppScan found " << matchingVideoNb << " matching vids";
 

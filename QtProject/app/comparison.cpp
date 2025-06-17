@@ -23,6 +23,9 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
     ui->setupUi(this);
+
+    initSortOrder(); // Apply initial sort order based on prefs
+
     this->setGeometry(mainWindowGeometry);
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
@@ -85,7 +88,70 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     // Cmd+Q shortcut to quit the application from the comparison dialog, not handled by default
     connect(new QShortcut(QKeySequence::Quit, this), &QShortcut::activated, qApp, &QApplication::quit);
 
-    on_nextVideo_clicked();
+    // on_nextVideo_clicked(); // This will be called by applySortOrder
+}
+
+
+void Comparison::initSortOrder()
+{
+    switch (_prefs.sortCriterion()) {
+    case Prefs::SortCriterion::BySizeDescending:
+        ui->comboBox_sortBy->setCurrentIndex(0);
+        break;
+    case Prefs::SortCriterion::ByNameAscending:
+        ui->comboBox_sortBy->setCurrentIndex(1);
+        break;
+    case Prefs::SortCriterion::ByCreationDateAscending:
+        ui->comboBox_sortBy->setCurrentIndex(2);
+        break;
+    }
+    // Connect signal after setting initial index to avoid premature trigger if needed
+    connect(ui->comboBox_sortBy, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Comparison::onSortOrderChanged);
+
+    applySortOrder();
+}
+
+void Comparison::onSortOrderChanged(int index)
+{
+    switch (index) {
+        case 0: // File size (largest first)
+            _prefs.sortCriterion(Prefs::SortCriterion::BySizeDescending);
+            break;
+        case 1: // File name (A-Z)
+            _prefs.sortCriterion(Prefs::SortCriterion::ByNameAscending);
+            break;
+        case 2: // Creation time (oldest first)
+            _prefs.sortCriterion(Prefs::SortCriterion::ByCreationDateAscending);
+            break;
+    }
+    applySortOrder();
+}
+
+void Comparison::applySortOrder()
+{
+    switch (_prefs.sortCriterion()) {
+        case Prefs::SortCriterion::BySizeDescending:
+            std::sort(_videos.begin(), _videos.end(), [](const Video *a, const Video *b) {
+                return a->size > b->size; // Sort by size in descending order
+            });
+        break;
+        case Prefs::SortCriterion::ByNameAscending:
+            std::sort(this->_videos.begin(), this->_videos.end(), [](const Video *a, const Video *b) {
+                return QString::localeAwareCompare(a->_filePathName, b->_filePathName) < 0;
+            });
+            break;
+        case Prefs::SortCriterion::ByCreationDateAscending:
+            std::sort(this->_videos.begin(), this->_videos.end(), [](const Video *a, const Video *b) {
+                return a->_fileCreateDate < b->_fileCreateDate;
+            });
+            break;
+    }
+
+    _leftVideo = 0;
+    _rightVideo = 0;
+
+    _seekForwards = true; // Ensure we start seeking forward for the first pair.
+    on_nextVideo_clicked(); // Find and display the first pair from the newly sorted list.
 }
 
 Comparison::~Comparison()
