@@ -1,0 +1,24 @@
+{
+  "name": "video-simili-duplicate-cleaner",
+  "version": "1.13.0",
+  "description": "Video simili duplicate cleaner is a program that can find duplicate and similar video files.",
+  "dependencies": [
+    {
+      "name": "opencv4",
+      "features": ["core", "imgproc"],
+      "version>=": "4.5.1"
+    },
+    {
+      "name": "ffmpeg",
+      "features": [
+        "avcodec",
+        "avformat", 
+        "avutil",
+        "swresample",
+        "swscale"
+      ],
+      "version>=": "4.4.0"
+    }
+  ],
+  "builtin-baseline": "3dd44b931481d7b8e9ba412621fa810232b66289"
+}

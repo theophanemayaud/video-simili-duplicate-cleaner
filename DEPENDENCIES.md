@@ -4,6 +4,135 @@ OpenCV : 4.5.1
 
 FFmpeg : n4.4 on windows, not sure for mac, couldn't find it => next time make them the same !
 
+# vcpkg Setup and Usage
+
+vcpkg is a C++ package manager that simplifies dependency management for ffmpeg and OpenCV. This project is configured to use vcpkg with cmake for both Windows and cross-compilation scenarios.
+
+## Prerequisites
+
+- Visual Studio 2019 or later (for Windows)
+- cmake 3.16 or later
+- Git
+
+## Initial vcpkg Setup
+
+1. **Clone vcpkg** (if not already installed):
+   ```bash
+   git clone https://github.com/Microsoft/vcpkg.git
+   cd vcpkg
+   ```
+
+2. **Bootstrap vcpkg**:
+   - Windows: `.\bootstrap-vcpkg.bat`
+   - Linux/macOS: `./bootstrap-vcpkg.sh`
+
+3. **Set environment variable** (recommended):
+   ```bash
+   # Windows (PowerShell)
+   $env:VCPKG_ROOT = "C:\path\to\vcpkg"
+   
+   # Windows (Command Prompt)
+   set VCPKG_ROOT=C:\path\to\vcpkg
+   
+   # Linux/macOS
+   export VCPKG_ROOT=/path/to/vcpkg
+   ```
+
+## Using vcpkg with this Project
+
+### Windows Builds
+
+The project includes custom triplets for different Windows architectures:
+
+1. **x64 Windows (Intel/AMD 64-bit)**:
+   ```bash
+   vcpkg install --triplet=x64-windows-static
+   ```
+
+2. **ARM64 Windows (ARM 64-bit)**:
+   ```bash
+   vcpkg install --triplet=arm64-windows-static
+   ```
+
+3. **x86 Windows (32-bit Intel/AMD)**:
+   ```bash
+   vcpkg install --triplet=x86-windows-static
+   ```
+
+### Cross-compilation on ARM
+
+When building on an ARM machine (like Apple Silicon) for different targets:
+
+1. **ARM to ARM64 Windows**:
+   ```bash
+   vcpkg install --triplet=arm64-windows-static
+   ```
+
+2. **ARM to x86 Windows**:
+   ```bash
+   vcpkg install --triplet=x86-windows-static
+   ```
+
+## CMake Integration
+
+The project automatically detects and integrates with vcpkg when:
+1. `VCPKG_ROOT` environment variable is set, OR
+2. `-DCMAKE_TOOLCHAIN_FILE=path/to/vcpkg/scripts/buildsystems/vcpkg.cmake` is passed to cmake
+
+### Building with cmake
+
+```bash
+# Configure (vcpkg integration automatic if VCPKG_ROOT is set)
+cmake -B build -S QtProject
+
+# Or manually specify vcpkg toolchain
+cmake -B build -S QtProject -DCMAKE_TOOLCHAIN_FILE=path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# Build
+cmake --build build --config Release
+
+# For specific architecture (Windows)
+cmake -B build -S QtProject -A ARM64  # for ARM64
+cmake -B build -S QtProject -A Win32  # for x86
+cmake -B build -S QtProject -A x64    # for x64 (default)
+```
+
+## Dependency Features
+
+The project uses these specific features:
+
+### FFmpeg
+- `avcodec` - Audio/video codec library
+- `avformat` - Container format library  
+- `avutil` - Utility library
+- `swresample` - Audio resampling library
+- `swscale` - Image rescaling library
+
+### OpenCV
+- `core` - Core functionality
+- `imgproc` - Image processing
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Could not find vcpkg"**: Ensure `VCPKG_ROOT` is set or pass the toolchain file manually
+2. **Static linking errors**: Ensure you're using the `-static` triplets
+3. **Cross-compilation failures**: Verify the target triplet matches your intended architecture
+
+### Clean builds
+```bash
+# Clean vcpkg cache
+vcpkg remove --triplet=x64-windows-static opencv4 ffmpeg
+
+# Reinstall
+vcpkg install --triplet=x64-windows-static
+```
+
+# Manual Builds (Legacy)
+
+The following sections describe manual compilation processes. With vcpkg integration, these are no longer necessary but are kept for reference.
+
 # Windows
 
 First off, to build the app and dependencies, we need Microsoft Visual Studio (2019). Once installed, we'll have the "Cross Tools Command Prompt" with git and cmake already installed.
