@@ -3,6 +3,19 @@ set(VCPKG_TARGET_TRIPLET "arm64-windows-static-release") # vcpkg community tripl
 
 project(video-simili-duplicate-cleaner VERSION 0.1 LANGUAGES CXX)
 
+# Configure static runtime for Windows builds because for speed we build vcpkg libs in release mode 
+# so also need release runtime linked when building in debug
+if(WIN32)
+    # Force static release runtime for ALL builds (debug and release)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    
+    # Override compiler flags to use static release runtime
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MT")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+endif()
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_AUTOUIC ON)
@@ -13,31 +26,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
 
-# # Enable vcpkg integration
-# if(WIN32)
-#     # Find vcpkg and integrate it
-#     find_package(PkgConfig REQUIRED)
-    
-#     # Set vcpkg toolchain if not already set
-#     if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-#         if(DEFINED ENV{VCPKG_ROOT})
-#             set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-#         endif()
-#     endif()
-    
-#     # Set static linking for Windows
-#     set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
-#     if(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-#         set(VCPKG_TARGET_TRIPLET "arm64-windows-static" CACHE STRING "")
-#     elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
-#         set(VCPKG_TARGET_TRIPLET "x86-windows-static" CACHE STRING "")
-#     endif()
-# endif()
 
-set(QT_PREFIX_PATHS "$ENV{QTDIR}")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Sql Concurrent PATHS ${QT_PREFIX_PATHS} NO_DEFAULT_PATH)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Concurrent PATHS ${QT_PREFIX_PATHS} NO_DEFAULT_PATH)
+# for some reason cmake doesn't find the qt libraries in the right place, so we help it
+if(WIN32)
+    list(APPEND CMAKE_PREFIX_PATH "C:/Qt")
+endif()
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Sql Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Concurrent)
 
 # Définir les sources du projet
 set(PROJECT_SOURCES
@@ -139,38 +136,17 @@ endif()
 if(WIN32)
     # Find packages using vcpkg
     find_package(OpenCV REQUIRED COMPONENTS core imgproc)
-    find_package(PkgConfig REQUIRED)
-    
-    # Find FFmpeg using pkg-config (vcpkg provides .pc files)
-    pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
-        libavcodec
-        libavformat 
-        libavutil
-        libswresample
-        libswscale
-    )
-    
-    # Link OpenCV
-    target_link_libraries(video-simili-duplicate-cleaner PRIVATE 
-        opencv_core
-        opencv_imgproc
-    )
-    
-    # Link FFmpeg
-    target_link_libraries(video-simili-duplicate-cleaner PRIVATE 
-        PkgConfig::FFMPEG
-    )
-    
-    # Windows-specific libraries that FFmpeg depends on
     target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-        ws2_32
-        ole32  
-        user32
-        bcrypt
-        mfplat
-        mfuuid
-        strmiids
-    )    
+        ${OpenCV_LIBS}
+    )
+
+    find_package(FFMPEG REQUIRED)   
+    target_include_directories(video-simili-duplicate-cleaner PRIVATE ${FFMPEG_INCLUDE_DIRS})
+    target_link_directories(video-simili-duplicate-cleaner PRIVATE ${FFMPEG_LIBRARY_DIRS})
+    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
+        ${FFMPEG_LIBRARIES}
+    )
+
 endif()
 
 # Lier avec Qt
