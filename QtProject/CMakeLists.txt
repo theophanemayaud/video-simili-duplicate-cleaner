@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+set(VCPKG_TARGET_TRIPLET "arm64-windows-static-release") # vcpkg community triplet provided in vcpkg itself
 
 project(video-simili-duplicate-cleaner VERSION 0.1 LANGUAGES CXX)
 
@@ -12,30 +13,31 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
 
-# Enable vcpkg integration
-if(WIN32)
-    # Find vcpkg and integrate it
-    find_package(PkgConfig REQUIRED)
+# # Enable vcpkg integration
+# if(WIN32)
+#     # Find vcpkg and integrate it
+#     find_package(PkgConfig REQUIRED)
     
-    # Set vcpkg toolchain if not already set
-    if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-        if(DEFINED ENV{VCPKG_ROOT})
-            set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-        endif()
-    endif()
+#     # Set vcpkg toolchain if not already set
+#     if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+#         if(DEFINED ENV{VCPKG_ROOT})
+#             set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+#         endif()
+#     endif()
     
-    # Set static linking for Windows
-    set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
-    if(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-        set(VCPKG_TARGET_TRIPLET "arm64-windows-static" CACHE STRING "")
-    elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
-        set(VCPKG_TARGET_TRIPLET "x86-windows-static" CACHE STRING "")
-    endif()
-endif()
+#     # Set static linking for Windows
+#     set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+#     if(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
+#         set(VCPKG_TARGET_TRIPLET "arm64-windows-static" CACHE STRING "")
+#     elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+#         set(VCPKG_TARGET_TRIPLET "x86-windows-static" CACHE STRING "")
+#     endif()
+# endif()
 
-# Trouver les packages Qt requis
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Sql Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Concurrent)
+set(QT_PREFIX_PATHS "$ENV{QTDIR}")
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Sql Concurrent PATHS ${QT_PREFIX_PATHS} NO_DEFAULT_PATH)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Concurrent PATHS ${QT_PREFIX_PATHS} NO_DEFAULT_PATH)
 
 # Définir les sources du projet
 set(PROJECT_SOURCES
@@ -168,38 +170,7 @@ if(WIN32)
         mfplat
         mfuuid
         strmiids
-    )
-    
-    # Compiler definitions for Windows
-    target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
-        WIN32_LEAN_AND_MEAN
-        _WIN32_WINNT=0x0A00  # Windows 10
-    )
-    
-    # Set static runtime for consistency with vcpkg static libraries
-    if(MSVC)
-        set_property(TARGET video-simili-duplicate-cleaner PROPERTY
-            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    endif()
-    
-    # Copy custom triplets to vcpkg if VCPKG_ROOT is set
-    if(DEFINED ENV{VCPKG_ROOT})
-        configure_file(
-            "${CMAKE_SOURCE_DIR}/triplets/arm64-windows-static.cmake"
-            "$ENV{VCPKG_ROOT}/triplets/community/arm64-windows-static.cmake"
-            COPYONLY
-        )
-        configure_file(
-            "${CMAKE_SOURCE_DIR}/triplets/x64-windows-static.cmake"
-            "$ENV{VCPKG_ROOT}/triplets/community/x64-windows-static.cmake"
-            COPYONLY
-        )
-        configure_file(
-            "${CMAKE_SOURCE_DIR}/triplets/x86-windows-static.cmake"
-            "$ENV{VCPKG_ROOT}/triplets/community/x86-windows-static.cmake"
-            COPYONLY
-        )
-    endif()
+    )    
 endif()
 
 # Lier avec Qt
