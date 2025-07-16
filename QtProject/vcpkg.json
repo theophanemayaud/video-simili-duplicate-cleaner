@@ -3,6 +3,7 @@
   "dependencies": [
     {
       "name": "opencv4",
+      "default-features": false,
       "version>=": "4.8.0"
     },
     {
