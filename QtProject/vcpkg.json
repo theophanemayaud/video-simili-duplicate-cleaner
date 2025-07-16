@@ -15,6 +15,15 @@
         "aom"
       ],
       "version>=": "7.1.1"
+    },
+    {
+      "name": "qtbase",
+      "version>=": "6.8.3",
+      "features": [
+        "widgets",
+        "sql-sqlite",
+        "concurrent"
+      ]
     }
   ],
   "overrides": [
@@ -25,6 +34,10 @@
     {
         "name": "opencv4",
         "version": "4.8.0"
+    },
+    {
+        "name": "qtbase",
+        "version": "6.8.3"
     }
   ]
 }

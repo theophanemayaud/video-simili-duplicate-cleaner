@@ -1,40 +1,31 @@
 cmake_minimum_required(VERSION 3.16)
-set(VCPKG_TARGET_TRIPLET "arm64-windows-static-release") # vcpkg community triplet provided in vcpkg itself
+set(VCPKG_TARGET_TRIPLET "arm64-windows-static-md") # vcpkg provided triplet in vcpkg itself
 
 project(video-simili-duplicate-cleaner VERSION 0.1 LANGUAGES CXX)
-
-# Configure static runtime for Windows builds because for speed we build vcpkg libs in release mode 
-# so also need release runtime linked when building in debug
-if(WIN32)
-    # Force static release runtime for ALL builds (debug and release)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-    
-    # Override compiler flags to use static release runtime
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MT")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-endif()
+set(APP_COPYRIGHT "Copyright © 2020-2025 Théophane Mayaud, 2018-2019 Kristian Koskimäki")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# qt specific code generation
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
+# Debug paths
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Widgets Sql Concurrent)
 
-
-# for some reason cmake doesn't find the qt libraries in the right place, so we help it
-if(WIN32)
-    list(APPEND CMAKE_PREFIX_PATH "C:/Qt")
-endif()
-
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Sql Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Sql Concurrent)
+# Debug found Qt paths
+message(STATUS "Qt6_FOUND: ${Qt6_FOUND}")
+message(STATUS "Qt6_DIR: ${Qt6_DIR}")
+message(STATUS "Qt6Core_DIR: ${Qt6Core_DIR}")
+message(STATUS "Qt6Widgets_DIR: ${Qt6Widgets_DIR}")
+message(STATUS "Qt6Sql_DIR: ${Qt6Sql_DIR}")
+message(STATUS "Qt6Concurrent_DIR: ${Qt6Concurrent_DIR}")
 
 # Définir les sources du projet
 set(PROJECT_SOURCES
@@ -59,6 +50,8 @@ set(PROJECT_SOURCES
 )
 
 if(APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
+
     list(APPEND PROJECT_SOURCES
         app/obj-c.mm
         app/obj-c.h
@@ -71,21 +64,31 @@ add_executable(video-simili-duplicate-cleaner MACOSX_BUNDLE
     ${PROJECT_SOURCES}
 )
 
-# Définir les propriétés de l'application
-set_target_properties(video-simili-duplicate-cleaner PROPERTIES
-    MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_GUI_IDENTIFIER "com.theophane.video-simili-duplicate-cleaner"
-    MACOSX_BUNDLE_BUNDLE_NAME "Video simili duplicate cleaner"
-    MACOSX_BUNDLE_BUNDLE_VERSION "0.1"
-    MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
-    MACOSX_BUNDLE_COPYRIGHT "Copyright © 2020-2024 Théophane Mayaud, 2018-2019 Kristian Koskimäki"
+# Link Qt libraries after target is created
+target_link_libraries(video-simili-duplicate-cleaner PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::Concurrent
 )
+
+# Définir les propriétés de l'application
+if(APPLE)
+    set_target_properties(video-simili-duplicate-cleaner PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.theophane.video-simili-duplicate-cleaner"
+        MACOSX_BUNDLE_BUNDLE_NAME "Video simili duplicate cleaner"
+        MACOSX_BUNDLE_BUNDLE_VERSION "0.1"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
+        MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}    
+    )
+endif()
 
 # Définir les includes et les définitions
 target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
-    QT_DISABLE_DEPRECATED_BEFORE=0x100000
+    QT_DISABLE_DEPRECATED_BEFORE=0x060000
     APP_NAME="Video simili duplicate cleaner"
-    APP_COPYRIGHT="Copyright © 2020-2024 Théophane Mayaud, 2018-2019 Kristian Koskimäki"
+    APP_COPYRIGHT=${APP_COPYRIGHT}
 )
 
 if(APPLE)
@@ -134,6 +137,8 @@ if(APPLE)
 endif()
 
 if(WIN32)
+    message(STATUS "Windows: adding libraries")
+
     # Find packages using vcpkg
     find_package(OpenCV REQUIRED COMPONENTS core imgproc)
     target_link_libraries(video-simili-duplicate-cleaner PRIVATE
@@ -146,13 +151,4 @@ if(WIN32)
     target_link_libraries(video-simili-duplicate-cleaner PRIVATE
         ${FFMPEG_LIBRARIES}
     )
-
 endif()
-
-# Lier avec Qt
-target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Sql
-    Qt${QT_VERSION_MAJOR}::Concurrent
-)
