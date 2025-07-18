@@ -94,6 +94,13 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
 
 void Comparison::initSortOrder()
 {
+    // NB Sort order impacts auto deletion as they can assume sorting by size with left video being biggest
+    // All three auto delete modes are compatible with any sort order though:
+    // - Identical files: on_identicalFilesAutoTrash_clicked() keeps a random one which is ok as they're identical
+    // - Keep bigest: on_autoDelOnlySizeDiffersButton_clicked() keeps the biggest one which is ok as it's the point
+    // - Keep by date: 
+    //     on_pushButton_onlyTimeDiffersAutoTrash_clicked/autoDeleteLoopthrough(AUTO_DELETE_ONLY_TIMES_DIFF)
+    //     keeps the earliest/latest one as selected by user
     switch (_prefs.sortCriterion()) {
     case Prefs::SortCriterion::BySizeDescending:
         ui->comboBox_sortBy->setCurrentIndex(0);
@@ -1155,12 +1162,12 @@ void Comparison:: clearLockedFolderList() {
 // ------------------------------------------------------------------------
 // ------------------ Automatic video deletion functions ------------------
 
+// Loop through all files
+// If both files have all equal parameters, except name and path.
+// Keep the left one (just a random choice but either could be kept).
+// Compatible regardless of sort order since it's based on identical files and kinda random choice between the two anyway
 void Comparison::on_identicalFilesAutoTrash_clicked()
 {
-    // Loop through all files
-    // If both files have all equal parameters, except name and path.
-    // Keep the left one (just a random choice but either could be kept).
-
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
@@ -1268,16 +1275,16 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     on_nextVideo_clicked();
 }
 
+// Loop through all files
+// If both have :
+// - same time duration
+// - same resolution
+// - same FPS
+// - different file sizes
+// Keeps the bigger file of the two.
+// Compatible regardless of sort order since it specifically keeps the bigger regardless of left/right
 void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 {
-    // Loop through all files
-    // If both have :
-    // - same time duration
-    // - same resolution
-    // - same FPS
-    // - different file sizes
-    // Keeps the bigger file.
-
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
@@ -1378,6 +1385,9 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
     on_nextVideo_clicked();
 }
 
+// For now only used for auto delete AUTO_DELETE_ONLY_TIMES_DIFF
+// TODO: refactor other auto delete modes to use this
+// AUTO_DELETE_ONLY_TIMES_DIFF Compatible regardless of sort order since it keeps the earliest/latest one as selected by user
 void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
     // loop through all files
     // and maybe trash one each time depending on config
