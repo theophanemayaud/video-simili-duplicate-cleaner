@@ -170,6 +170,10 @@ private slots:
 
     void on_ignoreDuplicatePairButton_clicked();
 
+    void initSortOrder();
+    void onSortOrderChanged(int index);
+    void applySortOrder();
+
 signals:
     void sendStatusMessage(const QString &message) const;
     void switchComparisonMode(const int &mode) const;

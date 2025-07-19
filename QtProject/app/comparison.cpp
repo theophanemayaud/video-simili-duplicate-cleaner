@@ -23,12 +23,15 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam)
 {
     ui->setupUi(this);
+
     this->setGeometry(mainWindowGeometry);
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), _prefs._mainwPtr, SLOT(on_thresholdSlider_valueChanged(const int &)));
     connect(ui->progressBar, SIGNAL(valueChanged(const int &)), ui->currentVideo, SLOT(setNum(const int &)));
+
+    initSortOrder();
 
     if(this->_prefs.comparisonMode() == Prefs::_SSIM)
         ui->selectSSIM->setChecked(true);
@@ -85,7 +88,74 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     // Cmd+Q shortcut to quit the application from the comparison dialog, not handled by default
     connect(new QShortcut(QKeySequence::Quit, this), &QShortcut::activated, qApp, &QApplication::quit);
 
-    on_nextVideo_clicked();
+    applySortOrder();
+}
+
+
+// NB Sort order impacts auto deletion as they can assume sorting by size with left video being biggest
+// All three auto delete modes are compatible with any sort order though:
+// - Identical files: on_identicalFilesAutoTrash_clicked() keeps a random one which is ok as they're identical
+// - Keep bigest: on_autoDelOnlySizeDiffersButton_clicked() keeps the biggest one which is ok as it's the point
+// - Keep by date: 
+//     on_pushButton_onlyTimeDiffersAutoTrash_clicked/autoDeleteLoopthrough(AUTO_DELETE_ONLY_TIMES_DIFF)
+//     keeps the earliest/latest one as selected by user
+void Comparison::initSortOrder()
+{
+    switch (_prefs.sortCriterion()) {
+    case Prefs::SortCriterion::BySizeDescending:
+        ui->comboBox_sortBy->setCurrentIndex(0);
+        break;
+    case Prefs::SortCriterion::ByNameAscending:
+        ui->comboBox_sortBy->setCurrentIndex(1);
+        break;
+    case Prefs::SortCriterion::ByCreationDateAscending:
+        ui->comboBox_sortBy->setCurrentIndex(2);
+        break;
+    }
+    // Connect signal after setting initial index to avoid premature trigger
+    connect(ui->comboBox_sortBy, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Comparison::onSortOrderChanged);
+}
+
+void Comparison::onSortOrderChanged(int index)
+{
+    switch (index) {
+        case 0: // File size (largest first)
+            _prefs.sortCriterion(Prefs::SortCriterion::BySizeDescending);
+            break;
+        case 1: // File name (A-Z)
+            _prefs.sortCriterion(Prefs::SortCriterion::ByNameAscending);
+            break;
+        case 2: // Creation time (oldest first)
+            _prefs.sortCriterion(Prefs::SortCriterion::ByCreationDateAscending);
+            break;
+    }
+    applySortOrder();
+}
+
+void Comparison::applySortOrder()
+{
+    switch (_prefs.sortCriterion()) {
+        case Prefs::SortCriterion::BySizeDescending:
+            std::sort(_videos.begin(), _videos.end(), [](const Video *a, const Video *b) {
+                return a->size > b->size; // Sort by size in descending order
+            });
+        break;
+        case Prefs::SortCriterion::ByNameAscending:
+            std::sort(this->_videos.begin(), this->_videos.end(), [](const Video *a, const Video *b) {
+                return QString::localeAwareCompare(a->_filePathName, b->_filePathName) < 0;
+            });
+            break;
+        case Prefs::SortCriterion::ByCreationDateAscending:
+            std::sort(this->_videos.begin(), this->_videos.end(), [](const Video *a, const Video *b) {
+                return a->_fileCreateDate < b->_fileCreateDate;
+            });
+            break;
+    }
+
+    _leftVideo = 0;
+    _rightVideo = 0;
+
+    on_nextVideo_clicked(); // Find and display the first pair from the newly sorted list.
 }
 
 Comparison::~Comparison()
@@ -1089,12 +1159,12 @@ void Comparison:: clearLockedFolderList() {
 // ------------------------------------------------------------------------
 // ------------------ Automatic video deletion functions ------------------
 
+// Loop through all files
+// If both files have all equal parameters, except name and path.
+// Keep the left one (just a random choice but either could be kept).
+// Compatible regardless of sort order since it's based on identical files and kinda random choice between the two anyway
 void Comparison::on_identicalFilesAutoTrash_clicked()
 {
-    // Loop through all files
-    // If both files have all equal parameters, except name and path.
-    // Keep the left one (just a random choice but either could be kept).
-
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
@@ -1202,16 +1272,16 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     on_nextVideo_clicked();
 }
 
+// Loop through all files
+// If both have :
+// - same time duration
+// - same resolution
+// - same FPS
+// - different file sizes
+// Keeps the bigger file of the two.
+// Compatible regardless of sort order since it specifically keeps the bigger regardless of left/right
 void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 {
-    // Loop through all files
-    // If both have :
-    // - same time duration
-    // - same resolution
-    // - same FPS
-    // - different file sizes
-    // Keeps the bigger file.
-
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
@@ -1312,6 +1382,9 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
     on_nextVideo_clicked();
 }
 
+// For now only used for auto delete AUTO_DELETE_ONLY_TIMES_DIFF
+// TODO: refactor other auto delete modes to use this
+// AUTO_DELETE_ONLY_TIMES_DIFF Compatible regardless of sort order since it keeps the earliest/latest one as selected by user
 void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
     // loop through all files
     // and maybe trash one each time depending on config
