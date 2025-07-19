@@ -12,6 +12,7 @@ class Prefs
 public:
     enum VisualComparisonModes { _PHASH, _SSIM };
     enum DeletionModes { STANDARD_TRASH, CUSTOM_TRASH, DIRECT_DELETION };
+    enum SortCriterion { BySizeDescending, ByNameAscending, ByCreationDateAscending };
     static constexpr double DEFAULT_SSIM_THRESHOLD = 1.0;
     static constexpr int DEFAULT_MATCH_SIMILARITY_THRESHOLD = 100; // used for slider, as in % similarity
     enum USE_CACHE_OPTION : int {
@@ -149,12 +150,31 @@ public:
         QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);
     }
 
+    SortCriterion sortCriterion() const {
+        if(this->sortCriterionStatic == nullptr){
+            auto readOk = false;
+            auto criterion = static_cast<SortCriterion>(QSettings(APP_NAME, APP_NAME).value("sort_criterion").toInt(&readOk));
+            if(!readOk)
+                criterion = BySizeDescending;
+            this->sortCriterionStatic = std::make_unique<SortCriterion>(criterion);
+        }
+        return *this->sortCriterionStatic;
+    }
+    void sortCriterion(const SortCriterion criterion) {
+        if(this->sortCriterionStatic == nullptr)
+            this->sortCriterionStatic = std::make_unique<SortCriterion>(BySizeDescending);
+        else
+            *this->sortCriterionStatic = criterion;
+        QSettings(APP_NAME, APP_NAME).setValue("sort_criterion", criterion);
+    }
+
     void resetSettings() {
         this->thumbMode = nullptr;
         this->compMode = nullptr;
         this->cacheFilePathNameStatic = nullptr;
         this->useCacheOptionStatic = nullptr;
         this->verboseStatic = nullptr;
+        this->sortCriterionStatic = nullptr;
         QSettings(APP_NAME, APP_NAME).clear();
     }
 private:
@@ -163,6 +183,7 @@ private:
     inline static std::unique_ptr<QString> cacheFilePathNameStatic = nullptr;
     inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
     inline static std::unique_ptr<bool> verboseStatic = nullptr;
+    inline static std::unique_ptr<SortCriterion> sortCriterionStatic = nullptr;
 };
 
 class Message: public QObject {
