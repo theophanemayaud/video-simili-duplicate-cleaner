@@ -24,14 +24,14 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
 {
     ui->setupUi(this);
 
-    initSortOrder(); // Apply initial sort order based on prefs
-
     this->setGeometry(mainWindowGeometry);
 
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), _prefs._mainwPtr, SLOT(on_thresholdSlider_valueChanged(const int &)));
     connect(ui->progressBar, SIGNAL(valueChanged(const int &)), ui->currentVideo, SLOT(setNum(const int &)));
+
+    initSortOrder();
 
     if(this->_prefs.comparisonMode() == Prefs::_SSIM)
         ui->selectSSIM->setChecked(true);
@@ -88,19 +88,19 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     // Cmd+Q shortcut to quit the application from the comparison dialog, not handled by default
     connect(new QShortcut(QKeySequence::Quit, this), &QShortcut::activated, qApp, &QApplication::quit);
 
-    // on_nextVideo_clicked(); // This will be called by applySortOrder
+    applySortOrder();
 }
 
 
+// NB Sort order impacts auto deletion as they can assume sorting by size with left video being biggest
+// All three auto delete modes are compatible with any sort order though:
+// - Identical files: on_identicalFilesAutoTrash_clicked() keeps a random one which is ok as they're identical
+// - Keep bigest: on_autoDelOnlySizeDiffersButton_clicked() keeps the biggest one which is ok as it's the point
+// - Keep by date: 
+//     on_pushButton_onlyTimeDiffersAutoTrash_clicked/autoDeleteLoopthrough(AUTO_DELETE_ONLY_TIMES_DIFF)
+//     keeps the earliest/latest one as selected by user
 void Comparison::initSortOrder()
 {
-    // NB Sort order impacts auto deletion as they can assume sorting by size with left video being biggest
-    // All three auto delete modes are compatible with any sort order though:
-    // - Identical files: on_identicalFilesAutoTrash_clicked() keeps a random one which is ok as they're identical
-    // - Keep bigest: on_autoDelOnlySizeDiffersButton_clicked() keeps the biggest one which is ok as it's the point
-    // - Keep by date: 
-    //     on_pushButton_onlyTimeDiffersAutoTrash_clicked/autoDeleteLoopthrough(AUTO_DELETE_ONLY_TIMES_DIFF)
-    //     keeps the earliest/latest one as selected by user
     switch (_prefs.sortCriterion()) {
     case Prefs::SortCriterion::BySizeDescending:
         ui->comboBox_sortBy->setCurrentIndex(0);
@@ -112,10 +112,8 @@ void Comparison::initSortOrder()
         ui->comboBox_sortBy->setCurrentIndex(2);
         break;
     }
-    // Connect signal after setting initial index to avoid premature trigger if needed
+    // Connect signal after setting initial index to avoid premature trigger
     connect(ui->comboBox_sortBy, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Comparison::onSortOrderChanged);
-
-    applySortOrder();
 }
 
 void Comparison::onSortOrderChanged(int index)
@@ -157,7 +155,6 @@ void Comparison::applySortOrder()
     _leftVideo = 0;
     _rightVideo = 0;
 
-    _seekForwards = true; // Ensure we start seeking forward for the first pair.
     on_nextVideo_clicked(); // Find and display the first pair from the newly sorted list.
 }
 
