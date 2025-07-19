@@ -169,6 +169,7 @@ private slots:
     void on_settingNamesInAnotherCheckbox_stateChanged(int arg1);
 
     void on_ignoreDuplicatePairButton_clicked();
+
     void initSortOrder();
     void onSortOrderChanged(int index);
     void applySortOrder();
