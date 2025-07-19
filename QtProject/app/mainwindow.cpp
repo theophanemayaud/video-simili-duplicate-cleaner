@@ -254,7 +254,7 @@ void MainWindow::on_findDuplicates_clicked()
     }
 
     if(_videoList.count() > 1) {
-        this->_comparison = new Comparison(_videoList, _prefs, this->geometry()); // Pass _videoList directly
+        this->_comparison = new Comparison(this->_videoList, this->_prefs, this->geometry());
         this->_comparison->hide();
         if(this->shouldScan) {
             this->_comparison->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with comparison window (non const function)
@@ -294,8 +294,6 @@ void MainWindow::findVideos(QDir &dir)
     }
 }
 
-// Removed sortVideosBySize implementation
-// Removed sortVideos implementation
 
 void MainWindow::processVideos()
 {
