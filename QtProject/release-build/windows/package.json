@@ -1,13 +1,17 @@
 {
   "scripts": {
-    "prep-package": "copy logo150x150.png release\\logo150x150.png && copy logo44x44.png release\\logo44x44.png && copy Icon1024.png release\\Icon1024.png && copy appxmanifest.xml release\\appxmanifest.xml",
-    "qmake": "C:\\Qt\\6.9.1\\msvc2019_64\\bin\\qmake.exe 'C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\app\\app.pro' -config release",
-    "make": "nmake",
-    "windeploy": "npm run prep-package && C:\\\\Qt\\\\6.9.1\\\\msvc2019_64\\\\bin\\\\windeployqt.exe --no-compiler-runtime --release \"C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\release-build\\windows\\release\\Video simili duplicate cleaner.exe\"",
-    "build-win-binaries": "npm run qmake && npm run make && npm run windeploy && npm run package-app",
-    "package-app": "MakeAppx pack /d release /p \"Video simili duplicate cleaner.msix\"",
-    "make-clean": "nmake clean || exit 0",
-    "clean-leftovers": "del /f \"Video simili duplicate cleaner.msix\" && del /f Makefile && del /f Makefile.Debug && del /f Makefile.Release && del /f .qmake.stash && rmdir /q /s release && rmdir /q /s debug",
-    "clean": "npm run make-clean && (npm run clean-leftovers || exit 0)"
+    "build-win-binaries": "npm run cmake-configure && npm run cmake-build && npm run copy-exe && npm run windeploy && npm run prep-package && npm run package-app",
+    "build-win-binaries-target-x86": "npm run cmake-configure-target-x86 && npm run cmake-build && npm run copy-exe && npm run windeploy && npm run prep-package && npm run package-app-target-x86",
+    "cmake-configure": "cmake -S ..\\.. -B .\\build --preset vcpkg",
+    "cmake-configure-target-x86": "cmake -S ..\\.. -B .\\build --preset vcpkg-target-x86",
+    "cmake-build": "cmake --build .\\build --config Release",
+    "copy-exe": "if not exist final mkdir final && copy .\\build\\Release\\video-simili-duplicate-cleaner.exe final\\\"Video simili duplicate cleaner.exe\"",
+    "windeploy": "echo Skipping windeployqt - using static build",
+    "prep-package": "copy logo150x150.png final\\logo150x150.png && copy logo44x44.png final\\logo44x44.png && copy Icon1024.png final\\Icon1024.png && copy appxmanifest.xml final\\appxmanifest.xml",
+    "package-app": "MakeAppX pack /d final /p \"Video simili duplicate cleaner.arm64.msix\"",
+    "package-app-target-x86": "MakeAppX pack /d final /p \"Video simili duplicate cleaner.x86.msix\"",
+    "clean": "npm run cmake-clean && (npm run clean-leftovers || exit 0)",
+    "cmake-clean": "(cmake --build .\\build --config Release --target clean || exit 0)",
+    "clean-leftovers": "(rmdir /q /s build || exit 0) && (rmdir /q /s final || exit 0) && (del /f \"Video simili duplicate cleaner.arm64.msix\" || exit 0) && (del /f \"Video simili duplicate cleaner.x86.msix\" || exit 0)"
   }
 }

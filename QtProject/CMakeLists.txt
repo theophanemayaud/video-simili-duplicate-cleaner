@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.16)
-set(VCPKG_TARGET_TRIPLET "arm64-windows-static-md") # vcpkg provided triplet in vcpkg itself
 
 project(video-simili-duplicate-cleaner VERSION 0.1 LANGUAGES CXX)
 set(APP_COPYRIGHT "Copyright © 2020-2025 Théophane Mayaud, 2018-2019 Kristian Koskimäki")
@@ -60,9 +59,15 @@ if(APPLE)
 endif()
 
 # Créer l'exécutable
-add_executable(video-simili-duplicate-cleaner MACOSX_BUNDLE
-    ${PROJECT_SOURCES}
-)
+if(APPLE)
+    add_executable(video-simili-duplicate-cleaner MACOSX_BUNDLE
+        ${PROJECT_SOURCES}
+    )
+else()
+    add_executable(video-simili-duplicate-cleaner WIN32
+        ${PROJECT_SOURCES}
+    )
+endif()
 
 # Link Qt libraries after target is created
 target_link_libraries(video-simili-duplicate-cleaner PRIVATE

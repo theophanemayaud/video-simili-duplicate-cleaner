@@ -8,6 +8,24 @@ Both windows and macos require QT as well of course, but that's necessary to ins
 
 # Windows
 
+Via Visual Studio Installer, install  Visual Studio Build Tools / Desktop development with C++, which should install 
+- windows 11 SDK, 
+- C++/CLI support for build tools, and MSVC VS 2022 
+- C++ ARM build tools
+- C++ ARM/ARMEC build tools (need standard arm and arm/ArmEC too, not sure why but vcpkg errors otherwise...)
+- C++ CMake tools for Windows
+
+Also separately install vcpkg (clone git and run their setup script)
+
+## Set path vars
+
+The previous step installs visual studio c++ compilers, cmake, packaging tools, which must be added to the command line path by going to window's "Edit the environment variables" and adding to the env path var:
+- `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin` path to cmake
+- `C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\arm64` path to MakeAppX
+- And of course the path to vcpkg, ex `C:\Dev\vcpkg`
+
+Also the env variable `VCPKG_ROOT` pointing to the vcpkg folder.
+
 ## vcpkg Approach
 
 To simplify dependency management and cross compilation on windows, this project is trying out vcpkg.
