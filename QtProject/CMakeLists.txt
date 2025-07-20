@@ -35,6 +35,7 @@ set(PROJECT_SOURCES
     app/videoprocessingpool.cpp
     app/videoprocessingpool.h
     app/ssim.cpp
+    app/ffmpeg.h
     app/files.qrc
 )
 
@@ -120,3 +121,10 @@ target_link_libraries(video-simili-duplicate-cleaner PRIVATE
     Qt${QT_VERSION_MAJOR}::Sql
     Qt${QT_VERSION_MAJOR}::Concurrent
 )
+
+# Option to build tests
+option(BUILD_TESTS "Build the test suite" OFF)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests/test_end_to_end)
+endif()
