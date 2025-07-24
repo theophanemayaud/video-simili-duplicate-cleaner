@@ -58,7 +58,6 @@ if(APPLE)
     )
 endif()
 
-# Créer l'exécutable
 if(APPLE)
     add_executable(video-simili-duplicate-cleaner MACOSX_BUNDLE
         ${PROJECT_SOURCES}
@@ -89,7 +88,6 @@ if(APPLE)
     )
 endif()
 
-# Définir les includes et les définitions
 target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
     QT_DISABLE_DEPRECATED_BEFORE=0x060000
     APP_NAME="Video simili duplicate cleaner"
@@ -97,7 +95,6 @@ target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
 )
 
 if(APPLE)
-    # Configuration spécifique pour ARM64 (Apple Silicon)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         # OpenCV
         set(OPENCV_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/opencv-arm/opencv-install")
@@ -139,12 +136,9 @@ if(APPLE)
     else()
         message(FATAL_ERROR "This application only supports Apple Silicon (ARM64) processors on macOS for now")
     endif()
-endif()
+else()
+    message(STATUS "Windows or other non apple platforms: adding libraries expecting management by vcpkg")
 
-if(WIN32)
-    message(STATUS "Windows: adding libraries")
-
-    # Find packages using vcpkg
     find_package(OpenCV REQUIRED COMPONENTS core imgproc)
     target_link_libraries(video-simili-duplicate-cleaner PRIVATE
         ${OpenCV_LIBS}
