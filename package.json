@@ -30,7 +30,7 @@
     "release:patch": "standard-version --release-as patch -a && npm run notif-push",
     "release:major": "standard-version --release-as major -a && npm run notif-push",
     "notif-push": "echo '\n\n Remember to push commits and tags with \n git push && git push --tags' ",
-    "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/app/version.txt && node update-plist-version.js && node update-appxmanifest-version.js",
+    "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/app/version.txt && node update-plist-version.js",
     "build": "npm run update-build-version && npm run build-mac-binaries --prefix QtProject/release-build/macos",
     "build-arm": "npm run update-build-version && npm run build-mac-arm-binaries --prefix QtProject/release-build/macos",
     "clean": "npm run clean  --prefix QtProject/release-build/macos",
