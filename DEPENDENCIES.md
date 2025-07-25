@@ -52,6 +52,8 @@ The project automatically detects and integrates with vcpkg when the proper vcpk
 
 Install Visual Studio, can simply use the Visual Studio Installer to install the specific elements needed: for now Visual Studio Build Tools 2022 "Desktop development with C++" i.e. Windows SDK, and MSVC build tools (compilers)
 
+You will need to use the project's CMakePresets either directly in VS Code by selecting in the CMake extension the correct one for you, or by passing the preset to cmake when invoked from command line.
+
 ## Non vcpkg way (hopefully not needed anymore)
 
 ### FFmpeg
