@@ -13,6 +13,7 @@
 #include "video.h"
 #include "comparison.h"
 #include "db.h"
+#include "prefs.h"
 
 namespace Ui { class MainWindow; }
 
@@ -63,7 +64,6 @@ private slots:
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
     void findVideos(QDir &dir);
-    QVector<Video *> sortVideosBySize() const;
     void processVideos();
     void videoSummary();
 
