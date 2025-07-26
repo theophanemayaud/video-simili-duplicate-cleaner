@@ -116,23 +116,32 @@ contains(QMAKE_HOST.arch, x86_64):{
 
 win32 {
     # OpenCV libraries
-    INCLUDEPATH += $$PWD/../libraries/windows/opencv/include
+    INCLUDEPATH += $$PWD/../build/vcpkg_installed/arm64-windows-static-md/include/opencv2
 
     # On windows, opencv has two configs that must match what QT is currently also under
     # This means we have two versions of the same library, one debug, one release...
     CONFIG(debug, debug|release) {
         QMAKE_LFLAGS += /ignore:4099 # disable weird warning about pdb files... shouldn't be a problem
-        LIBS += -L$$PWD/../libraries/windows/opencv/lib/ -lopencv_imgproc451d -lopencv_core451d -lzlibd
+        LIBS += -L$$PWD/../build/vcpkg_installed/arm64-windows-static-md/debug/lib/ \
+                -lopencv_imgproc4d \
+                -lopencv_core4d \
+                -lzlibd \
+                -L$$PWD/../build/vcpkg_installed/arm64-windows-static-md/debug/lib/manual-link/opencv4_thirdparty \
+                -ltegra_hald
 
     } else {
-        LIBS += -L$$PWD/../libraries/windows/opencv/lib/ -lopencv_imgproc451 -lopencv_core451 -lzlib
+        LIBS += -L$$PWD/../build/vcpkg_installed/arm64-windows-static-md/lib/ \
+                -lopencv_imgproc4 \
+                -lopencv_core4 \
+                -lzlib \
+                -L$$PWD/../build/vcpkg_installed/arm64-windows-static-md/lib/manual-link/opencv4_thirdparty \
+                -ltegra_hal
     }
 
-
     # ffmpeg libraries
-    INCLUDEPATH += $$PWD/../libraries/windows/ffmpeg/include
+    INCLUDEPATH += $$PWD/../build/vcpkg_installed/arm64-windows-static-md/include
 
-    LIBS += -L$$PWD/../libraries/windows/ffmpeg/lib/ \
+    LIBS += -L$$PWD/../build/vcpkg_installed/arm64-windows-static-md/lib/ \
     # Three that we actually use directly, and their required libs (from pck config files)
                         -lavcodec ole32.lib user32.lib \
                         -lavformat ws2_32.lib \
@@ -140,6 +149,24 @@ win32 {
     # Other that seem required for the three above
                         -lavutil bcrypt.lib \
                         -lswresample
+
+    # AOM library for AV1 support
+    LIBS += -laom
+
+    # Windows system libraries for Media Foundation and security
+    LIBS += -lole32 \
+            -loleaut32 \
+            -luuid \
+            -ladvapi32 \
+            -lsecur32 \
+            -lws2_32 \
+            -lbcrypt \
+            -lntdll \
+            -lmfplat \
+            -lmfreadwrite \
+            -lmfuuid \
+            -lmfcore \
+            -lstrmiids
 
     # Windows app icon
     RC_FILE = $$PWD/app.rc

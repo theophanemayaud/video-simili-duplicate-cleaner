@@ -1,18 +1,62 @@
 # Current versions
 
-OpenCV : 4.5.1
+OpenCV : 4.8.0
 
-FFmpeg : n4.4 on windows, not sure for mac, couldn't find it => next time make them the same !
+FFmpeg : 7.1.1
+
+Both windows and macos require QT as well of course, but that's necessary to install for development of course. Still using qmake (for tests, final deployment, debugging in QT Creator) but also starting to use cmake for development in vs code, and hopefully building libraries on windows with vcpkg.
 
 # Windows
 
-First off, to build the app and dependencies, we need Microsoft Visual Studio (2019). Once installed, we'll have the "Cross Tools Command Prompt" with git and cmake already installed.
+Via Visual Studio Installer, install  Visual Studio Build Tools / Desktop development with C++, which should install 
+- windows 11 SDK, 
+- C++/CLI support for build tools, and MSVC VS 2022 
+- C++ ARM build tools
+- C++ ARM/ARMEC build tools (need standard arm and arm/ArmEC too, not sure why but vcpkg errors otherwise...)
+- C++ CMake tools for Windows
 
-Install Visual Studio (I did with v2019), only need C++ stuff. Note : it will install git for us, within the visual studio command lines.
+Also separately install vcpkg (clone git and run their setup script)
 
-Then install QT (only need standard MSVC QT, not UWP or other stuff QT)
+## Set path vars
 
-## FFmpeg
+The previous step installs visual studio c++ compilers, cmake, packaging tools, which must be added to the command line path by going to window's "Edit the environment variables" and adding to the env path var:
+- `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin` path to cmake
+- `C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\arm64` path to MakeAppX
+- And of course the path to vcpkg, ex `C:\Dev\vcpkg`
+
+Also the env variable `VCPKG_ROOT` pointing to the vcpkg folder.
+
+## vcpkg Approach
+
+To simplify dependency management and cross compilation on windows, this project is trying out vcpkg.
+
+vcpkg is a C++ package manager that simplifies dependency management for ffmpeg and OpenCV. This project is configured to use vcpkg with cmake for both Windows and cross-compilation scenarios.
+
+### Initial vcpkg Setup
+
+1. **Clone vcpkg** (if not already installed):
+   ```bash
+   git clone https://github.com/Microsoft/vcpkg.git
+   cd vcpkg
+   ```
+
+2. **Set environment variable** (necessary depending on how cmake is then run):
+   ```bash
+   # Windows (PowerShell)
+   $env:VCPKG_ROOT = "C:\path\to\vcpkg"
+   ```
+
+### CMake Integration
+
+The project automatically detects and integrates with vcpkg when the proper vcpkg path is set in QtProject\CMakeUserPresets.json for VCPKG_ROOT
+
+Install Visual Studio, can simply use the Visual Studio Installer to install the specific elements needed: for now Visual Studio Build Tools 2022 "Desktop development with C++" i.e. Windows SDK, and MSVC build tools (compilers)
+
+You will need to use the project's CMakePresets either directly in VS Code by selecting in the CMake extension the correct one for you, or by passing the preset to cmake when invoked from command line.
+
+## Non vcpkg way (hopefully not needed anymore)
+
+### FFmpeg
 
 From guide https://trac.ffmpeg.org/wiki/CompilationGuide/WinRT (WinRT also means UWP or in the guide, its simply windows !): must install MSYS2 and other things, then compile ffmpeg with "hacky" linux commands but using Visual Studio tools. We'll need to run the msys2 command line utility ("shell"), but launching it from the correct windows/visual studio cmd (use the Native x64 one, as we are on x64 platform with x64 windows os version) !  
 
@@ -79,7 +123,7 @@ rename .a '.lib' ../ffmpeg_install/lib/*.a
 
 Then copy the include and lib folders to the Qt project windows ffmpeg libraries folder. 
 
-## OpenCV
+### OpenCV
 
 git clone https://github.com/opencv/opencv
 cd opencv
@@ -106,6 +150,8 @@ cmake --build . --target install --config debug
 Then copy from install directory the includes and the lib files to the correct location in the project ! NB : zlib is required from opencvcore, although we don't really use it, we need it linked. It will be alongside the built opencv libs
 
 # MacOS
+
+Should now be able to use the libraries/macos/xx/x.sh scripts for simple setup (can be run with `npm run opencv-macos` or ffmpeg-macos)
 
 ## OpenCV
 

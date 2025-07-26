@@ -1,13 +1,19 @@
 {
   "scripts": {
-    "prep-package": "copy logo150x150.png release\\logo150x150.png && copy logo44x44.png release\\logo44x44.png && copy Icon1024.png release\\Icon1024.png && copy appxmanifest.xml release\\appxmanifest.xml",
-    "qmake": "C:\\Qt\\6.5.3\\msvc2019_64\\bin\\qmake.exe 'C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\app\\app.pro' -config release",
-    "make": "nmake",
-    "windeploy": "npm run prep-package && C:\\\\Qt\\\\6.5.3\\\\msvc2019_64\\\\bin\\\\windeployqt.exe --no-compiler-runtime --release \"C:\\Dev\\video-simili-duplicate-cleaner\\QtProject\\release-build\\windows\\release\\Video simili duplicate cleaner.exe\"",
-    "build-win-binaries": "npm run qmake && npm run make && npm run windeploy && npm run package-app",
-    "package-app": "MakeAppx pack /d release /p \"Video simili duplicate cleaner.msix\"",
-    "make-clean": "nmake clean || exit 0",
-    "clean-leftovers": "del /f \"Video simili duplicate cleaner.msix\" && del /f Makefile && del /f Makefile.Debug && del /f Makefile.Release && del /f .qmake.stash && rmdir /q /s release && rmdir /q /s debug",
-    "clean": "npm run make-clean && (npm run clean-leftovers || exit 0)"
+    "build-win-binaries-arm64": "npm run cmake-configure-arm64 && npm run cmake-build && npm run copy-exe && npm run windeploy && npm run prep-package-arm64 && npm run package-app-arm64",
+    "build-win-binaries-x64": "npm run cmake-configure-x64 && npm run cmake-build && npm run copy-exe && npm run windeploy && npm run prep-package-x64 && npm run package-app-x64",
+    "cmake-configure-arm64": "cmake -S ..\\.. -B .\\build --preset vcpkg-arm64-static",
+    "cmake-configure-x64": "cmake -S ..\\.. -B .\\build --preset vcpkg-x64-static",
+    "cmake-build": "cmake --build .\\build --config Release",
+    "copy-exe": "if not exist final mkdir final && copy .\\build\\Release\\video-simili-duplicate-cleaner.exe final\\\"Video simili duplicate cleaner.exe\"",
+    "windeploy": "echo Skipping windeployqt - using static build",
+    "prep-package-arm64": "npm run icons && node process-manifest-template.js arm64 appxmanifest.template.xml final\\appxmanifest.xml",
+    "prep-package-x64": "npm run icons && node process-manifest-template.js x64 appxmanifest.template.xml final\\appxmanifest.xml",
+    "icons": "copy logo150x150.png final\\logo150x150.png && copy logo44x44.png final\\logo44x44.png && copy Icon1024.png final\\Icon1024.png",
+    "package-app-arm64": "MakeAppX pack /d final /p \"Video simili duplicate cleaner.arm64.msix\"",
+    "package-app-x64": "MakeAppX pack /d final /p \"Video simili duplicate cleaner.x64.msix\"",
+    "clean": "npm run cmake-clean && (npm run clean-leftovers || exit 0)",
+    "cmake-clean": "(cmake --build .\\build --config Release --target clean || exit 0)",
+    "clean-leftovers": "(rmdir /q /s build || exit 0) && (rmdir /q /s final || exit 0) && (del /f \"Video simili duplicate cleaner.arm64.msix\" || exit 0) && (del /f \"Video simili duplicate cleaner.x64.msix\" || exit 0)"
   }
 }

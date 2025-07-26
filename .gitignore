@@ -15,3 +15,12 @@ node_modules
 
 # macOS Specifics
 .DS_Store
+
+# vcpkg build artifacts
+vcpkg_installed/
+build-*/
+.vs/
+
+# vcpkg local files (if vcpkg is cloned in project)
+vcpkg/
+QtProject/CMakeUserPresets.json
