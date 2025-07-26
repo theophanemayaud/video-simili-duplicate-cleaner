@@ -11,6 +11,8 @@
 #include <QStandardPaths>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QDir>
+#include <QFileInfo>
 
 #include "prefs.h"
 #include "video.h"
@@ -37,6 +39,9 @@ public:
     static bool initCustomDbAndCacheLocation(Prefs &prefs);
 
     static bool emptyAllDb(const Prefs prefs);
+
+    // Get the actual cache location for display purposes (handles UWP redirection)
+    static QString getActualCacheLocationForDisplay(const QString &logicalPath);
 
 //    //return md5 hash of parameter's file, used internally as "unique id" for each file
 //    static QString pathnameHashId(const QString &filename=QStringLiteral(""));
