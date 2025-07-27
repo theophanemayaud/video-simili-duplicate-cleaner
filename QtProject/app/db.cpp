@@ -20,11 +20,15 @@ bool Db::initDbAndCacheLocation(Prefs &prefs){
             return true;
     }
 
-    //attempt with system application local cache folder (doesn't seem to work on windows in dev mode
-    QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-    QString dbfilename = QStringLiteral("%1/cache.db").arg(cacheFolder.path());
+    //attempt with system application local data folder (works better with UWP apps)
+    QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation));
+    QString dbfilename = QStringLiteral("%1/cache/cache.db").arg(cacheFolder.path());
     if(!cacheFolder.exists())
         QDir().mkpath(cacheFolder.path());
+    // Ensure cache subdirectory exists
+    QDir cacheSubFolder = QDir(QStringLiteral("%1/cache").arg(cacheFolder.path()));
+    if(!cacheSubFolder.exists())
+        QDir().mkpath(cacheSubFolder.path());
     prefs.cacheFilePathName(dbfilename);
     if(initDbAndCache(prefs))
         return true;
@@ -75,37 +79,6 @@ bool Db::emptyAllDb(const Prefs prefs){
 
     QSqlDatabase().removeDatabase(connexionName); // clear the connexion backlog, basically... !
     return true;
-}
-
-QString Db::getActualCacheLocationForDisplay(const QString &logicalPath) {
-#ifdef Q_OS_WIN
-    // Check if we're running as a UWP app by looking for package identity
-    // UWP apps have a specific environment or registry indicators
-    QString packagePath = qgetenv("LOCALAPPDATA");
-    if (!packagePath.isEmpty()) {
-        // Look for the UWP package directory pattern
-        QString packagesDir = packagePath + "/Packages";
-        QDir packages(packagesDir);
-        if (packages.exists()) {
-            // Look for our app's package directory
-            QStringList packageDirs = packages.entryList(QStringList() << "5743TheophaneMayaud.Videosimiliduplicatecleaner_*", QDir::Dirs);
-            if (!packageDirs.isEmpty()) {
-                // Found our UWP package directory, construct the actual cache path
-                QString packageDir = packageDirs.first();
-                QString uwpCachePath = packagesDir + "/" + packageDir + "/LocalCache/Local/Video simili duplicate cleaner/cache/cache.db";
-                
-                // Check if this path actually exists (indicating we're running as UWP)
-                QFileInfo uwpCacheFile(uwpCachePath);
-                if (uwpCacheFile.exists() || uwpCacheFile.dir().exists()) {
-                    return QDir::toNativeSeparators(uwpCachePath);
-                }
-            }
-        }
-    }
-#endif
-    
-    // Fall back to the original logical path for non-UWP or if UWP detection failed
-    return QDir::toNativeSeparators(logicalPath);
 }
 
 // -------------------- END : public static functions -------------------

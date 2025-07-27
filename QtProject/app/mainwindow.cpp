@@ -66,7 +66,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->mainToolBar->setVisible(false);
 
     if(Db::initDbAndCacheLocation(_prefs))
-        addStatusMessage("\nCache located at: " + Db::getActualCacheLocationForDisplay(_prefs.cacheFilePathName()) + "\n");
+        addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName() + "\n");
     else
         addStatusMessage("\nError accessing cache, will not use any.\n");
 
@@ -470,15 +470,15 @@ void MainWindow::on_actionAbout_triggered()
 void MainWindow::on_actionEmpty_cache_triggered()
 {
     if(Db::emptyAllDb(_prefs))
-        addStatusMessage(QString("\nEmptied cache at:  %1\n").arg(Db::getActualCacheLocationForDisplay(_prefs.cacheFilePathName())));
+        addStatusMessage(QString("\nEmptied cache at:  %1\n").arg(_prefs.cacheFilePathName()));
     else
-        addStatusMessage(QString("\nFailed to empty cache at:  %1\n").arg(Db::getActualCacheLocationForDisplay(_prefs.cacheFilePathName())));
+        addStatusMessage(QString("\nFailed to empty cache at:  %1\n").arg(_prefs.cacheFilePathName()));
 }
 
 void MainWindow::on_actionSet_custom_cache_location_triggered()
 {
     if(Db::initCustomDbAndCacheLocation(_prefs)){
-        addStatusMessage(QString("\nCache now used:  %1\n").arg(Db::getActualCacheLocationForDisplay(_prefs.cacheFilePathName())));
+        addStatusMessage(QString("\nCache now used:  %1\n").arg(_prefs.cacheFilePathName()));
     }
     else
         addStatusMessage(QString("\nError selecting custom cache. Probably no cache now.\n"));
@@ -508,7 +508,7 @@ void MainWindow::on_actionRestore_default_cache_location_triggered()
 {
     _prefs.cacheFilePathName("");
     if(Db::initDbAndCacheLocation(_prefs))
-        addStatusMessage("\nCache restored to: " + Db::getActualCacheLocationForDisplay(_prefs.cacheFilePathName()) + "\n");
+        addStatusMessage("\nCache restored to: " + _prefs.cacheFilePathName() + "\n");
     else
         addStatusMessage(QString("\nError restoring default cache. Probably no cache now.\n"));
 }
