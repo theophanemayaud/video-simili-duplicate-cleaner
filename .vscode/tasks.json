@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "binaries",
+			"problemMatcher": [],
+			"label": "binaries",
+			"detail": "build app and package for app store",
+		}
+	]
+}
