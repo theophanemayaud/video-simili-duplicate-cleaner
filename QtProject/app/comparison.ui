@@ -2120,9 +2120,18 @@ In each scenario where only one of the two files is either in a protected folder
       </widget>
      </item>
      <item>
-      <widget class="QProgressBar" name="progressBar">
+      <widget class="QSlider" name="progressBar">
+       <property name="minimum">
+        <number>1</number>
+       </property>
        <property name="value">
-        <number>24</number>
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>100</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
        </property>
       </widget>
      </item>

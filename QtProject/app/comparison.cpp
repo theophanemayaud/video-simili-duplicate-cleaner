@@ -2,6 +2,8 @@
 
 #include <QMimeData>
 #include <QProgressDialog>
+#include <QSlider>
+#include <QAbstractSlider>
 
 #include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
 
@@ -29,7 +31,8 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), _prefs._mainwPtr, SLOT(on_thresholdSlider_valueChanged(const int &)));
-    connect(ui->progressBar, SIGNAL(valueChanged(const int &)), ui->currentVideo, SLOT(setNum(const int &)));
+    connect(ui->progressBar, SIGNAL(valueChanged(int)), ui->currentVideo, SLOT(setNum(int)));
+    connect(ui->progressBar, &QSlider::sliderReleased, this, &Comparison::onProgressSliderReleased);
 
     initSortOrder();
 
@@ -37,10 +40,12 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
         ui->selectSSIM->setChecked(true);
     on_thresholdSlider_valueChanged(this->_prefs.matchSimilarityThreshold());
 
-    ui->progressBar->setMaximum(_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2);
+    const int allCombinations = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2; // all possible combinations
+    ui->progressBar->setMinimum(1);
+    ui->progressBar->setMaximum(allCombinations);
 
     ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
-    ui->totalVideos->setNum(int(_videos.size() * (_videos.size() - 1) / 2)); // all possible combinations
+    ui->totalVideos->setNum(allCombinations); // all possible combinations
 
     // hide as not implemented yet
     // Auto trash based on folder settings
@@ -282,10 +287,11 @@ void Comparison::on_nextVideo_clicked()
                 updateUI();
                 return;
             }
+            if((_leftVideo+_rightVideo)%1000==999) { // ui refresh slow so limit number of updates
+                progress.setValue(comparisonsSoFar());
+                ui->progressBar->setValue(comparisonsSoFar());
+            }
         }
-        if(_leftVideo%1000==999) // ui refresh slow so limit number of updates
-            progress.setValue(comparisonsSoFar());
-        ui->progressBar->setValue(comparisonsSoFar());
         _rightVideo = _leftVideo + 1;
     }
 
@@ -637,11 +643,68 @@ void Comparison::updateUI()
 
 int Comparison::comparisonsSoFar() const
 {
-    const int cmpFirst = _prefs._numberOfVideos;                    //comparisons done for first video
-    const int cmpThis = cmpFirst - _leftVideo;                      //comparisons done for current video
-    const int remaining = cmpThis * (cmpThis - 1) / 2;              //comparisons for remaining videos
-    const int maxComparisons = cmpFirst * (cmpFirst - 1) / 2;       //comparing all videos with each other
-    return maxComparisons - remaining + _rightVideo - _leftVideo;
+    // e.g. 3 videos a, b c
+    // Comparisons 1 2 are a:b and a:c
+    // Comparison  3    is b:c 
+    // Slider goes from 1 to maxComparisons 
+    const int cmpFirst = _prefs._numberOfVideos;                    
+    const int cmpThis = cmpFirst - _leftVideo;                     
+    const int remaining = cmpThis * (cmpThis - 1) / 2;              //comparisons to be done from current video
+    const int maxComparisons = cmpFirst * (cmpFirst - 1) / 2;       //comparisons to be done from first video
+    const int distance = _rightVideo - _leftVideo;
+    return maxComparisons - remaining + distance;
+}
+
+void Comparison::seekFromSliderPosition(int target)
+{
+    // we want to resume from the theoretical pair at "position", 
+    // video 1: compared to video 2, 3, 4, 5
+    // video 2: compared to video 3, 4, 5
+    // video 3: compared to video 4, 5
+    // video 4: compared to video 5
+    // Overal 5 videos means 5*(5-1)/2 = 5*4/2 = 10 possible pairs
+    
+    // total comparisons n * (n-1) / 2
+    // remaining comparisons at vid a: a * (a-1) / 2, with other video being from 1 to total - a - 1
+    // want to find a such that x within the range of [a * (a-1) / 2 to (a+1) * (a+1-1) / 2 [
+    // can do with binary search
+    if (_prefs._numberOfVideos < 2 || _videos.size() < 2) {
+        return;
+    }
+
+    int curr = _prefs._numberOfVideos/2; 
+    int nextSearchWidth = ceil(curr/2.0); 
+    int remainingToTarget;
+
+    while (1) {
+
+        int totalComp = _prefs._numberOfVideos * (_prefs._numberOfVideos-1) / 2;
+        int remainingVids = _prefs._numberOfVideos - curr +1; // should include current video
+        int remainingComp = remainingVids * (remainingVids -1)/2; // remaining comparisons from the current video
+        int currentComp = totalComp - remainingComp +1;
+
+        remainingToTarget = target - currentComp;
+
+        if (0 <= remainingToTarget && remainingToTarget < remainingVids -1)
+            break;
+        else if (remainingToTarget < 0) {
+            curr = curr - nextSearchWidth; // go to next lower half
+        }
+        else {
+            curr = curr + nextSearchWidth; // go to next higher half
+        }
+
+        nextSearchWidth = ceil(nextSearchWidth / 2.0);
+    }
+
+    _leftVideo =  curr - 1; // 0 indexed
+    _rightVideo = _leftVideo + remainingToTarget; // put right just before the target (should add 1 to be on target) as next video click actually goes to next so would skip target
+    on_nextVideo_clicked();
+}
+
+void Comparison::onProgressSliderReleased()
+{
+    seekFromSliderPosition(ui->progressBar->sliderPosition());
 }
 
 void Comparison::openFileManager(const QString &filename)

@@ -60,6 +60,8 @@ private:
     bool _someWereMovedInApplePhotosLibrary = false;
     bool _firstScriptingAskPermission = true;
 
+    void seekFromSliderPosition(int position);
+
     void loadLockedFolderFromPrefs();
     void addLockedFolderToList(QString folderPath);
 
@@ -118,6 +120,7 @@ private slots:
     void highlightBetterProperties() const;
     void updateUI();
     int comparisonsSoFar() const;
+    void onProgressSliderReleased();
 
     void on_selectPhash_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_PHASH);
                                                          emit switchComparisonMode(this->_prefs.comparisonMode()); }
