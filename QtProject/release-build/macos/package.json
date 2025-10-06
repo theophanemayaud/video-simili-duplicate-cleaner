@@ -8,11 +8,21 @@
         "build-mac-intel-qmake": "npm run qmake-intel && npm run make && npm run macdeploy",
         "build-mac-arm-binaries-qmake": "npm run build-mac-arm-qmake && npm run sign-and-package",
         "build-mac-arm-qmake": "npm run qmake-arm && npm run make && npm run macdeploy",
+        "cmake-configure": "cmake -S ../.. -B ./build --preset release-macos",
+        "cmake-build": "cmake --build ./build --config Release",
+        "copy-app-from-cmake": "rm -rf 'Video simili duplicate cleaner.app' && cp -R './build/video-simili-duplicate-cleaner.app' 'Video simili duplicate cleaner.app'",
+        "build-cmake": "npm run cmake-configure && npm run cmake-build && npm run copy-app-from-cmake && npm run macdeploy",
+        "build-binaries-cmake": "npm run build-cmake && npm run sign-and-package",
         "sign-and-package": "cp Info.plist 'Video simili duplicate cleaner.app/Contents/Info.plist' && npm run sign-app && npm run package-app",
         "sign-app": "codesign --deep --force --sign 'Apple Distribution: THEOPHANE MAYAUD (XZ4FY5SXW7)' --entitlements parent.plist --options=runtime --timestamp 'Video simili duplicate cleaner.app'",
         "package-app": "productbuild --component 'Video simili duplicate cleaner.app' /Applications --sign '3rd Party Mac Developer Installer: THEOPHANE MAYAUD (XZ4FY5SXW7)' --timestamp 'Video simili duplicate cleaner.pkg'",
         "qmake-clean" : "make clean -j || exit 0",
-        "clean-leftovers-qmake" : "npm run qmake-clean && rm -f 'Video simili duplicate cleaner.dmg' && rm -f Makefile && rm -f .qmake.stash && rm -f -r 'Video simili duplicate cleaner.app' && rm -f 'Video simili duplicate cleaner.pkg'",
-        "clean-qmake" : "npm run qmake-clean && npm run clean-leftovers-qmake"
+        "clean-leftovers-qmake" : "npm run qmake-clean && rm -f Makefile && rm -f .qmake.stash && npm run delete-apps",
+        "clean-qmake" : "npm run qmake-clean && npm run clean-leftovers-qmake",
+        "cmake-clean": "cmake --build ./build --config Release --target clean || exit 0",
+        "clean-leftovers-cmake" : "rm -rf ./build &&  npm run delete-apps",
+        "delete-apps" : "rm -rf 'Video simili duplicate cleaner.app' && rm -rf 'Video simili duplicate cleaner.pkg' && rm -f 'Video simili duplicate cleaner.dmg'",
+        "clean-cmake" : "npm run cmake-clean && npm run clean-leftovers-cmake",
+        "clean": "npm run clean-cmake"
   }
 }

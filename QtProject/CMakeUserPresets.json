@@ -24,8 +24,8 @@
             ]
         },
         {
-            "name": "release-6.9.3-macos",
-            "binaryDir": "${sourceDir}/builds/build-release-6.9.3-macos",
+            "name": "release-macos",
+            "binaryDir": "${sourceDir}/release-build/macos/build",
             "inherits": [
                 "base-6.9.3-macos",
                 "base-release"
