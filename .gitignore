@@ -24,4 +24,3 @@ build-*/
 
 # vcpkg local files (if vcpkg is cloned in project)
 vcpkg/
-QtProject/CMakeUserPresets.json

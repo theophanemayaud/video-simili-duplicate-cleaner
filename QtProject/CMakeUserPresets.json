@@ -1,0 +1,36 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "base-6.9.3-macos",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.9.3/macos",
+                "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64"
+            },
+            "inherits": [
+                "base-ninja",
+                "base-macos"
+            ],
+            "environment": {
+                "PATH": "$env{HOME}/Qt/Tools/Ninja/:$penv{PATH}"
+            }
+        },
+        {
+            "name": "debug-6.9.3-macos",
+            "binaryDir": "${sourceDir}/builds/build-debug-6.9.3-macos",
+            "inherits": [
+                "base-6.9.3-macos",
+                "base-debug"
+            ]
+        },
+        {
+            "name": "release-macos",
+            "binaryDir": "${sourceDir}/release-build/macos/build",
+            "inherits": [
+                "base-6.9.3-macos",
+                "base-release"
+            ]
+        }
+    ]
+}
