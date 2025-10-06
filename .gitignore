@@ -9,6 +9,8 @@ QtProject/release-build
 
 build/
 
+compile_commands.json
+
 # Node things
 node_modules
 

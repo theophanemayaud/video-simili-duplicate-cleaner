@@ -1,3 +1,21 @@
 {
     "cmake.sourceDirectory": "${workspaceFolder}/QtProject",
+    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "cmake.ctestArgs": [
+        "-V"
+    ],
+    "cmake.debugConfig": {
+        "name": "Debug (lldb)",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${command:cmake.launchTargetPath}",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${command:cmake.launchTargetDirectory}",
+        "environment": [],
+        "MIMode": "lldb",
+        "externalConsole": false,
+    },
+    "files.associations": {}
 }
