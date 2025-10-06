@@ -50,11 +50,15 @@ set(PROJECT_SOURCES
 
 if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
+    
+    set(MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
+    set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/app/AppIcon.icns)
+    set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 
     list(APPEND PROJECT_SOURCES
         app/obj-c.mm
         app/obj-c.h
-        app/AppIcon.icns
+        ${APP_ICON_MACOSX}
     )
 endif()
 
@@ -76,15 +80,20 @@ target_link_libraries(video-simili-duplicate-cleaner PRIVATE
     Qt${QT_VERSION_MAJOR}::Concurrent
 )
 
-# Définir les propriétés de l'application
 if(APPLE)
+    # We actually overwrite the Info.plist file with the one in the release-build/macos folder
+    # But at some point we should stop doing that and rely on cmake generated Info.plist file from below properties
     set_target_properties(video-simili-duplicate-cleaner PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.theophane.video-simili-duplicate-cleaner"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "video-simili-duplicate-cleaner.theophanemayaud.github.io"
         MACOSX_BUNDLE_BUNDLE_NAME "Video simili duplicate cleaner"
         MACOSX_BUNDLE_BUNDLE_VERSION "0.1"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
-        MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}    
+        MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
+        MACOSX_BUNDLE_ICON_FILE AppIcon.icns
+        MACOSX_BUNDLE_INFO_STRING "Video simili duplicate cleaner"
+        OUTPUT_NAME "Video simili duplicate cleaner"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "video-simili-duplicate-cleaner.theophanemayaud.github.io"
     )
 endif()
 

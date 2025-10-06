@@ -10,7 +10,7 @@
         "build-mac-arm-qmake": "npm run qmake-arm && npm run make && npm run macdeploy",
         "cmake-configure": "cmake -S ../.. -B ./build --preset release-macos",
         "cmake-build": "cmake --build ./build --config Release",
-        "copy-app-from-cmake": "rm -rf 'Video simili duplicate cleaner.app' && cp -R './build/video-simili-duplicate-cleaner.app' 'Video simili duplicate cleaner.app'",
+        "copy-app-from-cmake": "rm -rf 'Video simili duplicate cleaner.app' && cp -R './build/Video simili duplicate cleaner.app' 'Video simili duplicate cleaner.app'",
         "build-cmake": "npm run cmake-configure && npm run cmake-build && npm run copy-app-from-cmake && npm run macdeploy",
         "build-binaries-cmake": "npm run build-cmake && npm run sign-and-package",
         "sign-and-package": "cp Info.plist 'Video simili duplicate cleaner.app/Contents/Info.plist' && npm run sign-app && npm run package-app",
