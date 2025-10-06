@@ -5,7 +5,8 @@
             "name": "base-6.9.3-macos",
             "hidden": true,
             "cacheVariables": {
-                "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.9.3/macos"
+                "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.9.3/macos",
+                "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64"
             },
             "inherits": [
                 "base-ninja",

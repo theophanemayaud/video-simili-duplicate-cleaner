@@ -104,47 +104,43 @@ target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
 )
 
 if(APPLE)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-        # OpenCV
-        set(OPENCV_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/opencv-arm/opencv-install")
-        include_directories(${OPENCV_ROOT}/include/opencv4)
-        target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-            ${OPENCV_ROOT}/lib/libopencv_imgproc.a
-            ${OPENCV_ROOT}/lib/libopencv_core.a
-            ${OPENCV_ROOT}/lib/opencv4/3rdparty/libzlib.a
-            ${OPENCV_ROOT}/lib/opencv4/3rdparty/libittnotify.a
-            "-framework OpenCL"
-            "-framework Accelerate"
-        )
-        
-        # FFMPEG
-        set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
-        include_directories(${FFMPEG_ROOT}/include)
-        target_link_directories(video-simili-duplicate-cleaner PRIVATE
-            ${FFMPEG_ROOT}/lib
-        )
-        target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-            avutil avformat swresample avcodec swscale
-            bz2 iconv
-            "-framework CoreVideo"
-            "-framework Security"
-            "-framework AudioToolbox"
-            "-framework CoreMedia"
-            "-framework VideoToolbox"
-        )
-        
-        # AOM
-        set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/libaom-universalized")
-        include_directories(${AOM_ROOT}/include)
-        target_link_directories(video-simili-duplicate-cleaner PRIVATE
-            ${AOM_ROOT}/lib
-        )
-        target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-            aom
-        )
-    else()
-        message(FATAL_ERROR "This application only supports Apple Silicon (ARM64) processors on macOS for now")
-    endif()
+    # OpenCV
+    set(OPENCV_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/opencv-arm/opencv-install")
+    include_directories(${OPENCV_ROOT}/include/opencv4)
+    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
+        ${OPENCV_ROOT}/lib/libopencv_imgproc.a
+        ${OPENCV_ROOT}/lib/libopencv_core.a
+        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libzlib.a
+        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libittnotify.a
+        "-framework OpenCL"
+        "-framework Accelerate"
+    )
+    
+    # FFMPEG
+    set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
+    include_directories(${FFMPEG_ROOT}/include)
+    target_link_directories(video-simili-duplicate-cleaner PRIVATE
+        ${FFMPEG_ROOT}/lib
+    )
+    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
+        avutil avformat swresample avcodec swscale
+        bz2 iconv
+        "-framework CoreVideo"
+        "-framework Security"
+        "-framework AudioToolbox"
+        "-framework CoreMedia"
+        "-framework VideoToolbox"
+    )
+    
+    # AOM
+    set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/libaom-universalized")
+    include_directories(${AOM_ROOT}/include)
+    target_link_directories(video-simili-duplicate-cleaner PRIVATE
+        ${AOM_ROOT}/lib
+    )
+    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
+        aom
+    )
 else()
     message(STATUS "Windows or other non apple platforms: adding libraries expecting management by vcpkg")
 
