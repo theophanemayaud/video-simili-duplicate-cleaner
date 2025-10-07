@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    // CMake support
+    "ms-vscode.cmake-tools",
+    
+    // C++ support
+    "ms-vscode.cpptools",
+    
+    // Qt support
+    "theqtcompany.qt-cpp",
+    "theqtcompany.qt-core",
+    "theqtcompany.qt-ui",
+
+    // QT Tests
+    "KDAB.qttests",
+    ]
+}
+

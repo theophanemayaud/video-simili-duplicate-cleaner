@@ -41,6 +41,7 @@ set(PROJECT_SOURCES
     app/db.cpp
     app/db.h
     app/prefs.h
+    app/prefs.cpp
     app/videometadata.h
     app/videoprocessingpool.cpp
     app/videoprocessingpool.h
@@ -156,3 +157,7 @@ else()
         ${FFMPEG_LIBRARIES}
     )
 endif()
+
+# Enable testing
+enable_testing()
+add_subdirectory(tests)

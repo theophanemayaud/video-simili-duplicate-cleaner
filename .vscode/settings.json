@@ -3,8 +3,10 @@
     "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "cmake.ctestArgs": [
-        "-V"
+        "-V",
+        "--output-on-failure"
     ],
+    "cmake.ctest.allowParallelJobs": true,
     "cmake.debugConfig": {
         "name": "Debug (lldb)",
         "type": "cppdbg",
@@ -17,5 +19,8 @@
         "MIMode": "lldb",
         "externalConsole": false,
     },
-    "files.associations": {}
+    "files.associations": {},
+    "testMate.cpp.test.executables": "${workspaceFolder}/QtProject/builds/**/*{test,Test,TEST}*",
+    "testMate.cpp.test.workingDirectory": "${workspaceFolder}/QtProject",
+    "testMate.cpp.log.logpanel": true
 }

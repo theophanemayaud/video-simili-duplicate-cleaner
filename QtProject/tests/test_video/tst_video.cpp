@@ -12,7 +12,7 @@
 #include "../../app/ui_comparison.h"
 #include "../../app/db.h"
 
-#include "video_test_helpers.cpp"
+#include "video_test_helpers.h"
 
 class TestVideo : public QObject
 {
