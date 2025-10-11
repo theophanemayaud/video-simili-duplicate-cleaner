@@ -8,7 +8,7 @@ Copyright (c) 2018 Ruofei Du (MIT License)
 
 using namespace cv;
 
-double Comparison::sigma(const Mat &m, const int &i, const int &j, const int &block_size) const {
+double Comparison::sigma(const Mat &m, const int &i, const int &j, const int &block_size) {
     const Mat m_tmp = m(Range(i, i + block_size), Range(j, j + block_size));
     const Mat m_squared(block_size, block_size, CV_32F);
 
@@ -21,7 +21,7 @@ double Comparison::sigma(const Mat &m, const int &i, const int &j, const int &bl
     return sd;
 }
 
-double Comparison::covariance(const Mat &m0, const Mat &m1, const int &i, const int &j, const int &block_size) const {
+double Comparison::covariance(const Mat &m0, const Mat &m1, const int &i, const int &j, const int &block_size) {
     const Mat m3 = Mat::zeros(block_size, block_size, CV_32F);
     const Mat m0_tmp = m0(Range(i, i + block_size), Range(j, j + block_size));
     const Mat m1_tmp = m1(Range(i, i + block_size), Range(j, j + block_size));
@@ -36,7 +36,7 @@ double Comparison::covariance(const Mat &m0, const Mat &m1, const int &i, const 
     return sd_ro;
 }
 
-double Comparison::ssim(const Mat &m0, const Mat &m1, const int &block_size) const {
+double Comparison::ssim(const Mat &m0, const Mat &m1, const int &block_size) {
     double ssim = 0;
     const int nbBlockPerHeight = m0.rows / block_size;
     const int nbBlockPerWidth = m0.cols / block_size;
