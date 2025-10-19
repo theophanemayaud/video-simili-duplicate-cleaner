@@ -123,3 +123,44 @@ add_qt_test(test_video
         test_video/video_test_helpers.cpp
 )
 
+# Test 4: test_video_simplified
+add_qt_test(test_video_simplified
+    SOURCES
+        test_video_simplified/tst_video_simplified.cpp
+        test_video_simplified/video_simplified_test_helpers.cpp
+)
+
+# Reference data generator for test_video_simplified (not a test, just a utility)
+add_executable(generate_reference_data
+    test_video_simplified/generate_reference_data.cpp
+    test_video_simplified/video_simplified_test_helpers.cpp
+    ${COMMON_APP_SOURCES}
+)
+target_link_libraries(generate_reference_data PRIVATE
+    Qt6::Core Qt6::Widgets Qt6::Sql Qt6::Concurrent Qt6::Test
+)
+target_compile_definitions(generate_reference_data PRIVATE ${TEST_COMPILE_DEFINITIONS})
+if(APPLE)
+    set(OPENCV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/opencv-arm/opencv-install")
+    target_include_directories(generate_reference_data PRIVATE ${OPENCV_ROOT}/include/opencv4)
+    target_link_libraries(generate_reference_data PRIVATE
+        ${OPENCV_ROOT}/lib/libopencv_imgproc.a
+        ${OPENCV_ROOT}/lib/libopencv_core.a
+        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libzlib.a
+        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libittnotify.a
+        "-framework OpenCL" "-framework Accelerate"
+    )
+    set(FFMPEG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/ffmpeg-universalized-libs")
+    target_include_directories(generate_reference_data PRIVATE ${FFMPEG_ROOT}/include)
+    target_link_directories(generate_reference_data PRIVATE ${FFMPEG_ROOT}/lib)
+    target_link_libraries(generate_reference_data PRIVATE
+        avutil avformat swresample avcodec swscale bz2 iconv
+        "-framework CoreVideo" "-framework Security" "-framework AudioToolbox" 
+        "-framework CoreMedia" "-framework VideoToolbox"
+    )
+    set(AOM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/libaom-universalized")
+    target_include_directories(generate_reference_data PRIVATE ${AOM_ROOT}/include)
+    target_link_directories(generate_reference_data PRIVATE ${AOM_ROOT}/lib)
+    target_link_libraries(generate_reference_data PRIVATE aom)
+endif()
+

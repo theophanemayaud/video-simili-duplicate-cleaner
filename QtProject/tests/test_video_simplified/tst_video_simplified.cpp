@@ -1,0 +1,217 @@
+#include <QtTest>
+#include <QCoreApplication>
+
+#include "../../app/video.h"
+#include "../../app/prefs.h"
+#include "../../app/db.h"
+#include "video_simplified_test_helpers.h"
+
+class TestVideoSimplified : public QObject
+{
+    Q_OBJECT
+
+public:
+    TestVideoSimplified();
+    ~TestVideoSimplified();
+
+private slots:
+    void initTestCase();
+    
+    // Data-driven test for video scanning
+    void test_videoScanning_data();
+    void test_videoScanning();
+    
+    // Reference data generation (commented out by default, uncomment to regenerate reference data)
+    // void generateReferenceData();
+    
+    void cleanupTestCase();
+
+private:
+    QString samplesDir;
+    QString referenceDir;
+    QString projectRoot;
+};
+
+TestVideoSimplified::TestVideoSimplified()
+{
+}
+
+TestVideoSimplified::~TestVideoSimplified()
+{
+}
+
+void TestVideoSimplified::initTestCase()
+{
+    qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
+    Prefs().resetSettings();
+    qDebug() << "Cleared settings";
+    
+    // Setup paths relative to project root
+    projectRoot = QDir::currentPath();
+    while (!QFileInfo::exists(projectRoot + "/samples/videos") && projectRoot != "/") {
+        projectRoot = QDir(projectRoot).absolutePath();
+        QDir dir(projectRoot);
+        if (!dir.cdUp()) break;
+        projectRoot = dir.absolutePath();
+    }
+    
+    samplesDir = projectRoot + "/samples/videos";
+    referenceDir = projectRoot + "/QtProject/tests/test_video_simplified/reference_data";
+    
+    qDebug() << "Project root:" << projectRoot;
+    qDebug() << "Samples directory:" << samplesDir;
+    qDebug() << "Reference directory:" << referenceDir;
+    
+    QVERIFY2(QFileInfo::exists(samplesDir), 
+        QString("Samples directory not found: %1").arg(samplesDir).toUtf8());
+    QVERIFY2(QFileInfo::exists(referenceDir), 
+        QString("Reference directory not found: %1").arg(referenceDir).toUtf8());
+}
+
+void TestVideoSimplified::test_videoScanning_data()
+{
+    QTest::addColumn<QString>("videoName");
+    QTest::addColumn<int>("cacheMode");
+    QTest::addColumn<double>("ssimThreshold");
+    
+    QStringList videos = {"Nice_383p_500kbps.mp4", "Nice_720p_1000kbps.mp4"};
+    QList<int> cacheModes = {Prefs::NO_CACHE, Prefs::WITH_CACHE, Prefs::CACHE_ONLY};
+    QList<int> ssimPercents = {100, 99, 98, 97, 96, 95, 90};
+    
+    for (const QString& video : videos) {
+        for (int cacheMode : cacheModes) {
+            for (int ssimPercent : ssimPercents) {
+                QString cacheName = (cacheMode == Prefs::NO_CACHE) ? "nocache" :
+                                   (cacheMode == Prefs::WITH_CACHE) ? "cache" : "cacheonly";
+                QString rowName = QString("%1-%2-%3pct")
+                    .arg(video.left(video.indexOf('.')))
+                    .arg(cacheName)
+                    .arg(ssimPercent);
+                
+                QTest::newRow(rowName.toStdString().c_str()) 
+                    << video << cacheMode << (ssimPercent / 100.0);
+            }
+        }
+    }
+}
+
+void TestVideoSimplified::test_videoScanning()
+{
+    QFETCH(QString, videoName);
+    QFETCH(int, cacheMode);
+    QFETCH(double, ssimThreshold);
+    
+    // Setup paths
+    QString videoPath = samplesDir + "/" + videoName;
+    QString refMetadataPath = referenceDir + "/" + videoName + ".txt";
+    QString refThumbPath = referenceDir + "/" + videoName + ".jpg";
+    
+    QVERIFY2(QFileInfo::exists(videoPath), 
+        QString("Video not found: %1").arg(videoPath).toUtf8());
+    QVERIFY2(QFileInfo::exists(refMetadataPath), 
+        QString("Reference metadata not found: %1. Run generateReferenceData() first.").arg(refMetadataPath).toUtf8());
+    QVERIFY2(QFileInfo::exists(refThumbPath), 
+        QString("Reference thumbnail not found: %1. Run generateReferenceData() first.").arg(refThumbPath).toUtf8());
+    
+    // Need to ensure cache exists when we want the test to use it
+    if (cacheMode == Prefs::CACHE_ONLY || cacheMode == Prefs::WITH_CACHE) {
+        Prefs cachePrefs;
+        cachePrefs.useCacheOption(Prefs::WITH_CACHE);
+        Db::initDbAndCacheLocation(cachePrefs);
+        
+        // Do a scan with cache to populate if needed
+        VideoParam warmupParam = SimplifiedTestHelpers::scanVideoMetadata(videoPath, cachePrefs);
+        QVERIFY2(!warmupParam.thumbnail.isEmpty(), 
+            QString("Failed to warm up cache for: %1").arg(videoPath).toUtf8());
+    }
+    
+    // Load reference data
+    VideoParam refParam = SimplifiedTestHelpers::loadMetadataFromFile(
+        refMetadataPath, QDir(samplesDir), QDir(referenceDir));
+    QByteArray refThumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(refThumbPath);
+    
+    QVERIFY2(!refThumbnail.isEmpty(), 
+        QString("Failed to load reference thumbnail: %1").arg(refThumbPath).toUtf8());
+    
+    // Scan video with current settings
+    Prefs prefs;
+    prefs.useCacheOption(static_cast<Prefs::USE_CACHE_OPTION>(cacheMode));
+    
+    VideoParam currentParam = SimplifiedTestHelpers::scanVideoMetadata(videoPath, prefs);
+    
+    QVERIFY2(!currentParam.thumbnail.isEmpty(), 
+        QString("Failed to scan video: %1").arg(videoPath).toUtf8());
+    
+    // Compare metadata
+    QString errorMsg;
+    QVERIFY2(SimplifiedTestHelpers::compareMetadata(refParam, currentParam, errorMsg), 
+        errorMsg.toUtf8());
+    
+    // Compare thumbnails
+    double ssim = SimplifiedTestHelpers::compareThumbnails(refThumbnail, currentParam.thumbnail);
+        
+    // we expect some combinations to fail and some to pass
+    bool shouldPass = false;
+    if (cacheMode == Prefs::NO_CACHE)
+        shouldPass = true; // all thresholds should pass in no cache mode
+    else if (cacheMode == Prefs::WITH_CACHE && ssimThreshold <= 0.97)
+        shouldPass = true;
+    else if (cacheMode == Prefs::CACHE_ONLY && ssimThreshold <= 0.97)
+        shouldPass = true;
+
+    if (shouldPass)
+        QVERIFY2(ssim >= ssimThreshold, 
+            QString("SSIM %1 below threshold %2 for %3").arg(ssim).arg(ssimThreshold).arg(videoName).toUtf8());
+    else
+        QVERIFY2(ssim < ssimThreshold, 
+            QString("SSIM %1 above threshold %2 for %3, expected to not have a match").arg(ssim).arg(ssimThreshold).arg(videoName).toUtf8());
+ 
+}
+
+// Uncomment this function and add it to private slots to generate reference data
+/*
+void TestVideoSimplified::generateReferenceData()
+{
+    // Run with NO_CACHE to generate baseline reference data
+    Prefs prefs;
+    prefs.useCacheOption(Prefs::NO_CACHE);
+    
+    QStringList videos = {"Nice_383p_500kbps.mp4", "Nice_720p_1000kbps.mp4"};
+    
+    for (const QString& video : videos) {
+        qDebug() << "Generating reference data for:" << video;
+        
+        QString videoPath = samplesDir + "/" + video;
+        QVERIFY2(QFileInfo::exists(videoPath), 
+            QString("Video not found: %1").arg(videoPath).toUtf8());
+        
+        VideoParam param = SimplifiedTestHelpers::scanVideoMetadata(videoPath, prefs);
+        QVERIFY2(!param.thumbnail.isEmpty(), 
+            QString("Failed to process video: %1").arg(videoPath).toUtf8());
+        
+        QString csvPath = referenceDir + "/" + video + ".csv";
+        QString thumbPath = referenceDir + "/" + video + ".jpg";
+        
+        QVERIFY2(SimplifiedTestHelpers::saveMetadataToCSV(param, csvPath, QDir(samplesDir)),
+            QString("Failed to save CSV: %1").arg(csvPath).toUtf8());
+        QVERIFY2(SimplifiedTestHelpers::saveThumbnail(param.thumbnail, thumbPath),
+            QString("Failed to save thumbnail: %1").arg(thumbPath).toUtf8());
+        
+        qDebug() << "Successfully generated reference data for:" << video;
+        qDebug() << "  CSV:" << csvPath;
+        qDebug() << "  Thumbnail:" << thumbPath;
+    }
+}
+*/
+
+void TestVideoSimplified::cleanupTestCase()
+{
+    // Clean up database if needed
+    Prefs prefs;
+    Db::emptyAllDb(prefs);
+}
+
+QTEST_MAIN(TestVideoSimplified)
+
+#include "tst_video_simplified.moc"
+
