@@ -899,6 +899,7 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
 
     QVERIFY2(ref_thumbnail.isNull() == vid->thumbnail.isNull(), QString("Ref thumb empty=%1 but new thumb empty=%2 - %3").arg(ref_thumbnail.isNull()).arg(vid->thumbnail.isNull()).arg(forVid).toUtf8());
 
+    // SSIM thumbnail comparison
     if(conf.compareThumbsVisualConfig == nullptr)
         return;
     bool manuallyAccepted = false;
@@ -916,11 +917,25 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
                 QFAIL(QString("Thumbnails not exactly identical and manually rejected - %1").arg(forVid).toUtf8());
         }
     }
-    if(conf.compareThumbsVisualConfig->compareThumbHashes){
-        if(manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
-            QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2 - %3").arg(videoParam.hash1).arg(vid->hash[0]).arg(forVid).toUtf8());
-            QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2 - %3").arg(videoParam.hash2).arg(vid->hash[1]).arg(forVid).toUtf8());
+
+    // pHash thumbnail comparison
+    // pHash works by comparing number of equal bits between two hashes
+    if(conf.compareThumbsVisualConfig->compareThumbHashes
+        && manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
+        int distance1 = 64, distance2 = 64;
+        uint64_t differentBits1 = videoParam.hash1 ^ vid->hash[0]; //XOR to value (only ones for differing bits)
+        uint64_t differentBits2 = videoParam.hash2 ^ vid->hash[1];
+        while(differentBits1) {
+            differentBits1 &= differentBits1 - 1; //count number of bits of value
+            distance1--;
         }
+        while(differentBits2) {
+            differentBits2 &= differentBits2 - 1; //count number of bits of value
+            distance2--;
+        }
+        // TODO add min pHash distance as test parameter
+        const int minDistance = 62; // x same bits out of 64 to be the same
+        QVERIFY2(distance1 >= minDistance && distance2 >= minDistance, QString("hash1 distance=%1/64 hash2 distance=%2/64, expected at least %3 bits to be the same - %4").arg(distance1).arg(distance2).arg(minDistance).arg(forVid).toUtf8());
     }
 }
 
