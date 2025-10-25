@@ -8,29 +8,7 @@
 #include <QByteArray>
 #include "opencv2/core.hpp"
 #include "../../app/prefs.h"
-
-// Reuse VideoParam struct from test_video helpers
-class VideoParam {
-public:
-    static const int nb_params = 13;
-    static const char sep = '"';
-    static const QString timeformat;
-
-    QFileInfo videoInfo;
-    QFileInfo thumbnailInfo;
-    int64_t size;
-    QDateTime modified;
-    int64_t duration;
-    int bitrate;
-    double framerate;
-    QString codec;
-    QString audio;
-    short width;
-    short height;
-    uint64_t hash1;
-    uint64_t hash2;
-    QByteArray thumbnail; // Added for convenience
-};
+#include "../helpers.h"
 
 class SimplifiedTestHelpers {
 public:

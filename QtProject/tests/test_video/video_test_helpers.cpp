@@ -6,9 +6,6 @@
 #include <QLabel>
 #include <QCheckBox>
 
-// Define static member
-const QString VideoParam::timeformat = "yyyy-MM-dd HH:mm:ss";
-
 // -------------------------------------------------
 // ------------START TestHelpers -----------------
 bool TestHelpers::doThumbnailsLookSameWindow(const QByteArray ref_thumb, const QByteArray new_thumb, const QString title){
@@ -150,7 +147,7 @@ QList<VideoParam> TestHelpers::importCSVtoVideoParamQList(const QFileInfo csvInf
         param.videoInfo = QFileInfo(videoDir.path()+"/"+stringParams[0]);
         param.thumbnailInfo = QFileInfo(thumbDir.path()+"/"+stringParams[1]);
         param.size = stringParams[2].toLongLong();
-        param.modified = QDateTime::fromString(stringParams[3], VideoParam::timeformat);
+        param.modified = QDateTime::fromString(stringParams[3], VideoParam::timeformat());
         param.duration = stringParams[4].toLongLong();
         param.bitrate = stringParams[5].toInt();
         param.framerate = stringParams[6].toDouble();
@@ -200,7 +197,7 @@ bool TestHelpers::saveVideoParamQListToCSV(const QList<VideoParam> videoParamQLi
         output << videoParam.videoInfo.absoluteFilePath().remove(videoBaseDir.path() + "/") << sep <<
                   videoParam.thumbnailInfo.fileName() << sep <<
                   QString::number(videoParam.size) << sep <<
-                  videoParam.modified.toString(VideoParam::timeformat) << sep <<
+                  videoParam.modified.toString(VideoParam::timeformat()) << sep <<
                   QString::number(videoParam.duration) << sep <<
                   QString::number(videoParam.bitrate) << sep <<
                   QString::number(videoParam.framerate) << sep <<

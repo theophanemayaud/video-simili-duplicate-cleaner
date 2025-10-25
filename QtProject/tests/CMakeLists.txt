@@ -121,6 +121,7 @@ add_qt_test(test_video
     SOURCES 
         test_video/tst_video.cpp
         test_video/video_test_helpers.cpp
+        test_video_simplified/video_simplified_test_helpers.cpp
 )
 
 # Test 4: test_video_simplified

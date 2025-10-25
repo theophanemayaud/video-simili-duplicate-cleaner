@@ -10,9 +10,6 @@
 
 using namespace cv;
 
-// Define static member
-const QString VideoParam::timeformat = "yyyy-MM-dd HH:mm:ss";
-
 // ------------------- Public Helper Functions -------------------
 
 VideoParam SimplifiedTestHelpers::scanVideoMetadata(const QString& videoPath, Prefs& prefs)
@@ -75,7 +72,7 @@ bool SimplifiedTestHelpers::saveMetadataToFile(const VideoParam& param, const QS
     output << "videoFilename:" << relativeVideoPath << "\n";
     output << "thumbnailFilename:" << param.videoInfo.fileName() << "\n";
     output << "size:" << param.size << "\n";
-    output << "modified:" << param.modified.toString(VideoParam::timeformat) << "\n";
+    output << "modified:" << param.modified.toString(VideoParam::timeformat()) << "\n";
     output << "duration:" << param.duration << "\n";
     output << "bitrate:" << param.bitrate << "\n";
     output << "framerate:" << param.framerate << "\n";
@@ -132,7 +129,7 @@ VideoParam SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, 
         param.size = data["size"].toLongLong();
     }
     if (data.contains("modified")) {
-        param.modified = QDateTime::fromString(data["modified"], VideoParam::timeformat);
+        param.modified = QDateTime::fromString(data["modified"], VideoParam::timeformat());
     }
     if (data.contains("duration")) {
         param.duration = data["duration"].toLongLong();
