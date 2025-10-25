@@ -43,8 +43,6 @@ set(PROJECT_SOURCES
     app/prefs.h
     app/prefs.cpp
     app/videometadata.h
-    app/videoprocessingpool.cpp
-    app/videoprocessingpool.h
     app/ssim.cpp
     app/files.qrc
 )
