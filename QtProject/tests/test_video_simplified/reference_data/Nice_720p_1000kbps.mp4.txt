@@ -1,0 +1,13 @@
+videoFilename:Nice_720p_1000kbps.mp4
+thumbnailFilename:Nice_720p_1000kbps.mp4
+size:665608
+modified:2023-08-16 18:52:13
+duration:4758
+bitrate:1120
+framerate:12
+codec:h264
+audio:aac 48000 Hz stereo 127 kb/s
+width:1280
+height:720
+hash1:9397598996279
+hash2:7051189006359959259

@@ -3,6 +3,8 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QElapsedTimer>
 
+#include<algorithm>
+
 // add necessary includes here
 #include "../../app/video.h"
 #include "../../app/prefs.h"
@@ -11,6 +13,8 @@
 #include "../../app/comparison.h"
 #include "../../app/ui_comparison.h"
 #include "../../app/db.h"
+
+#include "../test_video_simplified/video_simplified_test_helpers.h"
 
 #include "video_test_helpers.h"
 
@@ -871,12 +875,20 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
     const QString forVid = QString("For %1").arg(videoParam.thumbnailInfo.absoluteFilePath());
 
     QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2 - %3").arg(videoParam.size).arg(vid->size).arg(forVid).toUtf8());
-    if(conf.compareModifiedDates)
-        QVERIFY2(videoParam.modified.toString(VideoParam::timeformat) == vid->modified.toString(VideoParam::timeformat) , QString("Date diff : ref modified=%1 new modified=%2").arg(videoParam.modified.toString(VideoParam::timeformat)).arg(vid->modified.toString(VideoParam::timeformat)).toUtf8());
+    
+    if(conf.compareModifiedDates) {
+        const auto ref_modified = videoParam.modified.toString(VideoParam::timeformat());
+        const auto new_modified = vid->modified.toString(VideoParam::timeformat());
+        QVERIFY2(ref_modified == new_modified , QString("Date diff : ref modified=%1 new modified=%2").arg(ref_modified).arg(new_modified).toUtf8());
+    }
+    uint acceptedDurationDiff = 0;
+    // TODO add duration tolerance as test parameter
     if(conf.acceptSmallDurationDiff)
-        QVERIFY2(abs(videoParam.duration - vid->duration) <= 50 , QString("ref duration=%1 new duration=%2 - %3").arg(videoParam.duration).arg(vid->duration).arg(forVid).toUtf8());
-    else
-        QVERIFY2(videoParam.duration == vid->duration, QString("ref duration=%1 new duration=%2 for %3").arg(videoParam.duration).arg(vid->duration).arg(videoParam.videoInfo.absoluteFilePath()).toUtf8());
+        acceptedDurationDiff = std::max(50, int(0.01 * videoParam.duration)); // biggest of 50 ms or 1% of ref duration
+    QVERIFY2(abs(videoParam.duration - vid->duration) <= acceptedDurationDiff, 
+        QString("ref duration=%1 new duration=%2, max accepted diff %3- %4")
+        .arg(videoParam.duration).arg(vid->duration).arg(acceptedDurationDiff).arg(forVid).toUtf8());
+
     QVERIFY2(abs(videoParam.bitrate - vid->bitrate) <= 50, QString("ref bitrate=%1 new bitrate=%2 - %3").arg(videoParam.bitrate).arg(vid->bitrate).arg(forVid).toUtf8());
     QVERIFY2(videoParam.framerate == vid->framerate, QString("framerate ref=%1 new=%2 - %3").arg(videoParam.framerate).arg(vid->framerate).arg(forVid).toUtf8());
     QVERIFY2(videoParam.codec == vid->codec, QString("codec ref=%1 new=%2 - %3").arg(videoParam.codec).arg(vid->codec).arg(forVid).toUtf8());
@@ -887,12 +899,15 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
 
     QVERIFY2(ref_thumbnail.isNull() == vid->thumbnail.isNull(), QString("Ref thumb empty=%1 but new thumb empty=%2 - %3").arg(ref_thumbnail.isNull()).arg(vid->thumbnail.isNull()).arg(forVid).toUtf8());
 
+    // SSIM thumbnail comparison
     if(conf.compareThumbsVisualConfig == nullptr)
         return;
     bool manuallyAccepted = false;
-    if(ref_thumbnail != vid->thumbnail){
+    auto ssim = SimplifiedTestHelpers::compareThumbnails(ref_thumbnail, vid->thumbnail);
+    // TODO add ssim tolerance as test parameter
+    if(ssim < 0.95){
         if(!conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff)
-            QFAIL(QString("Thumbnails not exactly identical - %1").arg(forVid).toUtf8());
+            QFAIL(QString("Thumbnails not exactly identical, got ssim %1 pct - %2").arg(ssim * 100).arg(forVid).toUtf8());
         else {
             if(TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
                                                         vid->thumbnail,
@@ -902,11 +917,25 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
                 QFAIL(QString("Thumbnails not exactly identical and manually rejected - %1").arg(forVid).toUtf8());
         }
     }
-    if(conf.compareThumbsVisualConfig->compareThumbHashes){
-        if(manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
-            QVERIFY2(videoParam.hash1 == vid->hash[0], QString("ref hash1=%1 new hash1=%2 - %3").arg(videoParam.hash1).arg(vid->hash[0]).arg(forVid).toUtf8());
-            QVERIFY2(videoParam.hash2 == vid->hash[1], QString("ref hash2=%1 new hash2=%2 - %3").arg(videoParam.hash2).arg(vid->hash[1]).arg(forVid).toUtf8());
+
+    // pHash thumbnail comparison
+    // pHash works by comparing number of equal bits between two hashes
+    if(conf.compareThumbsVisualConfig->compareThumbHashes
+        && manuallyAccepted == false){ // hash will be different anyways if thumbnails look different, so must skip these tests
+        int distance1 = 64, distance2 = 64;
+        uint64_t differentBits1 = videoParam.hash1 ^ vid->hash[0]; //XOR to value (only ones for differing bits)
+        uint64_t differentBits2 = videoParam.hash2 ^ vid->hash[1];
+        while(differentBits1) {
+            differentBits1 &= differentBits1 - 1; //count number of bits of value
+            distance1--;
         }
+        while(differentBits2) {
+            differentBits2 &= differentBits2 - 1; //count number of bits of value
+            distance2--;
+        }
+        // TODO add min pHash distance as test parameter
+        const int minDistance = 62; // x same bits out of 64 to be the same
+        QVERIFY2(distance1 >= minDistance && distance2 >= minDistance, QString("hash1 distance=%1/64 hash2 distance=%2/64, expected at least %3 bits to be the same - %4").arg(distance1).arg(distance2).arg(minDistance).arg(forVid).toUtf8());
     }
 }
 

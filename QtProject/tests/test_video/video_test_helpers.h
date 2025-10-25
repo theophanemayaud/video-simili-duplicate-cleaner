@@ -4,28 +4,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QList>
-#include <QDateTime>
-
-class VideoParam {
-public:
-    static const int nb_params = 13;
-    static const char sep = '"';
-    static const QString timeformat;
-
-    QFileInfo videoInfo;
-    QFileInfo thumbnailInfo;
-    int64_t size;
-    QDateTime modified;
-    int64_t duration;
-    int bitrate;
-    double framerate;
-    QString codec;
-    QString audio;
-    short width;
-    short height;
-    uint64_t hash1;
-    uint64_t hash2;
-};
+#include "../helpers.h"
 
 class TestHelpers {
 public:
