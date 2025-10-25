@@ -323,7 +323,7 @@ void MainWindow::processVideos()
     QStringList sortedVids = QStringList(_everyVideo.begin(), _everyVideo.end());
     sortedVids.sort(Qt::CaseInsensitive);
 
-    _activeFutures.clear();
+    QVector<QFuture<Video::ProcessingResult>> activeFutures;
 
     // Submit videos to QtConcurrent thread pool
     int maxParallelTasks = QThread::idealThreadCount();
@@ -338,20 +338,20 @@ void MainWindow::processVideos()
         }
 
         // Wait if we have too many active tasks
-        while(_activeFutures.size() >= maxParallelTasks && !_userPressedStop)
+        while(activeFutures.size() >= maxParallelTasks && !_userPressedStop)
         {
             // Check completed futures and process their results
-            for(int i = _activeFutures.size() - 1; i >= 0; --i)
+            for(int i = activeFutures.size() - 1; i >= 0; --i)
             {
-                if(_activeFutures[i].isFinished())
+                if(activeFutures[i].isFinished())
                 {
-                    Video::ProcessingResult result = _activeFutures[i].result();
+                    Video::ProcessingResult result = activeFutures[i].result();
                     if (result.success) {
                         addVideo(result.video);
                     } else {
                         removeVideo(result.video, result.errorMsg);
                     }
-                    _activeFutures.removeAt(i);
+                    activeFutures.removeAt(i);
                 }
             }
             QApplication::processEvents();
@@ -366,32 +366,32 @@ void MainWindow::processVideos()
         QFuture<Video::ProcessingResult> future = QtConcurrent::run([video]() {
             return video->process();
         });
-        _activeFutures.append(future);
+        activeFutures.append(future);
         
         QApplication::processEvents();
     }
 
     // Wait for all remaining futures to complete
-    QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, _activeFutures.size(), this);
+    QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, activeFutures.size(), this);
     progress.setWindowModality(Qt::WindowModal);
     
-    while (!_activeFutures.isEmpty()) {
-        for(int i = _activeFutures.size() - 1; i >= 0; --i)
+    while (!activeFutures.isEmpty()) {
+        for(int i = activeFutures.size() - 1; i >= 0; --i)
         {
-            if(_activeFutures[i].isFinished())
+            if(activeFutures[i].isFinished())
             {
-                Video::ProcessingResult result = _activeFutures[i].result();
+                Video::ProcessingResult result = activeFutures[i].result();
                 if (result.success) {
                     addVideo(result.video);
                 } else {
                     removeVideo(result.video, result.errorMsg);
                 }
-                _activeFutures.removeAt(i);
+                activeFutures.removeAt(i);
             }
         }
-        progress.setValue(progress.maximum() - _activeFutures.size());
+        progress.setValue(progress.maximum() - activeFutures.size());
         QApplication::processEvents();
-        if(!_activeFutures.isEmpty())
+        if(!activeFutures.isEmpty())
             QThread::msleep(10); // Small sleep to avoid busy-waiting
     }
 

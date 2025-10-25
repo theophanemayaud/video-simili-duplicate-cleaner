@@ -40,9 +40,6 @@ private:
     bool _userPressedStop = false;
     bool shouldScan = true;
 
-    // QtConcurrent processing
-    QVector<QFuture<Video::ProcessingResult>> _activeFutures;
-
 private slots:
     void deleteTemporaryFiles() const;
     void closeEvent(QCloseEvent *event) { Q_UNUSED (event) _userPressedStop = true; }
