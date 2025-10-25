@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include <QProgressDialog>
 #include "prefs.h"
-#include "videoprocessingpool.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
@@ -319,55 +318,84 @@ void MainWindow::processVideos()
     }
     else return;
 
-    // Create video processing pool
-    auto videoPool = new VideoProcessingPool();
-    connect(videoPool, &VideoProcessingPool::TaskResult, this, [this](Video::ProcessingResult result) {
-        if (result.success) {
-            addVideo(result.video);
-        } else {
-            removeVideo(result.video, result.errorMsg);
-        }
-    });
-
+    // Process videos using QtConcurrent
     // for reproduceability and easier user experience, we want to process videos in alphabetical order
     QStringList sortedVids = QStringList(_everyVideo.begin(), _everyVideo.end());
     sortedVids.sort(Qt::CaseInsensitive);
 
+    _activeFutures.clear();
+
+    // Submit videos to QtConcurrent thread pool
+    int maxParallelTasks = QThread::idealThreadCount();
+    // int maxParallelTasks = 1; // for local debugging if parallelism is causing issues
+    
     for(auto &vidIter : sortedVids)
     {
         if(_userPressedStop)
         {
             this->ui->findDuplicates->setDisabled(true);
-            videoPool->ClearWaiting();
             break;
         }
 
+        // Wait if we have too many active tasks
+        while(_activeFutures.size() >= maxParallelTasks && !_userPressedStop)
+        {
+            // Check completed futures and process their results
+            for(int i = _activeFutures.size() - 1; i >= 0; --i)
+            {
+                if(_activeFutures[i].isFinished())
+                {
+                    Video::ProcessingResult result = _activeFutures[i].result();
+                    if (result.success) {
+                        addVideo(result.video);
+                    } else {
+                        removeVideo(result.video, result.errorMsg);
+                    }
+                    _activeFutures.removeAt(i);
+                }
+            }
+            QApplication::processEvents();
+            QThread::msleep(10); // Small sleep to avoid busy-waiting
+        }
+
+        if(_userPressedStop)
+            break;
+
+        // Create video and submit for processing
         Video *video = new Video(_prefs, vidIter);
-        videoPool->AddTask(video);
+        QFuture<Video::ProcessingResult> future = QtConcurrent::run([video]() {
+            return video->process();
+        });
+        _activeFutures.append(future);
+        
         QApplication::processEvents();
     }
 
-    while (videoPool->CountTasksLeftToProcess() > 0) {
-        QApplication::processEvents();
-        if(_userPressedStop) {
-            this->ui->findDuplicates->setDisabled(true);
-            videoPool->ClearWaiting();
-            break;
-        }
-    }
-
-    videoPool->RequestShutdown();
-    auto countLeftToDo = videoPool->CountWorkersStillRunning();
-    QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, countLeftToDo, this);
+    // Wait for all remaining futures to complete
+    QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, _activeFutures.size(), this);
     progress.setWindowModality(Qt::WindowModal);
-    while (countLeftToDo > 0) {
-        countLeftToDo = videoPool->CountWorkersStillRunning();
-        progress.setValue(countLeftToDo);
+    
+    while (!_activeFutures.isEmpty()) {
+        for(int i = _activeFutures.size() - 1; i >= 0; --i)
+        {
+            if(_activeFutures[i].isFinished())
+            {
+                Video::ProcessingResult result = _activeFutures[i].result();
+                if (result.success) {
+                    addVideo(result.video);
+                } else {
+                    removeVideo(result.video, result.errorMsg);
+                }
+                _activeFutures.removeAt(i);
+            }
+        }
+        progress.setValue(progress.maximum() - _activeFutures.size());
         QApplication::processEvents();
+        if(!_activeFutures.isEmpty())
+            QThread::msleep(10); // Small sleep to avoid busy-waiting
     }
 
-    QApplication::processEvents();                  //process signals from last threads
-    videoPool->deleteLater();
+    QApplication::processEvents();  // process any remaining signals
 
     this->ui->findDuplicates->setDisabled(false);
     ui->selectThumbnails->setDisabled(false);
