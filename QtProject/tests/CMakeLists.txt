@@ -165,3 +165,38 @@ if(APPLE)
     target_link_libraries(generate_reference_data PRIVATE aom)
 endif()
 
+# CSV to individual metadata migration tool (temporary utility)
+add_executable(migrate_csv_to_individual_metadata
+    test_video/migrate_csv_to_individual_metadata.cpp
+    test_video/video_test_helpers.cpp
+    test_video_simplified/video_simplified_test_helpers.cpp
+    ${COMMON_APP_SOURCES}
+)
+target_link_libraries(migrate_csv_to_individual_metadata PRIVATE
+    Qt6::Core Qt6::Widgets Qt6::Sql Qt6::Concurrent Qt6::Test
+)
+target_compile_definitions(migrate_csv_to_individual_metadata PRIVATE ${TEST_COMPILE_DEFINITIONS})
+if(APPLE)
+    set(OPENCV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/opencv-arm/opencv-install")
+    target_include_directories(migrate_csv_to_individual_metadata PRIVATE ${OPENCV_ROOT}/include/opencv4)
+    target_link_libraries(migrate_csv_to_individual_metadata PRIVATE
+        ${OPENCV_ROOT}/lib/libopencv_imgproc.a
+        ${OPENCV_ROOT}/lib/libopencv_core.a
+        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libzlib.a
+        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libittnotify.a
+        "-framework OpenCL" "-framework Accelerate"
+    )
+    set(FFMPEG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/ffmpeg-universalized-libs")
+    target_include_directories(migrate_csv_to_individual_metadata PRIVATE ${FFMPEG_ROOT}/include)
+    target_link_directories(migrate_csv_to_individual_metadata PRIVATE ${FFMPEG_ROOT}/lib)
+    target_link_libraries(migrate_csv_to_individual_metadata PRIVATE
+        avutil avformat swresample avcodec swscale bz2 iconv
+        "-framework CoreVideo" "-framework Security" "-framework AudioToolbox" 
+        "-framework CoreMedia" "-framework VideoToolbox"
+    )
+    set(AOM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/libaom-universalized")
+    target_include_directories(migrate_csv_to_individual_metadata PRIVATE ${AOM_ROOT}/include)
+    target_link_directories(migrate_csv_to_individual_metadata PRIVATE ${AOM_ROOT}/lib)
+    target_link_libraries(migrate_csv_to_individual_metadata PRIVATE aom)
+endif()
+
