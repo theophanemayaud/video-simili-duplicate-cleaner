@@ -57,16 +57,42 @@ private slots:
 
 //    void createRefVidParams_nocache();
 //    void createRefVidParams_cached();
-    void test_check_refvidparams_nocache_exact_identical();
+    // Check ref params with no cache - DATA-DRIVEN TESTS
+    void test_check_refvidparams_nocache_exact_identical_smallDurDiff_data() {
+        populateRefVidParamsTestData(
+            _csvInfo_nocache,
+            _thumbnailDir_nocache,
+            _videoDir
+        );
+    };
+    void test_check_refvidparams_nocache_exact_identical_smallDurDiff(){
+        refVidParamsTestConfig conf;
+        conf.testDescr = __FUNCTION__;
+        conf.cacheOption = Prefs::NO_CACHE;
+        conf.refDuration_ms = 20*1000;
+
+        conf.acceptSmallDurationDiff = true;
+
+        checkSingleVideoParams(conf);
+    };   
+    void test_check_refvidparams_nocache_manualCompare_data();
     void test_check_refvidparams_nocache_manualCompare();
+    void test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs_data();
     void test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs();
+    void test_check_refvidparams_nocache_noThumbHashesCheck_data();
     void test_check_refvidparams_nocache_noThumbHashesCheck();
+    void test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDurationDiffs_data();
     void test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDurationDiffs();
 
+    void test_check_refvidparams_cached_exact_identical_data();
     void test_check_refvidparams_cached_exact_identical();
+    void test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmallDurationDiffs_data();
     void test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmallDurationDiffs();
+    void test_check_refvidparams_cached_manualCompare_data();
     void test_check_refvidparams_cached_manualCompare();
+    void test_check_refvidparams_cached_noThumbHashesCheck_data();
     void test_check_refvidparams_cached_noThumbHashesCheck();
+    void test_check_refvidparams_cached_noVisualThumbCheck_acceptSmallDurationDiffs_data();
     void test_check_refvidparams_cached_noVisualThumbCheck_acceptSmallDurationDiffs();
 
     void test_whole_app_nocache();
@@ -261,6 +287,17 @@ private:
     */
     void runWholeAppScan(QDir videoDir, wholeAppTestConfig *conf = nullptr);
     void checkRefVidParamsList(const refVidParamsTestConfig conf);
+    
+    // Helper to populate test data for data-driven tests
+    void populateRefVidParamsTestData(
+        const QFileInfo paramsCSV,
+        const QDir thumbsDir,
+        const QDir videoDir
+    );
+    
+    // Helper to perform single video test (called for each test data row)
+    void checkSingleVideoParams(const refVidParamsTestConfig conf);
+    
     static void compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
         const QByteArray ref_thumbnail,
         const VideoParam videoParam,
@@ -323,35 +360,37 @@ void TestVideo::test_whole_app_cache_only(){
         );
     }
 
-// Check ref params with no cache
-void TestVideo::test_check_refvidparams_nocache_exact_identical(){
-    refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Prefs::NO_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
-    conf.refDuration_ms = 20*1000;
-    checkRefVidParamsList(conf);
+// Check ref params with no cache - DATA-DRIVEN TESTS
+
+void TestVideo::test_check_refvidparams_nocache_manualCompare_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
 }
 
 void TestVideo::test_check_refvidparams_nocache_manualCompare(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::NO_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
     conf.acceptSmallDurationDiff = true;
     conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
     conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 1;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
 }
 
+void TestVideo::test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
+}
 
 void TestVideo::test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
+    conf.testDescr = "test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSmallDurationDiffs";
     conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
@@ -359,24 +398,37 @@ void TestVideo::test_check_refvidparams_nocache_manualCompare10Sampled_AcceptSma
     conf.acceptSmallDurationDiff = true;
     conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
     conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 10;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
+}
+
+void TestVideo::test_check_refvidparams_nocache_noThumbHashesCheck_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
 }
 
 void TestVideo::test_check_refvidparams_nocache_noThumbHashesCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::NO_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
     conf.compareThumbsVisualConfig->compareThumbHashes = false;
     conf.refDuration_ms = 20*1000;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
+}
+
+void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDurationDiffs_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
 }
 
 void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
+    conf.testDescr = "test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDurationDiffs";
     conf.cacheOption = Prefs::NO_CACHE;
     conf.paramsCSV = _csvInfo_nocache;
     conf.thumbsDir = _thumbnailDir_nocache;
@@ -385,71 +437,95 @@ void TestVideo::test_check_refvidparams_nocache_noVisualThumbCheck_acceptSmallDu
     conf.compareThumbsVisualConfig = nullptr;
     conf.acceptSmallDurationDiff = true;
     conf.refDuration_ms = 20*1000;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
 }
 
-// Check ref params with cache
+// Check ref params with cache - DATA-DRIVEN TESTS
+void TestVideo::test_check_refvidparams_cached_exact_identical_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
+}
+
 void TestVideo::test_check_refvidparams_cached_exact_identical(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
     conf.refDuration_ms = 5*1000;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
+}
+
+void TestVideo::test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmallDurationDiffs_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
 }
 
 void TestVideo::test_check_refvidparams_cached_manualCompare10Sampled_AcceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
     conf.acceptSmallDurationDiff = true;
     conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
     conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 10;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
+}
+
+void TestVideo::test_check_refvidparams_cached_manualCompare_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
 }
 
 void TestVideo::test_check_refvidparams_cached_manualCompare(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
     conf.acceptSmallDurationDiff = true;
     conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
 }
 
+void TestVideo::test_check_refvidparams_cached_noThumbHashesCheck_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
+}
 
 void TestVideo::test_check_refvidparams_cached_noThumbHashesCheck(){
     refVidParamsTestConfig conf;
     conf.testDescr = __FUNCTION__;
     conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
     conf.compareThumbsVisualConfig->compareThumbHashes = false;
     conf.refDuration_ms = 5*1000;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
+}
+
+void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck_acceptSmallDurationDiffs_data(){
+    populateRefVidParamsTestData(
+        _csvInfo_nocache,
+        _thumbnailDir_nocache,
+        _videoDir
+    );
 }
 
 void TestVideo::test_check_refvidparams_cached_noVisualThumbCheck_acceptSmallDurationDiffs(){
     refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
+    conf.testDescr =__FUNCTION__;
     conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _csvInfo_nocache;
-    conf.thumbsDir = _thumbnailDir_nocache;
-    conf.videoDir = _videoDir;
     delete conf.compareThumbsVisualConfig;
     conf.compareThumbsVisualConfig = nullptr;
     conf.acceptSmallDurationDiff = true;
     conf.refDuration_ms = 5*1000;
-    checkRefVidParamsList(conf);
+    checkSingleVideoParams(conf);
 }
 
 /*void TestVideo::createRefVidParams_nocache()
@@ -866,6 +942,81 @@ void TestVideo::checkRefVidParamsList(
         QVERIFY2(timer.elapsed()<conf.refDuration_ms, QString("%1 took : %2.%3s but should be below %4.%5s").arg(conf.testDescr).arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(conf.refDuration_ms/1000).arg(conf.refDuration_ms%1000).toUtf8());
 }
 
+// Helper to populate test data for data-driven tests
+void TestVideo::populateRefVidParamsTestData(
+    const QFileInfo paramsCSV,
+    const QDir thumbsDir,
+    const QDir videoDir
+) {
+    QTest::addColumn<QString>("videoPath");
+    QTest::addColumn<QString>("thumbnailPath");
+    
+    QVERIFY(paramsCSV.exists());
+    QVERIFY(thumbsDir.exists());
+    QVERIFY(videoDir.exists());
+        
+    // read csv file
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(paramsCSV, videoDir, thumbsDir);
+    QVERIFY(!videoParamList.isEmpty());
+    
+    // Add each video as a test row
+    foreach(VideoParam videoParam, videoParamList){
+        // Use relative path from video directory to ensure unique test row names
+        QString relativePath = videoDir.relativeFilePath(videoParam.videoInfo.absoluteFilePath());
+        QTest::newRow(relativePath.toStdString().c_str()) // used as test name, not actual test var
+            << videoParam.videoInfo.absoluteFilePath() 
+            << videoParam.thumbnailInfo.absoluteFilePath();
+    }
+}
+
+// Helper to perform single video test (called for each test data row)
+void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
+{
+    QFETCH(QString, videoPath);
+    QFETCH(QString, thumbnailPath);
+    
+    QFileInfo videoInfo(videoPath);
+    QFileInfo thumbnailInfo(thumbnailPath);
+    
+    QVERIFY2(videoInfo.exists(), videoPath.toUtf8());
+    QVERIFY2(thumbnailInfo.exists(), thumbnailPath.toUtf8());
+    
+    // Load reference data for this video from CSV
+    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(conf.paramsCSV, conf.videoDir, conf.thumbsDir);
+    
+    // Find the matching video param
+    VideoParam videoParam;
+    bool found = false;
+    foreach(VideoParam param, videoParamList){
+        if(param.videoInfo.absoluteFilePath() == videoPath) {
+            videoParam = param;
+            found = true;
+            break;
+        }
+    }
+    QVERIFY2(found, QString("Video not found in CSV: %1").arg(videoPath).toUtf8());
+    
+    // Load reference thumbnail
+    QFile ref_thumbFile(thumbnailPath);
+    QVERIFY2(ref_thumbFile.open(QIODevice::ReadOnly), thumbnailPath.toUtf8());
+    QByteArray ref_thumbnail = ref_thumbFile.readAll();
+    ref_thumbFile.close();
+    
+    // Process video with current settings
+    Prefs prefs;
+    prefs.useCacheOption(conf.cacheOption);
+    Db::initDbAndCacheLocation(prefs);
+    
+    Video *vid = new Video(prefs, videoPath);
+    auto res = vid->process();
+    
+    // Compare
+    compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(ref_thumbnail, videoParam, vid, conf);
+    
+    delete vid;
+}
+
+
 void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
     const QByteArray ref_thumbnail,
     const VideoParam videoParam,
@@ -882,7 +1033,7 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
         QVERIFY2(ref_modified == new_modified , QString("Date diff : ref modified=%1 new modified=%2").arg(ref_modified).arg(new_modified).toUtf8());
     }
     uint acceptedDurationDiff = 0;
-    // TODO add duration tolerance as test parameter
+    // TODO add duration tolerance size ie 50ms or 1% of ref as test parameter
     if(conf.acceptSmallDurationDiff)
         acceptedDurationDiff = std::max(50, int(0.01 * videoParam.duration)); // biggest of 50 ms or 1% of ref duration
     QVERIFY2(abs(videoParam.duration - vid->duration) <= acceptedDurationDiff, 
