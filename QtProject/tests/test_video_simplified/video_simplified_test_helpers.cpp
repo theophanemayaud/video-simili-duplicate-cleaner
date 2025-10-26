@@ -6,6 +6,7 @@
 #include <QTextStream>
 #include <QImage>
 #include <QDebug>
+#include <QTest>
 #include "opencv2/imgproc.hpp"
 
 using namespace cv;
@@ -87,15 +88,10 @@ bool SimplifiedTestHelpers::saveMetadataToFile(const VideoParam& param, const QS
     return true;
 }
 
-VideoParam SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, const QDir& videoBaseDir, const QDir& thumbDir)
-{
-    VideoParam param;
-    
+void SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, const QDir& videoBaseDir, VideoParam& param)
+{    
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Failed to open metadata file for reading:" << filePath;
-        return param;
-    }
+    QVERIFY2(file.open(QIODevice::ReadOnly), QString("Failed to open metadata file for reading: %1").arg(filePath).toUtf8());
     
     QTextStream input(&file);
     QMap<QString, QString> data;
@@ -119,47 +115,46 @@ VideoParam SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, 
     file.close();
     
     // Parse the data into VideoParam
-    if (data.contains("videoFilename")) {
-        param.videoInfo = QFileInfo(videoBaseDir.path() + "/" + data["videoFilename"]);
-    }
-    if (data.contains("thumbnailFilename")) {
-        param.thumbnailInfo = QFileInfo(thumbDir.path() + "/" + data["thumbnailFilename"]);
-    }
-    if (data.contains("size")) {
-        param.size = data["size"].toLongLong();
-    }
-    if (data.contains("modified")) {
-        param.modified = QDateTime::fromString(data["modified"], VideoParam::timeformat());
-    }
-    if (data.contains("duration")) {
-        param.duration = data["duration"].toLongLong();
-    }
-    if (data.contains("bitrate")) {
-        param.bitrate = data["bitrate"].toInt();
-    }
-    if (data.contains("framerate")) {
-        param.framerate = data["framerate"].toDouble();
-    }
-    if (data.contains("codec")) {
-        param.codec = data["codec"];
-    }
-    if (data.contains("audio")) {
-        param.audio = data["audio"];
-    }
-    if (data.contains("width")) {
-        param.width = data["width"].toShort();
-    }
-    if (data.contains("height")) {
-        param.height = data["height"].toShort();
-    }
-    if (data.contains("hash1")) {
-        param.hash1 = data["hash1"].toULongLong();
-    }
-    if (data.contains("hash2")) {
-        param.hash2 = data["hash2"].toULongLong();
-    }
+    QVERIFY2(data.contains("videoFilename"), QString("Video filename not found in metadata file: %1").arg(filePath).toUtf8());
+    param.videoInfo = QFileInfo(videoBaseDir.path() + "/" + data["videoFilename"]);
+    QVERIFY2(param.videoInfo.exists(), QString("Video file not found: %1").arg(param.videoInfo.absoluteFilePath()).toUtf8());
+
+    // Assume thumbnail is in the same directory as the metadata file minus the .txt extension but with .jpg extension instead
+    param.thumbnailInfo = QFileInfo(filePath.left(filePath.lastIndexOf('.')) + ".jpg");
+    QVERIFY2(param.thumbnailInfo.exists(), QString("Thumbnail file not found: %1").arg(param.thumbnailInfo.absoluteFilePath()).toUtf8());
+
+    QVERIFY2(data.contains("size"), QString("Size not found in metadata file: %1").arg(filePath).toUtf8());
+    param.size = data["size"].toLongLong();
+
+    QVERIFY2(data.contains("modified"), QString("Modified not found in metadata file: %1").arg(filePath).toUtf8());
+    param.modified = QDateTime::fromString(data["modified"], VideoParam::timeformat());
+
+    QVERIFY2(data.contains("duration"), QString("Duration not found in metadata file: %1").arg(filePath).toUtf8());
+    param.duration = data["duration"].toLongLong();
+
+    QVERIFY2(data.contains("bitrate"), QString("Bitrate not found in metadata file: %1").arg(filePath).toUtf8());
+    param.bitrate = data["bitrate"].toInt();
+
+    QVERIFY2(data.contains("framerate"), QString("Framerate not found in metadata file: %1").arg(filePath).toUtf8());
+    param.framerate = data["framerate"].toDouble();
+
+    QVERIFY2(data.contains("codec"), QString("Codec not found in metadata file: %1").arg(filePath).toUtf8());
+    param.codec = data["codec"];
+
+    QVERIFY2(data.contains("audio"), QString("Audio not found in metadata file: %1").arg(filePath).toUtf8());
+    param.audio = data["audio"];
     
-    return param;
+    QVERIFY2(data.contains("width"), QString("Width not found in metadata file: %1").arg(filePath).toUtf8());
+    param.width = data["width"].toShort();
+
+    QVERIFY2(data.contains("height"), QString("Height not found in metadata file: %1").arg(filePath).toUtf8());
+    param.height = data["height"].toShort();
+
+    QVERIFY2(data.contains("hash1"), QString("Hash1 not found in metadata file: %1").arg(filePath).toUtf8());
+    param.hash1 = data["hash1"].toULongLong();
+
+    QVERIFY2(data.contains("hash2"), QString("Hash2 not found in metadata file: %1").arg(filePath).toUtf8());
+    param.hash2 = data["hash2"].toULongLong();
 }
 
 bool SimplifiedTestHelpers::saveThumbnail(const QByteArray& thumbnail, const QString& path)

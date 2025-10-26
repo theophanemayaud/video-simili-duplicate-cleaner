@@ -949,23 +949,47 @@ void TestVideo::populateRefVidParamsTestData(
     const QDir videoDir
 ) {
     QTest::addColumn<QString>("videoPath");
-    QTest::addColumn<QString>("thumbnailPath");
     
-    QVERIFY(paramsCSV.exists());
-    QVERIFY(thumbsDir.exists());
     QVERIFY(videoDir.exists());
+    
+    // Load extensions
+    MainWindow w;
+    w.loadExtensions();
+    QVERIFY(!w._extensionList.isEmpty());
+    w.close();
+    
+    // Find all videos in directory
+    QDir scanDir = videoDir;
+    scanDir.setNameFilters(w._extensionList);
+    QDirIterator iter(scanDir, QDirIterator::Subdirectories);
+    
+    QStringList videoPaths;
+    while(iter.hasNext()) {
+        QString videoPath = iter.next();
+        QFileInfo videoInfo(videoPath);
         
-    // read csv file
-    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(paramsCSV, videoDir, thumbsDir);
-    QVERIFY(!videoParamList.isEmpty());
+        // Skip if it's a directory (shouldn't happen with nameFilters but be safe)
+        if (videoInfo.isDir()) continue;
+        
+        videoPaths.append(videoPath);
+    }
+    
+    // Verify we found the expected number of videos (200 for the standard test set)
+    const int expectedVideoCount = 200;
+    QVERIFY2(videoPaths.count() == expectedVideoCount, 
+        QString("Expected %1 videos but found %2 in %3")
+            .arg(expectedVideoCount)
+            .arg(videoPaths.count())
+            .arg(videoDir.path())
+            .toUtf8());
     
     // Add each video as a test row
-    foreach(VideoParam videoParam, videoParamList){
+    foreach(const QString& videoPath, videoPaths) {
+        QFileInfo videoInfo(videoPath);
         // Use relative path from video directory to ensure unique test row names
-        QString relativePath = videoDir.relativeFilePath(videoParam.videoInfo.absoluteFilePath());
-        QTest::newRow(relativePath.toStdString().c_str()) // used as test name, not actual test var
-            << videoParam.videoInfo.absoluteFilePath() 
-            << videoParam.thumbnailInfo.absoluteFilePath();
+        QString relativePath = videoDir.relativeFilePath(videoPath);
+        QTest::newRow(relativePath.toStdString().c_str()) 
+            << videoPath;
     }
 }
 
@@ -973,34 +997,31 @@ void TestVideo::populateRefVidParamsTestData(
 void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
 {
     QFETCH(QString, videoPath);
-    QFETCH(QString, thumbnailPath);
     
     QFileInfo videoInfo(videoPath);
-    QFileInfo thumbnailInfo(thumbnailPath);
-    
     QVERIFY2(videoInfo.exists(), videoPath.toUtf8());
-    QVERIFY2(thumbnailInfo.exists(), thumbnailPath.toUtf8());
     
-    // Load reference data for this video from CSV
-    QList<VideoParam> videoParamList = TestHelpers::importCSVtoVideoParamQList(conf.paramsCSV, conf.videoDir, conf.thumbsDir);
+    // Determine suffix based on cache option
+    QString suffix = (conf.cacheOption == Prefs::NO_CACHE) ? "nocache" : "withcache";
     
-    // Find the matching video param
+    // Load reference metadata from individual file (video.mp4.nocache.txt or video.mp4.withcache.txt)
+    QString metadataPath = videoPath + "." + suffix + ".txt";
+    QFileInfo metadataInfo(metadataPath);
+    QVERIFY2(metadataInfo.exists(), 
+        QString("Metadata file not found: %1").arg(metadataPath).toUtf8());
+    
     VideoParam videoParam;
-    bool found = false;
-    foreach(VideoParam param, videoParamList){
-        if(param.videoInfo.absoluteFilePath() == videoPath) {
-            videoParam = param;
-            found = true;
-            break;
-        }
-    }
-    QVERIFY2(found, QString("Video not found in CSV: %1").arg(videoPath).toUtf8());
+    SimplifiedTestHelpers::loadMetadataFromFile(
+        metadataPath, 
+        metadataInfo.absoluteDir(), 
+        videoParam
+    );
     
-    // Load reference thumbnail
-    QFile ref_thumbFile(thumbnailPath);
-    QVERIFY2(ref_thumbFile.open(QIODevice::ReadOnly), thumbnailPath.toUtf8());
-    QByteArray ref_thumbnail = ref_thumbFile.readAll();
-    ref_thumbFile.close();
+    // Load reference thumbnail from individual file (video.mp4.nocache.jpg or video.mp4.withcache.jpg)
+    QString thumbnailPath = videoPath + "." + suffix + ".jpg";
+    QByteArray ref_thumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(thumbnailPath);
+    QVERIFY2(!ref_thumbnail.isEmpty(), 
+        QString("Failed to load thumbnail: %1").arg(thumbnailPath).toUtf8());
     
     // Process video with current settings
     Prefs prefs;

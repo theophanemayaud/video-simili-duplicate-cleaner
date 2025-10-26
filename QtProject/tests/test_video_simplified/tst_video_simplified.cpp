@@ -126,8 +126,9 @@ void TestVideoSimplified::test_videoScanning()
     }
     
     // Load reference data
-    VideoParam refParam = SimplifiedTestHelpers::loadMetadataFromFile(
-        refMetadataPath, QDir(samplesDir), QDir(referenceDir));
+    VideoParam refParam;
+    SimplifiedTestHelpers::loadMetadataFromFile(
+        refMetadataPath, QDir(samplesDir), refParam);
     QByteArray refThumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(refThumbPath);
     
     QVERIFY2(!refThumbnail.isEmpty(), 
