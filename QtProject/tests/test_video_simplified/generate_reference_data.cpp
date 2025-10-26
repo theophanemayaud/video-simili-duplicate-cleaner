@@ -22,22 +22,15 @@ int main(int argc, char *argv[])
     }
     
     QString samplesDir = projectRoot + "/samples/videos";
-    QString referenceDir = projectRoot + "/QtProject/tests/test_video_simplified/reference_data";
     
     qDebug() << "Project root:" << projectRoot;
     qDebug() << "Samples directory:" << samplesDir;
-    qDebug() << "Reference directory:" << referenceDir;
     
     if (!QFileInfo::exists(samplesDir)) {
         qCritical() << "Samples directory not found:" << samplesDir;
         return 1;
     }
-    
-    if (!QFileInfo::exists(referenceDir)) {
-        qCritical() << "Reference directory not found:" << referenceDir;
-        return 1;
-    }
-    
+        
     // Run with NO_CACHE to generate baseline reference data
     Prefs prefs;
     prefs.useCacheOption(Prefs::NO_CACHE);
@@ -59,8 +52,8 @@ int main(int argc, char *argv[])
             continue;
         }
         
-        QString metadataPath = referenceDir + "/" + video + ".txt";
-        QString thumbPath = referenceDir + "/" + video + ".jpg";
+        QString metadataPath = samplesDir + "/" + video + ".txt";
+        QString thumbPath = samplesDir + "/" + video + ".jpg";
         
         // Remove existing files if they exist
         if (QFileInfo::exists(metadataPath)) {

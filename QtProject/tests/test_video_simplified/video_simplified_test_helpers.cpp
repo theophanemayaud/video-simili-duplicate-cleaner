@@ -88,7 +88,7 @@ bool SimplifiedTestHelpers::saveMetadataToFile(const VideoParam& param, const QS
     return true;
 }
 
-void SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, const QDir& videoBaseDir, VideoParam& param)
+void SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, VideoParam& param)
 {    
     QFile file(filePath);
     QVERIFY2(file.open(QIODevice::ReadOnly), QString("Failed to open metadata file for reading: %1").arg(filePath).toUtf8());
@@ -116,7 +116,8 @@ void SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, const 
     
     // Parse the data into VideoParam
     QVERIFY2(data.contains("videoFilename"), QString("Video filename not found in metadata file: %1").arg(filePath).toUtf8());
-    param.videoInfo = QFileInfo(videoBaseDir.path() + "/" + data["videoFilename"]);
+    // assume the video is in the same directory as the metadata file
+    param.videoInfo = QFileInfo(QFileInfo(filePath).absoluteDir().path() + "/" + data["videoFilename"]);
     QVERIFY2(param.videoInfo.exists(), QString("Video file not found: %1").arg(param.videoInfo.absoluteFilePath()).toUtf8());
 
     // Assume thumbnail is in the same directory as the metadata file minus the .txt extension but with .jpg extension instead

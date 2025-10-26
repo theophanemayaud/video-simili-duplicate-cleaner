@@ -1013,7 +1013,6 @@ void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
     VideoParam videoParam;
     SimplifiedTestHelpers::loadMetadataFromFile(
         metadataPath, 
-        metadataInfo.absoluteDir(), 
         videoParam
     );
     

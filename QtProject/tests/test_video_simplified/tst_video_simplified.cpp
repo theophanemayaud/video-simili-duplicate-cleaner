@@ -28,7 +28,6 @@ private slots:
 
 private:
     QString samplesDir;
-    QString referenceDir;
     QString projectRoot;
 };
 
@@ -56,16 +55,12 @@ void TestVideoSimplified::initTestCase()
     }
     
     samplesDir = projectRoot + "/samples/videos";
-    referenceDir = projectRoot + "/QtProject/tests/test_video_simplified/reference_data";
     
     qDebug() << "Project root:" << projectRoot;
     qDebug() << "Samples directory:" << samplesDir;
-    qDebug() << "Reference directory:" << referenceDir;
     
     QVERIFY2(QFileInfo::exists(samplesDir), 
         QString("Samples directory not found: %1").arg(samplesDir).toUtf8());
-    QVERIFY2(QFileInfo::exists(referenceDir), 
-        QString("Reference directory not found: %1").arg(referenceDir).toUtf8());
 }
 
 void TestVideoSimplified::test_videoScanning_data()
@@ -103,8 +98,8 @@ void TestVideoSimplified::test_videoScanning()
     
     // Setup paths
     QString videoPath = samplesDir + "/" + videoName;
-    QString refMetadataPath = referenceDir + "/" + videoName + ".txt";
-    QString refThumbPath = referenceDir + "/" + videoName + ".jpg";
+    QString refMetadataPath = samplesDir + "/" + videoName + ".txt";
+    QString refThumbPath = samplesDir + "/" + videoName + ".jpg";
     
     QVERIFY2(QFileInfo::exists(videoPath), 
         QString("Video not found: %1").arg(videoPath).toUtf8());
@@ -127,8 +122,7 @@ void TestVideoSimplified::test_videoScanning()
     
     // Load reference data
     VideoParam refParam;
-    SimplifiedTestHelpers::loadMetadataFromFile(
-        refMetadataPath, QDir(samplesDir), refParam);
+    SimplifiedTestHelpers::loadMetadataFromFile(refMetadataPath, refParam);
     QByteArray refThumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(refThumbPath);
     
     QVERIFY2(!refThumbnail.isEmpty(), 

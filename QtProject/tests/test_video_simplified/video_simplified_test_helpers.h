@@ -19,7 +19,7 @@ public:
     static bool saveMetadataToFile(const VideoParam& param, const QString& filePath, const QDir& videoBaseDir);
     
     // Load metadata from text file
-    static void loadMetadataFromFile(const QString& filePath, const QDir& videoBaseDir, VideoParam& param);
+    static void loadMetadataFromFile(const QString& filePath, VideoParam& param);
     
     // Save thumbnail to file
     static bool saveThumbnail(const QByteArray& thumbnail, const QString& path);
