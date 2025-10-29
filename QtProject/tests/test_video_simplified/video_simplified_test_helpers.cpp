@@ -65,12 +65,8 @@ bool SimplifiedTestHelpers::saveMetadataToFile(const VideoParam& param, const QS
     QTextStream output(&file);
     
     // Write key-value pairs separated by newlines
-    QString relativeVideoPath = param.videoInfo.absoluteFilePath();
-    if (!videoBaseDir.path().isEmpty()) {
-        relativeVideoPath = relativeVideoPath.remove(videoBaseDir.path() + "/");
-    }
-    
-    output << "videoFilename:" << relativeVideoPath << "\n";
+    // Only save the basename (filename without path) since the metadata file is alongside the video
+    output << "videoFilename:" << param.videoInfo.fileName() << "\n";
     output << "thumbnailFilename:" << param.videoInfo.fileName() << "\n";
     output << "size:" << param.size << "\n";
     output << "modified:" << param.modified.toString(VideoParam::timeformat()) << "\n";
