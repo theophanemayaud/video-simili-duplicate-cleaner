@@ -57,7 +57,7 @@ private slots:
 
     // Check ref params with no cache - DATA-DRIVEN TESTS
     void test_check_refvidparams_nocache_data() {
-        populateRefVidParamsTestData(_videoDir);
+        populateRefVidParamsTestData(_videoDir, 218);
     };
     void test_check_refvidparams_nocache(){
         refVidParamsTestConfig conf;
@@ -70,7 +70,7 @@ private slots:
     };   
 
     void test_check_refvidparams_withcache_data(){
-        populateRefVidParamsTestData(_videoDir);
+        populateRefVidParamsTestData(_videoDir, 218);
     };
     void test_check_refvidparams_withcache(){
         refVidParamsTestConfig conf;
@@ -80,7 +80,7 @@ private slots:
         checkSingleVideoParams(conf);
     };
     void test_check_refvidparams_withCacheOnly_data(){
-        populateRefVidParamsTestData(_videoDir);
+        populateRefVidParamsTestData(_videoDir, 218);
     };
     void test_check_refvidparams_withCacheOnly(){
         refVidParamsTestConfig conf;
@@ -91,7 +91,7 @@ private slots:
     };
     
     void test_check_refvidparams_nocache_manualCompare_data(){
-        populateRefVidParamsTestData(_videoDir);
+        populateRefVidParamsTestData(_videoDir, 218);
     };
     void test_check_refvidparams_nocache_manualCompare(){
         refVidParamsTestConfig conf;
@@ -104,7 +104,7 @@ private slots:
     };
 
     void test_check_refvidparams_nocache_manualCompare10Sampled_data(){
-        populateRefVidParamsTestData(_videoDir);
+        populateRefVidParamsTestData(_videoDir, 218);
     };
     void test_check_refvidparams_nocache_manualCompare10Sampled(){
         refVidParamsTestConfig conf;
@@ -138,9 +138,9 @@ private slots:
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
         conf.ref_ms_time = 4.5*1000; // after adding 9 new videos: 3.996s, 4.3s, 4.13s ...
-        conf.nb_vids_to_find = 209;
-        conf.nb_valid_vids_to_find = 205;
-        conf.nb_matching_vids_to_find = 75;
+        conf.nb_vids_to_find = 218;
+        conf.nb_valid_vids_to_find = 214;
+        conf.nb_matching_vids_to_find = 84;
         runWholeAppScan(
             _videoDir,
             &conf
@@ -151,9 +151,9 @@ private slots:
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
         conf.ref_ms_time = 2.0*1000; // 1.136s, 1.109s, 1.125s ... 
-        conf.nb_vids_to_find = 209;
-        conf.nb_valid_vids_to_find = 205;
-        conf.nb_matching_vids_to_find = 75;
+        conf.nb_vids_to_find = 218;
+        conf.nb_valid_vids_to_find = 214;
+        conf.nb_matching_vids_to_find = 84;
         runWholeAppScan(
             _videoDir,
             &conf
@@ -164,9 +164,9 @@ private slots:
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::CACHE_ONLY;
         conf.ref_ms_time = 1.0*1000; // after adding 9 new videos: 0.571s, 0.567s, 0.568s ...
-        conf.nb_vids_to_find = 209;
-        conf.nb_valid_vids_to_find = 205;
-        conf.nb_matching_vids_to_find = 75;
+        conf.nb_vids_to_find = 218;
+        conf.nb_valid_vids_to_find = 214;
+        conf.nb_matching_vids_to_find = 84;
         runWholeAppScan(
             _videoDir,
             &conf
@@ -201,11 +201,13 @@ private:
          *  - No cache
          *      -- 207: before remove big files
          *      -- 200
-         *      -- 209: after adding 9 new videos, oct 2025
+         *      -- 209: after adding 9 new videos including gps, oct 2025
+         *      -- 218: after adding 9 more videos in apple photos library, nov 2025
          *  - Cached
          *      -- 207: before remove big files
          *      -- 200
-         *      -- 209: after adding 9 new videos, oct 2025
+         *      -- 209: after adding 9 new videos including gps, oct 2025
+         *      -- 218: after adding 9 more videos in apple photos library, nov 2025
          * 100GB test set
          *  - No cache
          *      -- 12 505
@@ -218,15 +220,17 @@ private:
          *  - No cache
          *      -- 204: before remove big file tests
          *      -- 197
-         *      -- 205: after adding 9 new videos, oct 2025
+         *      -- 205: after adding 9 new videos including gps, oct 2025
+         *      -- 214: after adding 9 more videos in apple photos library, nov 2025
          *  - Cached
          *      -- 204: before remove big file tests
          *      -- 197
-         *      -- 205: after adding 9 new videos, oct 2025
+         *      -- 205: after adding 9 new videos including gps, oct 2025
+         *      -- 214: after adding 9 more videos in apple photos library, nov 2025
          *  - Cache only
          *      -- 204: before remove big file tests
          *      -- 197
-         *      -- 205: after adding 9 new videos, oct 2025
+         *      -- 205: after adding 9 new videos including gps, oct 2025
          * 100GB test set
          *  - No cache
          *      -- 12 328: after redo of caching
@@ -241,16 +245,19 @@ private:
          *  - No cache
          *      -- 71 (before some changes that made it go down 1)
          *      -- 70 noticed as of 2025 oct.
-         *      -- 75: after adding 9 new videos, oct 2025
+         *      -- 75: after adding 9 new videos including gps, oct 2025
+         *      -- 84: after adding 9 more videos in apple photos library, nov 2025
          *  - Cached
          *      -- 72 (before some changes that made it go down 1)
          *      -- 71 noticed as of 2025 oct.
-         *      -- 75: after adding 9 new videos, oct 2025
+         *      -- 75: after adding 9 new videos including gps, oct 2025
+         *      -- 84: after adding 9 more videos in apple photos library, nov 2025
          *  - Cache only
          *      -- 74: before remove big file tests
          *      -- 72 (before some changes that made it go down 1)
          *      -- 71 noticed as of 2025 oct.
-         *      -- 75: after adding 9 new videos, oct 2025
+         *      -- 75: after adding 9 new videos including gps, oct 2025
+         *      -- 84: after adding 9 more videos in apple photos library, nov 2025
          * 100GB test set
          *  - No cache
          *      -- 6 626: mix lib&exec metadata, exec captures
@@ -271,18 +278,18 @@ private:
          *      -- 13 sec: macOS intel on intel (before remove big file tests)
          *      -- 6 sec: macOS arm on M1
          *      -- 3.122 sec (3.37, 2.995,...): arm m3 Pro with arm build & arm lib - 2024 oct
-         *      -- 4.5 sec (3.996s, 4.3s, 4.13s...): after adding 9 new videos, m4 MBP oct 2025
+         *      -- 4.5 sec (3.996s, 4.3s, 4.13s...): after adding 9 new videos including gps, m4 MBP oct 2025
          *  - Cached
          *      -- 2.75 sec: windows intel on intel (before remove big file tests 207)
          *      -- 3 sec: macOS intel on intel (before remove big file tests 207)
          *      -- 1 sec: macOS arm on M1
          *      -- 650 ms (0.572, 0.570,...): arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 2.0 sec (1.136s, 1.109s, 1.125s...): after adding 9 new videos, m4 MBP oct 2025
+         *      -- 2.0 sec (1.136s, 1.109s, 1.125s...): after adding 9 new videos including gps, m4 MBP oct 2025
          *  - Cache only
          *      -- 3.203 sec: macos intel on intel (before remove big file tests 207)
          *      -- <1 sec: macOS arm on M1
          *      -- <1 sec (0.566, 0.538,...): arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 1.0 sec (0.571s, 0.567s, 0.568s...): after adding 9 new videos, m4 MBP oct 2025
+         *      -- 1.0 sec (0.571s, 0.567s, 0.568s...): after adding 9 new videos including gps, m4 MBP oct 2025
          * 100GB test set
          *  - No cache
          *      -- 36min: mix lib&exec metadata, exec captures
@@ -377,7 +384,7 @@ private:
     void checkRefVidParamsList(const refVidParamsTestConfig conf);
     
     // Helper to populate test data for data-driven tests
-    void populateRefVidParamsTestData(const QDir videoDir);
+    void populateRefVidParamsTestData(const QDir videoDir, const int expectedVideoCount);
     
     // Helper to perform single video test (called for each test data row)
     void checkSingleVideoParams(const refVidParamsTestConfig conf);
@@ -708,7 +715,8 @@ void TestVideo::checkRefVidParamsList(
 
 // Helper to populate test data for data-driven tests
 void TestVideo::populateRefVidParamsTestData(
-    const QDir videoDir
+    const QDir videoDir,
+    const int expectedVideoCount
 ) {
     emptyDb();
     QTest::addColumn<QString>("videoPath");
@@ -737,8 +745,7 @@ void TestVideo::populateRefVidParamsTestData(
         videoPaths.append(videoPath);
     }
     
-    // Verify we found the expected number of videos (200 for the standard test set)
-    const int expectedVideoCount = 209;
+    // Verify we found the expected number of videos
     QVERIFY2(videoPaths.count() == expectedVideoCount, 
         QString("Expected %1 videos but found %2 in %3")
             .arg(expectedVideoCount)
@@ -920,7 +927,8 @@ void TestVideo::createRefVidParams(
     QElapsedTimer timer;
     timer.start();
 
-    runWholeAppScan(videoDir);
+    if (cacheOption != Prefs::NO_CACHE)
+        runWholeAppScan(videoDir);
 
     QVERIFY(!videoDir.isEmpty());
     MainWindow w;
