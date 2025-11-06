@@ -73,10 +73,19 @@ private slots:
         populateRefVidParamsTestData(_videoDir);
     };
     void test_check_refvidparams_withcache(){
-        emptyDb();
         refVidParamsTestConfig conf;
         conf.testDescr = __FUNCTION__;
         conf.cacheOption = Prefs::WITH_CACHE;
+        conf.acceptSmallDurationDiff = true;
+        checkSingleVideoParams(conf);
+    };
+    void test_check_refvidparams_withCacheOnly_data(){
+        populateRefVidParamsTestData(_videoDir);
+    };
+    void test_check_refvidparams_withCacheOnly(){
+        refVidParamsTestConfig conf;
+        conf.testDescr = __FUNCTION__;
+        conf.cacheOption = Prefs::CACHE_ONLY;
         conf.acceptSmallDurationDiff = true;
         checkSingleVideoParams(conf);
     };
@@ -110,29 +119,28 @@ private slots:
         checkSingleVideoParams(conf);
     };
 
-    // Utility to regenerate reference data - uncomment when needed
-    void createRefVidParams_nocache() {
-        createRefVidParams(
-            _videoDir,
-            Prefs::NO_CACHE
-        );
-    };
-    void createRefVidParams_withcache() {
-        emptyDb();
-        createRefVidParams(
-            _videoDir,
-            Prefs::WITH_CACHE
-        );
-    };
+    // // Utilities to regenerate reference data - uncomment when needed
+    // void createRefVidParams_nocache() {
+    //     createRefVidParams(
+    //         _videoDir,
+    //         Prefs::NO_CACHE
+    //     );
+    // };
+    // void createRefVidParams_withcache() {
+    //     createRefVidParams(
+    //         _videoDir,
+    //         Prefs::WITH_CACHE
+    //     );
+    // };
     
     // Test whole app
     void test_whole_app_nocache(){
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
-        conf.ref_ms_time = 3.5*1000;
-        conf.nb_vids_to_find = 200;
-        conf.nb_valid_vids_to_find = 197;
-        conf.nb_matching_vids_to_find = 70;
+        conf.ref_ms_time = 4.5*1000; // after adding 9 new videos: 3.996s, 4.3s, 4.13s ...
+        conf.nb_vids_to_find = 209;
+        conf.nb_valid_vids_to_find = 205;
+        conf.nb_matching_vids_to_find = 75;
         runWholeAppScan(
             _videoDir,
             &conf
@@ -142,10 +150,10 @@ private slots:
     void test_whole_app_cached(){
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
-        conf.ref_ms_time = 5*1000;
-        conf.nb_vids_to_find = 200;
-        conf.nb_valid_vids_to_find = 197;
-        conf.nb_matching_vids_to_find = 71;
+        conf.ref_ms_time = 2.0*1000; // 1.136s, 1.109s, 1.125s ... 
+        conf.nb_vids_to_find = 209;
+        conf.nb_valid_vids_to_find = 205;
+        conf.nb_matching_vids_to_find = 75;
         runWholeAppScan(
             _videoDir,
             &conf
@@ -155,10 +163,10 @@ private slots:
     void test_whole_app_cache_only(){
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::CACHE_ONLY;
-        conf.ref_ms_time = 1*1000;
-        conf.nb_vids_to_find = 200;
-        conf.nb_valid_vids_to_find = 197;
-        conf.nb_matching_vids_to_find = 71;
+        conf.ref_ms_time = 1.0*1000; // after adding 9 new videos: 0.571s, 0.567s, 0.568s ...
+        conf.nb_vids_to_find = 209;
+        conf.nb_valid_vids_to_find = 205;
+        conf.nb_matching_vids_to_find = 75;
         runWholeAppScan(
             _videoDir,
             &conf
@@ -193,27 +201,32 @@ private:
          *  - No cache
          *      -- 207: before remove big files
          *      -- 200
+         *      -- 209: after adding 9 new videos, oct 2025
          *  - Cached
          *      -- 207: before remove big files
          *      -- 200
+         *      -- 209: after adding 9 new videos, oct 2025
          * 100GB test set
          *  - No cache
          *      -- 12 505
          *  - Cached
          *      -- 12 505
-        */
+         */
         int nb_vids_to_find;
 
         /* Small test set
          *  - No cache
          *      -- 204: before remove big file tests
          *      -- 197
+         *      -- 205: after adding 9 new videos, oct 2025
          *  - Cached
          *      -- 204: before remove big file tests
          *      -- 197
+         *      -- 205: after adding 9 new videos, oct 2025
          *  - Cache only
          *      -- 204: before remove big file tests
          *      -- 197
+         *      -- 205: after adding 9 new videos, oct 2025
          * 100GB test set
          *  - No cache
          *      -- 12 328: after redo of caching
@@ -228,13 +241,16 @@ private:
          *  - No cache
          *      -- 71 (before some changes that made it go down 1)
          *      -- 70 noticed as of 2025 oct.
+         *      -- 75: after adding 9 new videos, oct 2025
          *  - Cached
          *      -- 72 (before some changes that made it go down 1)
          *      -- 71 noticed as of 2025 oct.
+         *      -- 75: after adding 9 new videos, oct 2025
          *  - Cache only
          *      -- 74: before remove big file tests
          *      -- 72 (before some changes that made it go down 1)
          *      -- 71 noticed as of 2025 oct.
+         *      -- 75: after adding 9 new videos, oct 2025
          * 100GB test set
          *  - No cache
          *      -- 6 626: mix lib&exec metadata, exec captures
@@ -255,15 +271,18 @@ private:
          *      -- 13 sec: macOS intel on intel (before remove big file tests)
          *      -- 6 sec: macOS arm on M1
          *      -- 3.122 sec (3.37, 2.995,...): arm m3 Pro with arm build & arm lib - 2024 oct
+         *      -- 4.5 sec (3.996s, 4.3s, 4.13s...): after adding 9 new videos, m4 MBP oct 2025
          *  - Cached
          *      -- 2.75 sec: windows intel on intel (before remove big file tests 207)
          *      -- 3 sec: macOS intel on intel (before remove big file tests 207)
          *      -- 1 sec: macOS arm on M1
          *      -- 650 ms (0.572, 0.570,...): arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 2.0 sec (1.136s, 1.109s, 1.125s...): after adding 9 new videos, m4 MBP oct 2025
          *  - Cache only
          *      -- 3.203 sec: macos intel on intel (before remove big file tests 207)
          *      -- <1 sec: macOS arm on M1
          *      -- <1 sec (0.566, 0.538,...): arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 1.0 sec (0.571s, 0.567s, 0.568s...): after adding 9 new videos, m4 MBP oct 2025
          * 100GB test set
          *  - No cache
          *      -- 36min: mix lib&exec metadata, exec captures
@@ -370,7 +389,7 @@ private:
         const refVidParamsTestConfig conf = refVidParamsTestConfig()
     );
 
-    static void createRefVidParams(
+    void createRefVidParams(
         QDir videoDir,
         Prefs::USE_CACHE_OPTION cacheOption
     );
@@ -691,6 +710,7 @@ void TestVideo::checkRefVidParamsList(
 void TestVideo::populateRefVidParamsTestData(
     const QDir videoDir
 ) {
+    emptyDb();
     QTest::addColumn<QString>("videoPath");
     
     QVERIFY(videoDir.exists());
@@ -718,7 +738,7 @@ void TestVideo::populateRefVidParamsTestData(
     }
     
     // Verify we found the expected number of videos (200 for the standard test set)
-    const int expectedVideoCount = 200;
+    const int expectedVideoCount = 209;
     QVERIFY2(videoPaths.count() == expectedVideoCount, 
         QString("Expected %1 videos but found %2 in %3")
             .arg(expectedVideoCount)
@@ -763,21 +783,20 @@ void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
     QString thumbnailPath = videoPath + "." + suffix + ".jpg";
     QByteArray ref_thumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(thumbnailPath);
     
+    Prefs prefs;
+    prefs.useCacheOption(conf.cacheOption);
+    
     // run scan once to populate cache
     if(conf.cacheOption != Prefs::NO_CACHE) {
-        Prefs prefs;
-        prefs.useCacheOption(conf.cacheOption);
         QVERIFY2(Db::initDbAndCacheLocation(prefs), "Failed to initialize cache");
-        Video *vid = new Video(prefs, videoPath);
+        auto prefsWithCache = prefs;
+        prefsWithCache.useCacheOption(Prefs::WITH_CACHE); // Need to force generate cache even if CACHE_ONLY is set
+        Video *vid = new Video(prefsWithCache, videoPath);
         auto res = vid->process();
         delete vid;
     }
 
-    // Process video with current settings
-    Prefs prefs;
-    prefs.useCacheOption(conf.cacheOption);
-    Db::initDbAndCacheLocation(prefs);
-    
+    // Process video with current settings    
     Video *vid = new Video(prefs, videoPath);
     auto res = vid->process();
     
@@ -897,8 +916,11 @@ void TestVideo::createRefVidParams(
     Prefs::USE_CACHE_OPTION cacheOption
 )
 {
+    emptyDb();
     QElapsedTimer timer;
     timer.start();
+
+    runWholeAppScan(videoDir);
 
     QVERIFY(!videoDir.isEmpty());
     MainWindow w;
@@ -916,6 +938,10 @@ void TestVideo::createRefVidParams(
     int processedCount = 0;
     int errorCount = 0;
 
+    Prefs prefs;
+    prefs.useCacheOption(cacheOption);
+    QVERIFY2(Db::initDbAndCacheLocation(prefs), "Failed to initialize cache");
+
     while(iter.hasNext())
     {
         const QFile vidFile(iter.next());
@@ -926,13 +952,6 @@ void TestVideo::createRefVidParams(
         QString videoPath = vidInfo.absoluteFilePath();
         // run scan once to populate cache
         if(cacheOption != Prefs::NO_CACHE) {
-            Prefs prefs;
-            prefs.useCacheOption(Prefs::WITH_CACHE);
-            if(!Db::initDbAndCacheLocation(prefs)) {
-                qWarning() << "Failed to initialize cache";
-                errorCount++;
-                continue;
-            }
             Video *vid = new Video(prefs, videoDir.path());
             auto result = vid->process();
             delete vid;
@@ -941,18 +960,9 @@ void TestVideo::createRefVidParams(
         QString thumbPath = videoPath + "." + suffix + ".jpg";
 
         // Process video
-        Prefs prefs;
-        prefs.useCacheOption(cacheOption);
         Video *vid = new Video(prefs, videoPath);
         auto result = vid->process();
         
-        // if (!result.success) {
-        //     qWarning() << "Failed to process video:" << videoPath << "-" << result.errorMsg;
-        //     errorCount++;
-        //     delete vid;
-        //     continue;
-        // }
-
         // Create VideoParam
         VideoParam videoParam;
         videoParam.videoInfo = vidInfo;
