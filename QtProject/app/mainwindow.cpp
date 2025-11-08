@@ -325,33 +325,32 @@ void MainWindow::processVideos()
 
     QVector<QFuture<Video::ProcessingResult>> activeFutures;
 
-    // Submit videos to QtConcurrent thread pool
-    int maxParallelTasks = QThread::idealThreadCount();
-    // int maxParallelTasks = 1; // for local debugging if parallelism is causing issues
+    // Submit videos to QtConcurrent which uses global thread pool, by default threads set to number of cores
+    int maxParallelTasks = QThreadPool::globalInstance()->maxThreadCount();
+    if(maxParallelTasks <= 1) {
+        maxParallelTasks = 4;
+        addStatusMessage(QString("Warning: No ideal thread count found, using %1 threads.").arg(maxParallelTasks));
+    } else {
+        addStatusMessage(QString("Using %1 threads for video processing.").arg(maxParallelTasks));
+    }
+    // maxParallelTasks = 1; // for local debugging if parallelism is causing issues
     
-    for(auto &vidIter : sortedVids)
-    {
-        if(_userPressedStop)
-        {
+    for(auto &vidIter : sortedVids) {
+        if(_userPressedStop) {
             this->ui->findDuplicates->setDisabled(true);
             break;
         }
 
         // Wait if we have too many active tasks
-        while(activeFutures.size() >= maxParallelTasks && !_userPressedStop)
-        {
+        while(activeFutures.size() >= maxParallelTasks && !_userPressedStop) {
             // Check completed futures and process their results
-            for(int i = activeFutures.size() - 1; i >= 0; --i)
-            {
-                if(activeFutures[i].isFinished())
-                {
-                    Video::ProcessingResult result = activeFutures[i].result();
-                    if (result.success) {
+            for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
+                if(activeFutures[i].isFinished()) {
+                    Video::ProcessingResult result = activeFutures.takeAt(i).result();
+                    if (result.success)
                         addVideo(result.video);
-                    } else {
+                    else    
                         removeVideo(result.video, result.errorMsg);
-                    }
-                    activeFutures.removeAt(i);
                 }
             }
             QApplication::processEvents();
@@ -375,22 +374,27 @@ void MainWindow::processVideos()
     QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, activeFutures.size(), this);
     progress.setWindowModality(Qt::WindowModal);
     
+    // Process remaining futures 
+    // Start timer so that if it takes too long, we simply ignore the remaining ones
+    // Leading to a small memory leak, but it's not a big deal as it's only a few videos.
+    QElapsedTimer timer;
+    timer.start();
     while (!activeFutures.isEmpty()) {
-        for(int i = activeFutures.size() - 1; i >= 0; --i)
-        {
-            if(activeFutures[i].isFinished())
-            {
-                Video::ProcessingResult result = activeFutures[i].result();
-                if (result.success) {
+        for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
+            if(activeFutures[i].isFinished()) {
+                Video::ProcessingResult result = activeFutures.takeAt(i).result();
+                if (result.success)
                     addVideo(result.video);
-                } else {
+                else
                     removeVideo(result.video, result.errorMsg);
-                }
-                activeFutures.removeAt(i);
             }
         }
         progress.setValue(progress.maximum() - activeFutures.size());
         QApplication::processEvents();
+        if (this->_userPressedStop && timer.elapsed() > 60000) { // 60 seconds
+            addStatusMessage(QString("Warning: Video processing took too long after user pressed stop (more than 60 seconds), ignoring remaining ones."));
+            break;
+        }
         if(!activeFutures.isEmpty())
             QThread::msleep(10); // Small sleep to avoid busy-waiting
     }
