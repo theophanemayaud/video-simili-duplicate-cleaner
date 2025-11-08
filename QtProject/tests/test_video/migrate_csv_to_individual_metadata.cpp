@@ -15,22 +15,21 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
     
     qDebug() << "====== CSV to Individual Metadata Migration Tool ======";
+    qDebug() << "Migrating 100GB test dataset";
     
     // Determine platform and set paths accordingly
 #ifdef Q_OS_MACOS
-    QDir videoDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Videos");
-    QDir thumbnailDir_nocache("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
-    QFileInfo csvInfo_nocache("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-nocache.csv");
+    QDir videoDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Videos/");
+    QDir thumbnailDir_nocache("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Thumbnails-nocache/");
+    QFileInfo csvInfo_nocache("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/100GBtests-nocache.csv");
     
-    QDir thumbnailDir_cached("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
-    QFileInfo csvInfo_cached("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-cached.csv");
+    // No cached version for 100GB dataset
+    QDir thumbnailDir_cached;
+    QFileInfo csvInfo_cached;
 #elif defined(Q_OS_WIN)
-    QDir videoDir("Y:/Videos/");
-    QDir thumbnailDir_nocache("Y:/Thumbnails-nocache/");
-    QFileInfo csvInfo_nocache("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
-    
-    QDir thumbnailDir_cached("Y:/Thumbnails-cached/");
-    QFileInfo csvInfo_cached("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
+    // Add Windows paths if needed
+    qCritical() << "100GB test paths not configured for Windows";
+    return 1;
 #endif
     
     qDebug() << "Video directory:" << videoDir.path();
@@ -176,15 +175,12 @@ int main(int argc, char *argv[])
     // Migrate nocache data
     bool nocacheSuccess = migrateCsvData(csvInfo_nocache, thumbnailDir_nocache, "nocache");
     
-    // Migrate cached data
-    bool cachedSuccess = migrateCsvData(csvInfo_cached, thumbnailDir_cached, "withcache");
-    
     qDebug() << "\n====== Overall Migration Summary ======";
     qDebug() << "NO_CACHE migration:" << (nocacheSuccess ? "SUCCESS" : "FAILED/SKIPPED");
-    qDebug() << "CACHED migration:" << (cachedSuccess ? "SUCCESS" : "FAILED/SKIPPED");
+    qDebug() << "(No cached version for 100GB dataset)";
     
-    if (!nocacheSuccess && !cachedSuccess) {
-        qCritical() << "\nBoth migrations failed!";
+    if (!nocacheSuccess) {
+        qCritical() << "\nMigration failed!";
         return 1;
     }
     

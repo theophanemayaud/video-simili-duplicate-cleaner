@@ -173,17 +173,66 @@ private slots:
         );
     };
 
-//    void create100GBrefVidParams_nocache();
-    void test_100GBcheckRefVidParams_nocache_noVisualThumbCheck();
-    void test_100GBcheckRefVidParams_nocache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates();
-    void test_100GBcheckRefVidParams_nocache_manualCompare500Sampled_AcceptSmallDurationDiffs();
+    // 100GB tests - data-driven approach
+    void test_100GBcheck_refvidparams_nocache_data() {
+        populateRefVidParamsTestData(_100GBvideoDir, 12505);
+    };
+    void test_100GBcheck_refvidparams_nocache() {
+        refVidParamsTestConfig conf;
+        conf.testDescr = __FUNCTION__;
+        conf.cacheOption = Prefs::NO_CACHE;
+        conf.acceptSmallDurationDiff = true;
+        checkSingleVideoParams(conf);
+    };
+    
+    void test_100GBcheck_refvidparams_withcache_data() {
+        populateRefVidParamsTestData(_100GBvideoDir, 12505);
+    };
+    void test_100GBcheck_refvidparams_withcache() {
+        refVidParamsTestConfig conf;
+        conf.testDescr = __FUNCTION__;
+        conf.cacheOption = Prefs::WITH_CACHE;
+        conf.acceptSmallDurationDiff = true;
+        checkSingleVideoParams(conf);
+    };
+    
+    void test_100GBcheck_refvidparams_nocache_manualCompare_data() {
+        populateRefVidParamsTestData(_100GBvideoDir, 12505);
+    };
+    void test_100GBcheck_refvidparams_nocache_manualCompare() {
+        refVidParamsTestConfig conf;
+        conf.testDescr = __FUNCTION__;
+        conf.cacheOption = Prefs::NO_CACHE;
+        conf.acceptSmallDurationDiff = true;
+        conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
+        conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 500;
+        checkSingleVideoParams(conf);
+    };
 
-    void test_100GBcheckRefVidParams_cache_manualCompare500Sampled_AcceptSmallDurationDiffs();
-    void test_100GBcheckRefVidParams_cache_noVisualThumbCheck();
-    void test_100GBcheckRefVidParams_cache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates();
-
-    void test_100GBwholeApp_nocache();
-    void test_100GBwholeApp_cached();
+    void test_100GBwholeApp_nocache() {
+        wholeAppTestConfig conf;
+        conf.cacheOption = Prefs::NO_CACHE;
+        conf.ref_ms_time = 5*60*1000;
+        conf.nb_vids_to_find = 12505;
+        conf.nb_valid_vids_to_find = 12330;
+        conf.nb_matching_vids_to_find = 6568;
+        runWholeAppScan(
+            _100GBvideoDir,
+            &conf
+        );    
+    };
+    void test_100GBwholeApp_cached() {
+        wholeAppTestConfig conf;
+        conf.cacheOption = Prefs::WITH_CACHE;
+        conf.ref_ms_time = 50*1000;
+        conf.nb_vids_to_find = 12505;
+        conf.nb_valid_vids_to_find = 12330;
+        conf.nb_matching_vids_to_find = 6555;
+        runWholeAppScan(
+            _100GBvideoDir,
+            &conf
+        );    
+    };
 
     // Runs at end of all test run (not once per test)
     void cleanupTestCase(){};
@@ -480,122 +529,6 @@ void TestVideo::initTestCase(){
     QVERIFY(!videoParamList.isEmpty());
     QVERIFY(TestHelpers::saveVideoParamQListToCSV(videoParamList, _100GBcsvInfo_nocache, _100GBvideoDir));
 }*/
-
-// Test whole app
-void TestVideo::test_100GBwholeApp_nocache(){
-    wholeAppTestConfig conf;
-    conf.cacheOption = Prefs::NO_CACHE;
-    conf.ref_ms_time = 5*60*1000;
-    conf.nb_vids_to_find = 12505;
-    conf.nb_valid_vids_to_find = 12330;
-    conf.nb_matching_vids_to_find = 6568;
-    runWholeAppScan(
-        _100GBvideoDir,
-        &conf
-        );
-}
-
-void TestVideo::test_100GBwholeApp_cached(){
-    wholeAppTestConfig conf;
-    conf.cacheOption = Prefs::WITH_CACHE;
-    conf.ref_ms_time = 50*1000;
-    conf.nb_vids_to_find = 12505;
-    conf.nb_valid_vids_to_find = 12330;
-    conf.nb_matching_vids_to_find = 6555;
-    runWholeAppScan(
-        _100GBvideoDir,
-        &conf
-        );
-}
-
-// Check ref params with no cache
-void TestVideo::test_100GBcheckRefVidParams_nocache_manualCompare500Sampled_AcceptSmallDurationDiffs(){
-    refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Prefs::NO_CACHE;
-    conf.paramsCSV = _100GBcsvInfo_nocache;
-    conf.videoDir = _100GBvideoDir;
-    conf.thumbsDir = _100GBthumbnailDir_nocache;
-    conf.acceptSmallDurationDiff = true;
-    conf.compareModifiedDates = false;
-    conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
-    conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 500;
-    checkRefVidParamsList(conf);
-}
-
-void TestVideo::test_100GBcheckRefVidParams_nocache_noVisualThumbCheck(){
-    refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Prefs::NO_CACHE;
-    conf.paramsCSV = _100GBcsvInfo_nocache;
-    conf.videoDir = _100GBvideoDir;
-    conf.thumbsDir = _100GBthumbnailDir_nocache;
-    delete conf.compareThumbsVisualConfig;
-    conf.compareThumbsVisualConfig = nullptr;
-    conf.refDuration_ms = 28*60*1000;
-
-    checkRefVidParamsList(conf);
-}
-
-void TestVideo::test_100GBcheckRefVidParams_nocache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates(){
-    refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Prefs::NO_CACHE;
-    conf.paramsCSV = _100GBcsvInfo_nocache;
-    conf.videoDir = _100GBvideoDir;
-    conf.thumbsDir = _100GBthumbnailDir_nocache;
-    conf.refDuration_ms = 28*60*1000;
-    conf.acceptSmallDurationDiff = true;
-    conf.compareModifiedDates = false;
-    delete conf.compareThumbsVisualConfig;
-    conf.compareThumbsVisualConfig = nullptr;
-
-    checkRefVidParamsList(conf);
-}
-
-// Check ref params with cache
-void TestVideo::test_100GBcheckRefVidParams_cache_manualCompare500Sampled_AcceptSmallDurationDiffs(){
-    refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _100GBcsvInfo_nocache;
-    conf.videoDir = _100GBvideoDir;
-    conf.thumbsDir = _100GBthumbnailDir_nocache;
-    conf.acceptSmallDurationDiff = true;
-    conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
-    conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 500;
-    checkRefVidParamsList(conf);
-}
-
-void TestVideo::test_100GBcheckRefVidParams_cache_noVisualThumbCheck(){
-    refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _100GBcsvInfo_nocache;
-    conf.videoDir = _100GBvideoDir;
-    conf.thumbsDir = _100GBthumbnailDir_nocache;
-    delete conf.compareThumbsVisualConfig;
-    conf.compareThumbsVisualConfig = nullptr;
-    conf.refDuration_ms = 4*60*1000;
-
-    checkRefVidParamsList(conf);
-}
-
-void TestVideo::test_100GBcheckRefVidParams_cache_noVisualThumbCheck_AcceptSmallDurationDiffs_ignoreModifiedDates(){
-    refVidParamsTestConfig conf;
-    conf.testDescr = __FUNCTION__;
-    conf.cacheOption = Prefs::WITH_CACHE;
-    conf.paramsCSV = _100GBcsvInfo_nocache;
-    conf.videoDir = _100GBvideoDir;
-    conf.thumbsDir = _100GBthumbnailDir_nocache;
-    conf.refDuration_ms = 4*60*1000;
-    conf.acceptSmallDurationDiff = true;
-    conf.compareModifiedDates = false;
-    delete conf.compareThumbsVisualConfig;
-    conf.compareThumbsVisualConfig = nullptr;
-
-    checkRefVidParamsList(conf);
-}
 
 // ---------------------------- END : 100GB tests from SSD ----------------------------
 // ------------------------------------------------------------------------------------
