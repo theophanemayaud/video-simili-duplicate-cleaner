@@ -245,9 +245,8 @@ void MainWindow::on_findDuplicates_clicked()
             if(!notFound.isEmpty())
                 ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
         }
-        else{
-        _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
-    }
+        else
+            _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
 
         processVideos();
     }
@@ -267,6 +266,7 @@ void MainWindow::on_findDuplicates_clicked()
     }
 
     ui->findDuplicates->setText(QStringLiteral("Find duplicates"));
+    ui->findDuplicates->setDisabled(false);
     this->shouldScan = false; //set to false, as we are done scanning
 }
 
@@ -336,13 +336,10 @@ void MainWindow::processVideos()
     // maxParallelTasks = 1; // for local debugging if parallelism is causing issues
     
     for(auto &vidIter : sortedVids) {
-        if(_userPressedStop) {
-            this->ui->findDuplicates->setDisabled(true);
-            break;
-        }
-
         // Wait if we have too many active tasks
-        while(activeFutures.size() >= maxParallelTasks && !_userPressedStop) {
+        while(activeFutures.size() >= maxParallelTasks) {
+            if (this->_userPressedStop)
+                break;
             // Check completed futures and process their results
             for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
                 if(activeFutures[i].isFinished()) {
@@ -357,7 +354,7 @@ void MainWindow::processVideos()
             QThread::msleep(10); // Small sleep to avoid busy-waiting
         }
 
-        if(_userPressedStop)
+        if(this->_userPressedStop)
             break;
 
         // Create video and submit for processing
@@ -380,6 +377,11 @@ void MainWindow::processVideos()
     QElapsedTimer timer;
     timer.start();
     while (!activeFutures.isEmpty()) {
+        if (this->_userPressedStop && this->ui->findDuplicates->isEnabled()) {
+            this->ui->findDuplicates->setText(QStringLiteral("Stopping..."));
+            this->ui->findDuplicates->setDisabled(true);
+        }
+    
         for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
             if(activeFutures[i].isFinished()) {
                 Video::ProcessingResult result = activeFutures.takeAt(i).result();
@@ -395,13 +397,11 @@ void MainWindow::processVideos()
             addStatusMessage(QString("Warning: Video processing took too long after user pressed stop (more than 60 seconds), ignoring remaining ones."));
             break;
         }
-        if(!activeFutures.isEmpty())
-            QThread::msleep(10); // Small sleep to avoid busy-waiting
+        QThread::msleep(10); // Small sleep to avoid busy-waiting
     }
 
     QApplication::processEvents();  // process any remaining signals
 
-    this->ui->findDuplicates->setDisabled(false);
     ui->selectThumbnails->setDisabled(false);
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
