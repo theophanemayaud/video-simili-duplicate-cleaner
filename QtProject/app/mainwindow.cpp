@@ -327,12 +327,11 @@ void MainWindow::processVideos()
 
     // Submit videos to QtConcurrent which uses global thread pool, by default threads set to number of cores
     int maxParallelTasks = QThreadPool::globalInstance()->maxThreadCount();
-    if(maxParallelTasks <= 1) {
+    if(maxParallelTasks <= 1) { // if set to 1, qt was probably unable to detect the number of cores
         maxParallelTasks = 4;
         addStatusMessage(QString("Warning: No ideal thread count found, using %1 threads.").arg(maxParallelTasks));
-    } else {
+    } else
         addStatusMessage(QString("Using %1 threads for video processing.").arg(maxParallelTasks));
-    }
     // maxParallelTasks = 1; // for local debugging if parallelism is causing issues
     
     for(auto &vidIter : sortedVids) {
@@ -346,7 +345,7 @@ void MainWindow::processVideos()
                     Video::ProcessingResult result = activeFutures.takeAt(i).result();
                     if (result.success)
                         addVideo(result.video);
-                    else    
+                    else
                         removeVideo(result.video, result.errorMsg);
                 }
             }
@@ -394,6 +393,7 @@ void MainWindow::processVideos()
         progress.setValue(progress.maximum() - activeFutures.size());
         QApplication::processEvents();
         if (this->_userPressedStop && timer.elapsed() > 60000) { // 60 seconds
+            // Memory leak occurs here but that's small enough to not be a big deal.
             addStatusMessage(QString("Warning: Video processing took too long after user pressed stop (more than 60 seconds), ignoring remaining ones."));
             break;
         }
