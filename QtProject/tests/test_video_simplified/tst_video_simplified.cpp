@@ -1,5 +1,6 @@
 #include <QtTest>
 #include <QCoreApplication>
+#include <QFile>
 
 #include "../../app/video.h"
 #include "../../app/prefs.h"
@@ -21,7 +22,7 @@ private slots:
     void test_videoScanning_data();
     void test_videoScanning();
     
-    // Reference data generation (commented out by default, uncomment to regenerate reference data)
+    // Reference data generation (commented out when not needed to avoid accidental execution)
     // void generateReferenceData();
     
     void cleanupTestCase();
@@ -165,6 +166,8 @@ void TestVideoSimplified::test_videoScanning()
 
 // Uncomment this function and add it to private slots to generate reference data
 /*
+// Generate reference data for test videos
+// To use: run: ./test_video_simplified generateReferenceData
 void TestVideoSimplified::generateReferenceData()
 {
     // Run with NO_CACHE to generate baseline reference data
@@ -174,7 +177,7 @@ void TestVideoSimplified::generateReferenceData()
     QStringList videos = {"Nice_383p_500kbps.mp4", "Nice_720p_1000kbps.mp4"};
     
     for (const QString& video : videos) {
-        qDebug() << "Generating reference data for:" << video;
+        qDebug() << "\nGenerating reference data for:" << video;
         
         QString videoPath = samplesDir + "/" + video;
         QVERIFY2(QFileInfo::exists(videoPath), 
@@ -184,18 +187,35 @@ void TestVideoSimplified::generateReferenceData()
         QVERIFY2(!param.thumbnail.isEmpty(), 
             QString("Failed to process video: %1").arg(videoPath).toUtf8());
         
-        QString csvPath = referenceDir + "/" + video + ".csv";
-        QString thumbPath = referenceDir + "/" + video + ".jpg";
+        QString metadataPath = samplesDir + "/" + video + ".txt";
+        QString thumbPath = samplesDir + "/" + video + ".jpg";
         
-        QVERIFY2(SimplifiedTestHelpers::saveMetadataToCSV(param, csvPath, QDir(samplesDir)),
-            QString("Failed to save CSV: %1").arg(csvPath).toUtf8());
+        // Remove existing files if they exist
+        if (QFileInfo::exists(metadataPath)) {
+            qDebug() << "Removing existing metadata file:" << metadataPath;
+            QFile::remove(metadataPath);
+        }
+        if (QFileInfo::exists(thumbPath)) {
+            qDebug() << "Removing existing thumbnail:" << thumbPath;
+            QFile::remove(thumbPath);
+        }
+        
+        QVERIFY2(SimplifiedTestHelpers::saveMetadataToFile(param, metadataPath, QDir(samplesDir)),
+            QString("Failed to save metadata: %1").arg(metadataPath).toUtf8());
         QVERIFY2(SimplifiedTestHelpers::saveThumbnail(param.thumbnail, thumbPath),
             QString("Failed to save thumbnail: %1").arg(thumbPath).toUtf8());
         
         qDebug() << "Successfully generated reference data for:" << video;
-        qDebug() << "  CSV:" << csvPath;
+        qDebug() << "  Metadata:" << metadataPath;
         qDebug() << "  Thumbnail:" << thumbPath;
+        qDebug() << "  Video size:" << param.size << "bytes";
+        qDebug() << "  Duration:" << param.duration << "ms";
+        qDebug() << "  Dimensions:" << param.width << "x" << param.height;
+        qDebug() << "  Codec:" << param.codec;
+        qDebug() << "  Framerate:" << param.framerate;
     }
+    
+    qDebug() << "\nReference data generation complete!";
 }
 */
 
