@@ -681,8 +681,9 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
     // SSIM thumbnail comparison
     auto ssim = SimplifiedTestHelpers::compareThumbnails(ref_thumbnail, vid->thumbnail);
     // TODO add ssim tolerance as test parameter
-    if(ssim < 0.80)
-        qWarning() << QString("got ssim %1 pct expected at least 95.0\% - %2").arg(ssim * 100).arg(forVid).toUtf8();
+    const auto ssimThreshold = 0.90;
+    if(ssim < ssimThreshold)
+        qWarning() << QString("got ssim %1 pct expected at least %2\% - %3").arg(ssim * 100).arg(ssimThreshold * 100).arg(forVid).toUtf8();
     else
         ssimAccepted = true;
 
@@ -745,7 +746,6 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
             thumbFile.write(vid->thumbnail);
         thumbFile.close();
     }
-
 }
 
 // Method to generate .txt, .jpg and ref metadata and thumbnail files
