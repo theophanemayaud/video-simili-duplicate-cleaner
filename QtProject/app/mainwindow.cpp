@@ -336,7 +336,7 @@ void MainWindow::processVideos()
     
     for(auto &vidIter : sortedVids) {
         // Wait if we have too many active tasks
-        while(activeFutures.size() >= maxParallelTasks + 10) { // +10 to schedule some tasks in advance so QT can immediately run them when a thread frees up
+        while(activeFutures.size() >= 2*maxParallelTasks) { // double to schedule some tasks in advance so QT can immediately run them when a thread frees up
             if (this->_userPressedStop)
                 break;
             // Check completed futures and process their results

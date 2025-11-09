@@ -148,7 +148,7 @@ private slots:
     void test_whole_app_nocache(){
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
-        conf.ref_ms_time = 4.5*1000;
+        conf.ref_ms_time = 4.0*1000;
         conf.nb_vids_to_find = 218;
         conf.nb_valid_vids_to_find = 214;
         conf.nb_matching_vids_to_find = 84;
@@ -161,7 +161,7 @@ private slots:
     void test_whole_app_cached(){
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
-        conf.ref_ms_time = 2.0*1000;
+        conf.ref_ms_time = 1.5*1000;
         conf.nb_vids_to_find = 218;
         conf.nb_valid_vids_to_find = 214;
         conf.nb_matching_vids_to_find = 84;
@@ -174,7 +174,7 @@ private slots:
     void test_whole_app_cache_only(){
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::CACHE_ONLY;
-        conf.ref_ms_time = 2.0*1000;
+        conf.ref_ms_time = 0.8*1000;
         conf.nb_vids_to_find = 218;
         conf.nb_valid_vids_to_find = 214;
         conf.nb_matching_vids_to_find = 84;
@@ -223,7 +223,7 @@ private slots:
     void test_100GBwholeApp_nocache() {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
-        conf.ref_ms_time = 5*60*1000;
+        conf.ref_ms_time = 4*60*1000;
         conf.nb_vids_to_find = 12506;
         conf.nb_valid_vids_to_find = 12331;
         conf.nb_matching_vids_to_find = 6535;
@@ -235,7 +235,7 @@ private slots:
     void test_100GBwholeApp_cached() {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
-        conf.ref_ms_time = 80*1000;
+        conf.ref_ms_time = 50*1000;
         conf.nb_vids_to_find = 12506;
         conf.nb_valid_vids_to_find = 12331;
         conf.nb_matching_vids_to_find = 6527;
@@ -342,20 +342,21 @@ private:
          *      -- 13 sec: macOS intel on intel (before remove big file tests)
          *      -- 6 sec: macOS arm on M1
          *      -- 3.122 sec (3.37, 2.995,...): arm m3 Pro with arm build & arm lib - 2024 oct
-         *      -- 4.5 sec (3.996s, 4.3s, 4.13s...): after adding 9 new videos including gps, m4 MBP oct 2025
+         *      -- 4.5 sec (3.996s, 4.3s, 4.13s...): after adding 9 new videos including gps, m3 MBP oct 2025
+         *      -- 4.0 sec (3.701s, 3.871s, 3.803s): arm m3 pro - nov 2025 - after removing custom threadpool
          *  - Cached
          *      -- 2.75 sec: windows intel on intel (before remove big file tests 207)
          *      -- 3 sec: macOS intel on intel (before remove big file tests 207)
          *      -- 1 sec: macOS arm on M1
          *      -- 650 ms (0.572, 0.570,...): arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 2.0 sec (1.136s, 1.109s, 1.125s...): after adding 9 new videos including gps, m4 MBP oct 2025
-         *      -- 2.0 sec (1.615s, 1.59s, 1.617s...): after removing custom threadpool, arm m3 pro nov 2025
+         *      -- 2.0 sec (1.136s, 1.109s, 1.125s...): after adding 9 new videos including gps, m3 MBP oct 2025
+         *      -- 1.5 sec (1.115s, 1.153s, 1.141s) arm m3 pro - nov 2025 - after removing custom threadpool (bimodal: ~1.1s or ~1.9s due to system scheduling)
          *  - Cache only
          *      -- 3.203 sec: macos intel on intel (before remove big file tests 207)
          *      -- <1 sec: macOS arm on M1
          *      -- <1 sec (0.566, 0.538,...): arm m3 Pro with arm build & arm lib - 2024 oct.
-         *      -- 1.0 sec (0.571s, 0.567s, 0.568s...): after adding 9 new videos including gps, m4 MBP oct 2025
-         *      -- 2.0 sec (1.64s, 1.80s, 1.83s, 1.106s...): after removing custom threadpool, arm m3 pro nov 2025
+         *      -- 1.0 sec (0.571s, 0.567s, 0.568s...): after adding 9 new videos including gps, m3 MBP oct 2025
+         *      -- 0.8 sec (0.694s, 0.642s, 0.701s): arm m3 pro - nov 2025 - after removing custom threadpool
          * 100GB test set
          *  - No cache
          *      -- 36min: mix lib&exec metadata, exec captures
@@ -365,7 +366,7 @@ private:
          *      -- 6min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 5min (250s, 263s, 287s...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
          *      -- 5min (273.736s, 255.859s): arm m3 Pro - November 2025 update, before delete custom threadpool
-         *      -- 5min (289s, 284s, xx...): arm m3 Pro - nov 2025 - after delete custom threadpool
+         *      -- 4min (237.977s, 236.576s, 234.792s): arm m3 pro - nov 2025 - after delete custom threadpool
          *  - Cached
          *      -- 17min: mix lib&exec metadata, exec captures
          *      -- 6min: lib(only) metadata, exec captures
@@ -373,7 +374,7 @@ private:
          *      -- 2min 33s: arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 50s (44s, 46s, 51s, 43s,...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
          *      -- 50s (42s, 44s, 42.262s): arm m3 Pro - November 2025 update, before delete custom threadpool
-         *      -- 80s (65s, 69s, ...): arm m3 Pro - nov 2025 - after delete custom threadpool
+         *      -- 50s (45.397s, 43.660s, 44.903s): arm m3 pro - nov 2025 - after delete custom threadpool
          *  */
         qint64 ref_ms_time;
     };
