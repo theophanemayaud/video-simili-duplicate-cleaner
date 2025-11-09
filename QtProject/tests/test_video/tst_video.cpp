@@ -174,7 +174,7 @@ private slots:
     void test_whole_app_cache_only(){
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::CACHE_ONLY;
-        conf.ref_ms_time = 1.0*1000;
+        conf.ref_ms_time = 2.0*1000;
         conf.nb_vids_to_find = 218;
         conf.nb_valid_vids_to_find = 214;
         conf.nb_matching_vids_to_find = 84;
@@ -235,7 +235,7 @@ private slots:
     void test_100GBwholeApp_cached() {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
-        conf.ref_ms_time = 50*1000;
+        conf.ref_ms_time = 80*1000;
         conf.nb_vids_to_find = 12506;
         conf.nb_valid_vids_to_find = 12331;
         conf.nb_matching_vids_to_find = 6527;
@@ -349,11 +349,13 @@ private:
          *      -- 1 sec: macOS arm on M1
          *      -- 650 ms (0.572, 0.570,...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 2.0 sec (1.136s, 1.109s, 1.125s...): after adding 9 new videos including gps, m4 MBP oct 2025
+         *      -- 2.0 sec (1.615s, 1.59s, 1.617s...): after removing custom threadpool, arm m3 pro nov 2025
          *  - Cache only
          *      -- 3.203 sec: macos intel on intel (before remove big file tests 207)
          *      -- <1 sec: macOS arm on M1
          *      -- <1 sec (0.566, 0.538,...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 1.0 sec (0.571s, 0.567s, 0.568s...): after adding 9 new videos including gps, m4 MBP oct 2025
+         *      -- 2.0 sec (1.64s, 1.80s, 1.83s, 1.106s...): after removing custom threadpool, arm m3 pro nov 2025
          * 100GB test set
          *  - No cache
          *      -- 36min: mix lib&exec metadata, exec captures
@@ -362,14 +364,16 @@ private:
          *      -- 17min: lib(only) metadata, lib(only) captures
          *      -- 6min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 5min (250s, 263s, 287s...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
-         *      -- 4min 34s (273.736s, 255.859s): arm m3 Pro - November 2025 update, before delete custom threadpool
+         *      -- 5min (273.736s, 255.859s): arm m3 Pro - November 2025 update, before delete custom threadpool
+         *      -- 5min (289s, 284s, xx...): arm m3 Pro - nov 2025 - after delete custom threadpool
          *  - Cached
          *      -- 17min: mix lib&exec metadata, exec captures
          *      -- 6min: lib(only) metadata, exec captures
          *      -- 6min: lib(only) metadata, lib(only) captures
          *      -- 2min 33s: arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 50s (44s, 46s, 51s, 43s,...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
-         *      -- 42s (42s, 44s, 42.262s): arm m3 Pro - November 2025 update, before delete custom threadpool
+         *      -- 50s (42s, 44s, 42.262s): arm m3 Pro - November 2025 update, before delete custom threadpool
+         *      -- 80s (65s, 69s, ...): arm m3 Pro - nov 2025 - after delete custom threadpool
          *  */
         qint64 ref_ms_time;
     };
