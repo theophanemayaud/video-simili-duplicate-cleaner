@@ -32,6 +32,11 @@ class Comparison : public QDialog
 public:
     Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, const QRect &mainWindowGeometry);
     ~Comparison();
+    
+    // SSIM calculation methods - made public and static for reuse in tests
+    static double sigma(const cv::Mat &m, const int &i, const int &j, const int &block_size);
+    static double covariance(const cv::Mat &m0, const cv::Mat &m1, const int &i, const int &j, const int &block_size);
+    static double ssim(const cv::Mat &m0, const cv::Mat &m1, const int &block_size);
 
 private:
     Ui::Comparison *ui;
@@ -147,10 +152,6 @@ private slots:
     void on_thresholdSlider_valueChanged(const int &value);
     void resizeEvent(QResizeEvent *event);
     void wheelEvent(QWheelEvent *event);
-
-    double sigma(const cv::Mat &m, const int &i, const int &j, const int &block_size) const;
-    double covariance(const cv::Mat &m0, const cv::Mat &m1, const int &i, const int &j, const int &block_size) const;
-    double ssim(const cv::Mat &m0, const cv::Mat &m1, const int &block_size) const;
 
     // auto delete methods
     void on_identicalFilesAutoTrash_clicked();

@@ -1,0 +1,13 @@
+videoFilename:Nice_383p_500kbps.mp4
+thumbnailFilename:Nice_383p_500kbps.mp4
+size:331359
+modified:2023-08-16 18:52:13
+duration:4759
+bitrate:557
+framerate:12
+codec:h264
+audio:aac 48000 Hz stereo 127 kb/s
+width:680
+height:382
+hash1:9397598996279
+hash2:7051189023539828443
