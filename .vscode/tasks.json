@@ -5,8 +5,14 @@
 			"type": "npm",
 			"script": "binaries",
 			"problemMatcher": [],
-			"label": "binaries",
-			"detail": "build app and package for app store",
+			"label": "binaries macos arm",
+			"detail": "build app and package for app store"
+		},
+		{
+			"type": "shell",
+			"command": "git fetch origin master:master",
+			"label": "git: fetch origin master:master",
+			"problemMatcher": []
 		}
 	]
 }
