@@ -789,12 +789,6 @@ void TestVideo::createRefVidParams(
         if (vidInfo.isDir()) continue;
 
         QString videoPath = vidInfo.absoluteFilePath();
-        // run scan once to populate cache
-        if(cacheOption != Prefs::NO_CACHE) {
-            Video *vid = new Video(prefs, videoDir.path());
-            auto result = vid->process();
-            delete vid;
-        }
         QString metadataPath = videoPath + "." + suffix + ".txt";
         QString thumbPath = videoPath + "." + suffix + ".jpg";
 
