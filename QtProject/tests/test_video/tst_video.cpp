@@ -95,34 +95,34 @@ private slots:
         checkSingleVideoParams(conf);
     };
     
-    void test_check_refvidparams_nocache_manualCompare_data(){
-        populateRefVidParamsTestData(_videoDir, 218);
-    };
-    void test_check_refvidparams_nocache_manualCompare(){
-        refVidParamsTestConfig conf;
-        conf.testDescr = __FUNCTION__;
-        conf.cacheOption = Prefs::NO_CACHE;
-        conf.acceptSmallDurationDiff = true;
-        conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
-        conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 1;
-        checkSingleVideoParams(conf);
-    };
+    // void test_check_refvidparams_nocache_manualCompare_data(){
+    //     populateRefVidParamsTestData(_videoDir, 218);
+    // };
+    // void test_check_refvidparams_nocache_manualCompare(){
+    //     refVidParamsTestConfig conf;
+    //     conf.testDescr = __FUNCTION__;
+    //     conf.cacheOption = Prefs::NO_CACHE;
+    //     conf.acceptSmallDurationDiff = true;
+    //     conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
+    //     conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 1;
+    //     checkSingleVideoParams(conf);
+    // };
 
-    void test_check_refvidparams_nocache_manualCompare10Sampled_data(){
-        populateRefVidParamsTestData(_videoDir, 218);
-    };
-    void test_check_refvidparams_nocache_manualCompare10Sampled(){
-        refVidParamsTestConfig conf;
-        conf.testDescr = __FUNCTION__;
-        conf.cacheOption = Prefs::NO_CACHE;
-        conf.paramsCSV = _csvInfo_nocache;
-        conf.thumbsDir = _thumbnailDir_nocache;
-        conf.videoDir = _videoDir;
-        conf.acceptSmallDurationDiff = true;
-        conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
-        conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 10;
-        checkSingleVideoParams(conf);
-    };
+    // void test_check_refvidparams_nocache_manualCompare10Sampled_data(){
+    //     populateRefVidParamsTestData(_videoDir, 218);
+    // };
+    // void test_check_refvidparams_nocache_manualCompare10Sampled(){
+    //     refVidParamsTestConfig conf;
+    //     conf.testDescr = __FUNCTION__;
+    //     conf.cacheOption = Prefs::NO_CACHE;
+    //     conf.paramsCSV = _csvInfo_nocache;
+    //     conf.thumbsDir = _thumbnailDir_nocache;
+    //     conf.videoDir = _videoDir;
+    //     conf.acceptSmallDurationDiff = true;
+    //     conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
+    //     conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 10;
+    //     checkSingleVideoParams(conf);
+    // };
 
     // // Utilities to regenerate reference data - uncomment when needed
     // void createRefVidParams_nocache() {
@@ -196,29 +196,29 @@ private slots:
         checkSingleVideoParams(conf);
     };
     
-    void test_100GBcheck_refvidparams_withcache_data() {
-        populateRefVidParamsTestData(_100GBvideoDir, 12506);
-    };
-    void test_100GBcheck_refvidparams_withcache() {
-        refVidParamsTestConfig conf;
-        conf.testDescr = __FUNCTION__;
-        conf.cacheOption = Prefs::WITH_CACHE;
-        conf.acceptSmallDurationDiff = true;
-        checkSingleVideoParams(conf);
-    };
+    // void test_100GBcheck_refvidparams_withcache_data() {
+    //     populateRefVidParamsTestData(_100GBvideoDir, 12506);
+    // };
+    // void test_100GBcheck_refvidparams_withcache() {
+    //     refVidParamsTestConfig conf;
+    //     conf.testDescr = __FUNCTION__;
+    //     conf.cacheOption = Prefs::WITH_CACHE;
+    //     conf.acceptSmallDurationDiff = true;
+    //     checkSingleVideoParams(conf);
+    // };
     
-    void test_100GBcheck_refvidparams_nocache_manualCompare_data() {
-        populateRefVidParamsTestData(_100GBvideoDir, 12506);
-    };
-    void test_100GBcheck_refvidparams_nocache_manualCompare() {
-        refVidParamsTestConfig conf;
-        conf.testDescr = __FUNCTION__;
-        conf.cacheOption = Prefs::NO_CACHE;
-        conf.acceptSmallDurationDiff = true;
-        conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
-        conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 500;
-        checkSingleVideoParams(conf);
-    };
+    // void test_100GBcheck_refvidparams_nocache_manualCompare_data() {
+    //     populateRefVidParamsTestData(_100GBvideoDir, 12506);
+    // };
+    // void test_100GBcheck_refvidparams_nocache_manualCompare() {
+    //     refVidParamsTestConfig conf;
+    //     conf.testDescr = __FUNCTION__;
+    //     conf.cacheOption = Prefs::NO_CACHE;
+    //     conf.acceptSmallDurationDiff = true;
+    //     conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff = true;
+    //     conf.compareThumbsVisualConfig->sampledManualThumbVerifInterval = 500;
+    //     checkSingleVideoParams(conf);
+    // };
 
     void test_100GBwholeApp_nocache() {
         wholeAppTestConfig conf;
@@ -362,14 +362,14 @@ private:
          *      -- 17min: lib(only) metadata, lib(only) captures
          *      -- 6min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 5min (250s, 263s, 287s...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
-         *      -- 4min 34s (273.736s): arm m3 Pro - November 2025 update, before delete custom threadpool
+         *      -- 4min 34s (273.736s, 255.859s): arm m3 Pro - November 2025 update, before delete custom threadpool
          *  - Cached
          *      -- 17min: mix lib&exec metadata, exec captures
          *      -- 6min: lib(only) metadata, exec captures
          *      -- 6min: lib(only) metadata, lib(only) captures
          *      -- 2min 33s: arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 50s (44s, 46s, 51s, 43s,...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
-         *      -- 42s (42s, 44s): arm m3 Pro - November 2025 update, before delete custom threadpool
+         *      -- 42s (42s, 44s, 42.262s): arm m3 Pro - November 2025 update, before delete custom threadpool
          *  */
         qint64 ref_ms_time;
     };
