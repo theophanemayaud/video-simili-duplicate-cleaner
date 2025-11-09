@@ -1,5 +1,6 @@
 #include <QtTest>
 #include <QCoreApplication>
+#include <QApplication>
 #include <QtConcurrent/QtConcurrent>
 #include <QElapsedTimer>
 
@@ -24,6 +25,10 @@ class TestVideo : public QObject
 public:
     TestVideo();
     ~TestVideo();
+    
+    // Special Qt Test static method called before main() runs
+    // Use this to set QTEST_FUNCTION_TIMEOUT for long-running tests
+    static void initMain();
 
 private:
 #ifdef Q_OS_WIN
@@ -132,6 +137,12 @@ private slots:
     //         Prefs::WITH_CACHE
     //     );
     // };
+    // void createRefVidParams100GB_nocache() {
+    //     createRefVidParams(
+    //         _100GBvideoDir,
+    //         Prefs::NO_CACHE
+    //     );
+    // };
     
     // Test whole app
     void test_whole_app_nocache(){
@@ -175,7 +186,7 @@ private slots:
 
     // 100GB tests - data-driven approach
     void test_100GBcheck_refvidparams_nocache_data() {
-        populateRefVidParamsTestData(_100GBvideoDir, 12505);
+        populateRefVidParamsTestData(_100GBvideoDir, 12506);
     };
     void test_100GBcheck_refvidparams_nocache() {
         refVidParamsTestConfig conf;
@@ -186,7 +197,7 @@ private slots:
     };
     
     void test_100GBcheck_refvidparams_withcache_data() {
-        populateRefVidParamsTestData(_100GBvideoDir, 12505);
+        populateRefVidParamsTestData(_100GBvideoDir, 12506);
     };
     void test_100GBcheck_refvidparams_withcache() {
         refVidParamsTestConfig conf;
@@ -197,7 +208,7 @@ private slots:
     };
     
     void test_100GBcheck_refvidparams_nocache_manualCompare_data() {
-        populateRefVidParamsTestData(_100GBvideoDir, 12505);
+        populateRefVidParamsTestData(_100GBvideoDir, 12506);
     };
     void test_100GBcheck_refvidparams_nocache_manualCompare() {
         refVidParamsTestConfig conf;
@@ -213,9 +224,9 @@ private slots:
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
         conf.ref_ms_time = 5*60*1000;
-        conf.nb_vids_to_find = 12505;
-        conf.nb_valid_vids_to_find = 12330;
-        conf.nb_matching_vids_to_find = 6568;
+        conf.nb_vids_to_find = 12506;
+        conf.nb_valid_vids_to_find = 12331;
+        conf.nb_matching_vids_to_find = 6535;
         runWholeAppScan(
             _100GBvideoDir,
             &conf
@@ -225,9 +236,9 @@ private slots:
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
         conf.ref_ms_time = 50*1000;
-        conf.nb_vids_to_find = 12505;
-        conf.nb_valid_vids_to_find = 12330;
-        conf.nb_matching_vids_to_find = 6555;
+        conf.nb_vids_to_find = 12506;
+        conf.nb_valid_vids_to_find = 12331;
+        conf.nb_matching_vids_to_find = 6527;
         runWholeAppScan(
             _100GBvideoDir,
             &conf
@@ -284,9 +295,11 @@ private:
          *  - No cache
          *      -- 12 328: after redo of caching
          *      -- 12 330: arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 12 331: November 2025 update, before delete custom threadpool
          *  - Cached
          *      -- 12 330: after redo of caching
          *      -- 12 330: arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 12 331: November 2025 update, before delete custom threadpool
          */
         int nb_valid_vids_to_find;
 
@@ -313,11 +326,13 @@ private:
          *      -- 6 562: lib(only) metadata, lib(only) captures
          *      -- 6 558 (97.1GB): arm but intel build
          *      -- 6 568 (97.2 GB): arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 6 535 (97.0 GB): November 2025 update, before delete custom threadpool
          *  - Cached
          *      -- 6 626: mix lib&exec metadata, exec captures
          *      -- 6 553: lib(only) metadata, lib(only) captures
          *      -- 6 550 (97.1GB): after redo of caching
          *      -- 6 555 (97.1 GB): arm m3 Pro with arm build & arm lib - 2024 oct.
+         *      -- 6 527 (97.0 GB): November 2025 update, before delete custom threadpool
          */
         int nb_matching_vids_to_find;
 
@@ -347,12 +362,14 @@ private:
          *      -- 17min: lib(only) metadata, lib(only) captures
          *      -- 6min 30s (418s, ...): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 5min (250s, 263s, 287s...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
+         *      -- 4min 34s (273.736s): arm m3 Pro - November 2025 update, before delete custom threadpool
          *  - Cached
          *      -- 17min: mix lib&exec metadata, exec captures
          *      -- 6min: lib(only) metadata, exec captures
          *      -- 6min: lib(only) metadata, lib(only) captures
          *      -- 2min 33s: arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 50s (44s, 46s, 51s, 43s,...): arm m3 Pro with arm build & arm lib - 2024 dec. after ordered lists reworking, and 2025 march with custom task pool
+         *      -- 42s (42s, 44s): arm m3 Pro - November 2025 update, before delete custom threadpool
          *  */
         qint64 ref_ms_time;
     };
@@ -454,6 +471,13 @@ private:
 TestVideo::TestVideo(){}
 
 TestVideo::~TestVideo(){}
+
+void TestVideo::initMain()
+{
+    // Set timeout to 2 hours (7200000ms) for long-running 100GB tests
+    // Default is 300000ms (5 minutes)
+    qputenv("QTEST_FUNCTION_TIMEOUT", "7200000");
+}
 
 // Runs once before test run (not once per test)
 void TestVideo::initTestCase(){
@@ -960,6 +984,7 @@ void TestVideo::createRefVidParams(
 
 // ---------------------------- END : helper testing functions ------------------------
 // ----------------------------------------------------------------------------------
+
 QTEST_MAIN(TestVideo)
 
 #include "tst_video.moc"

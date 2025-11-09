@@ -123,6 +123,8 @@ add_qt_test(test_video
         test_video/video_test_helpers.cpp
         test_video_simplified/video_simplified_test_helpers.cpp
 )
+# Set longer CTest timeout for test_video (contains 100GB tests that can take 30+ minutes)
+set_tests_properties(test_video PROPERTIES TIMEOUT 3600)
 
 # Test 4: test_video_simplified
 add_qt_test(test_video_simplified
