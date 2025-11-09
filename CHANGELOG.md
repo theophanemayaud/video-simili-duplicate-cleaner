@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.13.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.0...v1.13.1) (2025-11-09)
+
+
+### Features
+
+* **comparison:** add ability to order comparisons by date and name as well as size ([#151](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/151)) ([fc9e84b](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/fc9e84b67dd277a3d2160504eb307351b003b4bc))
+* **comparison:** progress indicator is now a slider for quicker navigation ([a7163a0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/a7163a00e0abb763a2300503fbde977d5b4968ca))
+
+
+### Bug Fixes
+
+* **multithreading:** replace custom thread pool with QtConcurrent to hopefully eliminate crashes ([#163](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/163)) ([17a14e1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/17a14e1dc43140e46b302217615f5245853288c3))
+
 ## [1.13.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.12.1...v1.13.0) (2025-06-15)
 
 
