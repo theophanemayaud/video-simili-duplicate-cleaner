@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include <QProgressDialog>
 #include "prefs.h"
-#include "videoprocessingpool.h"
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
@@ -246,9 +245,8 @@ void MainWindow::on_findDuplicates_clicked()
             if(!notFound.isEmpty())
                 ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
         }
-        else{
-        _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
-    }
+        else
+            _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
 
         processVideos();
     }
@@ -268,6 +266,7 @@ void MainWindow::on_findDuplicates_clicked()
     }
 
     ui->findDuplicates->setText(QStringLiteral("Find duplicates"));
+    ui->findDuplicates->setDisabled(false);
     this->shouldScan = false; //set to false, as we are done scanning
 }
 
@@ -319,57 +318,90 @@ void MainWindow::processVideos()
     }
     else return;
 
-    // Create video processing pool
-    auto videoPool = new VideoProcessingPool();
-    connect(videoPool, &VideoProcessingPool::TaskResult, this, [this](Video::ProcessingResult result) {
-        if (result.success) {
-            addVideo(result.video);
-        } else {
-            removeVideo(result.video, result.errorMsg);
-        }
-    });
-
+    // Process videos using QtConcurrent
     // for reproduceability and easier user experience, we want to process videos in alphabetical order
     QStringList sortedVids = QStringList(_everyVideo.begin(), _everyVideo.end());
     sortedVids.sort(Qt::CaseInsensitive);
 
-    for(auto &vidIter : sortedVids)
-    {
-        if(_userPressedStop)
-        {
-            this->ui->findDuplicates->setDisabled(true);
-            videoPool->ClearWaiting();
-            break;
+    QVector<QFuture<Video::ProcessingResult>> activeFutures;
+
+    // Submit videos to QtConcurrent which uses global thread pool, by default threads set to number of cores
+    int maxParallelTasks = QThreadPool::globalInstance()->maxThreadCount();
+    if(maxParallelTasks <= 1) { // if set to 1, qt was probably unable to detect the number of cores
+        maxParallelTasks = 4;
+        addStatusMessage(QString("Warning: No ideal thread count found, using %1 threads.").arg(maxParallelTasks));
+    } else
+        addStatusMessage(QString("Using %1 threads for video processing.").arg(maxParallelTasks));
+    // maxParallelTasks = 1; // for local debugging if parallelism is causing issues
+    
+    for(auto &vidIter : sortedVids) {
+        // Wait if we have too many active tasks
+        while(activeFutures.size() >= 2*maxParallelTasks) { // double to schedule some tasks in advance so QT can immediately run them when a thread frees up
+            if (this->_userPressedStop)
+                break;
+            // Check completed futures and process their results
+            for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
+                if(activeFutures[i].isFinished()) {
+                    Video::ProcessingResult result = activeFutures.takeAt(i).result();
+                    if (result.success)
+                        addVideo(result.video);
+                    else
+                        removeVideo(result.video, result.errorMsg);
+                }
+            }
+            QApplication::processEvents();
+            QThread::msleep(10); // Small sleep to avoid busy-waiting
         }
 
+        if(this->_userPressedStop)
+            break;
+
+        // Create video and submit for processing
         Video *video = new Video(_prefs, vidIter);
-        videoPool->AddTask(video);
+        QFuture<Video::ProcessingResult> future = QtConcurrent::run([video]() {
+            return video->process();
+        });
+        activeFutures.append(future);
+        
         QApplication::processEvents();
     }
 
-    while (videoPool->CountTasksLeftToProcess() > 0) {
-        QApplication::processEvents();
-        if(_userPressedStop) {
+    // Wait for all remaining futures to complete
+    QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, activeFutures.size(), this);
+    progress.setWindowModality(Qt::WindowModal);
+    
+    // Process remaining futures 
+    // Start timer so that if it takes too long, we simply ignore the remaining ones
+    // Leading to a small memory leak, but it's not a big deal as it's only a few videos.
+    QElapsedTimer timer;
+    timer.start();
+    while (!activeFutures.isEmpty()) {
+        if (this->_userPressedStop && this->ui->findDuplicates->isEnabled()) {
+            this->ui->findDuplicates->setText(QStringLiteral("Stopping..."));
             this->ui->findDuplicates->setDisabled(true);
-            videoPool->ClearWaiting();
+        }
+    
+        for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
+            if(activeFutures[i].isFinished()) {
+                Video::ProcessingResult result = activeFutures.takeAt(i).result();
+                if (result.success)
+                    addVideo(result.video);
+                else
+                    removeVideo(result.video, result.errorMsg);
+            }
+        }
+        progress.setValue(progress.maximum() - activeFutures.size());
+        QApplication::processEvents();
+        if (this->_userPressedStop && timer.elapsed() > 60000) { // 60 seconds
+            // Memory leak occurs here but that's small enough to not be a big deal.
+            addStatusMessage(QString("Warning: Video processing took too long after user pressed stop (more than 60 seconds), ignoring remaining ones."));
             break;
         }
+        QThread::msleep(10); // Small sleep to avoid busy-waiting
     }
 
-    videoPool->RequestShutdown();
-    auto countLeftToDo = videoPool->CountWorkersStillRunning();
-    QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, countLeftToDo, this);
-    progress.setWindowModality(Qt::WindowModal);
-    while (countLeftToDo > 0) {
-        countLeftToDo = videoPool->CountWorkersStillRunning();
-        progress.setValue(countLeftToDo);
-        QApplication::processEvents();
-    }
+    QApplication::processEvents();  // process any remaining signals
 
-    QApplication::processEvents();                  //process signals from last threads
-    videoPool->deleteLater();
-
-    this->ui->findDuplicates->setDisabled(false);
     ui->selectThumbnails->setDisabled(false);
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
