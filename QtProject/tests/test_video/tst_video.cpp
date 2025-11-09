@@ -699,7 +699,7 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
     if(conf.acceptSmallDurationDiff)
         acceptedDurationDiff = std::max(50, int(0.01 * videoParam.duration)); // biggest of 50 ms or 1% of ref duration
     QVERIFY2(abs(videoParam.duration - vid->duration) <= acceptedDurationDiff, 
-        QString("ref duration=%1 new duration=%2, max accepted diff %3- %4")
+        QString("ref duration=%1 new duration=%2, max accepted diff %3 - %4")
         .arg(videoParam.duration).arg(vid->duration).arg(acceptedDurationDiff).arg(forVid).toUtf8());
 
     QVERIFY2(abs(videoParam.bitrate - vid->bitrate) <= 50, QString("ref bitrate=%1 new bitrate=%2 - %3").arg(videoParam.bitrate).arg(vid->bitrate).arg(forVid).toUtf8());
