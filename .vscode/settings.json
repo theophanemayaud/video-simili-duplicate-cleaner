@@ -1,4 +1,5 @@
 {
+    "cmake.cmakePath": "cmake",
     "cmake.sourceDirectory": "${workspaceFolder}/QtProject",
     "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
