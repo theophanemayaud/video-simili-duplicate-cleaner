@@ -45,6 +45,8 @@ private:
     Prefs &_prefs;
     int _leftVideo = 0; // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
+    qint64 _maxComparisons = 0;
+    int _progressSliderMax = 0;
     int _videosDeleted = 0;
     int64_t _spaceSaved = 0;
     bool _seekForwards = true;
@@ -65,7 +67,11 @@ private:
     bool _someWereMovedInApplePhotosLibrary = false;
     bool _firstScriptingAskPermission = true;
 
-    void seekFromSliderPosition(int position);
+    void seekFromSliderPosition(qint64 position);
+    void refreshProgressIndicators();
+    void refreshProgressIndicators(qint64 comparisons);
+    int sliderValueFromComparisons(qint64 comparisons) const;
+    qint64 comparisonsFromSliderPosition(int sliderValue) const;
 
     void loadLockedFolderFromPrefs();
     void addLockedFolderToList(QString folderPath);
@@ -124,7 +130,7 @@ private slots:
     QString readableBitRate(const double &kbps) const;
     void highlightBetterProperties() const;
     void updateUI();
-    int comparisonsSoFar() const;
+    qint64 comparisonsSoFar() const;
     void onProgressSliderReleased();
 
     void on_selectPhash_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_PHASH);
