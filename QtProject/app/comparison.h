@@ -43,9 +43,9 @@ private:
 
     QVector<Video *> _videos;
     Prefs &_prefs;
-    int _leftVideo = 0; // index in the video list, of the currently displayed left video
-    int _rightVideo = 0; // index in the video list, of the currently displayed right video
-    int _videosDeleted = 0;
+    qint64 _leftVideo = 0; // index in the video list, of the currently displayed left video
+    qint64 _rightVideo = 0; // index in the video list, of the currently displayed right video
+    qint64 _videosDeleted = 0;
     int64_t _spaceSaved = 0;
     bool _seekForwards = true;
 
@@ -124,7 +124,7 @@ private slots:
     QString readableBitRate(const double &kbps) const;
     void highlightBetterProperties() const;
     void updateUI();
-    int comparisonsSoFar() const;
+    qint64 comparisonsSoFar() const;
     void onProgressSliderReleased();
 
     void on_selectPhash_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_PHASH);
@@ -142,7 +142,7 @@ private slots:
 
     void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
     void on_rightDelete_clicked() { deleteVideo(_rightVideo); }
-    void deleteVideo(const int &side, const bool auto_trash_mode = false);
+    void deleteVideo(const qint64 &side, const bool auto_trash_mode = false);
 
     void on_leftMove_clicked() { moveVideo(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName); }
     void on_rightMove_clicked() { moveVideo(_videos[_rightVideo]->_filePathName, _videos[_leftVideo]->_filePathName); }

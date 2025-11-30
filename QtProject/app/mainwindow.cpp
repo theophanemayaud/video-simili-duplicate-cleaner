@@ -296,7 +296,7 @@ void MainWindow::findVideos(QDir &dir)
 
 void MainWindow::processVideos()
 {
-    _prefs._numberOfVideos = _everyVideo.count();
+    _prefs._numberOfVideos = static_cast<qint64>(_everyVideo.count());
     if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
         addStatusMessage(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
     else
@@ -313,7 +313,7 @@ void MainWindow::processVideos()
             ui->statusBar->setVisible(false);
         ui->progressBar->setVisible(true);
         ui->progressBar->setValue(0);
-        ui->progressBar->setMaximum(_prefs._numberOfVideos);
+        ui->progressBar->setMaximum(_prefs._numberOfVideos > INT_MAX ? INT_MAX : static_cast<int>(_prefs._numberOfVideos));
         ui->statusBox->verticalScrollBar()->triggerAction(QScrollBar::SliderToMaximum);
     }
     else return;
@@ -406,7 +406,7 @@ void MainWindow::processVideos()
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->statusBar->setVisible(false);
-    _prefs._numberOfVideos = _videoList.count();    //minus rejected ones now
+    _prefs._numberOfVideos = static_cast<qint64>(_videoList.count());    //minus rejected ones now
     videoSummary();
 }
 
