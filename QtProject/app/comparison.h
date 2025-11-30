@@ -124,7 +124,8 @@ private slots:
     QString readableBitRate(const double &kbps) const;
     void highlightBetterProperties() const;
     void updateUI();
-    int comparisonsSoFar() const;
+    int64_t comparisonsSoFar() const;
+    int progressBarValue(int64_t comparisons, int64_t maxComparisons) const;
     void onProgressSliderReleased();
 
     void on_selectPhash_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_PHASH);
