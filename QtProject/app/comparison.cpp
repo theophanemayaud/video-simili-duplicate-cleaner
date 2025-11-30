@@ -31,7 +31,9 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
     connect(this, SIGNAL(sendStatusMessage(const QString &)), _prefs._mainwPtr, SLOT(addStatusMessage(const QString &)));
     connect(this, SIGNAL(switchComparisonMode(const int &)),  _prefs._mainwPtr, SLOT(setComparisonMode(const int &)));
     connect(this, SIGNAL(adjustThresholdSlider(const int &)), _prefs._mainwPtr, SLOT(on_thresholdSlider_valueChanged(const int &)));
-    // Note: currentVideo label is now updated manually in updateUI() to handle large comparison counts
+    connect(ui->progressBar, &QSlider::valueChanged, [this](int value) {
+        ui->currentVideo->setText(QString::number(value));
+    });
     connect(ui->progressBar, &QSlider::sliderReleased, this, &Comparison::onProgressSliderReleased);
 
     initSortOrder();
@@ -640,7 +642,6 @@ void Comparison::updateUI()
         ui->identicalBits->setText(QString("%1 SSIM index").arg(QString::number(qMin(_ssimSimilarity, 1.0), 'f', 3)));
     _zoomLevel = 0;
     ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
-    ui->currentVideo->setText(QString::number(comparisonsSoFar())); // Update current video label directly since it may exceed int range
 }
 
 int64_t Comparison::comparisonsSoFar() const
