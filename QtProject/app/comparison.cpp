@@ -42,7 +42,7 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
         ui->selectSSIM->setChecked(true);
     on_thresholdSlider_valueChanged(this->_prefs.matchSimilarityThreshold());
 
-    const int64_t allCombinations = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2; // all possible combinations
+    const int64_t allCombinations = (int64_t)this->_prefs._numberOfVideos * (this->_prefs._numberOfVideos - 1) / 2; // all possible combinations
     ui->progressBar->setMinimum(1);
     ui->progressBar->setMaximum(progressBarValue(allCombinations));
 
