@@ -664,10 +664,10 @@ int Comparison::progressBarValue(int64_t comparisons, int64_t maxComparisons) co
     // Qt progress bars use int for their range values (max INT_MAX ~2.1 billion)
     // For large file counts, scale down to fit within int range
     if (maxComparisons <= INT_MAX) {
-        return static_cast<int>(comparisons);
+        return (int)comparisons;
     }
     // Scale down proportionally to fit in int range
-    return static_cast<int>((comparisons * INT_MAX) / maxComparisons);
+    return int((double(INT_MAX) / maxComparisons) * comparisons);
 }
 
 void Comparison::seekFromSliderPosition(int sliderValue)
@@ -690,21 +690,19 @@ void Comparison::seekFromSliderPosition(int sliderValue)
     // Convert slider value back to actual target if we had to scale down
     const int64_t maxComparisons = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2;
     int64_t target;
-    if (maxComparisons <= INT_MAX) {
+    if (maxComparisons <= INT_MAX)
         target = sliderValue;
-    } else {
-        // Reverse the scaling: target = (sliderValue * maxComparisons) / INT_MAX
-        target = (static_cast<int64_t>(sliderValue) * maxComparisons) / INT_MAX;
-    }
+    else // Reverse the scaling
+        target = (float(maxComparisons) / INT_MAX) * sliderValue;
 
-    int64_t curr = _prefs._numberOfVideos / 2; 
-    int64_t nextSearchWidth = static_cast<int64_t>(ceil(curr / 2.0)); 
-    int64_t remainingToTarget;
+    int curr = _prefs._numberOfVideos/2; 
+    int nextSearchWidth = ceil(curr/2.0); 
+    int remainingToTarget;
 
     while (1) {
 
-        int64_t totalComp = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2;
-        int64_t remainingVids = _prefs._numberOfVideos - curr + 1; // should include current video
+        int64_t totalComp = (int64_t)_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2;
+        int64_t remainingVids = (int64_t)_prefs._numberOfVideos - curr + 1; // should include current video
         int64_t remainingComp = remainingVids * (remainingVids - 1) / 2; // remaining comparisons from the current video
         int64_t currentComp = totalComp - remainingComp + 1;
 
@@ -719,11 +717,11 @@ void Comparison::seekFromSliderPosition(int sliderValue)
             curr = curr + nextSearchWidth; // go to next higher half
         }
 
-        nextSearchWidth = static_cast<int64_t>(ceil(nextSearchWidth / 2.0));
+        nextSearchWidth = ceil(nextSearchWidth / 2.0);
     }
 
-    _leftVideo = static_cast<int>(curr - 1); // 0 indexed
-    _rightVideo = static_cast<int>(_leftVideo + remainingToTarget); // put right just before the target (should add 1 to be on target) as next video click actually goes to next so would skip target
+    _leftVideo = curr - 1; // 0 indexed
+    _rightVideo = _leftVideo + remainingToTarget; // put right just before the target (should add 1 to be on target) as next video click actually goes to next so would skip target
     on_nextVideo_clicked();
 }
 
@@ -1065,7 +1063,7 @@ void Comparison::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event)
 
-    if(ui->leftFileName->text().isEmpty() || _leftVideo >= static_cast<int>(_prefs._numberOfVideos) || _rightVideo >= static_cast<int>(_prefs._numberOfVideos))
+    if(ui->leftFileName->text().isEmpty() || _leftVideo >= _prefs._numberOfVideos || _rightVideo >= _prefs._numberOfVideos)
         return;     //automatic initial resize event can happen before closing when values went over limit
 
     QImage image;
