@@ -106,7 +106,7 @@ private:
     // --- //
 
 public slots:
-    int reportMatchingVideos(); // returns number of matching videos found
+    int64_t reportMatchingVideos(); // returns number of matching videos found
 
 private slots:
     void dragEnterEvent(QDragEnterEvent *event); // drag and drop for locked folders list
@@ -124,7 +124,7 @@ private slots:
     QString readableBitRate(const double &kbps) const;
     void highlightBetterProperties() const;
     void updateUI();
-    int comparisonsSoFar() const;
+    int64_t comparisonsSoFar() const;
     void onProgressSliderReleased();
 
     void on_selectPhash_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_PHASH);

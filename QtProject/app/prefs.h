@@ -49,7 +49,7 @@ public:
     }
     void matchSimilarityThreshold(const int threshold) {QSettings(APP_NAME, APP_NAME).setValue("match_similarity_threshold", threshold);}
 
-    int _numberOfVideos = 0;
+    int64_t _numberOfVideos = 0;
     int _ssimBlockSize = 16;
 
     double _thresholdSSIM = DEFAULT_SSIM_THRESHOLD;

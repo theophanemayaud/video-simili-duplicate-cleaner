@@ -4,6 +4,7 @@
 #include <QProgressDialog>
 #include <QSlider>
 #include <QAbstractSlider>
+#include <climits>
 
 #include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
 
@@ -40,12 +41,12 @@ Comparison::Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, c
         ui->selectSSIM->setChecked(true);
     on_thresholdSlider_valueChanged(this->_prefs.matchSimilarityThreshold());
 
-    const int allCombinations = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2; // all possible combinations
+    const int64_t allCombinations = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2; // all possible combinations
     ui->progressBar->setMinimum(1);
-    ui->progressBar->setMaximum(allCombinations);
+    ui->progressBar->setMaximum(static_cast<int>(qMin(allCombinations, static_cast<int64_t>(INT_MAX))));
 
     ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
-    ui->totalVideos->setNum(allCombinations); // all possible combinations
+    ui->totalVideos->setText(QString::number(allCombinations)); // all possible combinations
 
     // hide as not implemented yet
     // Auto trash based on folder settings
@@ -169,13 +170,13 @@ Comparison::~Comparison()
 }
 
 // todo should be made const and run in background from mainwindow
-int Comparison::reportMatchingVideos()
+int64_t Comparison::reportMatchingVideos()
 {
     int64_t combinedFilesize = 0;
-    int foundMatches = 0;
+    int64_t foundMatches = 0;
     QProgressDialog progress("Estimating total pairs", QString(), 0, this->_prefs._numberOfVideos, this->_prefs._mainwPtr);
     progress.setWindowModality(Qt::WindowModal);
-    int numScanned = 0;
+    int64_t numScanned = 0;
 
     QVector<Video*>::const_iterator left, right, end = _videos.cend();
     for(left=_videos.cbegin(); left<end; left++){
@@ -233,7 +234,7 @@ void Comparison::confirmToExit()
 void Comparison::on_prevVideo_clicked()
 {
     _seekForwards = false;
-    QProgressDialog progress("Searching for previous pair", QString(), -comparisonsSoFar(), 0, this);
+    QProgressDialog progress("Searching for previous pair", QString(), -static_cast<int>(comparisonsSoFar()), 0, this);
     progress.setWindowModality(Qt::WindowModal);
 
     QVector<Video*>::const_iterator left, right, begin = _videos.cbegin();
@@ -254,8 +255,8 @@ void Comparison::on_prevVideo_clicked()
             }
         }
         if(_leftVideo%1000==999) // ui refresh slow so limit number of updates
-            progress.setValue(comparisonsSoFar());
-        ui->progressBar->setValue(comparisonsSoFar());
+            progress.setValue(static_cast<int>(comparisonsSoFar()));
+        ui->progressBar->setValue(static_cast<int>(comparisonsSoFar()));
         _rightVideo = _prefs._numberOfVideos - 1;
     }
 
@@ -267,7 +268,8 @@ void Comparison::on_nextVideo_clicked()
     _seekForwards = true;
     const int oldLeft = _leftVideo;
     const int oldRight = _rightVideo;
-    QProgressDialog progress("Searching for next pair", QString(), comparisonsSoFar(), this->_prefs._numberOfVideos*(this->_prefs._numberOfVideos-1)/2, this);
+    const int64_t totalCombinations = this->_prefs._numberOfVideos*(this->_prefs._numberOfVideos-1)/2;
+    QProgressDialog progress("Searching for next pair", QString(), static_cast<int>(comparisonsSoFar()), static_cast<int>(totalCombinations), this);
     progress.setWindowModality(Qt::WindowModal);
 
     QVector<Video*>::const_iterator left, right, begin = _videos.cbegin(), end = _videos.cend();
@@ -288,8 +290,8 @@ void Comparison::on_nextVideo_clicked()
                 return;
             }
             if((_leftVideo+_rightVideo)%1000==999) { // ui refresh slow so limit number of updates
-                progress.setValue(comparisonsSoFar());
-                ui->progressBar->setValue(comparisonsSoFar());
+                progress.setValue(static_cast<int>(comparisonsSoFar()));
+                ui->progressBar->setValue(static_cast<int>(comparisonsSoFar()));
             }
         }
         _rightVideo = _leftVideo + 1;
@@ -641,17 +643,17 @@ void Comparison::updateUI()
     ui->progressBar->setValue(comparisonsSoFar());
 }
 
-int Comparison::comparisonsSoFar() const
+int64_t Comparison::comparisonsSoFar() const
 {
     // e.g. 3 videos a, b c
     // Comparisons 1 2 are a:b and a:c
-    // Comparison  3    is b:c 
-    // Slider goes from 1 to maxComparisons 
-    const int cmpFirst = _prefs._numberOfVideos;                    
-    const int cmpThis = cmpFirst - _leftVideo;                     
-    const int remaining = cmpThis * (cmpThis - 1) / 2;              //comparisons to be done from current video
-    const int maxComparisons = cmpFirst * (cmpFirst - 1) / 2;       //comparisons to be done from first video
-    const int distance = _rightVideo - _leftVideo;
+    // Comparison  3    is b:c
+    // Slider goes from 1 to maxComparisons
+    const int64_t cmpFirst = _prefs._numberOfVideos;
+    const int64_t cmpThis = cmpFirst - _leftVideo;
+    const int64_t remaining = cmpThis * (cmpThis - 1) / 2;              //comparisons to be done from current video
+    const int64_t maxComparisons = cmpFirst * (cmpFirst - 1) / 2;       //comparisons to be done from first video
+    const int64_t distance = _rightVideo - _leftVideo;
     return maxComparisons - remaining + distance;
 }
 
@@ -678,7 +680,7 @@ void Comparison::seekFromSliderPosition(int target)
 
     while (1) {
 
-        int totalComp = _prefs._numberOfVideos * (_prefs._numberOfVideos-1) / 2;
+        int64_t totalComp = _prefs._numberOfVideos * (_prefs._numberOfVideos-1) / 2;
         int remainingVids = _prefs._numberOfVideos - curr +1; // should include current video
         int remainingComp = remainingVids * (remainingVids -1)/2; // remaining comparisons from the current video
         int currentComp = totalComp - remainingComp +1;
@@ -1314,7 +1316,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                 }
             }
         }
-        ui->progressBar->setValue(comparisonsSoFar());
+        ui->progressBar->setValue(static_cast<int>(comparisonsSoFar()));
         _rightVideo = _leftVideo + 1;
         if(userWantsToStop)
             break;
@@ -1365,7 +1367,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                     && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
                     && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed )
             {
-                ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
+                ui->progressBar->setValue(static_cast<int>(comparisonsSoFar())); //update visible progress for user
 
                 // Check if params are as required and perform deletion, then go to next
                 if(qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration) > VIDEO_DURATION_STILL_EQUALS_MS) // video durations more than 1 second length difference
@@ -1423,7 +1425,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                     break;
             }
         }
-        ui->progressBar->setValue(comparisonsSoFar());
+        ui->progressBar->setValue(static_cast<int>(comparisonsSoFar()));
         _rightVideo = _leftVideo + 1;
         if(userWantsToStop)
             break;
@@ -1472,7 +1474,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
                     && QFileInfo::exists((*left)->_filePathName) && !(*left)->trashed // check trashed in case it is from Apple Photos
                     && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed )
             {
-                ui->progressBar->setValue(comparisonsSoFar()); //update visible progress for user
+                ui->progressBar->setValue(static_cast<int>(comparisonsSoFar())); //update visible progress for user
                 QCoreApplication::processEvents();
 
                 // Check if params are as required or go to next
@@ -1529,7 +1531,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig){
                     break;
             }
         }
-        ui->progressBar->setValue(comparisonsSoFar());
+        ui->progressBar->setValue(static_cast<int>(comparisonsSoFar()));
         _rightVideo = _leftVideo + 1;
         if(userWantsToStop)
             break;

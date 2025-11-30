@@ -1,5 +1,6 @@
 #include <QtTest>
 #include <QCoreApplication>
+#include <climits>
 
 // add necessary includes here
 #include "../../app/videometadata.h"
@@ -18,6 +19,7 @@ private slots:
     void cleanupTestCase();
 
     void test_videoToDelete_OnlyTimeDiffs();
+    void test_largeNumberCalculations();
 
 };
 
@@ -88,6 +90,28 @@ void test_comparison::test_videoToDelete_OnlyTimeDiffs()
     QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet) == &meta2, "Later creation date should be deleted but instead later modified date or else was");
 
     // TODO could add more interesting tests with small differences, and check more specifically the outcomes
+}
+
+void test_comparison::test_largeNumberCalculations()
+{
+    // Test that calculations with large numbers of videos don't overflow
+    const int64_t numVideos = 100000; // 100,000 videos
+    const int64_t expectedCombinations = numVideos * (numVideos - 1) / 2;
+
+    // This should not overflow with int64_t
+    QVERIFY2(expectedCombinations > 0, "Combinations calculation should not overflow");
+    QVERIFY2(expectedCombinations == 4999950000LL, "Combinations should calculate correctly");
+
+    // Test with even larger numbers
+    const int64_t veryLargeVideos = 200000; // 200,000 videos
+    const int64_t veryLargeCombinations = veryLargeVideos * (veryLargeVideos - 1) / 2;
+
+    QVERIFY2(veryLargeCombinations > 0, "Very large combinations should not overflow");
+    QVERIFY2(veryLargeCombinations == 19999900000LL, "Very large combinations should calculate correctly");
+
+    // Test that old int calculation would have overflowed
+    // 200,000 * 199,999 / 2 = 19,999,000,000 which is > 2^31-1 (2,147,483,647)
+    QVERIFY2(veryLargeCombinations > INT_MAX, "Large calculations should exceed int range");
 }
 
 QTEST_MAIN(test_comparison)
