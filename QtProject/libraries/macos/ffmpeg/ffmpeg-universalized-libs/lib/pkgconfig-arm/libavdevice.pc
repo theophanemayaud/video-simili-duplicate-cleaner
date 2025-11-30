@@ -9,6 +9,6 @@ Version: 61.3.100
 Requires: libavfilter >= 10.4.100, libavformat >= 61.7.100, libavcodec >= 61.19.101, libswresample >= 5.3.100, libavutil >= 59.39.100
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavdevice -framework Foundation -framework AudioToolbox -framework CoreAudio -lm -framework AVFoundation -framework CoreVideo -framework CoreMedia -framework CoreGraphics -framework AudioToolbox -pthread
+Libs: -L${libdir}  -lavdevice -framework Foundation -framework AudioToolbox -framework CoreAudio -lm -framework AVFoundation -framework CoreVideo -framework CoreMedia -framework CoreGraphics -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb-shm -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb-shape -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb-xfixes -framework AudioToolbox -pthread
 Libs.private: 
 Cflags: -I${includedir}

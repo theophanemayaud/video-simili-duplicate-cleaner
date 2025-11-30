@@ -6,6 +6,7 @@ set -ex
 # Prerequisites: Homebrew (for yasm, pkg-config), git, cmake, lipo, make
 
 FFMPEG_VERSION=n7.1.1
+AOM_VERSION=3.12.1
 AOM_REPO_URL=https://aomedia.googlesource.com/aom.git
 FFMPEG_REPO_URL=https://github.com/FFmpeg/FFmpeg.git
 
@@ -20,7 +21,7 @@ brew install pkg-config
 # build aom libs for av1 decoding
 mkdir -p libaom-{arm,x86_64}-{build,install} libaom-universalized
 
-git clone --depth=1 "$AOM_REPO_URL" libaom-source
+git clone -b v"$AOM_VERSION" --depth=1 "$AOM_REPO_URL" libaom-source
 cd libaom-arm-build
 cmake ../libaom-source \
     -DCMAKE_INSTALL_PREFIX=../libaom-arm-install \
