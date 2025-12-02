@@ -269,7 +269,7 @@ void Comparison::on_nextVideo_clicked()
     _seekForwards = true;
     const int oldLeft = _leftVideo;
     const int oldRight = _rightVideo;
-    const int64_t maxComparisons = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2;
+    const int64_t maxComparisons = (int64_t)_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2;
     QProgressDialog progress("Searching for next pair", QString(), progressBarValue(comparisonsSoFar()), progressBarValue(maxComparisons), this);
     progress.setWindowModality(Qt::WindowModal);
 
@@ -660,7 +660,7 @@ int64_t Comparison::comparisonsSoFar() const
 
 int Comparison::progressBarValue(int64_t comparisons) const
 {
-    int64_t maxComparisons = this->_prefs._numberOfVideos * (this->_prefs._numberOfVideos - 1) / 2;
+    int64_t maxComparisons = (int64_t)this->_prefs._numberOfVideos * (this->_prefs._numberOfVideos - 1) / 2;
     // Qt progress bars use int for their range values (max INT_MAX ~2.1 billion)
     // For large file counts, scale down to fit within int range
     if (maxComparisons <= INT_MAX) {
@@ -688,7 +688,7 @@ void Comparison::seekFromSliderPosition(int sliderValue)
     }
 
     // Convert slider value back to actual target if we had to scale down
-    const int64_t maxComparisons = _prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2;
+    const int64_t maxComparisons = (int64_t)_prefs._numberOfVideos * (_prefs._numberOfVideos - 1) / 2;
     int64_t target;
     if (maxComparisons <= INT_MAX)
         target = sliderValue;
