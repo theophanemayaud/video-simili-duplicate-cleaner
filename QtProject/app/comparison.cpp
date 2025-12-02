@@ -693,11 +693,11 @@ void Comparison::seekFromSliderPosition(int sliderValue)
     if (maxComparisons <= INT_MAX)
         target = sliderValue;
     else // Reverse the scaling
-        target = (float(maxComparisons) / INT_MAX) * sliderValue;
+        target = (double(maxComparisons) / INT_MAX) * sliderValue;
 
     int curr = _prefs._numberOfVideos/2; 
     int nextSearchWidth = ceil(curr/2.0); 
-    int remainingToTarget;
+    int64_t remainingToTarget;
 
     while (1) {
 
