@@ -5,8 +5,8 @@ includedir=${prefix}/include
 libdir=${exec_prefix}/lib
 
 Name: aom
-Description: Alliance for Open Media AV1 codec library v3.12.1.
-Version: 3.12.1
+Description: Alliance for Open Media AV1 codec library v3.13.1.
+Version: 3.13.1
 Requires:
 Conflicts:
 Libs: -L${libdir} -laom

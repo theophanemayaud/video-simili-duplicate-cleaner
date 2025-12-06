@@ -5,8 +5,8 @@ includedir=../ffmpeg-x86_64-install/include
 
 Name: libavformat
 Description: FFmpeg container format library
-Version: 61.7.100
-Requires: libavcodec >= 61.19.101, libswresample >= 5.3.100, libavutil >= 59.39.100
+Version: 62.3.100
+Requires: libavcodec >= 62.11.100, libswresample >= 6.1.100, libavutil >= 60.8.100
 Requires.private: 
 Conflicts:
 Libs: -L${libdir}  -lavformat -lm -lbz2 -lz -framework CoreFoundation -framework Security
