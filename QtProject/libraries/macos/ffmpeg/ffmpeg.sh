@@ -27,6 +27,11 @@ brew install pkg-config
 mkdir -p libaom-{arm,x86_64}-{build,install} libaom-universalized
 
 git clone -b v"$AOM_VERSION" --depth=1 "$AOM_REPO_URL" libaom-source
+# Cherry-pick upstream fix for stale nasm -Ox detection
+# (bug in 3.13.1 release that breaks x86 cross-build when on updated nasm 3+ version
+# which lists expected multipass optimization -Ox as supported but under different parameters)
+git -C libaom-source fetch origin 6d2b7f71b98bfa28e372b1f2d85f137280bdb3de
+git -C libaom-source cherry-pick 6d2b7f71b98bfa28e372b1f2d85f137280bdb3de
 cd libaom-arm-build
 cmake ../libaom-source \
     -DCMAKE_INSTALL_PREFIX=../libaom-arm-install \
