@@ -85,16 +85,6 @@ set_target_properties(libprotobuf PROPERTIES
 list(APPEND _cmake_import_check_targets libprotobuf )
 list(APPEND _cmake_import_check_files_for_libprotobuf "${_IMPORT_PREFIX}/lib/opencv4/3rdparty/liblibprotobuf.a" )
 
-# Import target "quirc" for configuration "Release"
-set_property(TARGET quirc APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(quirc PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/lib/opencv4/3rdparty/libquirc.a"
-  )
-
-list(APPEND _cmake_import_check_targets quirc )
-list(APPEND _cmake_import_check_files_for_quirc "${_IMPORT_PREFIX}/lib/opencv4/3rdparty/libquirc.a" )
-
 # Import target "ittnotify" for configuration "Release"
 set_property(TARGET ittnotify APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(ittnotify PROPERTIES

@@ -19,7 +19,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_cmake_targets_defined "")
 set(_cmake_targets_not_defined "")
 set(_cmake_expected_targets "")
-foreach(_cmake_expected_target IN ITEMS zlib libjpeg-turbo libtiff libwebp libopenjp2 libpng IlmImf libprotobuf quirc ittnotify ade opencv_core opencv_imgproc)
+foreach(_cmake_expected_target IN ITEMS zlib libjpeg-turbo libtiff libwebp libopenjp2 libpng IlmImf libprotobuf ittnotify ade opencv_core opencv_imgproc)
   list(APPEND _cmake_expected_targets "${_cmake_expected_target}")
   if(TARGET "${_cmake_expected_target}")
     list(APPEND _cmake_targets_defined "${_cmake_expected_target}")
@@ -96,9 +96,6 @@ set_target_properties(IlmImf PROPERTIES
 # Create imported target libprotobuf
 add_library(libprotobuf STATIC IMPORTED)
 
-# Create imported target quirc
-add_library(quirc STATIC IMPORTED)
-
 # Create imported target ittnotify
 add_library(ittnotify STATIC IMPORTED)
 
@@ -113,7 +110,7 @@ add_library(ade STATIC IMPORTED)
 add_library(opencv_core STATIC IMPORTED)
 
 set_target_properties(opencv_core PROPERTIES
-  INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:zlib>;-framework OpenCL;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/Accelerate.framework;\$<LINK_ONLY:-lm>;\$<LINK_ONLY:-ldl>;\$<LINK_ONLY:ittnotify>"
+  INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:zlib>;-framework OpenCL;-framework Accelerate;\$<LINK_ONLY:ittnotify>"
 )
 
 # Create imported target opencv_imgproc
