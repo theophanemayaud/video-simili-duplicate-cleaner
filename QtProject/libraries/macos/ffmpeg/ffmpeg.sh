@@ -19,7 +19,7 @@ FFMPEG_REPO_URL=https://github.com/FFmpeg/FFmpeg.git
 rm -rf libaom-* ffmpeg-*
 
 ## nasm needed to build aom and ffmpeg
-brew install nasm || brew upgrade nasm
+brew install nasm
 ## pkg-config needed for ffmpeg to discover dav1d lib
 brew install pkg-config
 
