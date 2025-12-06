@@ -4,7 +4,7 @@ set -ex
 # Build OpenCV static lib for macOS (universal: arm64 + x86_64)
 # Usage: ./opencv.sh
 
-OPENCV_VERSION=4.8.0
+OPENCV_VERSION=4.12.0
 SOURCE_DIR="opencv-source"
 BUILD_DIR="opencv-build"
 INSTALL_DIR="opencv-install"
