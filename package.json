@@ -60,7 +60,8 @@
     "win-create-bundle-folder": "if not exist \"..\\bundle\" mkdir \"..\\bundle\" & copy \"..\\Video simili duplicate cleaner.arm64.msix\" \"..\\bundle\" & copy \"..\\Video simili duplicate cleaner.x64.msix\" \"..\\bundle\"",
     "win-create-bundle": "MakeAppx bundle /d \"..\\bundle\" /p \"..\\Video simili duplicate cleaner.msixbundle\" & rmdir /s /q \"..\\bundle\"",
     "opencv-macos": "cd ./QtProject/libraries/macos/opencv-arm && ./opencv.sh",
-    "ffmpeg-macos": "cd ./QtProject/libraries/macos/ffmpeg && ./ffmpeg.sh"
+    "ffmpeg-macos": "cd ./QtProject/libraries/macos/ffmpeg && ./ffmpeg.sh",
+    "qt-macos": "cd ./QtProject/libraries/macos/qt && ./qt.sh"
   },
   "repository": {
     "type": "git",
