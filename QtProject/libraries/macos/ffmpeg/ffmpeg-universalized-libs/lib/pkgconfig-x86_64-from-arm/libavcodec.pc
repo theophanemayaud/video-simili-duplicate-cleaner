@@ -5,8 +5,8 @@ includedir=../ffmpeg-x86_64-install/include
 
 Name: libavcodec
 Description: FFmpeg codec library
-Version: 61.19.101
-Requires: libswresample >= 5.3.100, libavutil >= 59.39.100
+Version: 62.11.100
+Requires: libswresample >= 6.1.100, libavutil >= 60.8.100
 Requires.private: 
 Conflicts:
 Libs: -L${libdir}  -lavcodec -pthread -liconv -lm -framework AudioToolbox -L/Users/theophanemayaud/Dev/video-simili-duplicate-cleaner/QtProject/libraries/macos/ffmpeg/libaom-x86_64-install/lib -laom -framework VideoToolbox -lz -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices

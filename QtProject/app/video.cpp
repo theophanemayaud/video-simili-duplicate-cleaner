@@ -649,9 +649,10 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                     }
                 }
                 // try to find estimate stream duration from frame size and file size
-                if(frames_estimated!=-1 && frames_estimated<ESTIMATE_DURATION_FROM_FRAME_NB && vFrame->pkt_size!=0
+                // for video, AVPacket typically contains one compressed frame, so use the packet size for the heuristic
+                if(frames_estimated!=-1 && frames_estimated<ESTIMATE_DURATION_FROM_FRAME_NB && vPacket->size!=0
                     && vs->time_base.num!=0 /*avoid 0 divisions*/){
-                    avg_frame_bytes_size = (frames_estimated*avg_frame_bytes_size + vFrame->pkt_size)/(1+frames_estimated);
+                    avg_frame_bytes_size = (frames_estimated*avg_frame_bytes_size + vPacket->size)/(1+frames_estimated);
                     frames_estimated++;
                     ms_stream_duration = (double)ESTIMATE_DURATION_FROM_FRAME_RESCALE*1000*this->size*vs->avg_frame_rate.den/(avg_frame_bytes_size*vs->avg_frame_rate.num+1); // rescale to avoid over estimating, add 1 because avg_frame_rate can be 0 !
                     wanted_ms_place = (double) ms_stream_duration *  percent * ofDuration / (100 * 100 /*percents*/) ;
@@ -659,7 +660,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                     this->duration = ms_stream_duration;
 #ifdef DEBUG_VIDEO_READING
                     qDebug() <<"No video duration : trying to estimate from file size and frame size : "<<
-                        " frame pkt size "<<vFrame->pkt_size<<
+                        " frame pkt size "<<vPacket->size<<
                         " avg "<< frames_estimated<<" frames size "<<avg_frame_bytes_size<<
                         " for file size (in bytes)"<<size <<
                         " making estimated nb frames "<<size/avg_frame_bytes_size<<
@@ -732,14 +733,14 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
 QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
 {
     // first convert frame to rgb24
-    ffmpeg::SwsContext* img_convert_ctx = ffmpeg::sws_getContext(
+        ffmpeg::SwsContext* img_convert_ctx = ffmpeg::sws_getContext(
         pFrame->width,
         pFrame->height,
         (ffmpeg::AVPixelFormat)pFrame->format,
         pFrame->width,
         pFrame->height,
         ffmpeg::AV_PIX_FMT_RGB24,
-        SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
+        ffmpeg::SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
     if(!img_convert_ctx){
         qDebug() << "Failed to create sws context "<< _filePathName;
         return QImage();

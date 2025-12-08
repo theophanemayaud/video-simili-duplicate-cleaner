@@ -25,9 +25,9 @@
 #      - OpenCV_INCLUDE_DIRS             : The OpenCV include directories.
 #      - OpenCV_COMPUTE_CAPABILITIES     : The version of compute capability.
 #      - OpenCV_ANDROID_NATIVE_API_LEVEL : Minimum required level of Android API.
-#      - OpenCV_VERSION                  : The version of this OpenCV build: "4.8.0"
+#      - OpenCV_VERSION                  : The version of this OpenCV build: "4.12.0"
 #      - OpenCV_VERSION_MAJOR            : Major version part of OpenCV_VERSION: "4"
-#      - OpenCV_VERSION_MINOR            : Minor version part of OpenCV_VERSION: "8"
+#      - OpenCV_VERSION_MINOR            : Minor version part of OpenCV_VERSION: "12"
 #      - OpenCV_VERSION_PATCH            : Patch version part of OpenCV_VERSION: "0"
 #      - OpenCV_VERSION_STATUS           : Development status of this build: ""
 #
@@ -45,9 +45,9 @@
 # ======================================================
 #  Version variables:
 # ======================================================
-SET(OpenCV_VERSION 4.8.0)
+SET(OpenCV_VERSION 4.12.0)
 SET(OpenCV_VERSION_MAJOR  4)
-SET(OpenCV_VERSION_MINOR  8)
+SET(OpenCV_VERSION_MINOR  12)
 SET(OpenCV_VERSION_PATCH  0)
 SET(OpenCV_VERSION_TWEAK  0)
 SET(OpenCV_VERSION_STATUS "")
@@ -91,6 +91,8 @@ if(NOT COMMAND find_host_program)
         find_program(${ARGN})
     endmacro()
 endif()
+
+
 
 
 

@@ -1,20 +1,25 @@
 #!/bin/bash
 set -ex
 
-# Build universalized static libs
-# FFmpeg and libaom (for AV1 support)
-# Prerequisites: Homebrew (for yasm, pkg-config), git, cmake, lipo, make
+# Always run in script directory so artifacts land here
+SCRIPT_DIR="$(cd -- "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
-FFMPEG_VERSION=n7.1.1
-AOM_VERSION=3.12.1
+# Build universalized static libs
+
+# FFmpeg and libaom (for AV1 support)
+# Prerequisites: Homebrew (for nasm, pkg-config), git, cmake, lipo, make
+
+FFMPEG_VERSION=n8.0.1
+AOM_VERSION=3.13.1
 AOM_REPO_URL=https://aomedia.googlesource.com/aom.git
 FFMPEG_REPO_URL=https://github.com/FFmpeg/FFmpeg.git
 
 # Clean up previous builds
 rm -rf libaom-* ffmpeg-*
 
-## yasm needed to build aom and ffmpeg
-brew install yasm || brew upgrade yasm
+## nasm needed to build aom and ffmpeg
+brew install nasm
 ## pkg-config needed for ffmpeg to discover dav1d lib
 brew install pkg-config
 
@@ -22,6 +27,11 @@ brew install pkg-config
 mkdir -p libaom-{arm,x86_64}-{build,install} libaom-universalized
 
 git clone -b v"$AOM_VERSION" --depth=1 "$AOM_REPO_URL" libaom-source
+# Cherry-pick upstream fix for stale nasm -Ox detection
+# (bug in 3.13.1 release that breaks x86 cross-build when on updated nasm 3+ version
+# which lists expected multipass optimization -Ox as supported but under different parameters)
+git -C libaom-source fetch origin 6d2b7f71b98bfa28e372b1f2d85f137280bdb3de
+git -C libaom-source cherry-pick 6d2b7f71b98bfa28e372b1f2d85f137280bdb3de
 cd libaom-arm-build
 cmake ../libaom-source \
     -DCMAKE_INSTALL_PREFIX=../libaom-arm-install \
@@ -72,7 +82,6 @@ lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavdevice.a -arch x86_64 ..
 lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavfilter.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavfilter.a -output lib/libavfilter.a
 lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavformat.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavformat.a -output lib/libavformat.a
 lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libavutil.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libavutil.a -output lib/libavutil.a
-lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libpostproc.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libpostproc.a -output lib/libpostproc.a
 lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libswresample.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libswresample.a -output lib/libswresample.a
 lipo -create -arch arm64 ../ffmpeg-arm-install/lib/libswscale.a -arch x86_64 ../ffmpeg-x86_64-install/lib/libswscale.a -output lib/libswscale.a
 cp -r ../ffmpeg-arm-install/lib/pkgconfig ./lib/pkgconfig-arm

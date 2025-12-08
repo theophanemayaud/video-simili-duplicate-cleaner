@@ -1,9 +1,9 @@
 {
     "scripts": {
-        "qmake-intel": "~/Qt/6.9.3/macos/bin/qmake '../../app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && make qmake_all",
-        "qmake-arm": "~/Qt/6.9.3/macos/bin/qmake '../../app/app.pro' -spec macx-clang QMAKE_APPLE_DEVICE_ARCHS='x86_64 arm64' CONFIG+=qtquickcompiler && make qmake_all",
+        "qmake-intel": "../../libraries/macos/qt/qt-install/bin/qmake '../../app/app.pro' -spec macx-clang CONFIG+=x86_64 CONFIG+=qtquickcompiler && make qmake_all",
+        "qmake-arm": "../../libraries/macos/qt/qt-install/bin/qmake '../../app/app.pro' -spec macx-clang QMAKE_APPLE_DEVICE_ARCHS='x86_64 arm64' CONFIG+=qtquickcompiler && make qmake_all",
         "make": "make -j",
-        "macdeploy": "~/Qt/6.9.3/macos/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
+        "macdeploy": "../../libraries/macos/qt/qt-install/bin/macdeployqt 'Video simili duplicate cleaner.app' -dmg -always-overwrite -appstore-compliant",
         "build-mac-intel-binaries-qmake": "npm run build-mac-intel-qmake && npm run sign-and-package",
         "build-mac-intel-qmake": "npm run qmake-intel && npm run make && npm run macdeploy",
         "build-mac-arm-binaries-qmake": "npm run build-mac-arm-qmake && npm run sign-and-package",
