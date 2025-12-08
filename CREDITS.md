@@ -2,7 +2,7 @@
 
 ## Video simili duplicate cleaner
 
-Video simili duplicate cleaner, copyright (C) 2020-2024 Théophane Mayaud, 
+Video simili duplicate cleaner, copyright (C) 2020-2026 Théophane Mayaud, 
 
 Repository https://github.com/theophanemayaud/video-simili-duplicate-cleaner
 
