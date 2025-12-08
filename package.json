@@ -8,27 +8,22 @@
     "opencv": "https://github.com/opencv/opencv.git#4.8.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^11.0.0",
-    "@commitlint/config-conventional": "^11.0.0",
-    "husky": "^4.3.8",
-    "standard-version": "^9.3.0"
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "commit-and-tag-version": "^12.6.1",
+    "husky": "^9.1.7"
   },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  },
-  "standard-version": {
+  "commit-and-tag-version": {
     "scripts": {
       "postbump": "npm run binaries && git add -f CHANGELOG.md QtProject/app/version.txt QtProject/release-build/macos/Info.plist package-lock.json package.json"
     }
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "release": "standard-version -a",
-    "release:minor": "standard-version --release-as minor -a && npm run notif-push",
-    "release:patch": "standard-version --release-as patch -a && npm run notif-push",
-    "release:major": "standard-version --release-as major -a && npm run notif-push",
+    "release": "commit-and-tag-version -a",
+    "release:patch": "commit-and-tag-version --release-as patch -a && npm run notif-push",
+    "release:minor": "commit-and-tag-version --release-as minor -a && npm run notif-push",
+    "release:major": "commit-and-tag-version --release-as major -a && npm run notif-push",
     "notif-push": "echo '\n\n Remember to push commits and tags with \n git push && git push --tags' ",
     "update-build-version": "node -p -e \"require('./package.json').version\" > ./QtProject/app/version.txt && node update-plist-version.js",
     "build-cmake": "npm run update-build-version && npm run build-binaries-cmake --prefix QtProject/release-build/macos",
@@ -61,7 +56,8 @@
     "win-create-bundle": "MakeAppx bundle /d \"..\\bundle\" /p \"..\\Video simili duplicate cleaner.msixbundle\" & rmdir /s /q \"..\\bundle\"",
     "opencv-macos": "cd ./QtProject/libraries/macos/opencv-arm && ./opencv.sh",
     "ffmpeg-macos": "cd ./QtProject/libraries/macos/ffmpeg && ./ffmpeg.sh",
-    "qt-macos": "cd ./QtProject/libraries/macos/qt && ./qt.sh"
+    "qt-macos": "cd ./QtProject/libraries/macos/qt && ./qt.sh",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
