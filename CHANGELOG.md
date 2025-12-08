@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## [1.13.2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.1...v1.13.2) (2025-12-08)
+
+
+### Features
+
+* **dependencies:** statically link qt on macos for 25% smaller app size and update ffmpeg, opencv, qt to latest versions ([#171](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/171)) ([f1ccbcb](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/f1ccbcbbdfbe160e2b784c758908227e10210b30))
+
+
+### Bug Fixes
+
+* **comparison:** increase comparison counters to avoid overflow with more than 46,342 thousand videos ([41044f7](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/41044f7b8f412853c94946863ab8c073f5ba8914))
 
 ### [1.13.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.0...v1.13.1) (2025-11-09)
 
