@@ -4,7 +4,7 @@
     {
       "name": "opencv4",
       "default-features": false,
-      "version>=": "4.8.0"
+      "version>=": "4.11.0"
     },
     {
       "name": "ffmpeg",
@@ -15,11 +15,11 @@
         "swscale",
         "aom"
       ],
-      "version>=": "7.1.1"
+      "version>=": "7.1.2"
     },
     {
       "name": "qtbase",
-      "version>=": "6.8.3",
+      "version>=": "6.9.1",
       "features": [
         "widgets",
         "sql-sqlite",
@@ -30,15 +30,15 @@
   "overrides": [
     { 
         "name": "ffmpeg", 
-        "version": "7.1.1"
+        "version": "7.1.2"
     },
     {
         "name": "opencv4",
-        "version": "4.8.0"
+        "version": "4.11.0"
     },
     {
         "name": "qtbase",
-        "version": "6.8.3"
+        "version": "6.9.1"
     }
   ]
 }
