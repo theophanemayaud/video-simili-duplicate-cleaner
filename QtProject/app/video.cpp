@@ -740,7 +740,11 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
         pFrame->width,
         pFrame->height,
         ffmpeg::AV_PIX_FMT_RGB24,
+#ifdef Q_OS_MACOS // ffmpeg macos bumped to 8+ but not on windows yet
         ffmpeg::SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
+#else
+        SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
+#endif
     if(!img_convert_ctx){
         qDebug() << "Failed to create sws context "<< _filePathName;
         return QImage();
