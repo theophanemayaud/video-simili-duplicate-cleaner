@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.13.3](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.2...v1.13.3) (2026-01-12)
+
+
+### Bug Fixes
+
+* **dependencies:** bump qt back down to 6.9.3 on macos to keep support for macos 12 monterey ([c066c1a](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/c066c1a01a63f5a5d4b310170a5c4e3f937e47ba))
+
 ## [1.13.2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.1...v1.13.2) (2025-12-08)
 
 
