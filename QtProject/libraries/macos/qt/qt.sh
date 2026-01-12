@@ -4,7 +4,7 @@ set -euo pipefail
 # Build Qt static libs for macOS (universal: arm64 + x86_64)
 # Usage: ./qt.sh
 
-QT_VERSION="6.10.1"
+QT_VERSION="6.9.3"
 QT_REPO_URL="https://code.qt.io/qt/qt5.git"
 SOURCE_DIR="qt-source"
 BUILD_DIR="qt-build"
