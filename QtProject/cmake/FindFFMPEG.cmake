@@ -1,0 +1,41 @@
+# FindFFMPEG.cmake - Find FFmpeg libraries via pkg-config
+# Provides variables compatible with vcpkg's FFMPEGConfig.cmake:
+#   FFMPEG_FOUND, FFMPEG_INCLUDE_DIRS, FFMPEG_LIBRARIES, FFMPEG_LIBRARY_DIRS
+
+include(FindPkgConfig)
+
+pkg_check_modules(AVCODEC REQUIRED libavcodec)
+pkg_check_modules(AVFORMAT REQUIRED libavformat)
+pkg_check_modules(AVUTIL REQUIRED libavutil)
+pkg_check_modules(SWSCALE REQUIRED libswscale)
+pkg_check_modules(SWRESAMPLE REQUIRED libswresample)
+
+set(FFMPEG_FOUND TRUE)
+set(FFMPEG_INCLUDE_DIRS
+    ${AVCODEC_INCLUDE_DIRS}
+    ${AVFORMAT_INCLUDE_DIRS}
+    ${AVUTIL_INCLUDE_DIRS}
+    ${SWSCALE_INCLUDE_DIRS}
+    ${SWRESAMPLE_INCLUDE_DIRS}
+)
+list(REMOVE_DUPLICATES FFMPEG_INCLUDE_DIRS)
+
+set(FFMPEG_LIBRARIES
+    ${AVCODEC_LIBRARIES}
+    ${AVFORMAT_LIBRARIES}
+    ${AVUTIL_LIBRARIES}
+    ${SWSCALE_LIBRARIES}
+    ${SWRESAMPLE_LIBRARIES}
+)
+
+set(FFMPEG_LIBRARY_DIRS
+    ${AVCODEC_LIBRARY_DIRS}
+    ${AVFORMAT_LIBRARY_DIRS}
+    ${AVUTIL_LIBRARY_DIRS}
+    ${SWSCALE_LIBRARY_DIRS}
+    ${SWRESAMPLE_LIBRARY_DIRS}
+)
+list(REMOVE_DUPLICATES FFMPEG_LIBRARY_DIRS)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(FFMPEG DEFAULT_MSG FFMPEG_LIBRARIES FFMPEG_INCLUDE_DIRS)
