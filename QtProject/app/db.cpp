@@ -251,8 +251,8 @@ void Db::writeMetadata(const Video &video) const
                   "(id, size, duration, bitrate, framerate, codec, audio, width, height, additional_metadata) "
                   "VALUES(:id,:size,:duration,:bitrate,:framerate,:codec,:audio,:width,:height,:additional_metadata);");
     query.bindValue(":id",          video._filePathName);
-    query.bindValue(":size",        video.size);
-    query.bindValue(":duration",    video.duration);
+    query.bindValue(":size",        static_cast<qlonglong>(video.size));
+    query.bindValue(":duration",    static_cast<qlonglong>(video.duration));
     query.bindValue(":bitrate",     video.bitrate);
     query.bindValue(":framerate",   video.framerate);
     query.bindValue(":codec",       video.codec);

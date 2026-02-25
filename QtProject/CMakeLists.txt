@@ -99,7 +99,7 @@ endif()
 target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
     QT_DISABLE_DEPRECATED_BEFORE=0x060000
     APP_NAME="Video simili duplicate cleaner"
-    APP_COPYRIGHT=${APP_COPYRIGHT}
+    "APP_COPYRIGHT=\"${APP_COPYRIGHT}\""
 )
 
 if(APPLE)

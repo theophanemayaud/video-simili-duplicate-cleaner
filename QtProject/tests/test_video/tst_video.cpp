@@ -53,6 +53,17 @@ private:
     QDir _100GBvideoDir = QDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Videos/");
     const QDir _100GBthumbnailDir_nocache = QDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Thumbnails-nocache/");
     const QFileInfo _100GBcsvInfo_nocache = QFileInfo("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/100GBtests-nocache.csv");
+#else
+    QDir _videoDir = QDir("");
+    const QDir _thumbnailDir_nocache = QDir("");
+    const QFileInfo _csvInfo_nocache = QFileInfo("");
+
+    const QDir _thumbnailDir_cached = QDir("");
+    const QFileInfo _csvInfo_cached = QFileInfo("");
+
+    QDir _100GBvideoDir = QDir("");
+    const QDir _100GBthumbnailDir_nocache = QDir("");
+    const QFileInfo _100GBcsvInfo_nocache = QFileInfo("");
 #endif
 
 private slots:
