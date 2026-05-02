@@ -4,7 +4,7 @@ OpenCV : 4.8.0
 
 FFmpeg : 7.1.1
 
-Both Windows and macOS require Qt for development. The project is built with CMake, with static linking of dependencies ffmpeg and opencv, with direct build management on macos, but vcpkg on Windows.
+Both Windows and macOS require Qt for development. The project is built with CMake, with static linking of dependencies FFmpeg and OpenCV, with direct build management on macOS, but vcpkg on Windows.
 
 # Windows
 
