@@ -19,18 +19,6 @@ Below steps are also performed automatically when running npm run win-binaries o
 
 vcpkg directly statically links all required dependencies, so nothing extra should be needed for the executable to be standalone. 
 
-### Standalone executable: Old method before using qt statically linked via vcpkg
-Build with :
-C:\Qt\5.15.1\msvc2019_64\bin\qmake.exe "C:\Dev\video-simili-duplicate-cleaner\QtProject\app\app.pro" -config release
-nmake
-nmake clean # to remove all the leftover files and keep only executable
-
-Prepare all dependencies for packaging :
-C:\Qt\5.15.1\msvc2019_64\bin\windeployqt.exe --no-compiler-runtime --release "C:\Dev\release\release\Video simili duplicate cleaner.exe"
-
-Option --no-compiler-runtime is because when distributing through the MS Store, the vc redistributables are made available when specified in the appmanifest, as per https://docs.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-prepare "Your app uses a VCLibs framework package". To check the version needed, go into the developer machine and check under `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC` see what version to use, and therefore make sure the minversion specified in the appmanifest is below the required version. However for testing, in a clean machine not via the store, these redistributables need to be installed for the app to launch. On the target test machine, run `vc_redist.x64.exe` copied over from `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.29.30036`
-
-
 ### Create the installer / msix
 
 Copy app manifest and icons referenced in the manifest into folder within which is the executable, then package all :
