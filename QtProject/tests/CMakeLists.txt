@@ -67,7 +67,7 @@ function(add_qt_test TEST_NAME)
         
         # FFMPEG
         set(FFMPEG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/ffmpeg-universalized-libs")
-        target_include_directories(${TEST_NAME} PRIVATE ${FFMPEG_ROOT}/include)
+        target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${FFMPEG_ROOT}/include)
         target_link_directories(${TEST_NAME} PRIVATE ${FFMPEG_ROOT}/lib)
         target_link_libraries(${TEST_NAME} PRIVATE
             avutil avformat swresample avcodec swscale
@@ -90,7 +90,7 @@ function(add_qt_test TEST_NAME)
         target_link_libraries(${TEST_NAME} PRIVATE ${OpenCV_LIBS})
         
         find_package(FFMPEG REQUIRED)
-        target_include_directories(${TEST_NAME} PRIVATE ${FFMPEG_INCLUDE_DIRS})
+        target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
         target_link_directories(${TEST_NAME} PRIVATE ${FFMPEG_LIBRARY_DIRS})
         target_link_libraries(${TEST_NAME} PRIVATE ${FFMPEG_LIBRARIES})
     endif()

@@ -117,7 +117,9 @@ if(APPLE)
     
     # FFMPEG
     set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
-    include_directories(${FFMPEG_ROOT}/include)
+    target_include_directories(video-simili-duplicate-cleaner SYSTEM PRIVATE
+        ${FFMPEG_ROOT}/include
+    )
     target_link_directories(video-simili-duplicate-cleaner PRIVATE
         ${FFMPEG_ROOT}/lib
     )
@@ -149,7 +151,7 @@ else()
     )
 
     find_package(FFMPEG REQUIRED)   
-    target_include_directories(video-simili-duplicate-cleaner PRIVATE ${FFMPEG_INCLUDE_DIRS})
+    target_include_directories(video-simili-duplicate-cleaner SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
     target_link_directories(video-simili-duplicate-cleaner PRIVATE ${FFMPEG_LIBRARY_DIRS})
     target_link_libraries(video-simili-duplicate-cleaner PRIVATE
         ${FFMPEG_LIBRARIES}

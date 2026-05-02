@@ -4,13 +4,13 @@ OpenCV : 4.8.0
 
 FFmpeg : 7.1.1
 
-Both windows and macos require QT as well of course, but that's necessary to install for development of course. Still using qmake (for tests, final deployment, debugging in QT Creator) but also starting to use cmake for development in vs code, and hopefully building libraries on windows with vcpkg.
+Both Windows and macOS require Qt for development. The project is built with CMake, with static linking of dependencies FFmpeg and OpenCV, with direct build management on macOS, but vcpkg on Windows.
 
 # Windows
 
-Via Visual Studio Installer, install  Visual Studio Build Tools / Desktop development with C++, which should install 
-- windows 11 SDK, 
-- C++/CLI support for build tools, and MSVC VS 2022 
+Via Visual Studio Installer, install  Visual Studio Build Tools / Desktop development with C++, which should install
+- windows 11 SDK,
+- C++/CLI support for build tools, and MSVC VS 2022
 - C++ ARM build tools
 - C++ ARM/ARMEC build tools (need standard arm and arm/ArmEC too, not sure why but vcpkg errors otherwise...)
 - C++ CMake tools for Windows
@@ -58,7 +58,7 @@ You will need to use the project's CMakePresets either directly in VS Code by se
 
 ### FFmpeg
 
-From guide https://trac.ffmpeg.org/wiki/CompilationGuide/WinRT (WinRT also means UWP or in the guide, its simply windows !): must install MSYS2 and other things, then compile ffmpeg with "hacky" linux commands but using Visual Studio tools. We'll need to run the msys2 command line utility ("shell"), but launching it from the correct windows/visual studio cmd (use the Native x64 one, as we are on x64 platform with x64 windows os version) !  
+From guide https://trac.ffmpeg.org/wiki/CompilationGuide/WinRT (WinRT also means UWP or in the guide, its simply windows !): must install MSYS2 and other things, then compile ffmpeg with "hacky" linux commands but using Visual Studio tools. We'll need to run the msys2 command line utility ("shell"), but launching it from the correct windows/visual studio cmd (use the Native x64 one, as we are on x64 platform with x64 windows os version) !
 
 Download and run the msys2 installer : https://www.msys2.org/
 
@@ -69,13 +69,13 @@ Download YASM which is needed by ffmpeg to be build, from http://yasm.tortall.ne
 - Rename it yasm.exe
 - Move it into C:\Dev\msys64\usr\bin so that msys2 can find it later
 
-To avoid conflicts of utilities between native msys2 and windows later, delete link.exe from C:\Dev\msys64\usr\bin 
+To avoid conflicts of utilities between native msys2 and windows later, delete link.exe from C:\Dev\msys64\usr\bin
 
 Edit msys2 launch bat file : C:\Dev\msys64\msys2_shell.cmd (right click, edit) replace `rem set MSYS2_PATH_TYPE=inherit` with `set MSYS2_PATH_TYPE=inherit` this will allow the environment variables for Visual Studio to be transferred to the MSYS2 environment and back
 
-Qt seems to be using _link_ and _cl_ tools from : C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\bin\Hostx64\x64\ (you can check this in QT by going in the projects config part, and add a custom build step where link or where cl, disabling the first build step and build, then looking at the compile output), so we'll have to build ffmpeg with these same build tools. From x64 Native VS cmd (after installing Visual studio, it will make available these alternative cmd apps, just search in the apps "native", or "x64 native" and there should be one cmd app named like "x64 Native Tools Command Prompt for VS 2019" ) : launch msys2 from the cmd, by entering its bat file location and pressing enter : C:\Dev\msys64\msys2_shell.cmd 
+Qt seems to be using _link_ and _cl_ tools from : C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\bin\Hostx64\x64\ (you can check this in QT by going in the projects config part, and add a custom build step where link or where cl, disabling the first build step and build, then looking at the compile output), so we'll have to build ffmpeg with these same build tools. From x64 Native VS cmd (after installing Visual studio, it will make available these alternative cmd apps, just search in the apps "native", or "x64 native" and there should be one cmd app named like "x64 Native Tools Command Prompt for VS 2019" ) : launch msys2 from the cmd, by entering its bat file location and pressing enter : C:\Dev\msys64\msys2_shell.cmd
 
-- This will open another "terminal" which is actually msys2, an "environment" that has tools more like unix terminal tools, but understands its on windows and kind of makes the translation between ffmpeg build tools which assumes its on linux, and the actual windows system. 
+- This will open another "terminal" which is actually msys2, an "environment" that has tools more like unix terminal tools, but understands its on windows and kind of makes the translation between ffmpeg build tools which assumes its on linux, and the actual windows system.
 - Once it has launched, it should have inherited automatically the environment variables from the x64 Native VS cmd that we opened it from. Check with "which link" and "which cl" (link and cl are key tools used when building) and make sure the paths are something like "/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30037/bin/HostX64/x64/link"
 - If it isn't this path, go back and check if you did delete the link.exe (or cl.exe if it exists ?) in the msys64\usr\bin folder, or wherever the "which" command tells you the path is.
 
@@ -84,7 +84,7 @@ In this msys2 shell, we need to install a few things needed by ffmpeg build tool
 - pacman -S make
 - pacman -S diffutils
 
-From this msys2 shell, run (NB to copy and paste on this msys2 terminal, you have to right click, copy/paste. Standard keyboard ctrl+c/v don't work !) : 
+From this msys2 shell, run (NB to copy and paste on this msys2 terminal, you have to right click, copy/paste. Standard keyboard ctrl+c/v don't work !) :
 
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
 cd ffmpeg
@@ -121,7 +121,7 @@ rename lib '' ../ffmpeg_install/lib/*.a
 rename .a '.lib' ../ffmpeg_install/lib/*.a
 ```
 
-Then copy the include and lib folders to the Qt project windows ffmpeg libraries folder. 
+Then copy the include and lib folders to the Qt project windows ffmpeg libraries folder.
 
 ### OpenCV
 
@@ -282,9 +282,9 @@ cd ..
 rm -r -f ffmpeg-arm-build ffmpeg-arm-install ffmpeg-x86_64-build ffmpeg-x86_64-install ffmpeg libaom-arm-build libaom-arm-install libaom-x86_64-build libaom-x86_64-install libaom
 ```
 
-NB : 
+NB :
 - ```--disable-lzma``` is because it has a private api, incompatible with apple app store. It's only for some tiff file compressions.
-- aom is adding a lot of complexity just for supporting only one more codec: av1. It would really be nice if ffmpeg included one by default. 
+- aom is adding a lot of complexity just for supporting only one more codec: av1. It would really be nice if ffmpeg included one by default.
     - The process could be a bit simpler using brew as the brew aom lib also includes static libs
     - But then I'd need to install the arm brew and x86_64 brew (`arch -x86_64 [usual brew install curl and script]` which installs in /usr/local/bin/brew)
     - It is then possible to install x86_64 brew packages with `arch -x86_64 /usr/local/bin/brew [brew commands]`, and packages are then installed in /usr/local/include and /usr/local/lib/, compared to arm brew installing in /opt/homebrew/lib
