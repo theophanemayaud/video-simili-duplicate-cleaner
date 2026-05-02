@@ -15,11 +15,6 @@ public:
     enum SortCriterion { BySizeDescending, ByNameAscending, ByCreationDateAscending };
     static constexpr double DEFAULT_SSIM_THRESHOLD = 1.0;
     static constexpr int DEFAULT_MATCH_SIMILARITY_THRESHOLD = 100; // used for slider, as in % similarity
-    enum USE_CACHE_OPTION : int {
-        NO_CACHE,
-        WITH_CACHE,
-        CACHE_ONLY
-    };
 
     QWidget *_mainwPtr = nullptr;               //pointer to MainWindow, for connecting signals to it's slots
 
@@ -63,6 +58,50 @@ public:
 
     QString appVersion = "undefined";
 
+    // Error video modes: just leave as is (skip) or move to selected folder (move)
+    enum ErrorVideoModes { SKIP_ERROR_VIDEOS, MOVE_ERROR_VIDEOS };
+
+    ErrorVideoModes errorVideoMode() const {
+        if(this->errorVideoModeStatic == nullptr){
+            auto readOk = false;
+            auto mode = static_cast<ErrorVideoModes>(QSettings(APP_NAME, APP_NAME).value("error_video_mode").toInt(&readOk));
+            if(!readOk)
+                mode = SKIP_ERROR_VIDEOS;
+            this->errorVideoModeStatic = std::make_unique<ErrorVideoModes>(mode);
+        }
+        return *this->errorVideoModeStatic;
+    }
+    void errorVideoMode(const ErrorVideoModes mode) {
+        if(this->errorVideoModeStatic == nullptr)
+            this->errorVideoModeStatic = std::make_unique<ErrorVideoModes>(mode);
+        else
+            *this->errorVideoModeStatic = mode;
+        QSettings(APP_NAME, APP_NAME).setValue("error_video_mode", mode);
+    }
+
+    QDir errorVideosFolder() const {
+        if(this->errorVideosFolderStatic == nullptr){
+            const auto path = QSettings(APP_NAME, APP_NAME).value("error_videos_folder").toString();
+            auto dir = path.isEmpty() ? QDir::root() : QDir(path);
+            this->errorVideosFolderStatic = std::make_unique<QDir>(dir);
+        }
+        return *this->errorVideosFolderStatic;
+    }
+    void errorVideosFolder(const QDir dir) {
+        if(this->errorVideosFolderStatic == nullptr)
+            this->errorVideosFolderStatic = std::make_unique<QDir>(dir);
+        else
+            *this->errorVideosFolderStatic = dir;
+        QSettings(APP_NAME, APP_NAME).setValue("error_videos_folder", dir.absolutePath());
+    }
+
+    // Cache options: no cache, with cache, or cache only
+    enum USE_CACHE_OPTION : int {
+        NO_CACHE,
+        WITH_CACHE,
+        CACHE_ONLY
+    };
+
     USE_CACHE_OPTION useCacheOption() const {
         if(this->useCacheOptionStatic == nullptr){
             auto readOk = false;
@@ -97,6 +136,7 @@ public:
         QSettings(APP_NAME, APP_NAME).setValue("cache_file_path_name", cacheFilePathName);
     }
 
+    // Other small settings
     QString browseApplePhotosLastPath() const {return QSettings(APP_NAME, APP_NAME).value("browse_apple_photos_last_path").toString();}
     void browseApplePhotosLastPath(const QString dirPath) {QSettings(APP_NAME, APP_NAME).setValue("browse_apple_photos_last_path", dirPath);}
 
@@ -175,6 +215,8 @@ public:
         this->useCacheOptionStatic = nullptr;
         this->verboseStatic = nullptr;
         this->sortCriterionStatic = nullptr;
+        this->errorVideoModeStatic = nullptr;
+        this->errorVideosFolderStatic = nullptr;
         QSettings(APP_NAME, APP_NAME).clear();
     }
 private:
@@ -184,6 +226,8 @@ private:
     inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
     inline static std::unique_ptr<bool> verboseStatic = nullptr;
     inline static std::unique_ptr<SortCriterion> sortCriterionStatic = nullptr;
+    inline static std::unique_ptr<ErrorVideoModes> errorVideoModeStatic = nullptr;
+    inline static std::unique_ptr<QDir> errorVideosFolderStatic = nullptr;
 };
 
 class Message: public QObject {

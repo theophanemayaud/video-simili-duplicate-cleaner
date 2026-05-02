@@ -82,6 +82,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     setComparisonMode(this->_prefs.comparisonMode());
 
     setUseCacheOption(this->_prefs.useCacheOption());
+    setErrorVideoMode(this->_prefs.errorVideoMode());
 
     // Add Cmd+W to quit, default cmd+q already handled by qt on mainwindow
     connect(new QShortcut(QKeySequence::Close, this), &QShortcut::activated, this, &QApplication::quit);
@@ -333,7 +334,7 @@ void MainWindow::processVideos()
     } else
         addStatusMessage(QString("Using %1 threads for video processing.").arg(maxParallelTasks));
     // maxParallelTasks = 1; // for local debugging if parallelism is causing issues
-    
+
     for(auto &vidIter : sortedVids) {
         // Wait if we have too many active tasks
         while(activeFutures.size() >= 2*maxParallelTasks) { // double to schedule some tasks in advance so QT can immediately run them when a thread frees up
@@ -362,15 +363,15 @@ void MainWindow::processVideos()
             return video->process();
         });
         activeFutures.append(future);
-        
+
         QApplication::processEvents();
     }
 
     // Wait for all remaining futures to complete
     QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, activeFutures.size(), this);
     progress.setWindowModality(Qt::WindowModal);
-    
-    // Process remaining futures 
+
+    // Process remaining futures
     // Start timer so that if it takes too long, we simply ignore the remaining ones
     // Leading to a small memory leak, but it's not a big deal as it's only a few videos.
     QElapsedTimer timer;
@@ -380,7 +381,7 @@ void MainWindow::processVideos()
             this->ui->findDuplicates->setText(QStringLiteral("Stopping..."));
             this->ui->findDuplicates->setDisabled(true);
         }
-    
+
         for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
             if(activeFutures[i].isFinished()) {
                 Video::ProcessingResult result = activeFutures.takeAt(i).result();
@@ -487,6 +488,8 @@ void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
         ui->progressBar->setValue(ui->progressBar->value() + 1);
         ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
         _rejectedVideos << QDir::toNativeSeparators(deleteMe->_filePathName);
+        if(_prefs.errorVideoMode() == Prefs::MOVE_ERROR_VIDEOS)
+            moveErrorVideoToSelectedFolder(deleteMe->_filePathName);
         delete deleteMe;
     }
     else{
@@ -523,6 +526,7 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     on_actionRestore_default_cache_location_triggered();
 
     on_actionRestoreMoveToTrash_triggered();
+    on_actionRestore_simple_skip_of_error_videos_triggered();
     ui->verboseCheckbox->setCheckState(Qt::Unchecked);
 
     this->ui->directoryBox->clear();
@@ -622,6 +626,105 @@ void MainWindow::on_actionRestoreMoveToTrash_triggered()
     addStatusMessage(QString("\nRemoved files will now be moved to trash\n"));
 }
 // ------------------- END: File deletion configuration methods -----------
+// ------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// ------------------- BEGIN: Error video handling configuration methods ------
+void MainWindow::setErrorVideoMode(Prefs::ErrorVideoModes mode)
+{
+    _prefs.errorVideoMode(mode);
+    const bool moveErrorVideos = mode == Prefs::MOVE_ERROR_VIDEOS;
+    ui->actionSelect_folder_to_move_error_videos->setEnabled(!moveErrorVideos);
+    ui->actionRestore_simple_skip_of_error_videos->setEnabled(moveErrorVideos);
+}
+
+void MainWindow::on_actionSelect_folder_to_move_error_videos_triggered()
+{
+    auto currentErrorFolder = this->_prefs.errorVideosFolder();
+    QString dir = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first();
+    if(_prefs.errorVideoMode() == Prefs::MOVE_ERROR_VIDEOS && currentErrorFolder.exists())
+        dir = currentErrorFolder.absolutePath();
+
+    dir = QFileDialog::getExistingDirectory(ui->browseFolders,
+                                            QByteArrayLiteral("Open folder"),
+                                            dir /*defines where the chooser opens at*/,
+                                            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if(dir.isEmpty()){ //empty because error or none chosen in dialog
+        QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
+        return;
+    }
+    if(!QDir(dir).exists()){
+        QMessageBox::information(this, "", "The folder selected doesn't seem to exist, please create it first");
+        return;
+    }
+
+    _prefs.errorVideosFolder(QDir(dir));
+    setErrorVideoMode(Prefs::MOVE_ERROR_VIDEOS);
+    addStatusMessage(QString("\nError videos will now be moved to %1\n").arg(QDir(dir).absolutePath()));
+}
+
+void MainWindow::on_actionRestore_simple_skip_of_error_videos_triggered()
+{
+    _prefs.errorVideosFolder(QDir::root());
+    setErrorVideoMode(Prefs::SKIP_ERROR_VIDEOS);
+    addStatusMessage(QString("\nError videos will now be skipped and left untouched\n"));
+}
+
+bool MainWindow::moveErrorVideoToSelectedFolder(const QString &filePathName)
+{
+#ifdef Q_OS_MACOS
+    if(filePathName.contains(".photoslibrary")){
+        addStatusMessage(QString("Skipped moving Apple Photos Library error video %1")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return false;
+    }
+#endif
+    const auto errorVideosFolder = _prefs.errorVideosFolder();
+    if(!errorVideosFolder.exists()){
+        addStatusMessage(QString("Error moving %1: selected error videos folder does not exist")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return false;
+    }
+
+    const QFileInfo fileInfo(filePathName);
+    if(!fileInfo.exists()){
+        addStatusMessage(QString("Error moving %1: file does not exist")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return false;
+    }
+
+    QFileInfo newFileInfo(errorVideosFolder, fileInfo.fileName());
+    if(newFileInfo.exists()){
+        bool foundAvailableName = false;
+        for(int suffix = 1; suffix <= 100; suffix++){
+            QString replacementName = QStringLiteral("%1-%2").arg(fileInfo.completeBaseName()).arg(suffix);
+            if(!fileInfo.suffix().isEmpty())
+                replacementName += "." + fileInfo.suffix();
+            newFileInfo.setFile(errorVideosFolder, replacementName);
+            if(!newFileInfo.exists()){
+                foundAvailableName = true;
+                break;
+            }
+        }
+        if(!foundAvailableName){
+            addStatusMessage(QString("Error moving %1: could not find an available filename in selected error videos folder")
+                                 .arg(QDir::toNativeSeparators(filePathName)));
+            return false;
+        }
+    }
+    if(!QFile(filePathName).rename(newFileInfo.absoluteFilePath())){
+        addStatusMessage(QString("Error moving %1 to selected error videos folder. Check file permissions.")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return false;
+    }
+
+    Db(_prefs.cacheFilePathName()).removeVideo(filePathName);
+    addStatusMessage(QString("Moved error video %1 to %2")
+                         .arg(QDir::toNativeSeparators(filePathName),
+                              QDir::toNativeSeparators(newFileInfo.absoluteFilePath())));
+    return true;
+}
+// ------------------- END: Error video configuration methods -----------
 // ----------------------------------------------------------------------------
 
 void MainWindow::on_actionDelete_log_files_triggered()

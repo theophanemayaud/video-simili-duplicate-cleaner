@@ -78,6 +78,12 @@ private slots:
     void on_actionEnable_direct_deletion_instead_of_trash_triggered();
     void on_actionRestoreMoveToTrash_triggered();
 
+    // error video options: setting to just leave as is (skip) or move to selected folder (move)
+    void setErrorVideoMode(Prefs::ErrorVideoModes mode);
+    bool moveErrorVideoToSelectedFolder(const QString &filePathName);
+    void on_actionSelect_folder_to_move_error_videos_triggered();
+    void on_actionRestore_simple_skip_of_error_videos_triggered();
+
     void on_actionEmpty_cache_triggered();
     void on_actionSet_custom_cache_location_triggered();
     void on_actionRestore_default_cache_location_triggered();

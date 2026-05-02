@@ -552,6 +552,9 @@
     <addaction name="actionEnable_direct_deletion_instead_of_trash"/>
     <addaction name="actionRestoreMoveToTrash"/>
     <addaction name="separator"/>
+    <addaction name="actionSelect_folder_to_move_error_videos"/>
+    <addaction name="actionRestore_simple_skip_of_error_videos"/>
+    <addaction name="separator"/>
     <addaction name="actionOpen_logs_folder"/>
     <addaction name="actionDelete_log_files"/>
     <addaction name="separator"/>
@@ -647,6 +650,19 @@
   <action name="actionDelete_log_files">
    <property name="text">
     <string>Delete log files</string>
+   </property>
+  </action>
+  <action name="actionSelect_folder_to_move_error_videos">
+   <property name="text">
+    <string>Select folder to move error videos</string>
+   </property>
+  </action>
+  <action name="actionRestore_simple_skip_of_error_videos">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Restore simple skip of error videos</string>
    </property>
   </action>
  </widget>
