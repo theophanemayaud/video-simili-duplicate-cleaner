@@ -670,27 +670,27 @@ void MainWindow::on_actionRestore_simple_skip_of_error_videos_triggered()
     addStatusMessage(QString("\nError videos will now be skipped and left untouched\n"));
 }
 
-bool MainWindow::moveErrorVideoToSelectedFolder(const QString &filePathName)
+void MainWindow::moveErrorVideoToSelectedFolder(const QString &filePathName)
 {
 #ifdef Q_OS_MACOS
     if(filePathName.contains(".photoslibrary")){
         addStatusMessage(QString("Skipped moving Apple Photos Library error video %1")
                              .arg(QDir::toNativeSeparators(filePathName)));
-        return false;
+        return;
     }
 #endif
     const auto errorVideosFolder = _prefs.errorVideosFolder();
     if(!errorVideosFolder.exists()){
         addStatusMessage(QString("Error moving %1: selected error videos folder does not exist")
                              .arg(QDir::toNativeSeparators(filePathName)));
-        return false;
+        return;
     }
 
     const QFileInfo fileInfo(filePathName);
     if(!fileInfo.exists()){
         addStatusMessage(QString("Error moving %1: file does not exist")
                              .arg(QDir::toNativeSeparators(filePathName)));
-        return false;
+        return;
     }
 
     QFileInfo newFileInfo(errorVideosFolder, fileInfo.fileName());
@@ -709,20 +709,19 @@ bool MainWindow::moveErrorVideoToSelectedFolder(const QString &filePathName)
         if(!foundAvailableName){
             addStatusMessage(QString("Error moving %1: could not find an available filename in selected error videos folder")
                                  .arg(QDir::toNativeSeparators(filePathName)));
-            return false;
+            return;
         }
     }
     if(!QFile(filePathName).rename(newFileInfo.absoluteFilePath())){
         addStatusMessage(QString("Error moving %1 to selected error videos folder. Check file permissions.")
                              .arg(QDir::toNativeSeparators(filePathName)));
-        return false;
+        return;
     }
 
     Db(_prefs.cacheFilePathName()).removeVideo(filePathName);
     addStatusMessage(QString("Moved error video %1 to %2")
                          .arg(QDir::toNativeSeparators(filePathName),
                               QDir::toNativeSeparators(newFileInfo.absoluteFilePath())));
-    return true;
 }
 // ------------------- END: Error video configuration methods -----------
 // ----------------------------------------------------------------------------

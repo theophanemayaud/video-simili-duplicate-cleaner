@@ -80,7 +80,7 @@ private slots:
 
     // error video options: setting to just leave as is (skip) or move to selected folder (move)
     void setErrorVideoMode(Prefs::ErrorVideoModes mode);
-    bool moveErrorVideoToSelectedFolder(const QString &filePathName);
+    void moveErrorVideoToSelectedFolder(const QString &filePathName);
     void on_actionSelect_folder_to_move_error_videos_triggered();
     void on_actionRestore_simple_skip_of_error_videos_triggered();
 
