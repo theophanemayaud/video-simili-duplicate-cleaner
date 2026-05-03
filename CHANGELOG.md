@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.13.4](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.3...v1.13.4) (2026-05-03)
+
+
+### Features
+
+* **dependencies:** update ffmpeg to 4.11.0, opencv ffmpeg to 7.1.2 and qt to 6.9.1 on windows ([09212aa](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/09212aab86d4df7fe791abb4f19a279b259e6447))
+* **errors:** add option to move error videos to specific folder ([#184](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/184)) ([7ab0527](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/7ab0527cf009dd6cda76695462dc121b76843aa5)), closes [#46](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/46)
+
 ## [1.13.3](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.2...v1.13.3) (2026-01-12)
 
 
