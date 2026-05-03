@@ -61,9 +61,13 @@ public:
     bool hasCustomTrashFolder() const {
         if(this->customTrashFolderConfiguredStatic == nullptr){
             auto settings = QSettings(APP_NAME, APP_NAME);
-            this->customTrashFolderConfiguredStatic = std::make_unique<bool>(
-                settings.contains("custom_trash_folder")
-                && !settings.value("custom_trash_folder").toString().isEmpty());
+            bool hasConfiguredFolder = false;
+            if(settings.contains("custom_trash_folder")){
+                hasConfiguredFolder = QDir(settings.value("custom_trash_folder").toString()).exists();
+                if(!hasConfiguredFolder)
+                    settings.remove("custom_trash_folder");
+            }
+            this->customTrashFolderConfiguredStatic = std::make_unique<bool>(hasConfiguredFolder);
         }
         return *this->customTrashFolderConfiguredStatic;
     }
@@ -109,10 +113,14 @@ public:
     ErrorVideoModes errorVideoMode() const {
         if(this->errorVideoModeStatic == nullptr){
             auto settings = QSettings(APP_NAME, APP_NAME);
-            const auto mode = settings.contains("error_videos_folder")
-                                  && !settings.value("error_videos_folder").toString().isEmpty()
-                                  ? MOVE_ERROR_VIDEOS
-                                  : SKIP_ERROR_VIDEOS;
+            auto mode = SKIP_ERROR_VIDEOS;
+            if(settings.contains("error_videos_folder")){
+                const bool hasConfiguredFolder = QDir(settings.value("error_videos_folder").toString()).exists();
+                if(hasConfiguredFolder)
+                    mode = MOVE_ERROR_VIDEOS;
+                else
+                    settings.remove("error_videos_folder");
+            }
             this->errorVideoModeStatic = std::make_unique<ErrorVideoModes>(mode);
         }
         return *this->errorVideoModeStatic;
