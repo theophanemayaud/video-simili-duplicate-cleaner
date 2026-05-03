@@ -7,10 +7,10 @@
 
 class VideoMetadata
 {
-public:
+  public:
     QString filename;
     QString nameInApplePhotos; // used externally only, as it is too slow to get at first
-    int64_t size = 0; // in bytes
+    int64_t size = 0;          // in bytes
     QDateTime _fileCreateDate;
     QDateTime modified;
     int64_t duration = 0; // in miliseconds
@@ -23,19 +23,18 @@ public:
     QString gpsCoordinates;
     QMap<QString, QString> additionalMetadata;
 
-    void setRelevantValuesFromAdditionalMetadata(){
+    void setRelevantValuesFromAdditionalMetadata()
+    {
         // This function is called to set the relevant values from additional metadata
         // It can be used to set values like GPS coordinates, or in the future if we start using others, camera model, etc.
-        for (auto meta = this->additionalMetadata.constBegin(); meta != this->additionalMetadata.constEnd(); ++meta) {
-            if(this->gpsCoordinates.isEmpty()
-                && meta.key().contains("location")
-                && validGpsCoordinates(meta.value())) {
+        for (auto meta = this->additionalMetadata.constBegin(); meta != this->additionalMetadata.constEnd(); ++meta)
+            if (this->gpsCoordinates.isEmpty() && meta.key().contains("location") && validGpsCoordinates(meta.value()))
                 this->gpsCoordinates = meta.value();
-            }
-        };
+        ;
     };
 
-    static bool validGpsCoordinates(const QString &coordinates) {
+    static bool validGpsCoordinates(const QString& coordinates)
+    {
         // Many times the coordinates are all 0, like +00.0+000.0+0.0
         // which lands in the middle of the atlantic ocean
         // And is probably some programs setting a "default" location which means nothing

@@ -1,19 +1,19 @@
-#include <QtTest>
-#include <QCoreApplication>
 #include <QApplication>
-#include <QtConcurrent/QtConcurrent>
+#include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QtConcurrent/QtConcurrent>
+#include <QtTest>
 
-#include<algorithm>
+#include <algorithm>
 
 // add necessary includes here
-#include "../../app/video.h"
 #include "../../app/prefs.h"
+#include "../../app/video.h"
 
-#include "../../app/mainwindow.h"
 #include "../../app/comparison.h"
-#include "../../app/ui_comparison.h"
 #include "../../app/db.h"
+#include "../../app/mainwindow.h"
+#include "../../app/ui_comparison.h"
 
 #include "../test_video_simplified/video_simplified_test_helpers.h"
 
@@ -22,49 +22,62 @@
 class TestVideo : public QObject
 {
     Q_OBJECT
-public:
+  public:
     TestVideo();
     ~TestVideo();
-    
+
     // Special Qt Test static method called before main() runs
     // Use this to set QTEST_FUNCTION_TIMEOUT for long-running tests
     static void initMain();
 
-private:
+  private:
 #ifdef Q_OS_WIN
     QDir _videoDir = QDir("Y:/Videos/");
     const QDir _thumbnailDir_nocache = QDir("Y:/Thumbnails-nocache/");
-    const QFileInfo _csvInfo_nocache = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
+    const QFileInfo _csvInfo_nocache =
+        QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
 
     const QDir _thumbnailDir_cached = QDir("Y:/Thumbnails-cached/");
-    const QFileInfo _csvInfo_cached = QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
+    const QFileInfo _csvInfo_cached =
+        QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
 
     QDir _100GBvideoDir = QDir("");
     const QDir _100GBthumbnailDir_nocache = QDir("");
     const QFileInfo _100GBcsvInfo_nocache = QFileInfo("");
 #elif defined(Q_OS_MACOS)
     QDir _videoDir = QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Videos");
-    const QDir _thumbnailDir_nocache = QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
-    const QFileInfo _csvInfo_nocache = QFileInfo("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-nocache.csv");
+    const QDir _thumbnailDir_nocache =
+        QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-nocache/");
+    const QFileInfo _csvInfo_nocache = QFileInfo(
+        "/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-nocache.csv");
 
-    const QDir _thumbnailDir_cached = QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
-    const QFileInfo _csvInfo_cached = QFileInfo("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-cached.csv");
+    const QDir _thumbnailDir_cached =
+        QDir("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Thumbnails-cached/");
+    const QFileInfo _csvInfo_cached =
+        QFileInfo("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/tests-cached.csv");
 
-    QDir _100GBvideoDir = QDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Videos/");
-    const QDir _100GBthumbnailDir_nocache = QDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Thumbnails-nocache/");
-    const QFileInfo _100GBcsvInfo_nocache = QFileInfo("/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/100GBtests-nocache.csv");
+    QDir _100GBvideoDir = QDir(
+        "/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Videos/");
+    const QDir _100GBthumbnailDir_nocache = QDir("/Volumes/4TBSSD/Video duplicates - just for checking later my video "
+                                                 "duplicate program still works/Thumbnails-nocache/");
+    const QFileInfo _100GBcsvInfo_nocache = QFileInfo("/Volumes/4TBSSD/Video duplicates - just for checking later my "
+                                                      "video duplicate program still works/100GBtests-nocache.csv");
 #endif
 
-private slots:
+  private slots:
     void initTestCase();
 
-    void emptyDb(){ Prefs prefs; Db::initDbAndCacheLocation(prefs); Db::emptyAllDb(prefs); }
+    void emptyDb()
+    {
+        Prefs prefs;
+        Db::initDbAndCacheLocation(prefs);
+        Db::emptyAllDb(prefs);
+    }
 
     // Check ref params with no cache - DATA-DRIVEN TESTS
-    void test_check_refvidparams_nocache_data() {
-        populateRefVidParamsTestData(_videoDir, 218);
-    };
-    void test_check_refvidparams_nocache(){
+    void test_check_refvidparams_nocache_data() { populateRefVidParamsTestData(_videoDir, 218); };
+    void test_check_refvidparams_nocache()
+    {
         refVidParamsTestConfig conf;
         conf.testDescr = __FUNCTION__;
         conf.cacheOption = Prefs::NO_CACHE;
@@ -72,29 +85,27 @@ private slots:
         conf.acceptSmallDurationDiff = true;
 
         checkSingleVideoParams(conf);
-    };   
-
-    void test_check_refvidparams_withcache_data(){
-        populateRefVidParamsTestData(_videoDir, 218);
     };
-    void test_check_refvidparams_withcache(){
+
+    void test_check_refvidparams_withcache_data() { populateRefVidParamsTestData(_videoDir, 218); };
+    void test_check_refvidparams_withcache()
+    {
         refVidParamsTestConfig conf;
         conf.testDescr = __FUNCTION__;
         conf.cacheOption = Prefs::WITH_CACHE;
         conf.acceptSmallDurationDiff = true;
         checkSingleVideoParams(conf);
     };
-    void test_check_refvidparams_withCacheOnly_data(){
-        populateRefVidParamsTestData(_videoDir, 218);
-    };
-    void test_check_refvidparams_withCacheOnly(){
+    void test_check_refvidparams_withCacheOnly_data() { populateRefVidParamsTestData(_videoDir, 218); };
+    void test_check_refvidparams_withCacheOnly()
+    {
         refVidParamsTestConfig conf;
         conf.testDescr = __FUNCTION__;
         conf.cacheOption = Prefs::CACHE_ONLY;
         conf.acceptSmallDurationDiff = true;
         checkSingleVideoParams(conf);
     };
-    
+
     // void test_check_refvidparams_nocache_manualCompare_data(){
     //     populateRefVidParamsTestData(_videoDir, 218);
     // };
@@ -143,59 +154,52 @@ private slots:
     //         Prefs::NO_CACHE
     //     );
     // };
-    
+
     // Test whole app
-    void test_whole_app_nocache(){
+    void test_whole_app_nocache()
+    {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
-        conf.ref_ms_time = 4.0*1000;
+        conf.ref_ms_time = 4.0 * 1000;
         conf.nb_vids_to_find = 218;
         conf.nb_valid_vids_to_find = 214;
         conf.nb_matching_vids_to_find = 84;
-        runWholeAppScan(
-            _videoDir,
-            &conf
-        );
+        runWholeAppScan(_videoDir, &conf);
     };
 
-    void test_whole_app_cached(){
+    void test_whole_app_cached()
+    {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
-        conf.ref_ms_time = 1.5*1000;
+        conf.ref_ms_time = 1.5 * 1000;
         conf.nb_vids_to_find = 218;
         conf.nb_valid_vids_to_find = 214;
         conf.nb_matching_vids_to_find = 84;
-        runWholeAppScan(
-            _videoDir,
-            &conf
-            );
+        runWholeAppScan(_videoDir, &conf);
     };
 
-    void test_whole_app_cache_only(){
+    void test_whole_app_cache_only()
+    {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::CACHE_ONLY;
-        conf.ref_ms_time = 0.8*1000;
+        conf.ref_ms_time = 0.8 * 1000;
         conf.nb_vids_to_find = 218;
         conf.nb_valid_vids_to_find = 214;
         conf.nb_matching_vids_to_find = 84;
-        runWholeAppScan(
-            _videoDir,
-            &conf
-        );
+        runWholeAppScan(_videoDir, &conf);
     };
 
     // 100GB tests - data-driven approach
-    void test_100GBcheck_refvidparams_nocache_data() {
-        populateRefVidParamsTestData(_100GBvideoDir, 12506);
-    };
-    void test_100GBcheck_refvidparams_nocache() {
+    void test_100GBcheck_refvidparams_nocache_data() { populateRefVidParamsTestData(_100GBvideoDir, 12506); };
+    void test_100GBcheck_refvidparams_nocache()
+    {
         refVidParamsTestConfig conf;
         conf.testDescr = __FUNCTION__;
         conf.cacheOption = Prefs::NO_CACHE;
         conf.acceptSmallDurationDiff = true;
         checkSingleVideoParams(conf);
     };
-    
+
     // void test_100GBcheck_refvidparams_withcache_data() {
     //     populateRefVidParamsTestData(_100GBvideoDir, 12506);
     // };
@@ -206,7 +210,7 @@ private slots:
     //     conf.acceptSmallDurationDiff = true;
     //     checkSingleVideoParams(conf);
     // };
-    
+
     // void test_100GBcheck_refvidparams_nocache_manualCompare_data() {
     //     populateRefVidParamsTestData(_100GBvideoDir, 12506);
     // };
@@ -220,38 +224,34 @@ private slots:
     //     checkSingleVideoParams(conf);
     // };
 
-    void test_100GBwholeApp_nocache() {
+    void test_100GBwholeApp_nocache()
+    {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
-        conf.ref_ms_time = 4*60*1000;
+        conf.ref_ms_time = 4 * 60 * 1000;
         conf.nb_vids_to_find = 12506;
         conf.nb_valid_vids_to_find = 12331;
         conf.nb_matching_vids_to_find = 6535;
-        runWholeAppScan(
-            _100GBvideoDir,
-            &conf
-        );    
+        runWholeAppScan(_100GBvideoDir, &conf);
     };
-    void test_100GBwholeApp_cached() {
+    void test_100GBwholeApp_cached()
+    {
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
-        conf.ref_ms_time = 50*1000;
+        conf.ref_ms_time = 50 * 1000;
         conf.nb_vids_to_find = 12506;
         conf.nb_valid_vids_to_find = 12331;
         conf.nb_matching_vids_to_find = 6527;
-        runWholeAppScan(
-            _100GBvideoDir,
-            &conf
-        );    
+        runWholeAppScan(_100GBvideoDir, &conf);
     };
 
     // Runs at end of all test run (not once per test)
-    void cleanupTestCase(){};
+    void cleanupTestCase() {};
 
-private:
+  private:
     class wholeAppTestConfig
     {
-    public:
+      public:
         Prefs::USE_CACHE_OPTION cacheOption;
 
         // inside the app it default to 100, but for tests it's could be interesting if lower
@@ -381,10 +381,10 @@ private:
 
     class refVidParamsTestConfig
     {
-    private:
+      private:
         class visualCompareTestConfig;
 
-    public:
+      public:
         refVidParamsTestConfig() {}
 
         QString testDescr;
@@ -432,10 +432,10 @@ private:
         bool compareModifiedDates = true;
         bool acceptSmallDurationDiff = false;
 
-    private:
+      private:
         class visualCompareTestConfig
         {
-        public:
+          public:
             visualCompareTestConfig() {}
 
             bool manualCompareIfThumbsVisualDiff = false;
@@ -451,30 +451,24 @@ private:
      * Runs the whole app for the given folder, by default using the cache but not checking any details
      * If provided a conf, it will make sure to test the chosen cache option, and verify the number of elements found
     */
-    void runWholeAppScan(QDir videoDir, wholeAppTestConfig *conf = nullptr);
-    
+    void runWholeAppScan(QDir videoDir, wholeAppTestConfig* conf = nullptr);
+
     // Helper to populate test data for data-driven tests
     void populateRefVidParamsTestData(const QDir videoDir, const int expectedVideoCount);
-    
+
     // Helper to perform single video test (called for each test data row)
     void checkSingleVideoParams(const refVidParamsTestConfig conf);
-    
-    static void compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
-        const QByteArray ref_thumbnail,
-        const VideoParam videoParam,
-        const Video *vid,
-        const refVidParamsTestConfig conf = refVidParamsTestConfig()
-    );
 
-    void createRefVidParams(
-        QDir videoDir,
-        Prefs::USE_CACHE_OPTION cacheOption
-    );
+    static void compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
+        const QByteArray ref_thumbnail, const VideoParam videoParam, const Video* vid,
+        const refVidParamsTestConfig conf = refVidParamsTestConfig());
+
+    void createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheOption);
 };
 
-TestVideo::TestVideo(){}
+TestVideo::TestVideo() {}
 
-TestVideo::~TestVideo(){}
+TestVideo::~TestVideo() {}
 
 void TestVideo::initMain()
 {
@@ -484,7 +478,8 @@ void TestVideo::initMain()
 }
 
 // Runs once before test run (not once per test)
-void TestVideo::initTestCase(){
+void TestVideo::initTestCase()
+{
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
     Prefs().resetSettings();
     qDebug() << "Cleared settings";
@@ -492,19 +487,17 @@ void TestVideo::initTestCase(){
 
 // ----------------------------------------------------------------------------------
 // ---------------------------- START : helper testing functions ----------------------
-void TestVideo::runWholeAppScan(
-        QDir videoDir,
-        wholeAppTestConfig *conf
-    ){
+void TestVideo::runWholeAppScan(QDir videoDir, wholeAppTestConfig* conf)
+{
     QVERIFY(videoDir.exists());
 
-    if(conf != nullptr && conf->cacheOption != Prefs::NO_CACHE)
+    if (conf != nullptr && conf->cacheOption != Prefs::NO_CACHE)
         runWholeAppScan(videoDir); // run once to make sure all is cached
 
     MainWindow w = MainWindow();
     w.show();
 
-    if(conf != nullptr){
+    if (conf != nullptr) {
         w.on_thresholdSlider_valueChanged(conf->videoSimilarityThreshold);
 
         switch (conf->cacheOption) {
@@ -529,20 +522,44 @@ void TestVideo::runWholeAppScan(
     w.findVideos(videoDir);
     w.processVideos();
 
-    qDebug() << "runWholeAppScan found "<< w._everyVideo.count() << " files of which " << w._videoList.count() << " valid ones";
-    qDebug() << "runWholeAppScan before match report took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    qDebug() << "runWholeAppScan found " << w._everyVideo.count() << " files of which " << w._videoList.count()
+             << " valid ones";
+    qDebug() << "runWholeAppScan before match report took" << timer.elapsed() / 1000 << "." << timer.elapsed() % 1000
+             << " secs";
 
     Comparison comp(w._videoList, w._prefs, w.geometry());
     int matchingVideoNb = comp.reportMatchingVideos();
     qDebug() << "runWholeAppScan found " << matchingVideoNb << " matching vids";
 
-    qDebug() << "runWholeAppScan took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    qDebug() << "runWholeAppScan took" << timer.elapsed() / 1000 << "." << timer.elapsed() % 1000 << " secs";
 
-    if(conf != nullptr) {
-        QVERIFY2(w._everyVideo.count()==conf->nb_vids_to_find, QString("runWholeAppScan found %1 files but should be %2").arg(w._everyVideo.count()).arg(conf->nb_vids_to_find).toStdString().c_str());
-        QVERIFY2(w._videoList.count()==conf->nb_valid_vids_to_find, QString("runWholeAppScan found %1 valid files but should be %2").arg(w._videoList.count()).arg(conf->nb_valid_vids_to_find).toStdString().c_str());
-        QVERIFY2(matchingVideoNb==conf->nb_matching_vids_to_find, QString("runWholeAppScan found %1 matching vids but should be %2").arg(matchingVideoNb).arg(conf->nb_matching_vids_to_find).toStdString().c_str());
-        QVERIFY2(timer.elapsed()<conf->ref_ms_time, QString("runWholeAppScan took : %1.%2s but should be below %3.%4s").arg(timer.elapsed()/1000).arg(timer.elapsed()%1000).arg(conf->ref_ms_time/1000).arg(conf->ref_ms_time%1000).toStdString().c_str());
+    if (conf != nullptr) {
+        QVERIFY2(w._everyVideo.count() == conf->nb_vids_to_find,
+                 QString("runWholeAppScan found %1 files but should be %2")
+                     .arg(w._everyVideo.count())
+                     .arg(conf->nb_vids_to_find)
+                     .toStdString()
+                     .c_str());
+        QVERIFY2(w._videoList.count() == conf->nb_valid_vids_to_find,
+                 QString("runWholeAppScan found %1 valid files but should be %2")
+                     .arg(w._videoList.count())
+                     .arg(conf->nb_valid_vids_to_find)
+                     .toStdString()
+                     .c_str());
+        QVERIFY2(matchingVideoNb == conf->nb_matching_vids_to_find,
+                 QString("runWholeAppScan found %1 matching vids but should be %2")
+                     .arg(matchingVideoNb)
+                     .arg(conf->nb_matching_vids_to_find)
+                     .toStdString()
+                     .c_str());
+        QVERIFY2(timer.elapsed() < conf->ref_ms_time,
+                 QString("runWholeAppScan took : %1.%2s but should be below %3.%4s")
+                     .arg(timer.elapsed() / 1000)
+                     .arg(timer.elapsed() % 1000)
+                     .arg(conf->ref_ms_time / 1000)
+                     .arg(conf->ref_ms_time % 1000)
+                     .toStdString()
+                     .c_str());
     }
 
     w.close();
@@ -550,52 +567,49 @@ void TestVideo::runWholeAppScan(
 }
 
 // Helper to populate test data for data-driven tests
-void TestVideo::populateRefVidParamsTestData(
-    const QDir videoDir,
-    const int expectedVideoCount
-) {
+void TestVideo::populateRefVidParamsTestData(const QDir videoDir, const int expectedVideoCount)
+{
     emptyDb();
     QTest::addColumn<QString>("videoPath");
-    
+
     QVERIFY(videoDir.exists());
-    
+
     // Load extensions
     MainWindow w;
     w.loadExtensions();
     QVERIFY(!w._extensionList.isEmpty());
     w.close();
-    
+
     // Find all videos in directory
     QDir scanDir = videoDir;
     scanDir.setNameFilters(w._extensionList);
     QDirIterator iter(scanDir, QDirIterator::Subdirectories);
-    
+
     QStringList videoPaths;
-    while(iter.hasNext()) {
+    while (iter.hasNext()) {
         QString videoPath = iter.next();
         QFileInfo videoInfo(videoPath);
-        
+
         // Skip if it's a directory (shouldn't happen with nameFilters but be safe)
-        if (videoInfo.isDir()) continue;
-        
+        if (videoInfo.isDir())
+            continue;
+
         videoPaths.append(videoPath);
     }
-    
+
     // Verify we found the expected number of videos
-    QVERIFY2(videoPaths.count() == expectedVideoCount, 
-        QString("Expected %1 videos but found %2 in %3")
-            .arg(expectedVideoCount)
-            .arg(videoPaths.count())
-            .arg(videoDir.path())
-            .toUtf8());
-    
+    QVERIFY2(videoPaths.count() == expectedVideoCount, QString("Expected %1 videos but found %2 in %3")
+                                                           .arg(expectedVideoCount)
+                                                           .arg(videoPaths.count())
+                                                           .arg(videoDir.path())
+                                                           .toUtf8());
+
     // Add each video as a test row
-    foreach(const QString& videoPath, videoPaths) {
+    foreach (const QString& videoPath, videoPaths) {
         QFileInfo videoInfo(videoPath);
         // Use relative path from video directory to ensure unique test row names
         QString relativePath = videoDir.relativeFilePath(videoPath);
-        QTest::newRow(relativePath.toStdString().c_str()) 
-            << videoPath;
+        QTest::newRow(relativePath.toStdString().c_str()) << videoPath;
     }
 }
 
@@ -603,149 +617,184 @@ void TestVideo::populateRefVidParamsTestData(
 void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
 {
     QFETCH(QString, videoPath);
-    
+
     QFileInfo videoInfo(videoPath);
     QVERIFY2(videoInfo.exists(), videoPath.toUtf8());
-    
+
     // Determine suffix based on cache option
     QString suffix = (conf.cacheOption == Prefs::NO_CACHE) ? "nocache" : "withcache";
-    
+
     // Load reference metadata from individual file (video.mp4.nocache.txt or video.mp4.withcache.txt)
     QString metadataPath = videoPath + "." + suffix + ".txt";
     QFileInfo metadataInfo(metadataPath);
-    QVERIFY2(metadataInfo.exists(), 
-        QString("Metadata file not found: %1").arg(metadataPath).toUtf8());
-    
+    QVERIFY2(metadataInfo.exists(), QString("Metadata file not found: %1").arg(metadataPath).toUtf8());
+
     VideoParam videoParam;
-    SimplifiedTestHelpers::loadMetadataFromFile(
-        metadataPath, 
-        videoParam
-    );
-    
+    SimplifiedTestHelpers::loadMetadataFromFile(metadataPath, videoParam);
+
     // Load reference thumbnail from individual file (video.mp4.nocache.jpg or video.mp4.withcache.jpg)
     QString thumbnailPath = videoPath + "." + suffix + ".jpg";
     QByteArray ref_thumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(thumbnailPath);
-    
+
     Prefs prefs;
     prefs.useCacheOption(conf.cacheOption);
-    
+
     // run scan once to populate cache
-    if(conf.cacheOption != Prefs::NO_CACHE) {
+    if (conf.cacheOption != Prefs::NO_CACHE) {
         QVERIFY2(Db::initDbAndCacheLocation(prefs), "Failed to initialize cache");
         auto prefsWithCache = prefs;
         prefsWithCache.useCacheOption(Prefs::WITH_CACHE); // Need to force generate cache even if CACHE_ONLY is set
-        Video *vid = new Video(prefsWithCache, videoPath);
+        Video* vid = new Video(prefsWithCache, videoPath);
         auto res = vid->process();
         delete vid;
     }
 
-    // Process video with current settings    
-    Video *vid = new Video(prefs, videoPath);
+    // Process video with current settings
+    Video* vid = new Video(prefs, videoPath);
     auto res = vid->process();
-    
+
     // Compare
     compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(ref_thumbnail, videoParam, vid, conf);
-    
+
     delete vid;
 }
 
-
-void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
-    const QByteArray ref_thumbnail,
-    const VideoParam videoParam,
-    const Video *vid,
-    const refVidParamsTestConfig conf
-    ) {
+void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(const QByteArray ref_thumbnail,
+                                                                           const VideoParam videoParam,
+                                                                           const Video* vid,
+                                                                           const refVidParamsTestConfig conf)
+{
     const QString forVid = QString("For %1").arg(videoParam.thumbnailInfo.absoluteFilePath());
 
     bool manuallyAccepted = false, pHashAccepted = false, ssimAccepted = false;
 
     // pHash thumbnail comparison with original hashes computed and saved as metadata
     // pHash works by comparing number of equal bits between two hashes
-    if(conf.compareThumbsVisualConfig->compareThumbHashes){
+    if (conf.compareThumbsVisualConfig->compareThumbHashes) {
         int distance1 = 64, distance2 = 64;
         uint64_t differentBits1 = videoParam.hash1 ^ vid->hash[0]; //XOR to value (only ones for differing bits)
         uint64_t differentBits2 = videoParam.hash2 ^ vid->hash[1];
-        while(differentBits1) {
+        while (differentBits1) {
             differentBits1 &= differentBits1 - 1; //count number of bits of value
             distance1--;
         }
-        while(differentBits2) {
+        while (differentBits2) {
             differentBits2 &= differentBits2 - 1; //count number of bits of value
             distance2--;
         }
         // TODO add min pHash distance as test parameter
         const int minDistance = 60; // x same bits out of 64
 
-        if(distance1 >= minDistance && distance2 >= minDistance)
+        if (distance1 >= minDistance && distance2 >= minDistance)
             pHashAccepted = true;
         else
-            qWarning() << QString("hash1 distance=%1/64 hash2 distance=%2/64, expected at least %3 bits to be the same - %4").arg(distance1).arg(distance2).arg(minDistance).arg(forVid).toUtf8();
+            qWarning()
+                << QString("hash1 distance=%1/64 hash2 distance=%2/64, expected at least %3 bits to be the same - %4")
+                       .arg(distance1)
+                       .arg(distance2)
+                       .arg(minDistance)
+                       .arg(forVid)
+                       .toUtf8();
     }
 
     // SSIM thumbnail comparison
     auto ssim = SimplifiedTestHelpers::compareThumbnails(ref_thumbnail, vid->thumbnail);
     // TODO add ssim tolerance as test parameter
     const auto ssimThreshold = 0.90;
-    if(ssim < ssimThreshold)
-        qWarning() << QString("got ssim %1 pct expected at least %2\% - %3").arg(ssim * 100).arg(ssimThreshold * 100).arg(forVid).toUtf8();
+    if (ssim < ssimThreshold)
+        qWarning() << QString("got ssim %1 pct expected at least %2\% - %3")
+                          .arg(ssim * 100)
+                          .arg(ssimThreshold * 100)
+                          .arg(forVid)
+                          .toUtf8();
     else
         ssimAccepted = true;
 
-    QVERIFY2(videoParam.size == vid->size, QString("ref size=%1 new size=%2 - %3").arg(videoParam.size).arg(vid->size).arg(forVid).toUtf8());
-    
-    if(conf.compareModifiedDates) {
+    QVERIFY2(videoParam.size == vid->size,
+             QString("ref size=%1 new size=%2 - %3").arg(videoParam.size).arg(vid->size).arg(forVid).toUtf8());
+
+    if (conf.compareModifiedDates) {
         const auto ref_modified = videoParam.modified.toString(VideoParam::timeformat());
         const auto new_modified = vid->modified.toString(VideoParam::timeformat());
-        QVERIFY2(ref_modified == new_modified , QString("Date diff : ref modified=%1 new modified=%2").arg(ref_modified).arg(new_modified).toUtf8());
+        QVERIFY2(ref_modified == new_modified,
+                 QString("Date diff : ref modified=%1 new modified=%2").arg(ref_modified).arg(new_modified).toUtf8());
     }
     uint acceptedDurationDiff = 0;
     // TODO add duration tolerance size ie 50ms or 1% of ref as test parameter
-    if(conf.acceptSmallDurationDiff)
+    if (conf.acceptSmallDurationDiff)
         acceptedDurationDiff = std::max(50, int(0.01 * videoParam.duration)); // biggest of 50 ms or 1% of ref duration
-    QVERIFY2(abs(videoParam.duration - vid->duration) <= acceptedDurationDiff, 
-        QString("ref duration=%1 new duration=%2, max accepted diff %3 - %4")
-        .arg(videoParam.duration).arg(vid->duration).arg(acceptedDurationDiff).arg(forVid).toUtf8());
+    QVERIFY2(abs(videoParam.duration - vid->duration) <= acceptedDurationDiff,
+             QString("ref duration=%1 new duration=%2, max accepted diff %3 - %4")
+                 .arg(videoParam.duration)
+                 .arg(vid->duration)
+                 .arg(acceptedDurationDiff)
+                 .arg(forVid)
+                 .toUtf8());
 
-    QVERIFY2(abs(videoParam.bitrate - vid->bitrate) <= 50, QString("ref bitrate=%1 new bitrate=%2 - %3").arg(videoParam.bitrate).arg(vid->bitrate).arg(forVid).toUtf8());
-    QVERIFY2(videoParam.framerate == vid->framerate, QString("framerate ref=%1 new=%2 - %3").arg(videoParam.framerate).arg(vid->framerate).arg(forVid).toUtf8());
-    QVERIFY2(videoParam.codec == vid->codec, QString("codec ref=%1 new=%2 - %3").arg(videoParam.codec).arg(vid->codec).arg(forVid).toUtf8());
-    if(conf.compareAudio)
-        QVERIFY2(videoParam.audio == vid->audio, QString("audio ref=%1 new=%2 - %3").arg(videoParam.audio).arg(vid->audio).arg(forVid).toUtf8());
+    QVERIFY2(
+        abs(videoParam.bitrate - vid->bitrate) <= 50,
+        QString("ref bitrate=%1 new bitrate=%2 - %3").arg(videoParam.bitrate).arg(vid->bitrate).arg(forVid).toUtf8());
+    QVERIFY2(
+        videoParam.framerate == vid->framerate,
+        QString("framerate ref=%1 new=%2 - %3").arg(videoParam.framerate).arg(vid->framerate).arg(forVid).toUtf8());
+    QVERIFY2(videoParam.codec == vid->codec,
+             QString("codec ref=%1 new=%2 - %3").arg(videoParam.codec).arg(vid->codec).arg(forVid).toUtf8());
+    if (conf.compareAudio)
+        QVERIFY2(videoParam.audio == vid->audio,
+                 QString("audio ref=%1 new=%2 - %3").arg(videoParam.audio).arg(vid->audio).arg(forVid).toUtf8());
     // Sometimes ffmpeg swaps detected width and height but that's ok as long as thumbnails are the same
     auto width = videoParam.width, height = videoParam.height;
     if (videoParam.width == vid->height && videoParam.height == vid->width) {
         width = videoParam.height;
         height = videoParam.width;
     }
-    QVERIFY2(width == vid->width, QString("width x height ref=%1x%2 new=%3x%4 - %5").arg(width).arg(height).arg(vid->width).arg(vid->height).arg(forVid).toUtf8());
-    QVERIFY2(height == vid->height, QString("width x height ref=%1x%2 new=%3x%4 - %5").arg(width).arg(height).arg(vid->width).arg(vid->height).arg(forVid).toUtf8());
+    QVERIFY2(width == vid->width, QString("width x height ref=%1x%2 new=%3x%4 - %5")
+                                      .arg(width)
+                                      .arg(height)
+                                      .arg(vid->width)
+                                      .arg(vid->height)
+                                      .arg(forVid)
+                                      .toUtf8());
+    QVERIFY2(height == vid->height, QString("width x height ref=%1x%2 new=%3x%4 - %5")
+                                        .arg(width)
+                                        .arg(height)
+                                        .arg(vid->width)
+                                        .arg(vid->height)
+                                        .arg(forVid)
+                                        .toUtf8());
 
-    QVERIFY2(ref_thumbnail.isNull() == vid->thumbnail.isNull(), QString("Ref thumb empty=%1 but new thumb empty=%2 - %3").arg(ref_thumbnail.isNull()).arg(vid->thumbnail.isNull()).arg(forVid).toUtf8());
+    QVERIFY2(ref_thumbnail.isNull() == vid->thumbnail.isNull(),
+             QString("Ref thumb empty=%1 but new thumb empty=%2 - %3")
+                 .arg(ref_thumbnail.isNull())
+                 .arg(vid->thumbnail.isNull())
+                 .arg(forVid)
+                 .toUtf8());
 
-    if(conf.compareThumbsVisualConfig == nullptr)
+    if (conf.compareThumbsVisualConfig == nullptr)
         return;
 
     if (ref_thumbnail.isEmpty() && vid->thumbnail.isEmpty())
         return;
 
-    if(!ssimAccepted || !pHashAccepted) {
-        if(!conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff)
-            QFAIL(QString("Thumbnails not exactly identical, pHashAccepted=%1, ssim Accepted=%2 - %3").arg(pHashAccepted).arg(ssimAccepted).arg(forVid).toUtf8());
-        else 
-            if(TestHelpers::doThumbnailsLookSameWindow(ref_thumbnail,
-                vid->thumbnail,
-                QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath())
-            ))
-                manuallyAccepted = true;
-            else
-                QFAIL(QString("Thumbnails not exactly identical and manually rejected - %1").arg(forVid).toUtf8());
+    if (!ssimAccepted || !pHashAccepted) {
+        if (!conf.compareThumbsVisualConfig->manualCompareIfThumbsVisualDiff)
+            QFAIL(QString("Thumbnails not exactly identical, pHashAccepted=%1, ssim Accepted=%2 - %3")
+                      .arg(pHashAccepted)
+                      .arg(ssimAccepted)
+                      .arg(forVid)
+                      .toUtf8());
+        else if (TestHelpers::doThumbnailsLookSameWindow(
+                     ref_thumbnail, vid->thumbnail,
+                     QString("Thumbnail %1").arg(videoParam.thumbnailInfo.absoluteFilePath())))
+            manuallyAccepted = true;
+        else
+            QFAIL(QString("Thumbnails not exactly identical and manually rejected - %1").arg(forVid).toUtf8());
     }
 
     // Update saved thumbnail if manually accepted
-    if(manuallyAccepted) {
+    if (manuallyAccepted) {
         QFile thumbFile(videoParam.thumbnailInfo.absoluteFilePath());
-        if(!thumbFile.open(QIODevice::WriteOnly))
+        if (!thumbFile.open(QIODevice::WriteOnly))
             qWarning() << "Failed to open thumbnail file for writing:" << videoParam.thumbnailInfo.absoluteFilePath();
         else
             thumbFile.write(vid->thumbnail);
@@ -754,10 +803,7 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
 }
 
 // Method to generate .txt, .jpg and ref metadata and thumbnail files
-void TestVideo::createRefVidParams(
-    QDir videoDir,
-    Prefs::USE_CACHE_OPTION cacheOption
-)
+void TestVideo::createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheOption)
 {
     emptyDb();
     QElapsedTimer timer;
@@ -771,11 +817,11 @@ void TestVideo::createRefVidParams(
     w.loadExtensions();
     QVERIFY(!w._extensionList.isEmpty());
     w.close();
-    
+
     // Determine suffix based on cache option
     QString suffix = (cacheOption == Prefs::NO_CACHE) ? "nocache" : "withcache";
     qDebug() << "====== Generating" << suffix << "reference data ======";
-    
+
     videoDir.setNameFilters(w._extensionList);
     QDirIterator iter(videoDir, QDirIterator::Subdirectories);
 
@@ -786,21 +832,21 @@ void TestVideo::createRefVidParams(
     prefs.useCacheOption(cacheOption);
     QVERIFY2(Db::initDbAndCacheLocation(prefs), "Failed to initialize cache");
 
-    while(iter.hasNext())
-    {
+    while (iter.hasNext()) {
         const QFile vidFile(iter.next());
         const QFileInfo vidInfo = QFileInfo(vidFile);
-        
-        if (vidInfo.isDir()) continue;
+
+        if (vidInfo.isDir())
+            continue;
 
         QString videoPath = vidInfo.absoluteFilePath();
         QString metadataPath = videoPath + "." + suffix + ".txt";
         QString thumbPath = videoPath + "." + suffix + ".jpg";
 
         // Process video
-        Video *vid = new Video(prefs, videoPath);
+        Video* vid = new Video(prefs, videoPath);
         auto result = vid->process();
-        
+
         // Create VideoParam
         VideoParam videoParam;
         videoParam.videoInfo = vidInfo;
@@ -818,12 +864,10 @@ void TestVideo::createRefVidParams(
         videoParam.thumbnail = vid->thumbnail;
 
         // Remove old files if they exist
-        if (QFileInfo::exists(metadataPath)) {
+        if (QFileInfo::exists(metadataPath))
             QFile::remove(metadataPath);
-        }
-        if (QFileInfo::exists(thumbPath)) {
+        if (QFileInfo::exists(thumbPath))
             QFile::remove(thumbPath);
-        }
 
         // Save metadata
         if (!SimplifiedTestHelpers::saveMetadataToFile(videoParam, metadataPath, videoDir)) {
@@ -842,14 +886,13 @@ void TestVideo::createRefVidParams(
         }
 
         processedCount++;
-        if (processedCount % 10 == 0) {
+        if (processedCount % 10 == 0)
             qDebug() << "Progress:" << processedCount << "videos processed...";
-        }
-        
+
         delete vid;
     }
 
-    qDebug() << "TIMER: createRefVidParams took" << timer.elapsed()/1000 << "."<< timer.elapsed()%1000 << " secs";
+    qDebug() << "TIMER: createRefVidParams took" << timer.elapsed() / 1000 << "." << timer.elapsed() % 1000 << " secs";
     qDebug() << "Successfully processed:" << processedCount << "videos";
     qDebug() << "Errors:" << errorCount << "videos";
     QVERIFY2(errorCount == 0, QString("Some videos had errors: %1").arg(errorCount).toUtf8());

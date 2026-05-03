@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
     qDebug() << "Program start by Théophane with path :" << QDir::currentPath();

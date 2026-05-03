@@ -1,17 +1,17 @@
 #ifndef COMPARISON_H
 #define COMPARISON_H
 
-#include <QDialog>
 #include <QDesktopServices>
-#include <QUrl>
-#include <QLabel>
-#include <QMessageBox>
-#include <QWheelEvent>
+#include <QDialog>
 #include <QFileDialog>
+#include <QLabel>
 #include <QMenu>
+#include <QMessageBox>
 #include <QShortcut>
-#include <QUuid>
 #include <QStandardPaths>
+#include <QUrl>
+#include <QUuid>
+#include <QWheelEvent>
 
 #ifdef Q_OS_MACOS
 #include <QProcess> // for running apple scripts and opening file in explorer
@@ -21,7 +21,10 @@
 
 #include "video.h"
 
-namespace Ui { class Comparison; }
+namespace Ui
+{
+class Comparison;
+}
 
 class Comparison : public QDialog
 {
@@ -29,21 +32,21 @@ class Comparison : public QDialog
     friend class TestVideo;
     friend class test_comparison;
 
-public:
-    Comparison(const QVector<Video *> &videosParam, Prefs &prefsParam, const QRect &mainWindowGeometry);
+  public:
+    Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, const QRect& mainWindowGeometry);
     ~Comparison();
-    
+
     // SSIM calculation methods - made public and static for reuse in tests
-    static double sigma(const cv::Mat &m, const int &i, const int &j, const int &block_size);
-    static double covariance(const cv::Mat &m0, const cv::Mat &m1, const int &i, const int &j, const int &block_size);
-    static double ssim(const cv::Mat &m0, const cv::Mat &m1, const int &block_size);
+    static double sigma(const cv::Mat& m, const int& i, const int& j, const int& block_size);
+    static double covariance(const cv::Mat& m0, const cv::Mat& m1, const int& i, const int& j, const int& block_size);
+    static double ssim(const cv::Mat& m0, const cv::Mat& m1, const int& block_size);
 
-private:
-    Ui::Comparison *ui;
+  private:
+    Ui::Comparison* ui;
 
-    QVector<Video *> _videos;
-    Prefs &_prefs;
-    int _leftVideo = 0; // index in the video list, of the currently displayed left video
+    QVector<Video*> _videos;
+    Prefs& _prefs;
+    int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
     int64_t _spaceSaved = 0;
@@ -72,8 +75,7 @@ private:
 
     // --- \\
     // --- auto deletion internal stuff
-    enum AUTO_DELETE_CONFIG : int
-    {
+    enum AUTO_DELETE_CONFIG : int {
         AUTO_DELETE_ONLY_TIMES_DIFF
     };
 
@@ -82,21 +84,22 @@ private:
 
     class AutoDeleteConfig
     {
-    public:
-        AutoDeleteConfig(const AUTO_DELETE_CONFIG config): _autoDelConfig(config){};
+      public:
+        AutoDeleteConfig(const AUTO_DELETE_CONFIG config) : _autoDelConfig(config) {};
 
         QString getDeleteByText() const;
 
-        const VideoMetadata* videoToDelete(const VideoMetadata*, const VideoMetadata*, const AutoDeleteUserSettings) const; //returns null if none should be deleted
+        const VideoMetadata* videoToDelete(const VideoMetadata*, const VideoMetadata*,
+                                           const AutoDeleteUserSettings) const; //returns null if none should be deleted
 
-    private:
+      private:
         const AUTO_DELETE_CONFIG _autoDelConfig;
     };
 
     class AutoDeleteUserSettings
     {
-    public:
-        AutoDeleteUserSettings(const bool trashEarlierIsChecked): trashEarlierIsChecked(trashEarlierIsChecked){};
+      public:
+        AutoDeleteUserSettings(const bool trashEarlierIsChecked) : trashEarlierIsChecked(trashEarlierIsChecked) {};
         const bool trashEarlierIsChecked;
     };
 
@@ -105,33 +108,41 @@ private:
     // -- end auto deletion internal stuff
     // --- //
 
-public slots:
+  public slots:
     int reportMatchingVideos(); // returns number of matching videos found
 
-private slots:
-    void dragEnterEvent(QDragEnterEvent *event); // drag and drop for locked folders list
-    void dropEvent(QDropEvent *event);
+  private slots:
+    void dragEnterEvent(QDragEnterEvent* event); // drag and drop for locked folders list
+    void dropEvent(QDropEvent* event);
 
     void confirmToExit();
     void on_prevVideo_clicked();
     void on_nextVideo_clicked();
-    bool bothVideosMatch(const Video *left, const Video *right);
-    int phashSimilarity(const Video *left, const Video *right, const int &nthHash);
+    bool bothVideosMatch(const Video* left, const Video* right);
+    int phashSimilarity(const Video* left, const Video* right, const int& nthHash);
 
-    void showVideo(const QString &side);
-    QString readableDuration(const int64_t &milliseconds) const;
-    QString readableFileSize(const int64_t &filesize) const;
-    QString readableBitRate(const double &kbps) const;
+    void showVideo(const QString& side);
+    QString readableDuration(const int64_t& milliseconds) const;
+    QString readableFileSize(const int64_t& filesize) const;
+    QString readableBitRate(const double& kbps) const;
     void highlightBetterProperties() const;
     void updateUI();
     int64_t comparisonsSoFar() const;
     int progressBarValue(int64_t comparisons) const;
     void onProgressSliderReleased();
 
-    void on_selectPhash_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_PHASH);
-                                                         emit switchComparisonMode(this->_prefs.comparisonMode()); }
-    void on_selectSSIM_clicked ( const bool &checked) { if(checked) this->_prefs.comparisonMode(Prefs::_SSIM);
-                                                        emit switchComparisonMode(this->_prefs.comparisonMode()); }
+    void on_selectPhash_clicked(const bool& checked)
+    {
+        if (checked)
+            this->_prefs.comparisonMode(Prefs::_PHASH);
+        emit switchComparisonMode(this->_prefs.comparisonMode());
+    }
+    void on_selectSSIM_clicked(const bool& checked)
+    {
+        if (checked)
+            this->_prefs.comparisonMode(Prefs::_SSIM);
+        emit switchComparisonMode(this->_prefs.comparisonMode());
+    }
 
     void on_leftImage_clicked() { openMedia(_videos[_leftVideo]->_filePathName); }
     void on_rightImage_clicked() { openMedia(_videos[_rightVideo]->_filePathName); }
@@ -139,25 +150,28 @@ private slots:
 
     void on_leftFileName_clicked() { openFileManager(_videos[_leftVideo]->_filePathName); }
     void on_rightFileName_clicked() { openFileManager(_videos[_rightVideo]->_filePathName); }
-    void openFileManager(const QString &filename);
+    void openFileManager(const QString& filename);
 
     void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
     void on_rightDelete_clicked() { deleteVideo(_rightVideo); }
-    void deleteVideo(const int &side, const bool auto_trash_mode = false);
+    void deleteVideo(const int& side, const bool auto_trash_mode = false);
 
     void on_leftMove_clicked() { moveVideo(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName); }
     void on_rightMove_clicked() { moveVideo(_videos[_rightVideo]->_filePathName, _videos[_leftVideo]->_filePathName); }
-    void moveVideo(const QString &from, const QString &to);
+    void moveVideo(const QString& from, const QString& to);
     void on_swapFilenames_clicked() const;
 
-    void on_thresholdSlider_valueChanged(const int &value);
-    void resizeEvent(QResizeEvent *event);
-    void wheelEvent(QWheelEvent *event);
+    void on_thresholdSlider_valueChanged(const int& value);
+    void resizeEvent(QResizeEvent* event);
+    void wheelEvent(QWheelEvent* event);
 
     // auto delete methods
     void on_identicalFilesAutoTrash_clicked();
     void on_autoDelOnlySizeDiffersButton_clicked();
-    void on_pushButton_onlyTimeDiffersAutoTrash_clicked() {autoDeleteLoopthrough(AutoDeleteConfig(AUTO_DELETE_ONLY_TIMES_DIFF)); }
+    void on_pushButton_onlyTimeDiffersAutoTrash_clicked()
+    {
+        autoDeleteLoopthrough(AutoDeleteConfig(AUTO_DELETE_ONLY_TIMES_DIFF));
+    }
 
     void on_pushButton_importantFoldersAdd_clicked();
     void on_lockedFolderButton_clicked();
@@ -179,21 +193,25 @@ private slots:
     void onSortOrderChanged(int index);
     void applySortOrder();
 
-signals:
-    void sendStatusMessage(const QString &message) const;
-    void switchComparisonMode(const int &mode) const;
-    void adjustThresholdSlider(const int &value) const;
+  signals:
+    void sendStatusMessage(const QString& message) const;
+    void switchComparisonMode(const int& mode) const;
+    void adjustThresholdSlider(const int& value) const;
 };
-
 
 class ClickableLabel : public QLabel
 {
     Q_OBJECT
-public:
-    explicit ClickableLabel(QWidget *parent) { Q_UNUSED (parent) }
-protected:
-    void mousePressEvent(QMouseEvent *event) { Q_UNUSED (event) emit clicked(); }
-signals:
+  public:
+    explicit ClickableLabel(QWidget* parent) { Q_UNUSED(parent) }
+
+  protected:
+    void mousePressEvent(QMouseEvent* event)
+    {
+        Q_UNUSED(event)
+        emit clicked();
+    }
+  signals:
     void clicked();
 };
 
