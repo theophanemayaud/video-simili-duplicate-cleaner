@@ -589,9 +589,10 @@ void MainWindow::on_actionChange_trash_folder_triggered()
 {
     // initially, files will be moved to trash. With this button, another folder can be selected
     // into which to move files upon removal, instead of trash.
+    const auto standardVideosFolders = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
     QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
                                                     QByteArrayLiteral("Open folder"),
-                                                    QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                    standardVideosFolders.isEmpty() ? QDir::homePath() : standardVideosFolders.first() /*defines where the chooser opens at*/,
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
@@ -663,9 +664,10 @@ void MainWindow::updateErrorVideoActions()
 
 void MainWindow::on_actionSelect_folder_to_move_error_videos_triggered()
 {
+    const auto standardVideosFolders = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
     QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
                                                     QByteArrayLiteral("Open folder"),
-                                                    QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                    standardVideosFolders.isEmpty() ? QDir::homePath() : standardVideosFolders.first() /*defines where the chooser opens at*/,
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
@@ -734,9 +736,10 @@ void MainWindow::moveErrorVideoToSelectedFolder(const QString &filePathName)
             return;
         }
     }
-    if(!QFile(filePathName).rename(newFileInfo.absoluteFilePath())){
-        addStatusMessage(QString("Error moving %1 to selected error videos folder. Check file permissions.")
-                             .arg(QDir::toNativeSeparators(filePathName)));
+    QFile sourceFile(filePathName);
+    if(!sourceFile.rename(newFileInfo.absoluteFilePath())){
+        addStatusMessage(QString("Error moving %1 to selected error videos folder: %2")
+                             .arg(QDir::toNativeSeparators(filePathName), sourceFile.errorString()));
         return;
     }
 

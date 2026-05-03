@@ -60,7 +60,10 @@ public:
 
     bool hasCustomTrashFolder() const {
         if(this->customTrashFolderConfiguredStatic == nullptr){
-            this->customTrashFolderConfiguredStatic = std::make_unique<bool>(QSettings(APP_NAME, APP_NAME).contains("custom_trash_folder"));
+            auto settings = QSettings(APP_NAME, APP_NAME);
+            this->customTrashFolderConfiguredStatic = std::make_unique<bool>(
+                settings.contains("custom_trash_folder")
+                && !settings.value("custom_trash_folder").toString().isEmpty());
         }
         return *this->customTrashFolderConfiguredStatic;
     }
@@ -105,7 +108,11 @@ public:
 
     ErrorVideoModes errorVideoMode() const {
         if(this->errorVideoModeStatic == nullptr){
-            const auto mode = QSettings(APP_NAME, APP_NAME).contains("error_videos_folder") ? MOVE_ERROR_VIDEOS : SKIP_ERROR_VIDEOS;
+            auto settings = QSettings(APP_NAME, APP_NAME);
+            const auto mode = settings.contains("error_videos_folder")
+                                  && !settings.value("error_videos_folder").toString().isEmpty()
+                                  ? MOVE_ERROR_VIDEOS
+                                  : SKIP_ERROR_VIDEOS;
             this->errorVideoModeStatic = std::make_unique<ErrorVideoModes>(mode);
         }
         return *this->errorVideoModeStatic;
@@ -282,11 +289,11 @@ private:
     inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
     inline static std::unique_ptr<bool> verboseStatic = nullptr;
     inline static std::unique_ptr<SortCriterion> sortCriterionStatic = nullptr;
-    // To know wether the custom trash folder setting was loaded from QSettings we need an extra flag
+    // To know whether the custom trash folder setting was loaded from QSettings we need an extra flag
     // because a QDir has no good state of "initialized but no value", it would just be root directory
     inline static std::unique_ptr<bool> customTrashFolderConfiguredStatic = nullptr;
     inline static std::unique_ptr<QDir> customTrashFolderStatic = nullptr;
-    // Similar for error video folder: we need an extra flag to differenciate between not loaded vs loaded from QSettings
+    // Similar for error video folder: we need an extra flag to differentiate between not loaded vs loaded from QSettings
     inline static std::unique_ptr<ErrorVideoModes> errorVideoModeStatic = nullptr;
     inline static std::unique_ptr<QDir> errorVideosFolderStatic = nullptr;
 };
