@@ -82,6 +82,8 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     setComparisonMode(this->_prefs.comparisonMode());
 
     setUseCacheOption(this->_prefs.useCacheOption());
+    restoreCustomTrashFolder();
+    updateErrorVideoActions();
 
     // Add Cmd+W to quit, default cmd+q already handled by qt on mainwindow
     connect(new QShortcut(QKeySequence::Close, this), &QShortcut::activated, this, &QApplication::quit);
@@ -333,7 +335,7 @@ void MainWindow::processVideos()
     } else
         addStatusMessage(QString("Using %1 threads for video processing.").arg(maxParallelTasks));
     // maxParallelTasks = 1; // for local debugging if parallelism is causing issues
-    
+
     for(auto &vidIter : sortedVids) {
         // Wait if we have too many active tasks
         while(activeFutures.size() >= 2*maxParallelTasks) { // double to schedule some tasks in advance so QT can immediately run them when a thread frees up
@@ -362,15 +364,15 @@ void MainWindow::processVideos()
             return video->process();
         });
         activeFutures.append(future);
-        
+
         QApplication::processEvents();
     }
 
     // Wait for all remaining futures to complete
     QProgressDialog progress("Waiting for video(s) still processing", QString(), 0, activeFutures.size(), this);
     progress.setWindowModality(Qt::WindowModal);
-    
-    // Process remaining futures 
+
+    // Process remaining futures
     // Start timer so that if it takes too long, we simply ignore the remaining ones
     // Leading to a small memory leak, but it's not a big deal as it's only a few videos.
     QElapsedTimer timer;
@@ -380,7 +382,7 @@ void MainWindow::processVideos()
             this->ui->findDuplicates->setText(QStringLiteral("Stopping..."));
             this->ui->findDuplicates->setDisabled(true);
         }
-    
+
         for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
             if(activeFutures[i].isFinished()) {
                 Video::ProcessingResult result = activeFutures.takeAt(i).result();
@@ -487,6 +489,8 @@ void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
         ui->progressBar->setValue(ui->progressBar->value() + 1);
         ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
         _rejectedVideos << QDir::toNativeSeparators(deleteMe->_filePathName);
+        if(_prefs.errorVideoMode() == Prefs::MOVE_ERROR_VIDEOS)
+            moveErrorVideoToSelectedFolder(deleteMe->_filePathName);
         delete deleteMe;
     }
     else{
@@ -518,11 +522,14 @@ void MainWindow::on_actionSet_custom_cache_location_triggered()
 
 void MainWindow::on_actionRestore_all_settings_triggered()
 {
+    addStatusMessage("\nRestoring all settings...");
+
     this->_prefs.resetSettings();
 
     on_actionRestore_default_cache_location_triggered();
 
     on_actionRestoreMoveToTrash_triggered();
+    on_actionRestore_simple_skip_of_error_videos_triggered();
     ui->verboseCheckbox->setCheckState(Qt::Unchecked);
 
     this->ui->directoryBox->clear();
@@ -534,15 +541,17 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     setMatchSimilarityThreshold(this->_prefs.matchSimilarityThreshold());
 
     setUseCacheOption(this->_prefs.useCacheOption());
+
+    addStatusMessage(""); // empty new line after all settings cleared messages
 }
 
 void MainWindow::on_actionRestore_default_cache_location_triggered()
 {
     _prefs.cacheFilePathName("");
     if(Db::initDbAndCacheLocation(_prefs))
-        addStatusMessage("\nCache restored to: " + _prefs.cacheFilePathName() + "\n");
+        addStatusMessage("Cache restored to: " + _prefs.cacheFilePathName());
     else
-        addStatusMessage(QString("\nError restoring default cache. Probably no cache now.\n"));
+        addStatusMessage("Error restoring default cache. Probably no cache now.");
 }
 
 void MainWindow::on_actionCredits_triggered()
@@ -580,9 +589,10 @@ void MainWindow::on_actionChange_trash_folder_triggered()
 {
     // initially, files will be moved to trash. With this button, another folder can be selected
     // into which to move files upon removal, instead of trash.
+    const auto standardVideosFolders = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
     QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
                                                     QByteArrayLiteral("Open folder"),
-                                                    QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                    standardVideosFolders.isEmpty() ? QDir::homePath() : standardVideosFolders.first() /*defines where the chooser opens at*/,
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
@@ -592,22 +602,17 @@ void MainWindow::on_actionChange_trash_folder_triggered()
         QMessageBox::information(this, "", "The folder selected doesn't seem to exist, please create it first");
         return;
     }
-    _prefs.trashDir = QDir(dir);
+    _prefs.customTrashFolder(QDir(dir));
     // we successfully set custom trash location
     _prefs.delMode = Prefs::CUSTOM_TRASH;
-    ui->actionChange_trash_folder->setEnabled(false);
-    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(true);
-    ui->actionRestoreMoveToTrash->setEnabled(true);
-    addStatusMessage(QString("\nRemoved files will now be moved to %1 folder instead of trash\n").arg(_prefs.trashDir.absolutePath()));
+    updateTrashActions();
 }
 
 void MainWindow::on_actionEnable_direct_deletion_instead_of_trash_triggered()
 {
     _prefs.delMode = Prefs::DIRECT_DELETION;
-    ui->actionChange_trash_folder->setEnabled(true);
-    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(false);
-    ui->actionRestoreMoveToTrash->setEnabled(true);
-    addStatusMessage("\nRemoved files will now be deleted directly and completely. Be extra careful what you do !\n");
+    _prefs.clearCustomTrashFolder();
+    updateTrashActions();
 }
 
 void MainWindow::on_actionRestoreMoveToTrash_triggered()
@@ -615,13 +620,135 @@ void MainWindow::on_actionRestoreMoveToTrash_triggered()
     // A  click on this button restores the default "trash" as "move to trash" destination
     // here we must restore the default "move to trash" behavior
     _prefs.delMode = Prefs::STANDARD_TRASH;
-    _prefs.trashDir = QDir::root(); //reset to known, controlled state
-    ui->actionChange_trash_folder->setEnabled(true);
-    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(true);
-    ui->actionRestoreMoveToTrash->setEnabled(false);
-    addStatusMessage(QString("\nRemoved files will now be moved to trash\n"));
+    _prefs.clearCustomTrashFolder();
+    updateTrashActions();
+    addStatusMessage(QString("Removed files will be moved to trash"));
+}
+
+void MainWindow::updateTrashActions()
+{
+    ui->actionChange_trash_folder->setEnabled(_prefs.delMode != Prefs::CUSTOM_TRASH);
+    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(_prefs.delMode != Prefs::DIRECT_DELETION);
+    ui->actionRestoreMoveToTrash->setEnabled(_prefs.delMode != Prefs::STANDARD_TRASH);
+    if (_prefs.delMode == Prefs::CUSTOM_TRASH) {
+        addStatusMessage(QString("Removed files will be moved to %1 folder instead of trash").arg(_prefs.customTrashFolder().absolutePath()));
+    }
+    else if (_prefs.delMode == Prefs::DIRECT_DELETION) {
+        addStatusMessage("Removed files will be deleted directly and completely. Be extra careful what you do !");
+    }
+}
+
+void MainWindow::restoreCustomTrashFolder()
+{
+    if(!_prefs.hasCustomTrashFolder())
+        return;
+
+    _prefs.delMode = Prefs::CUSTOM_TRASH;
+    updateTrashActions();
 }
 // ------------------- END: File deletion configuration methods -----------
+// ------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// ------------------- BEGIN: Error video handling configuration methods ------
+void MainWindow::updateErrorVideoActions()
+{
+    const bool moveErrorVideos = _prefs.errorVideoMode() == Prefs::MOVE_ERROR_VIDEOS;
+    ui->actionSelect_folder_to_move_error_videos->setEnabled(!moveErrorVideos);
+    ui->actionRestore_simple_skip_of_error_videos->setEnabled(moveErrorVideos);
+
+    if (moveErrorVideos) {
+        addStatusMessage(QString("Error videos will be moved to %1").arg(_prefs.moveErrorVideosToFolder().absolutePath()));
+    }
+}
+
+void MainWindow::on_actionSelect_folder_to_move_error_videos_triggered()
+{
+    const auto standardVideosFolders = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
+    QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
+                                                    QByteArrayLiteral("Open folder"),
+                                                    standardVideosFolders.isEmpty() ? QDir::homePath() : standardVideosFolders.first() /*defines where the chooser opens at*/,
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if(dir.isEmpty()){ //empty because error or none chosen in dialog
+        QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
+        return;
+    }
+    if(!QDir(dir).exists()){
+        QMessageBox::information(this, "", "The folder selected doesn't seem to exist, please create it first");
+        return;
+    }
+
+    _prefs.moveErrorVideosToFolder(QDir(dir));
+    updateErrorVideoActions();
+}
+
+void MainWindow::on_actionRestore_simple_skip_of_error_videos_triggered()
+{
+    _prefs.clearErrorVideosFolder();
+    updateErrorVideoActions();
+    addStatusMessage(QString("Error videos will now be skipped and left untouched"));
+}
+
+void MainWindow::moveErrorVideoToSelectedFolder(const QString &filePathName)
+{
+#ifdef Q_OS_MACOS
+    if(filePathName.contains(".photoslibrary")){
+        addStatusMessage(QString("Skipped moving Apple Photos Library error video %1")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return;
+    }
+#endif
+    if(_prefs.errorVideoMode() == Prefs::SKIP_ERROR_VIDEOS){
+        addStatusMessage(QString("Error moving %1: no error videos folder is selected")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return;
+    }
+    const QDir moveErrorVideosToFolder = _prefs.moveErrorVideosToFolder();
+    if(!moveErrorVideosToFolder.exists()){
+        addStatusMessage(QString("Error moving %1: selected error videos folder does not exist")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return;
+    }
+
+    const QFileInfo fileInfo(filePathName);
+    if(!fileInfo.exists()){
+        addStatusMessage(QString("Error moving %1: file does not exist")
+                             .arg(QDir::toNativeSeparators(filePathName)));
+        return;
+    }
+
+    QFileInfo newFileInfo(moveErrorVideosToFolder, fileInfo.fileName());
+    if(newFileInfo.exists()){
+        bool foundAvailableName = false;
+        for(int suffix = 1; suffix <= 100; suffix++){
+            QString replacementName = QStringLiteral("%1-%2").arg(fileInfo.completeBaseName()).arg(suffix);
+            if(!fileInfo.suffix().isEmpty())
+                replacementName += "." + fileInfo.suffix();
+            newFileInfo.setFile(moveErrorVideosToFolder, replacementName);
+            if(!newFileInfo.exists()){
+                foundAvailableName = true;
+                break;
+            }
+        }
+        if(!foundAvailableName){
+            addStatusMessage(QString("Error moving %1: could not find an available filename in selected error videos folder")
+                                 .arg(QDir::toNativeSeparators(filePathName)));
+            return;
+        }
+    }
+    QFile sourceFile(filePathName);
+    if(!sourceFile.rename(newFileInfo.absoluteFilePath())){
+        addStatusMessage(QString("Error moving %1 to selected error videos folder: %2")
+                             .arg(QDir::toNativeSeparators(filePathName), sourceFile.errorString()));
+        return;
+    }
+
+    Db(_prefs.cacheFilePathName()).removeVideo(filePathName);
+    addStatusMessage(QString("Moved error video %1 to %2")
+                         .arg(QDir::toNativeSeparators(filePathName),
+                              QDir::toNativeSeparators(newFileInfo.absoluteFilePath())));
+}
+// ------------------- END: Error video configuration methods -----------
 // ----------------------------------------------------------------------------
 
 void MainWindow::on_actionDelete_log_files_triggered()

@@ -74,9 +74,19 @@ private slots:
     void on_actionCredits_triggered();
     void on_actionContact_triggered();
 
+    // trash options: select folder instead of trash, enable direct deletion instead of trash, restore move to trash
+    // Only custom trash folder restores on restart, as direct deletion is too dangerous to restore automatically
     void on_actionChange_trash_folder_triggered();
     void on_actionEnable_direct_deletion_instead_of_trash_triggered();
     void on_actionRestoreMoveToTrash_triggered();
+    void updateTrashActions();
+    void restoreCustomTrashFolder();
+
+    // error video options: setting to just leave as is (skip) or move to selected folder (move)
+    void updateErrorVideoActions();
+    void moveErrorVideoToSelectedFolder(const QString &filePathName);
+    void on_actionSelect_folder_to_move_error_videos_triggered();
+    void on_actionRestore_simple_skip_of_error_videos_triggered();
 
     void on_actionEmpty_cache_triggered();
     void on_actionSet_custom_cache_location_triggered();

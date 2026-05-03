@@ -899,7 +899,8 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                 }
             }
             else if(_prefs.delMode == Prefs::CUSTOM_TRASH){ // otherwise we move to the custom folder selected by user
-                if(!_prefs.trashDir.exists()){
+                const auto customTrashFolder = _prefs.customTrashFolder();
+                if(!customTrashFolder.exists()){
                     if(!auto_trash_mode)
                         QMessageBox::information(this, "", "Selected folder to move files into doesn't seem to exist");
                     else
@@ -907,9 +908,9 @@ void Comparison::deleteVideo(const int &side, const bool auto_trash_mode)
                     return;
                 }
                 else { // the destination directory does exist
-                    QFileInfo newFileInfo(_prefs.trashDir, QFileInfo(filename).fileName());
+                    QFileInfo newFileInfo(customTrashFolder, QFileInfo(filename).fileName());
                     if(newFileInfo.exists()) // create random name to make sure it doesn't exist
-                        newFileInfo.setFile(_prefs.trashDir, QFileInfo(filename).completeBaseName()+"-"+QUuid::createUuid().toString().remove("{").remove("}") + "." + QFileInfo(filename).suffix());
+                        newFileInfo.setFile(customTrashFolder, QFileInfo(filename).completeBaseName()+"-"+QUuid::createUuid().toString().remove("{").remove("}") + "." + QFileInfo(filename).suffix());
                     if(!QFile(filename).rename(newFileInfo.absoluteFilePath())){ // rename actually moves to new path !
                         if(!auto_trash_mode)
                             QMessageBox::information(this, "", "Could not move file to selected folder. Check file permissions.");
