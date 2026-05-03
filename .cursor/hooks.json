@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": ".cursor/hooks/format-changed-cpp.sh",
+        "timeout": 15,
+        "failClosed": false
+      }
+    ]
+  }
+}
