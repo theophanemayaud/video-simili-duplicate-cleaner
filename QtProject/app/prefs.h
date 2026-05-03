@@ -55,15 +55,60 @@ public:
     int _sameDurationModifier = 1;
 
     DeletionModes delMode = STANDARD_TRASH;
-    QDir trashDir = QDir::root();
 
     QString appVersion = "undefined";
+
+    bool hasCustomTrashFolder() const {
+        if(this->customTrashFolderConfiguredStatic == nullptr){
+            this->customTrashFolderConfiguredStatic = std::make_unique<bool>(QSettings(APP_NAME, APP_NAME).contains("custom_trash_folder"));
+        }
+        return *this->customTrashFolderConfiguredStatic;
+    }
+    // Only call this after ensuring hasCustomTrashFolder() is true
+    QDir customTrashFolder() const {
+        if(this->customTrashFolderStatic == nullptr){
+            auto settings = QSettings(APP_NAME, APP_NAME);
+            auto dir = QDir();
+            if(hasCustomTrashFolder()) {
+                dir = QDir(settings.value("custom_trash_folder").toString());
+            } else {
+                // This should not happen,
+                const auto standardVideosFolders = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
+                dir = QDir(standardVideosFolders.isEmpty() ? QDir::homePath() : standardVideosFolders.first());
+            }
+            this->customTrashFolderStatic = std::make_unique<QDir>(dir);
+        }
+        return *this->customTrashFolderStatic;
+    }
+    void customTrashFolder(const QDir dir) {
+        if(this->customTrashFolderStatic == nullptr)
+            this->customTrashFolderStatic = std::make_unique<QDir>(dir);
+        else
+            *this->customTrashFolderStatic = dir;
+        if(this->customTrashFolderConfiguredStatic == nullptr)
+            this->customTrashFolderConfiguredStatic = std::make_unique<bool>(true);
+        else
+            *this->customTrashFolderConfiguredStatic = true;
+        QSettings(APP_NAME, APP_NAME).setValue("custom_trash_folder", dir.absolutePath());
+    }
+    void clearCustomTrashFolder() {
+        this->customTrashFolderStatic = nullptr;
+        if(this->customTrashFolderConfiguredStatic == nullptr)
+            this->customTrashFolderConfiguredStatic = std::make_unique<bool>(false);
+        else
+            *this->customTrashFolderConfiguredStatic = false;
+        QSettings(APP_NAME, APP_NAME).remove("custom_trash_folder");
+    }
 
     // Error video modes: just leave as is (skip) or move to selected folder (move)
     enum ErrorVideoModes { SKIP_ERROR_VIDEOS, MOVE_ERROR_VIDEOS };
 
     ErrorVideoModes errorVideoMode() const {
-        return QSettings(APP_NAME, APP_NAME).contains("error_videos_folder") ? MOVE_ERROR_VIDEOS : SKIP_ERROR_VIDEOS;
+        if(this->errorVideoModeStatic == nullptr){
+            const auto mode = QSettings(APP_NAME, APP_NAME).contains("error_videos_folder") ? MOVE_ERROR_VIDEOS : SKIP_ERROR_VIDEOS;
+            this->errorVideoModeStatic = std::make_unique<ErrorVideoModes>(mode);
+        }
+        return *this->errorVideoModeStatic;
     }
 
     // Only call this after ensuring errorVideoMode() is set to MOVE_ERROR_VIDEOS
@@ -72,7 +117,7 @@ public:
         if(this->errorVideosFolderStatic == nullptr){
             auto settings = QSettings(APP_NAME, APP_NAME);
             auto dir = QDir();
-            if(settings.contains("error_videos_folder")) {
+            if(errorVideoMode() == MOVE_ERROR_VIDEOS) {
                 dir = QDir(settings.value("error_videos_folder").toString());
             } else {
                 // This should never happen, and is actually invalid state
@@ -88,10 +133,18 @@ public:
             this->errorVideosFolderStatic = std::make_unique<QDir>(dir);
         else
             *this->errorVideosFolderStatic = dir;
+        if(this->errorVideoModeStatic == nullptr)
+            this->errorVideoModeStatic = std::make_unique<ErrorVideoModes>(MOVE_ERROR_VIDEOS);
+        else
+            *this->errorVideoModeStatic = MOVE_ERROR_VIDEOS;
         QSettings(APP_NAME, APP_NAME).setValue("error_videos_folder", dir.absolutePath());
     }
     void clearErrorVideosFolder() {
         this->errorVideosFolderStatic = nullptr;
+        if(this->errorVideoModeStatic == nullptr)
+            this->errorVideoModeStatic = std::make_unique<ErrorVideoModes>(SKIP_ERROR_VIDEOS);
+        else
+            *this->errorVideoModeStatic = SKIP_ERROR_VIDEOS;
         QSettings(APP_NAME, APP_NAME).remove("error_videos_folder");
     }
 
@@ -215,16 +268,26 @@ public:
         this->useCacheOptionStatic = nullptr;
         this->verboseStatic = nullptr;
         this->sortCriterionStatic = nullptr;
+        this->customTrashFolderConfiguredStatic = nullptr;
+        this->customTrashFolderStatic = nullptr;
+        this->errorVideoModeStatic = nullptr;
         this->errorVideosFolderStatic = nullptr;
         QSettings(APP_NAME, APP_NAME).clear();
     }
 private:
+    // QSettings operations are quite slow, so we cache the values in memory
     inline static std::unique_ptr<int> thumbMode = nullptr;
     inline static std::unique_ptr<VisualComparisonModes> compMode = nullptr;
     inline static std::unique_ptr<QString> cacheFilePathNameStatic = nullptr;
     inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
     inline static std::unique_ptr<bool> verboseStatic = nullptr;
     inline static std::unique_ptr<SortCriterion> sortCriterionStatic = nullptr;
+    // To know wether the custom trash folder setting was loaded from QSettings we need an extra flag
+    // because a QDir has no good state of "initialized but no value", it would just be root directory
+    inline static std::unique_ptr<bool> customTrashFolderConfiguredStatic = nullptr;
+    inline static std::unique_ptr<QDir> customTrashFolderStatic = nullptr;
+    // Similar for error video folder: we need an extra flag to differenciate between not loaded vs loaded from QSettings
+    inline static std::unique_ptr<ErrorVideoModes> errorVideoModeStatic = nullptr;
     inline static std::unique_ptr<QDir> errorVideosFolderStatic = nullptr;
 };
 

@@ -82,6 +82,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     setComparisonMode(this->_prefs.comparisonMode());
 
     setUseCacheOption(this->_prefs.useCacheOption());
+    restoreCustomTrashFolder();
     updateErrorVideoActions();
 
     // Add Cmd+W to quit, default cmd+q already handled by qt on mainwindow
@@ -600,22 +601,17 @@ void MainWindow::on_actionChange_trash_folder_triggered()
         QMessageBox::information(this, "", "The folder selected doesn't seem to exist, please create it first");
         return;
     }
-    _prefs.trashDir = QDir(dir);
+    _prefs.customTrashFolder(QDir(dir));
     // we successfully set custom trash location
     _prefs.delMode = Prefs::CUSTOM_TRASH;
-    ui->actionChange_trash_folder->setEnabled(false);
-    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(true);
-    ui->actionRestoreMoveToTrash->setEnabled(true);
-    addStatusMessage(QString("\nRemoved files will be moved to %1 folder instead of trash\n").arg(_prefs.trashDir.absolutePath()));
+    updateTrashActions();
 }
 
 void MainWindow::on_actionEnable_direct_deletion_instead_of_trash_triggered()
 {
     _prefs.delMode = Prefs::DIRECT_DELETION;
-    ui->actionChange_trash_folder->setEnabled(true);
-    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(false);
-    ui->actionRestoreMoveToTrash->setEnabled(true);
-    addStatusMessage("\nRemoved files will be deleted directly and completely. Be extra careful what you do !\n");
+    _prefs.clearCustomTrashFolder();
+    updateTrashActions();
 }
 
 void MainWindow::on_actionRestoreMoveToTrash_triggered()
@@ -623,11 +619,31 @@ void MainWindow::on_actionRestoreMoveToTrash_triggered()
     // A  click on this button restores the default "trash" as "move to trash" destination
     // here we must restore the default "move to trash" behavior
     _prefs.delMode = Prefs::STANDARD_TRASH;
-    _prefs.trashDir = QDir::root(); //reset to known, controlled state
-    ui->actionChange_trash_folder->setEnabled(true);
-    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(true);
-    ui->actionRestoreMoveToTrash->setEnabled(false);
+    _prefs.clearCustomTrashFolder();
+    updateTrashActions();
     addStatusMessage(QString("Removed files will be moved to trash"));
+}
+
+void MainWindow::updateTrashActions()
+{
+    ui->actionChange_trash_folder->setEnabled(_prefs.delMode != Prefs::CUSTOM_TRASH);
+    ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(_prefs.delMode != Prefs::DIRECT_DELETION);
+    ui->actionRestoreMoveToTrash->setEnabled(_prefs.delMode != Prefs::STANDARD_TRASH);
+    if (_prefs.delMode == Prefs::CUSTOM_TRASH) {
+        addStatusMessage(QString("Removed files will be moved to %1 folder instead of trash").arg(_prefs.customTrashFolder().absolutePath()));
+    }
+    else if (_prefs.delMode == Prefs::DIRECT_DELETION) {
+        addStatusMessage("Removed files will be deleted directly and completely. Be extra careful what you do !");
+    }
+}
+
+void MainWindow::restoreCustomTrashFolder()
+{
+    if(!_prefs.hasCustomTrashFolder())
+        return;
+
+    _prefs.delMode = Prefs::CUSTOM_TRASH;
+    updateTrashActions();
 }
 // ------------------- END: File deletion configuration methods -----------
 // ------------------------------------------------------------------------
@@ -647,12 +663,10 @@ void MainWindow::updateErrorVideoActions()
 
 void MainWindow::on_actionSelect_folder_to_move_error_videos_triggered()
 {
-    QString dir = this->_prefs.moveErrorVideosToFolder().absolutePath();
-
-    dir = QFileDialog::getExistingDirectory(ui->browseFolders,
-                                            QByteArrayLiteral("Open folder"),
-                                            dir /*defines where the chooser opens at*/,
-                                            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
+                                                    QByteArrayLiteral("Open folder"),
+                                                    QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first() /*defines where the chooser opens at*/,
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(dir.isEmpty()){ //empty because error or none chosen in dialog
         QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
         return;
