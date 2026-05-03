@@ -35,7 +35,7 @@ void test_comparison::test_videoToDelete_OnlyTimeDiffs()
     QDateTime laterDate(QDate(2001, 1, 1), QTime(1, 0, 0));
 
     VideoMetadata meta1, meta2;
-    meta1.filename = meta1.filename = "/users/test/videos/vid1.mp4";
+    meta1.filename = meta2.filename = "/users/test/videos/vid1.mp4";
     meta1.size = meta2.size = 36 * 10 * 1024;
     meta1.duration = meta2.duration = 36 * 1000;
     meta1.width = meta2.width = 1080;
