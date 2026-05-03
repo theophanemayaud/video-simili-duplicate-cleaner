@@ -1,6 +1,6 @@
 #include "mainwindow.h"
-#include <QProgressDialog>
 #include "prefs.h"
+#include <QProgressDialog>
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
@@ -10,9 +10,8 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     connect(Message::Get(), &Message::statusMessage, this, &MainWindow::addStatusMessage);
 
     QFile file(":/version.txt");
-    if (file.open(QIODevice::ReadOnly)){
+    if (file.open(QIODevice::ReadOnly))
         _prefs.appVersion = file.readLine();
-    }
     file.close();
 
     Message::Get()->add(QStringLiteral("%1 v%2").arg(APP_NAME, _prefs.appVersion));
@@ -27,11 +26,12 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     addStatusMessage("At location : " + receiptLocation);
     addStatusMessage("   ");
 #else
-    if(foundReceipt==false){
-        exit(173); // error code as per apple guideline https://developer.apple.com/library/archive/releasenotes/General/ValidateAppStoreReceipt/Chapters/ValidateLocally.html#//apple_ref/doc/uid/TP40010573-CH1-SW21
+    if (foundReceipt == false) {
+        exit(
+            173); // error code as per apple guideline https://developer.apple.com/library/archive/releasenotes/General/ValidateAppStoreReceipt/Chapters/ValidateLocally.html#//apple_ref/doc/uid/TP40010573-CH1-SW21
     }
 #endif
-#elif defined (Q_OS_WIN)
+#elif defined(Q_OS_WIN)
     //Might want to so something here, maybe with Qt purchasing library with "app" keyword... ?
     // https://doc.qt.io/qt-5/qtpurchasing-windowsstore.html
 #endif
@@ -40,15 +40,13 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     loadExtensions();
     setMatchSimilarityThreshold(this->_prefs.matchSimilarityThreshold());
 
-    ui->blocksizeCombo->addItems( { QStringLiteral("2"), QStringLiteral("4"),
-                                  QStringLiteral("8"), QStringLiteral("16") } );
+    ui->blocksizeCombo->addItems({QStringLiteral("2"), QStringLiteral("4"), QStringLiteral("8"), QStringLiteral("16")});
     ui->blocksizeCombo->setCurrentIndex(3);
     Thumbnail thumb;
-    for(int i=0; i<thumb.countModes(); i++)
+    for (int i = 0; i < thumb.countModes(); i++)
         ui->selectThumbnails->addItem(thumb.modeName(i));
 
-    for(int i=0; i<=5; i++)
-    {
+    for (int i = 0; i <= 5; i++) {
         ui->differentDurationCombo->addItem(QStringLiteral("%1").arg(i));
         ui->sameDurationCombo->addItem(QStringLiteral("%1").arg(i));
     }
@@ -64,16 +62,16 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->progressBar->setVisible(false);
     ui->mainToolBar->setVisible(false);
 
-    if(Db::initDbAndCacheLocation(_prefs))
+    if (Db::initDbAndCacheLocation(_prefs))
         addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName() + "\n");
     else
         addStatusMessage("\nError accessing cache, will not use any.\n");
 
     // load saved/default settings
-    if(this->_prefs.isVerbose())
+    if (this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
-    foreach(QString folder, this->_prefs.scanLocations()){
-        if(!folder.isEmpty())
+    foreach (QString folder, this->_prefs.scanLocations()) {
+        if (!folder.isEmpty())
             this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
     }
 
@@ -91,13 +89,12 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
 
 void MainWindow::deleteTemporaryFiles() const
 {
-    QDir tempDir = QDir::tempPath();    //QTemporaryDir remains if program force quit
+    QDir tempDir = QDir::tempPath(); //QTemporaryDir remains if program force quit
     tempDir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
     QDirIterator iter(tempDir);
-    while(iter.hasNext())
-    {
+    while (iter.hasNext()) {
         QDir dir = iter.next();
-        if(dir.dirName().compare(QStringLiteral("DupVids-")) == 1) //TODO : temporary vids have new identifier...
+        if (dir.dirName().compare(QStringLiteral("DupVids-")) == 1) //TODO : temporary vids have new identifier...
             dir.removeRecursively();
     }
 }
@@ -109,17 +106,15 @@ void MainWindow::loadExtensions()
     //Working on mac : QFile file(QStringLiteral("%1/../Frameworks/extensions.ini").arg(QApplication::applicationDirPath()));
     //Test witth qrc file with extensions.ini at / :
     QFile file(QStringLiteral(":/extensions.ini")); //using qrc ressource path ! This works on mac at least !
-    if(!file.open(QIODevice::ReadOnly))
-    {
+    if (!file.open(QIODevice::ReadOnly)) {
         addStatusMessage(QStringLiteral("Error: extensions.ini not found. No video file will be searched."));
         return;
     }
     addStatusMessage(QStringLiteral("Currently supported file extensions:"));
     QTextStream text(&file);
-    while(!text.atEnd())
-    {
+    while (!text.atEnd()) {
         QString line = text.readLine();
-        if(line.startsWith(QStringLiteral(";")) || line.isEmpty())
+        if (line.startsWith(QStringLiteral(";")) || line.isEmpty())
             continue;
         _extensionList << line.replace(QRegularExpression("\\*?\\."), "*.").split(QStringLiteral(" "));
         addStatusMessage(line.remove(QStringLiteral("*")));
@@ -132,14 +127,13 @@ void MainWindow::loadExtensions()
 void MainWindow::on_browseFolders_clicked()
 {
     QString dir = this->_prefs.browseFoldersLastPath();
-    if(dir.isEmpty())
+    if (dir.isEmpty())
         dir = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).first();
 
-    dir = QFileDialog::getExistingDirectory(ui->browseFolders,
-                                            QByteArrayLiteral("Open folder"),
+    dir = QFileDialog::getExistingDirectory(ui->browseFolders, QByteArrayLiteral("Open folder"),
                                             dir /*defines where the chooser opens at*/,
                                             QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if(dir.isEmpty()){ //empty because error or none chosen in dialog
+    if (dir.isEmpty()) { //empty because error or none chosen in dialog
         return;
     }
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(dir)));
@@ -147,25 +141,24 @@ void MainWindow::on_browseFolders_clicked()
     this->_prefs.browseFoldersLastPath(dir);
 }
 
-void MainWindow::dropEvent(QDropEvent *event)
+void MainWindow::dropEvent(QDropEvent* event)
 {
     const QString fileName = event->mimeData()->urls().first().toLocalFile();
     const QFileInfo file(fileName);
-    if(file.isDir())
+    if (file.isDir())
         ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(fileName)));
 }
 
 void MainWindow::on_browseApplePhotos_clicked()
 {
     QString dir = this->_prefs.browseApplePhotosLastPath();
-    if(dir.isEmpty())
+    if (dir.isEmpty())
         dir = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation).first();
 
-    const QString path = QFileDialog::getOpenFileName(ui->browseFolders,
-                                                      QByteArrayLiteral("Select Apple Photos Library"),
-                                                      dir /*defines where the chooser opens at*/,
-                                                      tr("Apple Photos Library (*.photoslibrary)"));
-    if(path.isEmpty()){ //empty because error or none chosen in dialog
+    const QString path = QFileDialog::getOpenFileName(
+        ui->browseFolders, QByteArrayLiteral("Select Apple Photos Library"), dir /*defines where the chooser opens at*/,
+        tr("Apple Photos Library (*.photoslibrary)"));
+    if (path.isEmpty()) { //empty because error or none chosen in dialog
         return;
     }
     ui->directoryBox->insert(QStringLiteral(";%1").arg(QDir::toNativeSeparators(path)));
@@ -175,51 +168,52 @@ void MainWindow::on_browseApplePhotos_clicked()
 // ----------------------- END: add scan locations ---------------------------------------------
 // ---------------------------------------------------------------------------------------------
 
-void MainWindow::on_directoryBox_textChanged(const QString &arg1)
+void MainWindow::on_directoryBox_textChanged(const QString& arg1)
 {
     this->shouldScan = true; // reset to true, as we are changing directories
-    if(arg1.trimmed().isEmpty())
+    if (arg1.trimmed().isEmpty())
         this->_prefs.scanLocations(QStringList());
 }
 
 void MainWindow::on_findDuplicates_clicked()
 {
-    if(ui->findDuplicates->text() == "Stop")     //pressing "find duplicates" button will morph into a
-    {                                                           //stop button. a lengthy search can thus be stopped and
-        _userPressedStop = true;                                //those videos already processed are compared w/each other
+    if (ui->findDuplicates->text() == "Stop") //pressing "find duplicates" button will morph into a
+    {                                         //stop button. a lengthy search can thus be stopped and
+        _userPressedStop = true;              //those videos already processed are compared w/each other
         return;
     }
-    else
-    {
+    else {
         ui->findDuplicates->setText(QStringLiteral("Stop"));
         _userPressedStop = false;
     }
-    if(_extensionList.isEmpty())
-    {
-        addStatusMessage(QStringLiteral("Error: No extensions found in extensions.ini. No video file will be searched."));
+    if (_extensionList.isEmpty()) {
+        addStatusMessage(
+            QStringLiteral("Error: No extensions found in extensions.ini. No video file will be searched."));
         return;
     }
 
-    if(_videoList.count() == 0)
+    if (_videoList.count() == 0)
         this->shouldScan = true;
 
-    if(this->shouldScan == false) {
+    if (this->shouldScan == false) {
         auto question = QMessageBox(this);
         question.setWindowTitle("Rescan?");
-        question.setText(QStringLiteral("Do you want to rescan the videos or reopen the results of the last %1 scanned videos?").arg(_videoList.count()));
+        question.setText(
+            QStringLiteral("Do you want to rescan the videos or reopen the results of the last %1 scanned videos?")
+                .arg(_videoList.count()));
         // display Rescan button as default and Reopen as escape button
         question.addButton("Rescan", QMessageBox::YesRole);
         question.addButton("Reopen", QMessageBox::NoRole);
         question.exec();
-        if(question.clickedButton()->text() == "Rescan")
+        if (question.clickedButton()->text() == "Rescan")
             this->shouldScan = true;
     }
 
-    if(this->shouldScan) {
+    if (this->shouldScan) {
         addStatusMessage(QStringLiteral("\n\rSearching for videos..."));
         ui->statusBar->setVisible(true);
 
-        for(const auto &video : _videoList)                     //new search: delete videos from previous search
+        for (const auto& video : _videoList) //new search: delete videos from previous search
             delete video;
         _videoList.clear();
         _everyVideo.clear();
@@ -228,23 +222,23 @@ void MainWindow::on_findDuplicates_clicked()
         const QStringList directories = foldersToSearch.split(QStringLiteral(";"));
         this->_prefs.scanLocations(directories);
         Message::Get()->add(QStringLiteral("Re scanning: %1").arg(directories.join(", ")));
-        if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY){
+        if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
             QString notFound;
-            for(auto directory : directories)               //add all video files from entered paths to list
+            for (auto directory : directories) //add all video files from entered paths to list
             {
                 QApplication::processEvents();
-                if(directory.isEmpty())
+                if (directory.isEmpty())
                     continue;
                 QDir dir = directory.remove(QStringLiteral("\""));
-                if(dir.exists())
+                if (dir.exists())
                     findVideos(dir);
-                else
-                {
-                    addStatusMessage(QStringLiteral("Cannot find folder: %1").arg(QDir::toNativeSeparators(dir.path())));
+                else {
+                    addStatusMessage(
+                        QStringLiteral("Cannot find folder: %1").arg(QDir::toNativeSeparators(dir.path())));
                     notFound += QStringLiteral("%1 ").arg(QDir::toNativeSeparators(dir.path()));
                 }
             }
-            if(!notFound.isEmpty())
+            if (!notFound.isEmpty())
                 ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
         }
         else
@@ -253,11 +247,12 @@ void MainWindow::on_findDuplicates_clicked()
         processVideos();
     }
 
-    if(_videoList.count() > 1) {
+    if (_videoList.count() > 1) {
         this->_comparison = new Comparison(this->_videoList, this->_prefs, this->geometry());
         this->_comparison->hide();
-        if(this->shouldScan) {
-            this->_comparison->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with comparison window (non const function)
+        if (this->shouldScan) {
+            this->_comparison
+                ->reportMatchingVideos(); // used to be done in background to speedup, but disabled as it was not easy to report on and was causing problems with comparison window (non const function)
             this->_comparison->exec();
         }
         else
@@ -272,53 +267,52 @@ void MainWindow::on_findDuplicates_clicked()
     this->shouldScan = false; //set to false, as we are done scanning
 }
 
-void MainWindow::findVideos(QDir &dir)
+void MainWindow::findVideos(QDir& dir)
 {
     dir.setNameFilters(_extensionList);
     QDirIterator iter(dir, QDirIterator::Subdirectories);
-    while(iter.hasNext())
-    {
+    while (iter.hasNext()) {
         QApplication::processEvents();
-        if(_userPressedStop){
-            _userPressedStop=false; //user needs to press 2x to stop the find videos process, then process videos process.
+        if (_userPressedStop) {
+            _userPressedStop =
+                false; //user needs to press 2x to stop the find videos process, then process videos process.
             return;
         }
         const QString filePathName = iter.nextFileInfo().canonicalFilePath();
 
-        if(_everyVideo.contains(filePathName)) //don't want duplicates of same file
+        if (_everyVideo.contains(filePathName)) //don't want duplicates of same file
             continue;
         _everyVideo.insert(filePathName);
 
-        ui->statusBar->showMessage(QStringLiteral("Found %1 videos | %2")
-                                       .arg(_everyVideo.size())
-                                       .arg(QDir::toNativeSeparators(filePathName)), 10);
+        ui->statusBar->showMessage(
+            QStringLiteral("Found %1 videos | %2").arg(_everyVideo.size()).arg(QDir::toNativeSeparators(filePathName)),
+            10);
     }
 }
-
 
 void MainWindow::processVideos()
 {
     _prefs._numberOfVideos = _everyVideo.count();
-    if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
+    if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY)
         addStatusMessage(QStringLiteral("\nFound %1 video file(s):\n").arg(_prefs._numberOfVideos));
     else
         addStatusMessage(QStringLiteral("\nFound %1 cached video file(s):\n").arg(_prefs._numberOfVideos));
-    if(_prefs._numberOfVideos > 0)
-    {
+    if (_prefs._numberOfVideos > 0) {
         ui->selectThumbnails->setDisabled(true);
         ui->processedFiles->setVisible(true);
-        if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
+        if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY)
             ui->processedFiles->setText(QStringLiteral("0/%1").arg(_prefs._numberOfVideos));
         else
             ui->processedFiles->setText(QStringLiteral("Loading cache 0/%1").arg(_prefs._numberOfVideos));
-        if(ui->statusBar->currentMessage().indexOf(QStringLiteral("Cannot find folder")) == -1)
+        if (ui->statusBar->currentMessage().indexOf(QStringLiteral("Cannot find folder")) == -1)
             ui->statusBar->setVisible(false);
         ui->progressBar->setVisible(true);
         ui->progressBar->setValue(0);
         ui->progressBar->setMaximum(_prefs._numberOfVideos);
         ui->statusBox->verticalScrollBar()->triggerAction(QScrollBar::SliderToMaximum);
     }
-    else return;
+    else
+        return;
 
     // Process videos using QtConcurrent
     // for reproduceability and easier user experience, we want to process videos in alphabetical order
@@ -329,21 +323,23 @@ void MainWindow::processVideos()
 
     // Submit videos to QtConcurrent which uses global thread pool, by default threads set to number of cores
     int maxParallelTasks = QThreadPool::globalInstance()->maxThreadCount();
-    if(maxParallelTasks <= 1) { // if set to 1, qt was probably unable to detect the number of cores
+    if (maxParallelTasks <= 1) { // if set to 1, qt was probably unable to detect the number of cores
         maxParallelTasks = 4;
         addStatusMessage(QString("Warning: No ideal thread count found, using %1 threads.").arg(maxParallelTasks));
-    } else
+    }
+    else
         addStatusMessage(QString("Using %1 threads for video processing.").arg(maxParallelTasks));
     // maxParallelTasks = 1; // for local debugging if parallelism is causing issues
 
-    for(auto &vidIter : sortedVids) {
+    for (auto& vidIter : sortedVids) {
         // Wait if we have too many active tasks
-        while(activeFutures.size() >= 2*maxParallelTasks) { // double to schedule some tasks in advance so QT can immediately run them when a thread frees up
+        while (activeFutures.size() >= 2 * maxParallelTasks)
+        { // double to schedule some tasks in advance so QT can immediately run them when a thread frees up
             if (this->_userPressedStop)
                 break;
             // Check completed futures and process their results
-            for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
-                if(activeFutures[i].isFinished()) {
+            for (int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
+                if (activeFutures[i].isFinished()) {
                     Video::ProcessingResult result = activeFutures.takeAt(i).result();
                     if (result.success)
                         addVideo(result.video);
@@ -355,14 +351,12 @@ void MainWindow::processVideos()
             QThread::msleep(10); // Small sleep to avoid busy-waiting
         }
 
-        if(this->_userPressedStop)
+        if (this->_userPressedStop)
             break;
 
         // Create video and submit for processing
-        Video *video = new Video(_prefs, vidIter);
-        QFuture<Video::ProcessingResult> future = QtConcurrent::run([video]() {
-            return video->process();
-        });
+        Video* video = new Video(_prefs, vidIter);
+        QFuture<Video::ProcessingResult> future = QtConcurrent::run([video]() { return video->process(); });
         activeFutures.append(future);
 
         QApplication::processEvents();
@@ -383,8 +377,8 @@ void MainWindow::processVideos()
             this->ui->findDuplicates->setDisabled(true);
         }
 
-        for(int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
-            if(activeFutures[i].isFinished()) {
+        for (int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
+            if (activeFutures[i].isFinished()) {
                 Video::ProcessingResult result = activeFutures.takeAt(i).result();
                 if (result.success)
                     addVideo(result.video);
@@ -396,29 +390,30 @@ void MainWindow::processVideos()
         QApplication::processEvents();
         if (this->_userPressedStop && timer.elapsed() > 60000) { // 60 seconds
             // Memory leak occurs here but that's small enough to not be a big deal.
-            addStatusMessage(QString("Warning: Video processing took too long after user pressed stop (more than 60 seconds), ignoring remaining ones."));
+            addStatusMessage(QString("Warning: Video processing took too long after user pressed stop (more than 60 "
+                                     "seconds), ignoring remaining ones."));
             break;
         }
         QThread::msleep(10); // Small sleep to avoid busy-waiting
     }
 
-    QApplication::processEvents();  // process any remaining signals
+    QApplication::processEvents(); // process any remaining signals
 
     ui->selectThumbnails->setDisabled(false);
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->statusBar->setVisible(false);
-    _prefs._numberOfVideos = _videoList.count();    //minus rejected ones now
+    _prefs._numberOfVideos = _videoList.count(); //minus rejected ones now
     videoSummary();
 }
 
 void MainWindow::videoSummary()
 {
-    if(_rejectedVideos.empty())
+    if (_rejectedVideos.empty())
         addStatusMessage(QStringLiteral("\n\r%1 intact video(s) found").arg(_prefs._numberOfVideos));
-    else
-    {
-        addStatusMessage(QStringLiteral("\n\r%1 intact video(s) out of %2 total").arg(_prefs._numberOfVideos)
+    else {
+        addStatusMessage(QStringLiteral("\n\r%1 intact video(s) out of %2 total")
+                             .arg(_prefs._numberOfVideos)
                              .arg(_everyVideo.count()));
         //Following prints are not necessary as it already prints each error as it happens.
         //        addStatusMessage(QStringLiteral("\nThe following %1 video(s) could not be added due to errors:")
@@ -429,18 +424,17 @@ void MainWindow::videoSummary()
     _rejectedVideos.clear();
 }
 
-void MainWindow::addStatusMessage(const QString &message) const
+void MainWindow::addStatusMessage(const QString& message) const
 {
     ui->statusBox->append(message);
 
-    if(this->_prefs.isVerbose()){
+    if (this->_prefs.isVerbose()) {
         QDir cacheFolder = QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-        if(!cacheFolder.exists())
+        if (!cacheFolder.exists())
             QDir().mkpath(cacheFolder.path());
         static QFile logFile(QStringLiteral("%1/%2_%3.vsdc.logs.txt")
-                                   .arg(cacheFolder.path(),
-                                        this->_prefs.appVersion.trimmed(),
-                                        QDateTime::currentDateTime().toString("yyyy-MM-dd hh_mm")));
+                                 .arg(cacheFolder.path(), this->_prefs.appVersion.trimmed(),
+                                      QDateTime::currentDateTime().toString("yyyy-MM-dd hh_mm")));
         static QTextStream logStream;
         if (!logFile.isOpen()) {
             // Open the file in Append mode and keep it open
@@ -453,8 +447,8 @@ void MainWindow::addStatusMessage(const QString &message) const
             }
         }
         else {
-            logStream << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
-                      << "->" << message << Qt::endl;
+            logStream << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz") << "->" << message
+                      << Qt::endl;
         }
     }
 
@@ -464,22 +458,24 @@ void MainWindow::addStatusMessage(const QString &message) const
 #endif
 }
 
-void MainWindow::addVideo(Video *addMe)
+void MainWindow::addVideo(Video* addMe)
 {
-    if(this->_prefs.isVerbose()){
-        addStatusMessage(QStringLiteral("[%1] SUCCESS %2").arg(QTime::currentTime().toString(),
-                                                               QDir::toNativeSeparators(addMe->_filePathName)));
+    if (this->_prefs.isVerbose()) {
+        addStatusMessage(QStringLiteral("[%1] SUCCESS %2")
+                             .arg(QTime::currentTime().toString(), QDir::toNativeSeparators(addMe->_filePathName)));
     }
     ui->progressBar->setValue(ui->progressBar->value() + 1);
-    if(this->_prefs.useCacheOption()!=Prefs::CACHE_ONLY)
-        ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+    if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY)
+        ui->processedFiles->setText(
+            QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
     else
-        ui->processedFiles->setText(QStringLiteral("Loading cache %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+        ui->processedFiles->setText(
+            QStringLiteral("Loading cache %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
 
     _videoList << addMe;
 }
 
-void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
+void MainWindow::removeVideo(Video* deleteMe, QString errorMsg)
 {
     if (deleteMe != nullptr) {
         addStatusMessage(QStringLiteral("[%1] ERROR with %2 : %3")
@@ -487,13 +483,14 @@ void MainWindow::removeVideo(Video *deleteMe, QString errorMsg)
                              .arg(QDir::toNativeSeparators(deleteMe->_filePathName))
                              .arg(errorMsg));
         ui->progressBar->setValue(ui->progressBar->value() + 1);
-        ui->processedFiles->setText(QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+        ui->processedFiles->setText(
+            QStringLiteral("%1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
         _rejectedVideos << QDir::toNativeSeparators(deleteMe->_filePathName);
-        if(_prefs.errorVideoMode() == Prefs::MOVE_ERROR_VIDEOS)
+        if (_prefs.errorVideoMode() == Prefs::MOVE_ERROR_VIDEOS)
             moveErrorVideoToSelectedFolder(deleteMe->_filePathName);
         delete deleteMe;
     }
-    else{
+    else {
         qCritical() << Q_FUNC_INFO << ": attempted to delete deleteMe but is already null";
     }
 }
@@ -505,7 +502,7 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionEmpty_cache_triggered()
 {
-    if(Db::emptyAllDb(_prefs))
+    if (Db::emptyAllDb(_prefs))
         addStatusMessage(QString("\nEmptied cache at:  %1\n").arg(_prefs.cacheFilePathName()));
     else
         addStatusMessage(QString("\nFailed to empty cache at:  %1\n").arg(_prefs.cacheFilePathName()));
@@ -513,9 +510,8 @@ void MainWindow::on_actionEmpty_cache_triggered()
 
 void MainWindow::on_actionSet_custom_cache_location_triggered()
 {
-    if(Db::initCustomDbAndCacheLocation(_prefs)){
+    if (Db::initCustomDbAndCacheLocation(_prefs))
         addStatusMessage(QString("\nCache now used:  %1\n").arg(_prefs.cacheFilePathName()));
-    }
     else
         addStatusMessage(QString("\nError selecting custom cache. Probably no cache now.\n"));
 }
@@ -548,7 +544,7 @@ void MainWindow::on_actionRestore_all_settings_triggered()
 void MainWindow::on_actionRestore_default_cache_location_triggered()
 {
     _prefs.cacheFilePathName("");
-    if(Db::initDbAndCacheLocation(_prefs))
+    if (Db::initDbAndCacheLocation(_prefs))
         addStatusMessage("Cache restored to: " + _prefs.cacheFilePathName());
     else
         addStatusMessage("Error restoring default cache. Probably no cache now.");
@@ -558,16 +554,15 @@ void MainWindow::on_actionCredits_triggered()
 {
     QFile file(":/CREDITS.md");
     QString credits = "undefined";
-    if (file.open(QIODevice::ReadOnly)){
+    if (file.open(QIODevice::ReadOnly))
         credits = file.readAll();
-    }
     file.close();
 
-    QWidget *ui_credits = new QWidget;
+    QWidget* ui_credits = new QWidget;
     ui_credits->setWindowTitle("Credits");
-    QVBoxLayout *layout = new QVBoxLayout(ui_credits);
-    layout->setContentsMargins(0,0,0,0);
-    QTextEdit *label = new QTextEdit(ui_credits);
+    QVBoxLayout* layout = new QVBoxLayout(ui_credits);
+    layout->setContentsMargins(0, 0, 0, 0);
+    QTextEdit* label = new QTextEdit(ui_credits);
     label->setDisabled(true);
     label->setMarkdown(credits);
     label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -590,15 +585,16 @@ void MainWindow::on_actionChange_trash_folder_triggered()
     // initially, files will be moved to trash. With this button, another folder can be selected
     // into which to move files upon removal, instead of trash.
     const auto standardVideosFolders = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
-    QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
-                                                    QByteArrayLiteral("Open folder"),
-                                                    standardVideosFolders.isEmpty() ? QDir::homePath() : standardVideosFolders.first() /*defines where the chooser opens at*/,
-                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if(dir.isEmpty()){ //empty because error or none chosen in dialog
+    QString dir = QFileDialog::getExistingDirectory(
+        ui->browseFolders, QByteArrayLiteral("Open folder"),
+        standardVideosFolders.isEmpty() ? QDir::homePath()
+                                        : standardVideosFolders.first() /*defines where the chooser opens at*/,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (dir.isEmpty()) { //empty because error or none chosen in dialog
         QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
         return;
     }
-    if(!QDir(dir).exists()){ // we must make sure it exists, or we fail and reset to default root (signals trash)
+    if (!QDir(dir).exists()) { // we must make sure it exists, or we fail and reset to default root (signals trash)
         QMessageBox::information(this, "", "The folder selected doesn't seem to exist, please create it first");
         return;
     }
@@ -631,7 +627,8 @@ void MainWindow::updateTrashActions()
     ui->actionEnable_direct_deletion_instead_of_trash->setEnabled(_prefs.delMode != Prefs::DIRECT_DELETION);
     ui->actionRestoreMoveToTrash->setEnabled(_prefs.delMode != Prefs::STANDARD_TRASH);
     if (_prefs.delMode == Prefs::CUSTOM_TRASH) {
-        addStatusMessage(QString("Removed files will be moved to %1 folder instead of trash").arg(_prefs.customTrashFolder().absolutePath()));
+        addStatusMessage(QString("Removed files will be moved to %1 folder instead of trash")
+                             .arg(_prefs.customTrashFolder().absolutePath()));
     }
     else if (_prefs.delMode == Prefs::DIRECT_DELETION) {
         addStatusMessage("Removed files will be deleted directly and completely. Be extra careful what you do !");
@@ -640,7 +637,7 @@ void MainWindow::updateTrashActions()
 
 void MainWindow::restoreCustomTrashFolder()
 {
-    if(!_prefs.hasCustomTrashFolder())
+    if (!_prefs.hasCustomTrashFolder())
         return;
 
     _prefs.delMode = Prefs::CUSTOM_TRASH;
@@ -658,22 +655,24 @@ void MainWindow::updateErrorVideoActions()
     ui->actionRestore_simple_skip_of_error_videos->setEnabled(moveErrorVideos);
 
     if (moveErrorVideos) {
-        addStatusMessage(QString("Error videos will be moved to %1").arg(_prefs.moveErrorVideosToFolder().absolutePath()));
+        addStatusMessage(
+            QString("Error videos will be moved to %1").arg(_prefs.moveErrorVideosToFolder().absolutePath()));
     }
 }
 
 void MainWindow::on_actionSelect_folder_to_move_error_videos_triggered()
 {
     const auto standardVideosFolders = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
-    QString dir = QFileDialog::getExistingDirectory(ui->browseFolders,
-                                                    QByteArrayLiteral("Open folder"),
-                                                    standardVideosFolders.isEmpty() ? QDir::homePath() : standardVideosFolders.first() /*defines where the chooser opens at*/,
-                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if(dir.isEmpty()){ //empty because error or none chosen in dialog
+    QString dir = QFileDialog::getExistingDirectory(
+        ui->browseFolders, QByteArrayLiteral("Open folder"),
+        standardVideosFolders.isEmpty() ? QDir::homePath()
+                                        : standardVideosFolders.first() /*defines where the chooser opens at*/,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (dir.isEmpty()) { //empty because error or none chosen in dialog
         QMessageBox::information(this, "", "The folder selected seems not defined, try another one");
         return;
     }
-    if(!QDir(dir).exists()){
+    if (!QDir(dir).exists()) {
         QMessageBox::information(this, "", "The folder selected doesn't seem to exist, please create it first");
         return;
     }
@@ -689,64 +688,64 @@ void MainWindow::on_actionRestore_simple_skip_of_error_videos_triggered()
     addStatusMessage(QString("Error videos will now be skipped and left untouched"));
 }
 
-void MainWindow::moveErrorVideoToSelectedFolder(const QString &filePathName)
+void MainWindow::moveErrorVideoToSelectedFolder(const QString& filePathName)
 {
 #ifdef Q_OS_MACOS
-    if(filePathName.contains(".photoslibrary")){
-        addStatusMessage(QString("Skipped moving Apple Photos Library error video %1")
-                             .arg(QDir::toNativeSeparators(filePathName)));
+    if (filePathName.contains(".photoslibrary")) {
+        addStatusMessage(
+            QString("Skipped moving Apple Photos Library error video %1").arg(QDir::toNativeSeparators(filePathName)));
         return;
     }
 #endif
-    if(_prefs.errorVideoMode() == Prefs::SKIP_ERROR_VIDEOS){
-        addStatusMessage(QString("Error moving %1: no error videos folder is selected")
-                             .arg(QDir::toNativeSeparators(filePathName)));
+    if (_prefs.errorVideoMode() == Prefs::SKIP_ERROR_VIDEOS) {
+        addStatusMessage(
+            QString("Error moving %1: no error videos folder is selected").arg(QDir::toNativeSeparators(filePathName)));
         return;
     }
     const QDir moveErrorVideosToFolder = _prefs.moveErrorVideosToFolder();
-    if(!moveErrorVideosToFolder.exists()){
+    if (!moveErrorVideosToFolder.exists()) {
         addStatusMessage(QString("Error moving %1: selected error videos folder does not exist")
                              .arg(QDir::toNativeSeparators(filePathName)));
         return;
     }
 
     const QFileInfo fileInfo(filePathName);
-    if(!fileInfo.exists()){
-        addStatusMessage(QString("Error moving %1: file does not exist")
-                             .arg(QDir::toNativeSeparators(filePathName)));
+    if (!fileInfo.exists()) {
+        addStatusMessage(QString("Error moving %1: file does not exist").arg(QDir::toNativeSeparators(filePathName)));
         return;
     }
 
     QFileInfo newFileInfo(moveErrorVideosToFolder, fileInfo.fileName());
-    if(newFileInfo.exists()){
+    if (newFileInfo.exists()) {
         bool foundAvailableName = false;
-        for(int suffix = 1; suffix <= 100; suffix++){
+        for (int suffix = 1; suffix <= 100; suffix++) {
             QString replacementName = QStringLiteral("%1-%2").arg(fileInfo.completeBaseName()).arg(suffix);
-            if(!fileInfo.suffix().isEmpty())
+            if (!fileInfo.suffix().isEmpty())
                 replacementName += "." + fileInfo.suffix();
             newFileInfo.setFile(moveErrorVideosToFolder, replacementName);
-            if(!newFileInfo.exists()){
+            if (!newFileInfo.exists()) {
                 foundAvailableName = true;
                 break;
             }
         }
-        if(!foundAvailableName){
-            addStatusMessage(QString("Error moving %1: could not find an available filename in selected error videos folder")
-                                 .arg(QDir::toNativeSeparators(filePathName)));
+        if (!foundAvailableName) {
+            addStatusMessage(
+                QString("Error moving %1: could not find an available filename in selected error videos folder")
+                    .arg(QDir::toNativeSeparators(filePathName)));
             return;
         }
     }
     QFile sourceFile(filePathName);
-    if(!sourceFile.rename(newFileInfo.absoluteFilePath())){
+    if (!sourceFile.rename(newFileInfo.absoluteFilePath())) {
         addStatusMessage(QString("Error moving %1 to selected error videos folder: %2")
                              .arg(QDir::toNativeSeparators(filePathName), sourceFile.errorString()));
         return;
     }
 
     Db(_prefs.cacheFilePathName()).removeVideo(filePathName);
-    addStatusMessage(QString("Moved error video %1 to %2")
-                         .arg(QDir::toNativeSeparators(filePathName),
-                              QDir::toNativeSeparators(newFileInfo.absoluteFilePath())));
+    addStatusMessage(
+        QString("Moved error video %1 to %2")
+            .arg(QDir::toNativeSeparators(filePathName), QDir::toNativeSeparators(newFileInfo.absoluteFilePath())));
 }
 // ------------------- END: Error video configuration methods -----------
 // ----------------------------------------------------------------------------
@@ -763,17 +762,16 @@ void MainWindow::on_actionDelete_log_files_triggered()
     // List all .txt files in the cache folder
     QStringList txtFiles = logsFolder.entryList(QStringList() << "*.vsdc.logs.txt", QDir::Files);
 
-    if(txtFiles.isEmpty())
+    if (txtFiles.isEmpty())
         addStatusMessage(QString("No log files found in logs folder: %1").arg(logsFolder.absolutePath()));
 
     // Loop through the list of .txt files and delete them
-    for (const QString &fileName : txtFiles) {
-        QString filePath = logsFolder.absoluteFilePath(fileName);  // Get the full file path
-        if (QFile::remove(filePath)) {
+    for (const QString& fileName : txtFiles) {
+        QString filePath = logsFolder.absoluteFilePath(fileName); // Get the full file path
+        if (QFile::remove(filePath))
             addStatusMessage(QString("Deleted log file: %1").arg(filePath));
-        } else {
+        else
             addStatusMessage(QString("Failed to delete log file: %1").arg(filePath));
-        }
     }
 }
 
@@ -792,52 +790,62 @@ void MainWindow::on_actionOpen_logs_folder_triggered()
 #elif defined(Q_OS_X11)
     QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(logsFolder.absolutePath()));
 #endif
-
 }
 
 // ----------------------------------------------------------------------------
 // ------------------- BEGIN: Scan settings -----------------------------------
-void MainWindow::setComparisonMode(const int &mode) { // slot used from comparison.cpp to stay in sync
+void MainWindow::setComparisonMode(const int& mode)
+{ // slot used from comparison.cpp to stay in sync
     this->_prefs.comparisonMode(static_cast<Prefs::VisualComparisonModes>(mode));
-    if(mode == Prefs::_PHASH)
+    if (mode == Prefs::_PHASH)
         ui->selectPhash->setChecked(true);
     else
         ui->selectSSIM->setChecked(true);
     ui->directoryBox->setFocus();
 }
-void MainWindow::on_selectThumbnails_activated(const int &index) {
+void MainWindow::on_selectThumbnails_activated(const int& index)
+{
     this->shouldScan = true; // reset to true, as we are changing the mode
     this->_prefs.thumbnailsMode(index);
     this->ui->directoryBox->setFocus();
-    this->ui->selectThumbnails->setCurrentIndex(index); // set even if was just selected as function is also called in code
-    if(index == cutEnds)
-        this->ui->differentDurationCombo->setCurrentIndex(0); // cutends already implicitely raises bar for duration, so no need to adjust threshold higher
+    this->ui->selectThumbnails->setCurrentIndex(
+        index); // set even if was just selected as function is also called in code
+    if (index == cutEnds)
+        this->ui->differentDurationCombo->setCurrentIndex(
+            0); // cutends already implicitely raises bar for duration, so no need to adjust threshold higher
 }
-void MainWindow::on_selectPhash_clicked(const bool &checked) {
-    if(checked)
+void MainWindow::on_selectPhash_clicked(const bool& checked)
+{
+    if (checked)
         setComparisonMode(Prefs::_PHASH);
 }
-void MainWindow::on_selectSSIM_clicked(const bool &checked) {
-    if(checked)
+void MainWindow::on_selectSSIM_clicked(const bool& checked)
+{
+    if (checked)
         setComparisonMode(_prefs._SSIM);
 }
-void MainWindow::on_blocksizeCombo_activated(const int &index) {
-    _prefs._ssimBlockSize = static_cast<int>(pow(2, index+1));
+void MainWindow::on_blocksizeCombo_activated(const int& index)
+{
+    _prefs._ssimBlockSize = static_cast<int>(pow(2, index + 1));
     ui->directoryBox->setFocus();
 }
-void MainWindow::on_differentDurationCombo_activated(const int &index) {
+void MainWindow::on_differentDurationCombo_activated(const int& index)
+{
     _prefs._differentDurationModifier = index;
     ui->directoryBox->setFocus();
 }
-void MainWindow::on_sameDurationCombo_activated(const int &index) {
+void MainWindow::on_sameDurationCombo_activated(const int& index)
+{
     _prefs._sameDurationModifier = index;
     ui->directoryBox->setFocus();
 }
-void MainWindow::on_thresholdSlider_valueChanged(const int &value) {
+void MainWindow::on_thresholdSlider_valueChanged(const int& value)
+{
     setMatchSimilarityThreshold(value);
     ui->directoryBox->setFocus();
 }
-void MainWindow::setMatchSimilarityThreshold(const int &value) {
+void MainWindow::setMatchSimilarityThreshold(const int& value)
+{
     this->_prefs.matchSimilarityThreshold(value);
 
     _prefs._thresholdSSIM = value / 100.0;
@@ -846,14 +854,17 @@ void MainWindow::setMatchSimilarityThreshold(const int &value) {
 
     this->ui->thresholdSlider->setValue(value);
     this->ui->threshPercent->setNum(value);
-    const QString thresholdMessage = QStringLiteral(
-                                         "Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
-                                         "Smaller: less strict, can match different videos (false positive)\n"
-                                         "Larger: more strict, can miss identical videos (false negative)")
-                                         .arg(value).arg(matchingBitsOf64).arg((int)(100*Prefs::DEFAULT_SSIM_THRESHOLD+0.5));
+    const QString thresholdMessage =
+        QStringLiteral("Threshold: %1% (%2/64 bits = match)   Default: %3%\n"
+                       "Smaller: less strict, can match different videos (false positive)\n"
+                       "Larger: more strict, can miss identical videos (false negative)")
+            .arg(value)
+            .arg(matchingBitsOf64)
+            .arg((int)(100 * Prefs::DEFAULT_SSIM_THRESHOLD + 0.5));
     ui->thresholdSlider->setToolTip(thresholdMessage);
 }
-void MainWindow::setUseCacheOption(Prefs::USE_CACHE_OPTION opt) {
+void MainWindow::setUseCacheOption(Prefs::USE_CACHE_OPTION opt)
+{
     this->_prefs.useCacheOption(opt);
     switch (opt) {
     case Prefs::NO_CACHE:

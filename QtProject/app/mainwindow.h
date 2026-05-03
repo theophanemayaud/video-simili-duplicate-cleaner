@@ -1,21 +1,24 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QDragEnterEvent>
-#include <QMimeData>
-#include <QFileDialog>
-#include <QtConcurrent/QtConcurrent>
-#include <QScrollBar>
 #include <QDesktopServices>
+#include <QDragEnterEvent>
+#include <QFileDialog>
+#include <QMimeData>
+#include <QScrollBar>
+#include <QtConcurrent/QtConcurrent>
 
 #include "ui_mainwindow.h"
 
-#include "video.h"
 #include "comparison.h"
 #include "db.h"
 #include "prefs.h"
+#include "video.h"
 
-namespace Ui { class MainWindow; }
+namespace Ui
+{
+class MainWindow;
+}
 
 class MainWindow : public QMainWindow
 {
@@ -23,15 +26,19 @@ class MainWindow : public QMainWindow
 
     friend class TestVideo;
 
-public:
+  public:
     MainWindow();
-    ~MainWindow() { deleteTemporaryFiles(); delete ui; }
+    ~MainWindow()
+    {
+        deleteTemporaryFiles();
+        delete ui;
+    }
 
-private:
-    Ui::MainWindow *ui;
-    Comparison *_comparison = nullptr;
+  private:
+    Ui::MainWindow* ui;
+    Comparison* _comparison = nullptr;
 
-    QVector<Video *> _videoList;
+    QVector<Video*> _videoList;
     QSet<QString> _everyVideo; // set as we need to avoid duplicates
     QStringList _rejectedVideos;
     QStringList _extensionList;
@@ -40,36 +47,44 @@ private:
     bool _userPressedStop = false;
     bool shouldScan = true;
 
-private slots:
+  private slots:
     void deleteTemporaryFiles() const;
-    void closeEvent(QCloseEvent *event) { Q_UNUSED (event) _userPressedStop = true; }
-    void dragEnterEvent(QDragEnterEvent *event) { if(event->mimeData()->hasUrls()) event->acceptProposedAction(); }
-    void dropEvent(QDropEvent *event);
+    void closeEvent(QCloseEvent* event)
+    {
+        Q_UNUSED(event)
+        _userPressedStop = true;
+    }
+    void dragEnterEvent(QDragEnterEvent* event)
+    {
+        if (event->mimeData()->hasUrls())
+            event->acceptProposedAction();
+    }
+    void dropEvent(QDropEvent* event);
     void loadExtensions();
 
-    void setComparisonMode(const int &mode);
-    void on_selectThumbnails_activated(const int &index);
-    void on_selectPhash_clicked(const bool &checked);
-    void on_selectSSIM_clicked(const bool &checked);
-    void on_blocksizeCombo_activated(const int &index);
-    void on_differentDurationCombo_activated(const int &index);
-    void on_sameDurationCombo_activated(const int &index);
-    void on_thresholdSlider_valueChanged(const int &value);
-    void setMatchSimilarityThreshold(const int &value);
+    void setComparisonMode(const int& mode);
+    void on_selectThumbnails_activated(const int& index);
+    void on_selectPhash_clicked(const bool& checked);
+    void on_selectSSIM_clicked(const bool& checked);
+    void on_blocksizeCombo_activated(const int& index);
+    void on_differentDurationCombo_activated(const int& index);
+    void on_sameDurationCombo_activated(const int& index);
+    void on_thresholdSlider_valueChanged(const int& value);
+    void setMatchSimilarityThreshold(const int& value);
     void setUseCacheOption(Prefs::USE_CACHE_OPTION opt);
 
-    void on_directoryBox_textChanged(const QString &arg1);
+    void on_directoryBox_textChanged(const QString& arg1);
     void on_browseFolders_clicked();
     void on_browseApplePhotos_clicked();
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
-    void findVideos(QDir &dir);
+    void findVideos(QDir& dir);
     void processVideos();
     void videoSummary();
 
-    void addStatusMessage(const QString &message) const;
-    void addVideo(Video *addMe);
-    void removeVideo(Video *deleteMe, QString errorMsg);
+    void addStatusMessage(const QString& message) const;
+    void addVideo(Video* addMe);
+    void removeVideo(Video* deleteMe, QString errorMsg);
     void on_actionAbout_triggered();
     void on_actionCredits_triggered();
     void on_actionContact_triggered();
@@ -84,7 +99,7 @@ private slots:
 
     // error video options: setting to just leave as is (skip) or move to selected folder (move)
     void updateErrorVideoActions();
-    void moveErrorVideoToSelectedFolder(const QString &filePathName);
+    void moveErrorVideoToSelectedFolder(const QString& filePathName);
     void on_actionSelect_folder_to_move_error_videos_triggered();
     void on_actionRestore_simple_skip_of_error_videos_triggered();
 
@@ -92,7 +107,10 @@ private slots:
     void on_actionSet_custom_cache_location_triggered();
     void on_actionRestore_default_cache_location_triggered();
 
-    void on_verboseCheckbox_stateChanged(int arg1) {this->_prefs.setVerbose(arg1 == 2); /* 2 -> checked, 0 -> unchecked*/ };
+    void on_verboseCheckbox_stateChanged(int arg1)
+    {
+        this->_prefs.setVerbose(arg1 == 2); /* 2 -> checked, 0 -> unchecked*/
+    };
 
     void on_actionRestore_all_settings_triggered();
 

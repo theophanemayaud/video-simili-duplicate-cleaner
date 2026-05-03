@@ -1,5 +1,5 @@
-#include <QtTest>
 #include <QCoreApplication>
+#include <QtTest>
 
 // add necessary includes here
 
@@ -7,41 +7,25 @@ class TestMainWindow : public QObject
 {
     Q_OBJECT
 
-public:
+  public:
     TestMainWindow();
     ~TestMainWindow();
 
-private slots:
+  private slots:
     void initTestCase();
     void cleanupTestCase();
     void test_case1();
-
 };
 
-TestMainWindow::TestMainWindow()
-{
+TestMainWindow::TestMainWindow() {}
 
-}
+TestMainWindow::~TestMainWindow() {}
 
-TestMainWindow::~TestMainWindow()
-{
+void TestMainWindow::initTestCase() {}
 
-}
+void TestMainWindow::cleanupTestCase() {}
 
-void TestMainWindow::initTestCase()
-{
-
-}
-
-void TestMainWindow::cleanupTestCase()
-{
-
-}
-
-void TestMainWindow::test_case1()
-{
-
-}
+void TestMainWindow::test_case1() {}
 
 QTEST_MAIN(TestMainWindow)
 

@@ -1,19 +1,18 @@
 #ifndef VIDEO_PARAM_HELPERS_H
 #define VIDEO_PARAM_HELPERS_H
 
-#include <QString>
-#include <QFileInfo>
-#include <QDateTime>
 #include <QByteArray>
+#include <QDateTime>
+#include <QFileInfo>
+#include <QString>
 
-class VideoParam {
-public:
+class VideoParam
+{
+  public:
     static const int nb_params = 13;
     static const char sep = '"';
-    
-    static QString timeformat() {
-        return "yyyy-MM-dd HH:mm:ss";
-    }
+
+    static QString timeformat() { return "yyyy-MM-dd HH:mm:ss"; }
 
     QFileInfo videoInfo;
     QFileInfo thumbnailInfo;

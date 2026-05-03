@@ -1,0 +1,22 @@
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 120
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+BreakBeforeBinaryOperators: NonAssignment
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterControlStatement: MultiLine
+  BeforeElse: true
+
+RemoveBracesLLVM: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortEnumsOnASingleLine: false
+ReflowComments: false
