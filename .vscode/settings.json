@@ -20,7 +20,13 @@
         "MIMode": "lldb",
         "externalConsole": false,
     },
-    "files.associations": {},
+    "C_Cpp.clang_format_style": "file",
+    "[cpp]": {
+        "editor.formatOnSave": true
+    },
+    "[c]": {
+        "editor.formatOnSave": true
+    },
     "testMate.cpp.test.executables": "${workspaceFolder}/QtProject/builds/**/*{test,Test,TEST}*",
     "testMate.cpp.test.workingDirectory": "${workspaceFolder}/QtProject",
     "testMate.cpp.log.logpanel": true
