@@ -1592,7 +1592,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
               </font>
              </property>
              <property name="text">
-              <string>Keep biggest</string>
+              <string>Keep by size</string>
              </property>
             </widget>
            </item>
@@ -1604,11 +1604,12 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                 <number>2</number>
                </property>
                <property name="text">
-                <string>Keeps the bigger file if both have : 
+                <string>If both have:
  - max 1 second time duration difference
  - same resolution
  - same FPS
- - different file sizes (and any other metadata differences)</string>
+ - different file sizes (and any other metadata differences)
+choose which file size to keep.</string>
                </property>
               </widget>
              </item>
@@ -1639,6 +1640,27 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                 <string>Don't check resolution and FPS</string>
                </property>
               </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_onlySizeDiffersChoice">
+               <item>
+                <widget class="QRadioButton" name="radioButton_onlySizeDiffers_keepBiggest">
+                 <property name="text">
+                  <string>Keep biggest</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_onlySizeDiffers_keepSmallest">
+                 <property name="text">
+                  <string>Keep smallest</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
             </layout>
            </item>
