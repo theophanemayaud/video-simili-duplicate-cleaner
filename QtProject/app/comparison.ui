@@ -1836,7 +1836,7 @@ choose which file size to keep.</string>
               <bool>false</bool>
              </property>
              <property name="text">
-              <string>Delete only based on folders settings set in specific tab.  This will use the folder settings, and comparison threshold !!! 
+              <string>Delete only based on folders settings set in specific tab.  This will use the folder settings, and comparison threshold !!!
 In each scenario where only one of the two files is either in a protected folder, or more &quot;precious/important&quot; folder, it will keep that one. Otherwise, it will do nothing.</string>
              </property>
              <property name="wordWrap">
