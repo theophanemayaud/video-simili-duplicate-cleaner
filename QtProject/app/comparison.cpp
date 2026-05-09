@@ -1,7 +1,6 @@
 #include "comparison.h"
 
 #include <QAbstractSlider>
-#include <QButtonGroup>
 #include <QMimeData>
 #include <QProgressDialog>
 #include <QSlider>
@@ -35,22 +34,6 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
     connect(ui->progressBar, &QSlider::valueChanged,
             [this](int value) { ui->currentVideo->setText(QString::number(value)); });
     connect(ui->progressBar, &QSlider::sliderReleased, this, &Comparison::onProgressSliderReleased);
-
-    auto* onlySizeDiffersButtonGroup = new QButtonGroup(this);
-    ui->radioButton_onlySizeDiffers_keepBiggest->setAutoExclusive(false);
-    ui->radioButton_onlySizeDiffers_keepSmallest->setAutoExclusive(false);
-    onlySizeDiffersButtonGroup->addButton(ui->radioButton_onlySizeDiffers_keepBiggest);
-    onlySizeDiffersButtonGroup->addButton(ui->radioButton_onlySizeDiffers_keepSmallest);
-    onlySizeDiffersButtonGroup->setExclusive(true);
-    ui->radioButton_onlySizeDiffers_keepBiggest->setChecked(true);
-
-    auto* onlyTimeDiffersButtonGroup = new QButtonGroup(this);
-    ui->radioButton_onlyTimeDiffers_trashEarlier->setAutoExclusive(false);
-    ui->radioButton_onlyTimeDiffers_trashLater->setAutoExclusive(false);
-    onlyTimeDiffersButtonGroup->addButton(ui->radioButton_onlyTimeDiffers_trashEarlier);
-    onlyTimeDiffersButtonGroup->addButton(ui->radioButton_onlyTimeDiffers_trashLater);
-    onlyTimeDiffersButtonGroup->setExclusive(true);
-    ui->radioButton_onlyTimeDiffers_trashLater->setChecked(true);
 
     initSortOrder();
 
@@ -1423,8 +1406,8 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
-    const bool keepSmallest = ui->radioButton_onlySizeDiffers_keepSmallest->isChecked();
-    const QString trashedSizeLabel = keepSmallest ? QStringLiteral("bigger") : QStringLiteral("smaller");
+    const bool keepBiggest = !ui->radioButton_onlySizeDiffers_keepSmallest->isChecked();
+    const QString trashedSizeLabel = keepBiggest ? QStringLiteral("smaller") : QStringLiteral("bigger");
 
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
@@ -1469,9 +1452,9 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 updateUI();
 
                 const bool leftIsBigger = _videos[_leftVideo]->size > _videos[_rightVideo]->size;
-                const int videoToDelete = (leftIsBigger == keepSmallest) ? _leftVideo : _rightVideo;
+                const bool deleteRightVideo = (keepBiggest && leftIsBigger) || (!keepBiggest && !leftIsBigger);
+                const int videoToDelete = deleteRightVideo ? _rightVideo : _leftVideo;
                 const int videoToKeep = (videoToDelete == _leftVideo) ? _rightVideo : _leftVideo;
-                const bool deletedLeftVideo = videoToDelete == _leftVideo;
 
                 deleteVideo(videoToDelete, true);
                 if (this->_prefs.isVerbose())
@@ -1500,7 +1483,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 
                 // when left video was deleted, we need to break
                 // out of the inner for loop to go to the next left/reference video
-                if (deletedLeftVideo)
+                if (!deleteRightVideo)
                     break;
             }
         }

@@ -1658,18 +1658,24 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <item>
                 <widget class="QRadioButton" name="radioButton_onlySizeDiffers_keepBiggest">
                  <property name="text">
-                  <string>Keep biggest</string>
+                  <string>Biggest</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
                  </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">buttonGroup_onlySizeDiffers</string>
+                 </attribute>
                 </widget>
                </item>
                <item>
                 <widget class="QRadioButton" name="radioButton_onlySizeDiffers_keepSmallest">
                  <property name="text">
-                  <string>Keep smallest</string>
+                  <string>Smallest</string>
                  </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">buttonGroup_onlySizeDiffers</string>
+                 </attribute>
                 </widget>
                </item>
               </layout>
@@ -1767,6 +1773,9 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                  <property name="checked">
                   <bool>false</bool>
                  </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">buttonGroup_onlyTimeDiffers</string>
+                 </attribute>
                 </widget>
                </item>
                <item>
@@ -1780,6 +1789,9 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                  <property name="checked">
                   <bool>true</bool>
                  </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">buttonGroup_onlyTimeDiffers</string>
+                 </attribute>
                 </widget>
                </item>
               </layout>
@@ -2211,4 +2223,8 @@ In each scenario where only one of the two files is either in a protected folder
  </customwidgets>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup_onlySizeDiffers"/>
+  <buttongroup name="buttonGroup_onlyTimeDiffers"/>
+ </buttongroups>
 </ui>
