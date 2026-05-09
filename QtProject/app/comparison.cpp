@@ -37,12 +37,20 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
     connect(ui->progressBar, &QSlider::sliderReleased, this, &Comparison::onProgressSliderReleased);
 
     auto* onlySizeDiffersButtonGroup = new QButtonGroup(this);
+    ui->radioButton_onlySizeDiffers_keepBiggest->setAutoExclusive(false);
+    ui->radioButton_onlySizeDiffers_keepSmallest->setAutoExclusive(false);
     onlySizeDiffersButtonGroup->addButton(ui->radioButton_onlySizeDiffers_keepBiggest);
     onlySizeDiffersButtonGroup->addButton(ui->radioButton_onlySizeDiffers_keepSmallest);
+    onlySizeDiffersButtonGroup->setExclusive(true);
+    ui->radioButton_onlySizeDiffers_keepBiggest->setChecked(true);
 
     auto* onlyTimeDiffersButtonGroup = new QButtonGroup(this);
+    ui->radioButton_onlyTimeDiffers_trashEarlier->setAutoExclusive(false);
+    ui->radioButton_onlyTimeDiffers_trashLater->setAutoExclusive(false);
     onlyTimeDiffersButtonGroup->addButton(ui->radioButton_onlyTimeDiffers_trashEarlier);
     onlyTimeDiffersButtonGroup->addButton(ui->radioButton_onlyTimeDiffers_trashLater);
+    onlyTimeDiffersButtonGroup->setExclusive(true);
+    ui->radioButton_onlyTimeDiffers_trashLater->setChecked(true);
 
     initSortOrder();
 

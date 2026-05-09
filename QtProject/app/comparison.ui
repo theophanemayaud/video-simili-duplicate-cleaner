@@ -1598,6 +1598,9 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
            </item>
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_7">
+             <property name="spacing">
+              <number>6</number>
+             </property>
              <item>
               <widget class="QLabel" name="label_5">
                <property name="lineWidth">
@@ -1608,8 +1611,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
  - max 1 second time duration difference
  - same resolution
  - same FPS
- - different file sizes (and any other metadata differences)
-choose which file size to keep.</string>
+ - different file sizes (and any other metadata differences)</string>
                </property>
               </widget>
              </item>
@@ -1643,6 +1645,16 @@ choose which file size to keep.</string>
              </item>
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_onlySizeDiffersChoice">
+               <property name="spacing">
+                <number>20</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_onlySizeDiffersKeep">
+                 <property name="text">
+                  <string>Keep:</string>
+                 </property>
+                </widget>
+               </item>
                <item>
                 <widget class="QRadioButton" name="radioButton_onlySizeDiffers_keepBiggest">
                  <property name="text">
