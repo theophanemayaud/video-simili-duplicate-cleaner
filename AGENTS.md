@@ -28,8 +28,9 @@ The main development platform is macOS; keep default agent commands on this path
 - Run focused auto-delete end-to-end tests after changing cleanup behavior or auto cleanup UI:
   `cmake --build QtProject/builds/build-debug-6.10.1-macos --target test_auto_delete && ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R ^test_auto_delete$`
 - Run the self-contained CTest baseline:
-  `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_auto_delete|test_video_simplified)$"`
+  `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_auto_delete)$"`
 - Green `test_video` function cases for regular work: `emptyDb`, `test_whole_app_nocache`, `test_whole_app_cached`, `test_whole_app_cache_only`.
+- `test_video_simplified` uses checked-in sample videos but compares platform-sensitive thumbnails/hashes; run it on the macOS dev setup, not Linux CI, unless refreshing reference expectations.
 - `test_video` whole-app and reference-detail cases depend on an external local fixture folder; run explicit functions only when that folder is available. Reference-detail cases (`test_check_refvidparams_nocache`, `test_check_refvidparams_withcache`, `test_check_refvidparams_withCacheOnly`) are not all green currently; run them when touching metadata, thumbnails, cache behavior, or reference data.
 - To investigate one `test_video` fixture, run a single data row with `test_function:data_tag`, for example `test_check_refvidparams_nocache:20150727_115225.mp4`.
 - Prefer targeted `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos ...` invocations when using CTest on macOS; the test CMake config chooses a platform plugin compatible with the current Qt build.

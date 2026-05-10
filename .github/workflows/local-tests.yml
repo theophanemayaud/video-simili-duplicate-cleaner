@@ -63,11 +63,10 @@ jobs:
           cmake --build QtProject/builds/ci-local-tests --target \
             test_comparison \
             test_mainwindow \
-            test_auto_delete \
-            test_video_simplified
+            test_auto_delete
 
       - name: Run self-contained tests
         run: |
           ctest --test-dir QtProject/builds/ci-local-tests \
             --output-on-failure \
-            -R "^(test_comparison|test_mainwindow|test_auto_delete|test_video_simplified)$"
+            -R "^(test_comparison|test_mainwindow|test_auto_delete)$"
