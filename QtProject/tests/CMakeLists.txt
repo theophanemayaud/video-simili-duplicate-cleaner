@@ -26,19 +26,32 @@ if(APPLE)
     )
 endif()
 
+# If Qt is built without the offscreen platform plugin, use the native platform for CTest.
+set(TEST_QPA_PLATFORM "offscreen")
+if(APPLE)
+    get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+    if(QT_QMAKE_EXECUTABLE)
+        get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
+        get_filename_component(QT_INSTALL_DIR "${QT_BIN_DIR}" DIRECTORY)
+        if(NOT EXISTS "${QT_INSTALL_DIR}/plugins/platforms/libqoffscreen.dylib")
+            set(TEST_QPA_PLATFORM "cocoa")
+        endif()
+    endif()
+endif()
+
 # Function to create a test executable
 function(add_qt_test TEST_NAME)
     set(options "")
     set(oneValueArgs "")
     set(multiValueArgs SOURCES)
     cmake_parse_arguments(TEST_ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-    
+
     # Create test executable
     add_executable(${TEST_NAME}
         ${TEST_ARG_SOURCES}
         ${COMMON_APP_SOURCES}
     )
-    
+
     # Link Qt libraries
     target_link_libraries(${TEST_NAME} PRIVATE
         Qt6::Core
@@ -47,10 +60,10 @@ function(add_qt_test TEST_NAME)
         Qt6::Concurrent
         Qt6::Test
     )
-    
+
     # Add compile definitions
     target_compile_definitions(${TEST_NAME} PRIVATE ${TEST_COMPILE_DEFINITIONS})
-    
+
     # Platform-specific libraries
     if(APPLE)
         # OpenCV
@@ -64,7 +77,7 @@ function(add_qt_test TEST_NAME)
             "-framework OpenCL"
             "-framework Accelerate"
         )
-        
+
         # FFMPEG
         set(FFMPEG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/ffmpeg-universalized-libs")
         target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${FFMPEG_ROOT}/include)
@@ -78,7 +91,7 @@ function(add_qt_test TEST_NAME)
             "-framework CoreMedia"
             "-framework VideoToolbox"
         )
-        
+
         # AOM
         set(AOM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/libaom-universalized")
         target_include_directories(${TEST_NAME} PRIVATE ${AOM_ROOT}/include)
@@ -88,20 +101,20 @@ function(add_qt_test TEST_NAME)
         # Windows/vcpkg
         find_package(OpenCV REQUIRED COMPONENTS core imgproc)
         target_link_libraries(${TEST_NAME} PRIVATE ${OpenCV_LIBS})
-        
+
         find_package(FFMPEG REQUIRED)
         target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
         target_link_directories(${TEST_NAME} PRIVATE ${FFMPEG_LIBRARY_DIRS})
         target_link_libraries(${TEST_NAME} PRIVATE ${FFMPEG_LIBRARIES})
     endif()
-    
+
     # Register test with CTest
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
-    
+
     # Set test properties for better output
     set_tests_properties(${TEST_NAME} PROPERTIES
         TIMEOUT 300
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        ENVIRONMENT "QT_QPA_PLATFORM=${TEST_QPA_PLATFORM}"
     )
 endfunction()
 
@@ -115,9 +128,14 @@ add_qt_test(test_mainwindow
     SOURCES test_mainwindow/tst_mainwindow.cpp
 )
 
-# Test 3: test_video
+# Test 3: test_auto_delete
+add_qt_test(test_auto_delete
+    SOURCES test_auto_delete/tst_auto_delete.cpp
+)
+
+# Test 4: test_video
 add_qt_test(test_video
-    SOURCES 
+    SOURCES
         test_video/tst_video.cpp
         test_video/video_test_helpers.cpp
         test_video_simplified/video_simplified_test_helpers.cpp
@@ -125,11 +143,9 @@ add_qt_test(test_video
 # Set longer CTest timeout for test_video (contains 100GB tests that can take 30+ minutes)
 set_tests_properties(test_video PROPERTIES TIMEOUT 3600)
 
-# Test 4: test_video_simplified
+# Test 5: test_video_simplified
 add_qt_test(test_video_simplified
     SOURCES
         test_video_simplified/tst_video_simplified.cpp
         test_video_simplified/video_simplified_test_helpers.cpp
 )
-
-
