@@ -14,6 +14,7 @@ FFMPEG_VERSION=n8.0.1
 AOM_VERSION=3.13.1
 AOM_REPO_URL=https://aomedia.googlesource.com/aom.git
 FFMPEG_REPO_URL=https://github.com/FFmpeg/FFmpeg.git
+BUILD_JOBS="${VSDC_BUILD_JOBS:-$(sysctl -n hw.logicalcpu)}"
 
 # Clean up previous builds
 rm -rf libaom-* ffmpeg-*
@@ -36,14 +37,14 @@ cd libaom-arm-build
 cmake ../libaom-source \
     -DCMAKE_INSTALL_PREFIX=../libaom-arm-install \
     -DBUILD_SHARED_LIBS=0 -DENABLE_DOCS=0 -DENABLE_EXAMPLES=0 -DENABLE_TESTDATA=0 -DENABLE_TESTS=0 -DENABLE_TOOLS=0 -DCONFIG_AV1_ENCODER=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
-make -j
+make -j"$BUILD_JOBS"
 make install
 cd ../libaom-x86_64-build
 cmake ../libaom-source \
     -DCMAKE_TOOLCHAIN_FILE=../libaom-source/build/cmake/toolchains/x86_64-macos.cmake \
     -DCMAKE_INSTALL_PREFIX=../libaom-x86_64-install \
 	-DBUILD_SHARED_LIBS=0 -DENABLE_DOCS=0 -DENABLE_EXAMPLES=0 -DENABLE_TESTDATA=0 -DENABLE_TESTS=0 -DENABLE_TOOLS=0 -DCONFIG_AV1_ENCODER=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
-make -j
+make -j"$BUILD_JOBS"
 make install
 ## create universalized libaom
 cd ../libaom-universalized
@@ -62,7 +63,7 @@ cd ffmpeg-arm-build
 ## arm lib path
 export PKG_CONFIG_PATH="../libaom-arm-install/lib/pkgconfig:$PKG_CONFIG_PATH"
 ../ffmpeg-source/configure --prefix='../ffmpeg-arm-install' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --disable-filters --enable-avformat --enable-libaom --disable-lzma
-make -j
+make -j"$BUILD_JOBS"
 make install
 
 # cross build ffmpeg x86
@@ -70,7 +71,7 @@ cd ../ffmpeg-x86_64-build
 # x86 lib path
 export PKG_CONFIG_PATH="../libaom-x86_64-install/lib/pkgconfig:$PKG_CONFIG_PATH"
 ../ffmpeg-source/configure --prefix='../ffmpeg-x86_64-install' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --disable-filters --enable-avformat --enable-libaom --disable-lzma
-make -j
+make -j"$BUILD_JOBS"
 make install
 
 # create universalized libs

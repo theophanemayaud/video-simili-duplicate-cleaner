@@ -9,6 +9,7 @@ SOURCE_DIR="opencv-source"
 BUILD_DIR="opencv-build"
 INSTALL_DIR="opencv-install"
 REPO_URL="https://github.com/opencv/opencv.git"
+BUILD_JOBS="${VSDC_BUILD_JOBS:-$(sysctl -n hw.logicalcpu)}"
 
 echo "[opencv.sh] Building OpenCV $OPENCV_VERSION for macOS..."
 
@@ -43,7 +44,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       "../$SOURCE_DIR"
 
 # Build and install
-make -j
+make -j"$BUILD_JOBS"
 make install
 
 cd ..

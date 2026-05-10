@@ -10,6 +10,7 @@ SOURCE_DIR="qt-source"
 BUILD_DIR="qt-build"
 INSTALL_DIR="qt-install"
 QT_SUBMODULES="qtbase" # Only pull what we need for Core/Widgets/Sql/Concurrent
+BUILD_JOBS="${VSDC_BUILD_JOBS:-$(sysctl -n hw.logicalcpu)}"
 
 # Always run in script directory even when invoked from outside so artifacts land here
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -46,7 +47,7 @@ cd "$BUILD_DIR"
   -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
 
 # Build and install
-cmake --build . --parallel
+cmake --build . --parallel "$BUILD_JOBS"
 cmake --install .
 cd "$SCRIPT_DIR"
 

@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: local-tests-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   linux-local-tests:
@@ -91,6 +91,7 @@ jobs:
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
+      VSDC_BUILD_JOBS: 3
 
     steps:
       - name: Checkout
