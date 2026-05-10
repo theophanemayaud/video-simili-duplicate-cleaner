@@ -22,10 +22,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Restore apt package cache
+        uses: actions/cache@v4
+        with:
+          path: .apt-cache/archives
+          key: apt-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/local-tests.yml') }}
+          restore-keys: |
+            apt-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install dependencies
         run: |
+          mkdir -p .apt-cache/archives/partial
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get -o Dir::Cache::archives="$PWD/.apt-cache/archives" install -y \
             ccache \
             cmake \
             libavcodec-dev \
@@ -38,13 +47,15 @@ jobs:
             pkg-config \
             qt6-base-dev \
             qt6-qpa-plugins
+          sudo rm -f .apt-cache/archives/lock
+          sudo chown -R "$USER" .apt-cache
 
       - name: Configure ccache
         run: |
           echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> "$GITHUB_ENV"
           ccache --set-config=max_size=500M
 
-      - name: Cache ccache
+      - name: Restore compiler cache
         uses: actions/cache@v4
         with:
           path: .ccache
@@ -68,5 +79,59 @@ jobs:
       - name: Run self-contained tests
         run: |
           ctest --test-dir QtProject/builds/ci-local-tests \
+            --output-on-failure \
+            -R "^(test_comparison|test_mainwindow|test_auto_delete)$"
+
+  macos-local-tests:
+    name: macOS local-like tests
+    runs-on: macos-latest
+    timeout-minutes: 240
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache macOS static dependencies
+        id: cache-macos-static-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            QtProject/libraries/macos/qt/qt-install
+            QtProject/libraries/macos/opencv-arm/opencv-install
+            QtProject/libraries/macos/ffmpeg/ffmpeg-universalized-libs
+            QtProject/libraries/macos/ffmpeg/libaom-universalized
+          key: macos-static-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('QtProject/libraries/macos/qt/qt.sh', 'QtProject/libraries/macos/opencv-arm/opencv.sh', 'QtProject/libraries/macos/ffmpeg/ffmpeg.sh') }}
+
+      - name: Install macOS build tools
+        run: |
+          brew install cmake ninja nasm pkg-config
+
+      - name: Build macOS static dependencies
+        if: steps.cache-macos-static-deps.outputs.cache-hit != 'true'
+        run: |
+          npm run qt-macos
+          npm run ffmpeg-macos
+          npm run opencv-macos
+
+      - name: Configure
+        run: |
+          cmake -S QtProject -B QtProject/builds/ci-macos-local-tests -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH="$PWD/QtProject/libraries/macos/qt/qt-install" \
+            -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+
+      - name: Build self-contained test targets
+        run: |
+          cmake --build QtProject/builds/ci-macos-local-tests --target \
+            test_comparison \
+            test_mainwindow \
+            test_auto_delete
+
+      - name: Run self-contained tests
+        run: |
+          ctest --test-dir QtProject/builds/ci-macos-local-tests \
             --output-on-failure \
             -R "^(test_comparison|test_mainwindow|test_auto_delete)$"
