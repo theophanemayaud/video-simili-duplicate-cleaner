@@ -92,7 +92,7 @@ jobs:
             QtProject/libraries/macos/opencv-arm/opencv-install
             QtProject/libraries/macos/ffmpeg/ffmpeg-universalized-libs
             QtProject/libraries/macos/ffmpeg/libaom-universalized
-          key: macos-static-deps-universal-${{ hashFiles('QtProject/libraries/macos/qt/qt.sh', 'QtProject/libraries/macos/opencv-arm/opencv.sh', 'QtProject/libraries/macos/ffmpeg/ffmpeg.sh') }}
+          key: macos-static-deps-universal-${{ hashFiles('package.json', 'QtProject/libraries/macos/qt/qt.sh', 'QtProject/libraries/macos/opencv-arm/opencv.sh', 'QtProject/libraries/macos/ffmpeg/ffmpeg.sh') }}
 
       - name: Install macOS build tools
         if: steps.cache-macos-static-deps.outputs.cache-hit != 'true'

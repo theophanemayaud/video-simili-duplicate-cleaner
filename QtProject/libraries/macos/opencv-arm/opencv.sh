@@ -4,13 +4,16 @@ set -ex
 # Build OpenCV static lib for macOS (universal: arm64 + x86_64)
 # Usage: ./opencv.sh
 
-OPENCV_VERSION=4.12.0
 SOURCE_DIR="opencv-source"
 BUILD_DIR="opencv-build"
 INSTALL_DIR="opencv-install"
-REPO_URL="https://github.com/opencv/opencv.git"
+SCRIPT_DIR="$(cd -- "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
-echo "[opencv.sh] Building OpenCV $OPENCV_VERSION for macOS..."
+REPO_URL="$(npm --prefix "$PROJECT_ROOT" pkg get cpp-dependencies-macos.opencv.repo | tr -d '"')"
+OPENCV_VERSION="$(npm --prefix "$PROJECT_ROOT" pkg get cpp-dependencies-macos.opencv.version | tr -d '"')"
+
+echo "[opencv.sh] Building OpenCV $OPENCV_VERSION from $REPO_URL"
 
 # Prerequisites
 if ! command -v cmake >/dev/null 2>&1; then

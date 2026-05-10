@@ -4,16 +4,24 @@ set -ex
 # Always run in script directory so artifacts land here
 SCRIPT_DIR="$(cd -- "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+
+dependency_value() {
+  npm --prefix "$PROJECT_ROOT" pkg get "cpp-dependencies-macos.$1.$2" | tr -d '"'
+}
 
 # Build universalized static libs
 
 # FFmpeg and libaom (for AV1 support)
 # Prerequisites: Homebrew (for nasm, pkg-config), git, cmake, lipo, make
 
-FFMPEG_VERSION=n8.0.1
-AOM_VERSION=3.13.1
-AOM_REPO_URL=https://aomedia.googlesource.com/aom.git
-FFMPEG_REPO_URL=https://github.com/FFmpeg/FFmpeg.git
+FFMPEG_REPO_URL="$(dependency_value ffmpeg repo)"
+FFMPEG_VERSION="$(dependency_value ffmpeg version)"
+AOM_REPO_URL="$(dependency_value aom repo)"
+AOM_VERSION="$(dependency_value aom version)"
+
+echo "[ffmpeg.sh] Building FFmpeg $FFMPEG_VERSION from $FFMPEG_REPO_URL"
+echo "[ffmpeg.sh] Building libaom $AOM_VERSION from $AOM_REPO_URL"
 
 # Clean up previous builds
 rm -rf libaom-* ffmpeg-*
@@ -26,7 +34,7 @@ brew install pkg-config
 # build aom libs for av1 decoding
 mkdir -p libaom-{arm,x86_64}-{build,install} libaom-universalized
 
-git clone -b v"$AOM_VERSION" --depth=1 "$AOM_REPO_URL" libaom-source
+git clone -b "$AOM_VERSION" --depth=1 "$AOM_REPO_URL" libaom-source
 # Cherry-pick upstream fix for stale nasm -Ox detection
 # (bug in 3.13.1 release that breaks x86 cross-build when on updated nasm 3+ version
 # which lists expected multipass optimization -Ox as supported but under different parameters)
