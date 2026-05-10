@@ -18,7 +18,7 @@ jobs:
   linux-local-tests:
     name: Linux tiny repo-local tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -37,7 +37,6 @@ jobs:
           mkdir -p .apt-cache/archives/partial
           sudo apt-get update
           sudo apt-get -o Dir::Cache::archives="$PWD/.apt-cache/archives" install -y \
-            ccache \
             cmake \
             libavcodec-dev \
             libavformat-dev \
@@ -52,24 +51,10 @@ jobs:
           sudo rm -f .apt-cache/archives/lock
           sudo chown -R "$USER" .apt-cache
 
-      - name: Configure ccache
-        run: |
-          echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> "$GITHUB_ENV"
-          ccache --set-config=max_size=500M
-
-      - name: Restore compiler cache
-        uses: actions/cache@v4
-        with:
-          path: .ccache
-          key: ccache-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
-          restore-keys: |
-            ccache-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-
-
       - name: Configure
         run: |
           cmake -S QtProject -B QtProject/builds/ci-local-tests -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_BUILD_TYPE=Debug
 
       - name: Build self-contained test targets
         run: |
@@ -84,14 +69,15 @@ jobs:
             --output-on-failure \
             -R "^(test_comparison|test_mainwindow|test_auto_delete)$"
 
-  macos-local-tests:
-    name: macOS local-like tests
-    runs-on: macos-latest
-    timeout-minutes: 240
+  # We build univeralized static dependencies for macOS directly from latest macOS
+  # That we then reuse for all macOS runners
+  macos-static-deps:
+    name: macOS static dependencies
+    runs-on: macos-26
+    timeout-minutes: 45 # takes about 25mins
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
-      VSDC_BUILD_JOBS: 3
 
     steps:
       - name: Checkout
@@ -106,9 +92,10 @@ jobs:
             QtProject/libraries/macos/opencv-arm/opencv-install
             QtProject/libraries/macos/ffmpeg/ffmpeg-universalized-libs
             QtProject/libraries/macos/ffmpeg/libaom-universalized
-          key: macos-static-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('QtProject/libraries/macos/qt/qt.sh', 'QtProject/libraries/macos/opencv-arm/opencv.sh', 'QtProject/libraries/macos/ffmpeg/ffmpeg.sh') }}
+          key: macos-static-deps-universal-${{ hashFiles('QtProject/libraries/macos/qt/qt.sh', 'QtProject/libraries/macos/opencv-arm/opencv.sh', 'QtProject/libraries/macos/ffmpeg/ffmpeg.sh') }}
 
       - name: Install macOS build tools
+        if: steps.cache-macos-static-deps.outputs.cache-hit != 'true'
         run: |
           brew install cmake ninja nasm pkg-config
 
@@ -118,6 +105,59 @@ jobs:
           npm run qt-macos
           npm run ffmpeg-macos
           npm run opencv-macos
+
+      - name: Package macOS static dependencies
+        run: |
+          tar -czf macos-static-deps.tar.gz \
+            QtProject/libraries/macos/qt/qt-install \
+            QtProject/libraries/macos/opencv-arm/opencv-install \
+            QtProject/libraries/macos/ffmpeg/ffmpeg-universalized-libs \
+            QtProject/libraries/macos/ffmpeg/libaom-universalized
+
+      - name: Upload macOS static dependencies
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-static-deps
+          path: macos-static-deps.tar.gz
+          retention-days: 1
+
+  macos-local-tests:
+    name: macOS local-like tests (${{ matrix.name }})
+    needs: macos-static-deps
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS 14 arm64
+            runner: macos-14
+          - name: macOS 26 arm64
+            runner: macos-26
+          - name: macOS 15 Intel
+            runner: macos-15-intel
+          - name: macOS 26 Intel
+            runner: macos-26-intel
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download macOS static dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-static-deps
+
+      - name: Unpack macOS static dependencies
+        run: |
+          tar -xzf macos-static-deps.tar.gz
+
+      - name: Install macOS build tools
+        run: |
+          brew install cmake ninja
 
       - name: Configure
         run: |
