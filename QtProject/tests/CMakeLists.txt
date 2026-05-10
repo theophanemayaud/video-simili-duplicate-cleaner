@@ -64,49 +64,7 @@ function(add_qt_test TEST_NAME)
     # Add compile definitions
     target_compile_definitions(${TEST_NAME} PRIVATE ${TEST_COMPILE_DEFINITIONS})
 
-    # Platform-specific libraries
-    if(APPLE)
-        # OpenCV
-        set(OPENCV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/opencv-arm/opencv-install")
-        target_include_directories(${TEST_NAME} PRIVATE ${OPENCV_ROOT}/include/opencv4)
-        target_link_libraries(${TEST_NAME} PRIVATE
-            ${OPENCV_ROOT}/lib/libopencv_imgproc.a
-            ${OPENCV_ROOT}/lib/libopencv_core.a
-            ${OPENCV_ROOT}/lib/opencv4/3rdparty/libzlib.a
-            ${OPENCV_ROOT}/lib/opencv4/3rdparty/libittnotify.a
-            "-framework OpenCL"
-            "-framework Accelerate"
-        )
-
-        # FFMPEG
-        set(FFMPEG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/ffmpeg-universalized-libs")
-        target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${FFMPEG_ROOT}/include)
-        target_link_directories(${TEST_NAME} PRIVATE ${FFMPEG_ROOT}/lib)
-        target_link_libraries(${TEST_NAME} PRIVATE
-            avutil avformat swresample avcodec swscale
-            bz2 iconv
-            "-framework CoreVideo"
-            "-framework Security"
-            "-framework AudioToolbox"
-            "-framework CoreMedia"
-            "-framework VideoToolbox"
-        )
-
-        # AOM
-        set(AOM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/macos/ffmpeg/libaom-universalized")
-        target_include_directories(${TEST_NAME} PRIVATE ${AOM_ROOT}/include)
-        target_link_directories(${TEST_NAME} PRIVATE ${AOM_ROOT}/lib)
-        target_link_libraries(${TEST_NAME} PRIVATE aom)
-    else()
-        # Windows/vcpkg
-        find_package(OpenCV REQUIRED COMPONENTS core imgproc)
-        target_link_libraries(${TEST_NAME} PRIVATE ${OpenCV_LIBS})
-
-        find_package(FFMPEG REQUIRED)
-        target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
-        target_link_directories(${TEST_NAME} PRIVATE ${FFMPEG_LIBRARY_DIRS})
-        target_link_libraries(${TEST_NAME} PRIVATE ${FFMPEG_LIBRARIES})
-    endif()
+    target_link_video_processing_dependencies(${TEST_NAME})
 
     # Register test with CTest
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

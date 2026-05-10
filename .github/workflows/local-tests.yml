@@ -1,0 +1,73 @@
+name: Local Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-local-tests:
+    name: Linux tiny repo-local tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ccache \
+            cmake \
+            libavcodec-dev \
+            libavformat-dev \
+            libavutil-dev \
+            libopencv-dev \
+            libswresample-dev \
+            libswscale-dev \
+            ninja-build \
+            pkg-config \
+            qt6-base-dev \
+            qt6-qpa-plugins
+
+      - name: Configure ccache
+        run: |
+          echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> "$GITHUB_ENV"
+          ccache --set-config=max_size=500M
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: |
+            ccache-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Configure
+        run: |
+          cmake -S QtProject -B QtProject/builds/ci-local-tests -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build self-contained test targets
+        run: |
+          cmake --build QtProject/builds/ci-local-tests --target \
+            test_comparison \
+            test_mainwindow \
+            test_auto_delete \
+            test_video_simplified
+
+      - name: Run self-contained tests
+        run: |
+          ctest --test-dir QtProject/builds/ci-local-tests \
+            --output-on-failure \
+            -R "^(test_comparison|test_mainwindow|test_auto_delete|test_video_simplified)$"
