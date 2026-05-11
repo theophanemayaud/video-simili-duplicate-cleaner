@@ -7,6 +7,8 @@
 #include <QTimer>
 #include <QtTest>
 
+#include <functional>
+
 #include "../../app/comparison.h"
 #include "../../app/db.h"
 #include "../../app/mainwindow.h"
@@ -21,10 +23,12 @@ class TestAutoDelete : public QObject
     void initTestCase();
     void cleanupTestCase();
     void test_keepBiggestMovesSmallerVideo();
+    void test_keepSmallestMovesBiggerVideo();
 
   private:
     QString samplesDirPath() const;
-    void acceptNextMessageBoxes(const int messageBoxCount) const;
+    void acceptMessageBoxesDuring(const int expectedMessageBoxCount, const std::function<void()>& action) const;
+    void runAutoDeleteBySize(const bool keepBiggest) const;
 };
 
 void TestAutoDelete::initTestCase()
@@ -55,38 +59,61 @@ QString TestAutoDelete::samplesDirPath() const
     return projectRoot + "/samples/videos";
 }
 
-void TestAutoDelete::acceptNextMessageBoxes(const int messageBoxCount) const
+void TestAutoDelete::acceptMessageBoxesDuring(const int expectedMessageBoxCount,
+                                              const std::function<void()>& action) const
 {
-    auto* timer = new QTimer(QApplication::instance());
-    auto* acceptedMessageBoxes = new int(0);
-    timer->setInterval(10);
+    QTimer timer;
+    int acceptedMessageBoxes = 0;
+    timer.setInterval(10);
 
-    QObject::connect(timer, &QTimer::timeout, [timer, acceptedMessageBoxes, messageBoxCount] {
+    QObject::connect(&timer, &QTimer::timeout, [&acceptedMessageBoxes] {
         auto* messageBox = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+        if (messageBox == nullptr) {
+            for (auto* widget : QApplication::allWidgets()) {
+                messageBox = qobject_cast<QMessageBox*>(widget);
+                if (messageBox != nullptr)
+                    break;
+            }
+        }
         if (messageBox == nullptr)
             return;
+        if (messageBox->property("testAutoDeleteAccepted").toBool())
+            return;
 
-        if (auto* yesButton = messageBox->button(QMessageBox::Yes))
+        messageBox->setProperty("testAutoDeleteAccepted", true);
+        if (auto* okButton = messageBox->button(QMessageBox::Ok))
+            okButton->click();
+        else if (auto* yesButton = messageBox->button(QMessageBox::Yes))
             yesButton->click();
+        else if (auto* defaultButton = messageBox->defaultButton())
+            defaultButton->click();
         else
-            messageBox->accept();
+            messageBox->done(QMessageBox::Ok);
 
-        ++(*acceptedMessageBoxes);
-        if (*acceptedMessageBoxes >= messageBoxCount) {
-            timer->stop();
-            timer->deleteLater();
-            delete acceptedMessageBoxes;
-        }
+        acceptedMessageBoxes++;
     });
 
-    timer->start();
+    timer.start();
+    action();
+    timer.stop();
+
+    QCOMPARE(acceptedMessageBoxes, expectedMessageBoxCount);
 }
 
-// Tests auto deletion by file size ignoring duration and fps
-// Copies the two sample videos, and runs auto deletion with the biggest video kept
-// And a custom trash folder set
-// Then verifies the smaller video is moved to trash and the bigger video is kept
 void TestAutoDelete::test_keepBiggestMovesSmallerVideo()
+{
+    runAutoDeleteBySize(true);
+}
+
+void TestAutoDelete::test_keepSmallestMovesBiggerVideo()
+{
+    runAutoDeleteBySize(false);
+}
+
+// Tests auto deletion by file size ignoring resolution and fps.
+// Copies two sample videos into a temporary folder, runs auto deletion with a custom trash folder,
+// and verifies the selected keep-by-size choice controls which file is moved.
+void TestAutoDelete::runAutoDeleteBySize(const bool keepBiggest) const
 {
     const QDir samplesDir(samplesDirPath());
     QVERIFY2(samplesDir.exists(), QString("Samples directory not found: %1").arg(samplesDir.path()).toUtf8());
@@ -132,19 +159,23 @@ void TestAutoDelete::test_keepBiggestMovesSmallerVideo()
     comp.ui->disableDeleteConfirmationCheckbox->setChecked(true);
     comp.ui->autoOnlySizeDontCheckResFpsCheckbox->setChecked(true);
     QVERIFY(comp.ui->radioButton_onlySizeDiffers_keepBiggest->isChecked());
+    if (!keepBiggest)
+        comp.ui->radioButton_onlySizeDiffers_keepSmallest->setChecked(true);
 
-    acceptNextMessageBoxes(2);
-    comp.on_autoDelOnlySizeDiffersButton_clicked();
+    acceptMessageBoxesDuring(2, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
 
-    QVERIFY2(QFileInfo::exists(testBiggerVideoPath),
-             QString("Expected bigger video to be kept: %1").arg(testBiggerVideoPath).toUtf8());
-    QVERIFY2(!QFileInfo::exists(testSmallerVideoPath),
-             QString("Expected smaller video to be moved: %1").arg(testSmallerVideoPath).toUtf8());
-    QVERIFY2(QFileInfo::exists(trashDir.filePath(smallerVideoName)),
-             QString("Expected smaller video in trash folder: %1").arg(trashDir.filePath(smallerVideoName)).toUtf8());
-    QVERIFY2(
-        !QFileInfo::exists(trashDir.filePath(biggerVideoName)),
-        QString("Did not expect bigger video in trash folder: %1").arg(trashDir.filePath(biggerVideoName)).toUtf8());
+    const QString keptVideoPath = keepBiggest ? testBiggerVideoPath : testSmallerVideoPath;
+    const QString movedVideoPath = keepBiggest ? testSmallerVideoPath : testBiggerVideoPath;
+    const QString keptVideoName = keepBiggest ? biggerVideoName : smallerVideoName;
+    const QString movedVideoName = keepBiggest ? smallerVideoName : biggerVideoName;
+
+    QVERIFY2(QFileInfo::exists(keptVideoPath), QString("Expected video to be kept: %1").arg(keptVideoPath).toUtf8());
+    QVERIFY2(!QFileInfo::exists(movedVideoPath),
+             QString("Expected video to be moved: %1").arg(movedVideoPath).toUtf8());
+    QVERIFY2(QFileInfo::exists(trashDir.filePath(movedVideoName)),
+             QString("Expected video in trash folder: %1").arg(trashDir.filePath(movedVideoName)).toUtf8());
+    QVERIFY2(!QFileInfo::exists(trashDir.filePath(keptVideoName)),
+             QString("Did not expect video in trash folder: %1").arg(trashDir.filePath(keptVideoName)).toUtf8());
 
     w.close();
     QCoreApplication::processEvents();
