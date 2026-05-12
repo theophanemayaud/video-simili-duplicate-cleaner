@@ -1399,13 +1399,15 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
 // - same resolution
 // - same FPS
 // - different file sizes
-// Keeps the bigger file of the two.
-// Compatible regardless of sort order since it specifically keeps the bigger regardless of left/right
+// Keeps either the bigger or smaller file of the two depending on user choice.
+// Compatible regardless of sort order since it specifically chooses by file size regardless of left/right.
 void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 {
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
+    const bool keepBiggest = !ui->radioButton_onlySizeDiffers_keepSmallest->isChecked();
+    const QString trashedSizeLabel = keepBiggest ? QStringLiteral("smaller") : QStringLiteral("bigger");
 
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
@@ -1449,25 +1451,23 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 highlightBetterProperties();
                 updateUI();
 
-                if (_videos[_leftVideo]->size > _videos[_rightVideo]->size) {
-                    deleteVideo(_rightVideo, true);
-                    if (this->_prefs.isVerbose())
-                        emit sendStatusMessage(QString("Auto remove kept %1\n")
-                                                   .arg(QDir::toNativeSeparators(_videos[_leftVideo]->_filePathName)));
-                }
-                else {
-                    deleteVideo(_leftVideo, true);
-                    if (this->_prefs.isVerbose())
-                        emit sendStatusMessage(QString("Auto remove kept %1\n")
-                                                   .arg(QDir::toNativeSeparators(_videos[_rightVideo]->_filePathName)));
-                }
+                const bool leftIsBigger = _videos[_leftVideo]->size > _videos[_rightVideo]->size;
+                const bool deleteRightVideo = (keepBiggest && leftIsBigger) || (!keepBiggest && !leftIsBigger);
+                const int videoToDelete = deleteRightVideo ? _rightVideo : _leftVideo;
+                const int videoToKeep = (videoToDelete == _leftVideo) ? _rightVideo : _leftVideo;
+
+                deleteVideo(videoToDelete, true);
+                if (this->_prefs.isVerbose())
+                    emit sendStatusMessage(QString("Auto remove kept %1\n")
+                                               .arg(QDir::toNativeSeparators(_videos[videoToKeep]->_filePathName)));
 
                 // ask user if he wants to continue or stop the auto deletion, and maybe disable confirmations
                 if (!ui->disableDeleteConfirmationCheckbox->isChecked()) {
                     QMessageBox message;
-                    message.setWindowTitle("Auto trash smaller file sizes confirmation");
-                    message.setText("Do you want to continue the auto deletion of smaller file sizes, and maybe "
-                                    "disable confirmations ?");
+                    message.setWindowTitle(QString("Auto trash %1 file sizes confirmation").arg(trashedSizeLabel));
+                    message.setText(QString("Do you want to continue the auto deletion of %1 file sizes, and maybe "
+                                            "disable confirmations ?")
+                                        .arg(trashedSizeLabel));
                     message.addButton(tr("Continue"), QMessageBox::AcceptRole);
                     QPushButton* stopButton = message.addButton(tr("Stop"), QMessageBox::RejectRole);
                     QPushButton* disableConfirmationsButton =
@@ -1481,9 +1481,9 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                         ui->disableDeleteConfirmationCheckbox->setCheckState(Qt::Checked);
                 }
 
-                // when left video was deleted (i.e. right video size is bigger), we need to break
+                // when left video was deleted, we need to break
                 // out of the inner for loop to go to the next left/reference video
-                if (!(_videos[_leftVideo]->size > _videos[_rightVideo]->size))
+                if (!deleteRightVideo)
                     break;
             }
         }
@@ -1500,7 +1500,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
         _rightVideo = 0;
     }
     // display statistics of deletions
-    QMessageBox::information(this, "Auto trash smaller file sizes complete",
+    QMessageBox::information(this, QString("Auto trash %1 file sizes complete").arg(trashedSizeLabel),
                              QString("%1 dupplicate files were moved to trash, saving %2 of disk space !")
                                  .arg(_videosDeleted - initialDeletedNumber)
                                  .arg(readableFileSize(_spaceSaved - initialSpaceSaved)));

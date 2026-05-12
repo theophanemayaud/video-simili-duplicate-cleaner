@@ -26,6 +26,81 @@ message(STATUS "Qt6Widgets_DIR: ${Qt6Widgets_DIR}")
 message(STATUS "Qt6Sql_DIR: ${Qt6Sql_DIR}")
 message(STATUS "Qt6Concurrent_DIR: ${Qt6Concurrent_DIR}")
 
+function(target_link_video_processing_dependencies TARGET_NAME)
+    if(APPLE)
+        # OpenCV
+        set(OPENCV_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/opencv-arm/opencv-install")
+        target_include_directories(${TARGET_NAME} PRIVATE ${OPENCV_ROOT}/include/opencv4)
+        target_link_libraries(${TARGET_NAME} PRIVATE
+            ${OPENCV_ROOT}/lib/libopencv_imgproc.a
+            ${OPENCV_ROOT}/lib/libopencv_core.a
+            ${OPENCV_ROOT}/lib/opencv4/3rdparty/libzlib.a
+            ${OPENCV_ROOT}/lib/opencv4/3rdparty/libittnotify.a
+            "-framework OpenCL"
+            "-framework Accelerate"
+        )
+
+        # FFMPEG
+        set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
+        target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
+            ${FFMPEG_ROOT}/include
+        )
+        target_link_directories(${TARGET_NAME} PRIVATE
+            ${FFMPEG_ROOT}/lib
+        )
+        target_link_libraries(${TARGET_NAME} PRIVATE
+            avutil avformat swresample avcodec swscale
+            bz2 iconv
+            "-framework CoreVideo"
+            "-framework Security"
+            "-framework AudioToolbox"
+            "-framework CoreMedia"
+            "-framework VideoToolbox"
+        )
+
+        # AOM
+        set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/libaom-universalized")
+        target_include_directories(${TARGET_NAME} PRIVATE ${AOM_ROOT}/include)
+        target_link_directories(${TARGET_NAME} PRIVATE
+            ${AOM_ROOT}/lib
+        )
+        target_link_libraries(${TARGET_NAME} PRIVATE
+            aom
+        )
+    elseif(WIN32)
+        message(STATUS "Windows: adding libraries expecting management by vcpkg")
+
+        find_package(OpenCV REQUIRED COMPONENTS core imgproc)
+        target_link_libraries(${TARGET_NAME} PRIVATE
+            ${OpenCV_LIBS}
+        )
+
+        find_package(FFMPEG REQUIRED)
+        target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
+        target_link_directories(${TARGET_NAME} PRIVATE ${FFMPEG_LIBRARY_DIRS})
+        target_link_libraries(${TARGET_NAME} PRIVATE
+            ${FFMPEG_LIBRARIES}
+        )
+    else()
+        message(STATUS "Unix: adding libraries expecting management by system packages")
+
+        find_package(OpenCV REQUIRED COMPONENTS core imgproc)
+        target_link_libraries(${TARGET_NAME} PRIVATE
+            ${OpenCV_LIBS}
+        )
+
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
+            libavutil
+            libavformat
+            libswresample
+            libavcodec
+            libswscale
+        )
+        target_link_libraries(${TARGET_NAME} PRIVATE PkgConfig::FFMPEG)
+    endif()
+endfunction()
+
 # Définir les sources du projet
 set(PROJECT_SOURCES
     app/main.cpp
@@ -49,7 +124,7 @@ set(PROJECT_SOURCES
 
 if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
-    
+
     set(MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
     set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/app/AppIcon.icns)
     set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
@@ -102,61 +177,7 @@ target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
     APP_COPYRIGHT=${APP_COPYRIGHT}
 )
 
-if(APPLE)
-    # OpenCV
-    set(OPENCV_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/opencv-arm/opencv-install")
-    include_directories(${OPENCV_ROOT}/include/opencv4)
-    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-        ${OPENCV_ROOT}/lib/libopencv_imgproc.a
-        ${OPENCV_ROOT}/lib/libopencv_core.a
-        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libzlib.a
-        ${OPENCV_ROOT}/lib/opencv4/3rdparty/libittnotify.a
-        "-framework OpenCL"
-        "-framework Accelerate"
-    )
-    
-    # FFMPEG
-    set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
-    target_include_directories(video-simili-duplicate-cleaner SYSTEM PRIVATE
-        ${FFMPEG_ROOT}/include
-    )
-    target_link_directories(video-simili-duplicate-cleaner PRIVATE
-        ${FFMPEG_ROOT}/lib
-    )
-    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-        avutil avformat swresample avcodec swscale
-        bz2 iconv
-        "-framework CoreVideo"
-        "-framework Security"
-        "-framework AudioToolbox"
-        "-framework CoreMedia"
-        "-framework VideoToolbox"
-    )
-    
-    # AOM
-    set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/libaom-universalized")
-    include_directories(${AOM_ROOT}/include)
-    target_link_directories(video-simili-duplicate-cleaner PRIVATE
-        ${AOM_ROOT}/lib
-    )
-    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-        aom
-    )
-else()
-    message(STATUS "Windows or other non apple platforms: adding libraries expecting management by vcpkg")
-
-    find_package(OpenCV REQUIRED COMPONENTS core imgproc)
-    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-        ${OpenCV_LIBS}
-    )
-
-    find_package(FFMPEG REQUIRED)   
-    target_include_directories(video-simili-duplicate-cleaner SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
-    target_link_directories(video-simili-duplicate-cleaner PRIVATE ${FFMPEG_LIBRARY_DIRS})
-    target_link_libraries(video-simili-duplicate-cleaner PRIVATE
-        ${FFMPEG_LIBRARIES}
-    )
-endif()
+target_link_video_processing_dependencies(video-simili-duplicate-cleaner)
 
 # Enable testing
 enable_testing()

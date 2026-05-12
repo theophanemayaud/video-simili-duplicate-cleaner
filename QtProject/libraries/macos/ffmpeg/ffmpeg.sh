@@ -4,16 +4,24 @@ set -ex
 # Always run in script directory so artifacts land here
 SCRIPT_DIR="$(cd -- "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+
+dependency_value() {
+  npm --prefix "$PROJECT_ROOT" pkg get "cpp-dependencies-macos.$1.$2" | tr -d '"'
+}
 
 # Build universalized static libs
 
 # FFmpeg and libaom (for AV1 support)
 # Prerequisites: Homebrew (for nasm, pkg-config), git, cmake, lipo, make
 
-FFMPEG_VERSION=n8.0.1
-AOM_VERSION=3.13.1
-AOM_REPO_URL=https://aomedia.googlesource.com/aom.git
-FFMPEG_REPO_URL=https://github.com/FFmpeg/FFmpeg.git
+FFMPEG_REPO_URL="$(dependency_value ffmpeg repo)"
+FFMPEG_VERSION="$(dependency_value ffmpeg version)"
+AOM_REPO_URL="$(dependency_value aom repo)"
+AOM_VERSION="$(dependency_value aom version)"
+
+echo "[ffmpeg.sh] Building FFmpeg $FFMPEG_VERSION from $FFMPEG_REPO_URL"
+echo "[ffmpeg.sh] Building libaom $AOM_VERSION from $AOM_REPO_URL"
 
 # Clean up previous builds
 rm -rf libaom-* ffmpeg-*
@@ -26,7 +34,7 @@ brew install pkg-config
 # build aom libs for av1 decoding
 mkdir -p libaom-{arm,x86_64}-{build,install} libaom-universalized
 
-git clone -b v"$AOM_VERSION" --depth=1 "$AOM_REPO_URL" libaom-source
+git clone -b "$AOM_VERSION" --depth=1 "$AOM_REPO_URL" libaom-source
 # Cherry-pick upstream fix for stale nasm -Ox detection
 # (bug in 3.13.1 release that breaks x86 cross-build when on updated nasm 3+ version
 # which lists expected multipass optimization -Ox as supported but under different parameters)
@@ -36,14 +44,14 @@ cd libaom-arm-build
 cmake ../libaom-source \
     -DCMAKE_INSTALL_PREFIX=../libaom-arm-install \
     -DBUILD_SHARED_LIBS=0 -DENABLE_DOCS=0 -DENABLE_EXAMPLES=0 -DENABLE_TESTDATA=0 -DENABLE_TESTS=0 -DENABLE_TOOLS=0 -DCONFIG_AV1_ENCODER=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
-make -j
+make -j"$(sysctl -n hw.logicalcpu)"
 make install
 cd ../libaom-x86_64-build
 cmake ../libaom-source \
     -DCMAKE_TOOLCHAIN_FILE=../libaom-source/build/cmake/toolchains/x86_64-macos.cmake \
     -DCMAKE_INSTALL_PREFIX=../libaom-x86_64-install \
 	-DBUILD_SHARED_LIBS=0 -DENABLE_DOCS=0 -DENABLE_EXAMPLES=0 -DENABLE_TESTDATA=0 -DENABLE_TESTS=0 -DENABLE_TOOLS=0 -DCONFIG_AV1_ENCODER=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
-make -j
+make -j"$(sysctl -n hw.logicalcpu)"
 make install
 ## create universalized libaom
 cd ../libaom-universalized
@@ -62,7 +70,7 @@ cd ffmpeg-arm-build
 ## arm lib path
 export PKG_CONFIG_PATH="../libaom-arm-install/lib/pkgconfig:$PKG_CONFIG_PATH"
 ../ffmpeg-source/configure --prefix='../ffmpeg-arm-install' --arch=arm64 --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --disable-filters --enable-avformat --enable-libaom --disable-lzma
-make -j
+make -j"$(sysctl -n hw.logicalcpu)"
 make install
 
 # cross build ffmpeg x86
@@ -70,7 +78,7 @@ cd ../ffmpeg-x86_64-build
 # x86 lib path
 export PKG_CONFIG_PATH="../libaom-x86_64-install/lib/pkgconfig:$PKG_CONFIG_PATH"
 ../ffmpeg-source/configure --prefix='../ffmpeg-x86_64-install' --enable-cross-compile --arch=x86_64 --cc='clang -arch x86_64' --target-os=darwin --extra-cflags='-mmacosx-version-min=12.0' --extra-ldflags='-mmacosx-version-min=12.0' --enable-gpl --enable-static --disable-doc --disable-shared --disable-programs --disable-encoders --disable-muxers --disable-filters --enable-avformat --enable-libaom --disable-lzma
-make -j
+make -j"$(sysctl -n hw.logicalcpu)"
 make install
 
 # create universalized libs

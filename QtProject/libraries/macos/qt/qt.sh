@@ -4,8 +4,6 @@ set -euo pipefail
 # Build Qt static libs for macOS (universal: arm64 + x86_64)
 # Usage: ./qt.sh
 
-QT_VERSION="6.9.3"
-QT_REPO_URL="https://code.qt.io/qt/qt5.git"
 SOURCE_DIR="qt-source"
 BUILD_DIR="qt-build"
 INSTALL_DIR="qt-install"
@@ -14,8 +12,12 @@ QT_SUBMODULES="qtbase" # Only pull what we need for Core/Widgets/Sql/Concurrent
 # Always run in script directory even when invoked from outside so artifacts land here
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
-echo "[qt.sh] Building Qt $QT_VERSION for macOS..."
+QT_REPO_URL="$(npm --prefix "$PROJECT_ROOT" pkg get cpp-dependencies-macos.qt.repo | tr -d '"')"
+QT_VERSION="$(npm --prefix "$PROJECT_ROOT" pkg get cpp-dependencies-macos.qt.version | tr -d '"')"
+
+echo "[qt.sh] Building Qt $QT_VERSION from $QT_REPO_URL"
 
 # Prerequisites (QtBase/Widgets/Sql/Concurrent do not need Python; configure
 # uses init-repository under the hood when -init-submodules is set, which needs perl)
@@ -30,7 +32,7 @@ done
 rm -rf "$BUILD_DIR" "$INSTALL_DIR" "$SOURCE_DIR"
 
 # Clone Qt
-git clone "$QT_REPO_URL" --branch "v$QT_VERSION" --depth 1 "$SOURCE_DIR"
+git clone "$QT_REPO_URL" --branch "$QT_VERSION" --depth 1 "$SOURCE_DIR"
 
 # Configure via Qt's configure wrapper (documented path)
 mkdir -p "$BUILD_DIR"
@@ -46,7 +48,7 @@ cd "$BUILD_DIR"
   -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
 
 # Build and install
-cmake --build . --parallel
+cmake --build . --parallel "$(sysctl -n hw.logicalcpu)"
 cmake --install .
 cd "$SCRIPT_DIR"
 
