@@ -35,7 +35,7 @@ rm -rf "$BUILD_DIR" "$INSTALL_DIR" "$SOURCE_DIR"
 git clone "$QT_REPO_URL" --branch "$QT_VERSION" --depth 1 "$SOURCE_DIR"
 
 # Pull qtbase before configure so we can patch it when runner SDKs need it.
-perl "$SOURCE_DIR/init-repository" --module-subset="$QT_SUBMODULES"
+(cd "$SOURCE_DIR" && perl init-repository --module-subset="$QT_SUBMODULES")
 
 # Qt 6.9.3 predates QTBUG-145239: Xcode 26.4 reports __yield as a builtin
 # while still requiring <arm_acle.h>, so prefer Clang's arm yield intrinsic.
