@@ -34,6 +34,29 @@ rm -rf "$BUILD_DIR" "$INSTALL_DIR" "$SOURCE_DIR"
 # Clone Qt
 git clone "$QT_REPO_URL" --branch "$QT_VERSION" --depth 1 "$SOURCE_DIR"
 
+# Qt 6.9.3 predates QTBUG-145239: Xcode 26.4 reports __yield as a builtin
+# while still requiring <arm_acle.h>, so prefer Clang's arm yield intrinsic.
+QYIELDCPU_HEADER="$SOURCE_DIR/qtbase/src/corelib/thread/qyieldcpu.h"
+perl -0e '
+  use strict;
+  use warnings;
+
+  my ($path) = @ARGV;
+  open my $fh, "<", $path or die "[qt.sh] Cannot read $path: $!\n";
+  my $content = do { local $/; <$fh> };
+  close $fh;
+
+  my $generic_yield = "#if __has_builtin(__yield)\n    __yield();              // Generic\n";
+  my $arm_yield = "\n#elif __has_builtin(__builtin_arm_yield)\n    __builtin_arm_yield();\n";
+  $content =~ s/\Q$generic_yield\E/#if __has_builtin(__builtin_arm_yield)\n    __builtin_arm_yield();\n#elif __has_builtin(__yield)\n    __yield();              \/\/ Generic\n/
+    or die "[qt.sh] Could not apply qyieldcpu generic yield patch\n";
+  $content =~ s/\Q$arm_yield\E/\n/
+    or die "[qt.sh] Could not remove duplicate qyieldcpu arm yield branch\n";
+
+  open $fh, ">", $path or die "[qt.sh] Cannot write $path: $!\n";
+  print {$fh} $content;
+' "$QYIELDCPU_HEADER"
+
 # Configure via Qt's configure wrapper (documented path)
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
