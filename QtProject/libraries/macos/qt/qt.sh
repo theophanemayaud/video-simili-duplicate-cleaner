@@ -19,8 +19,8 @@ QT_VERSION="$(npm --prefix "$PROJECT_ROOT" pkg get cpp-dependencies-macos.qt.ver
 
 echo "[qt.sh] Building Qt $QT_VERSION from $QT_REPO_URL"
 
-# Prerequisites (QtBase/Widgets/Sql/Concurrent do not need Python; configure
-# uses init-repository under the hood when -init-submodules is set, which needs perl)
+# Prerequisites (QtBase/Widgets/Sql/Concurrent do not need Python; Qt's
+# init-repository needs perl)
 for tool in cmake git ninja; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "[qt.sh] Error: $tool is required. Install it (e.g. brew install $tool)." >&2
@@ -33,6 +33,9 @@ rm -rf "$BUILD_DIR" "$INSTALL_DIR" "$SOURCE_DIR"
 
 # Clone Qt
 git clone "$QT_REPO_URL" --branch "$QT_VERSION" --depth 1 "$SOURCE_DIR"
+
+# Pull qtbase before configure so we can patch it when runner SDKs need it.
+perl "$SOURCE_DIR/init-repository" --module-subset="$QT_SUBMODULES"
 
 # Qt 6.9.3 predates QTBUG-145239: Xcode 26.4 reports __yield as a builtin
 # while still requiring <arm_acle.h>, so prefer Clang's arm yield intrinsic.
@@ -61,8 +64,6 @@ perl -0e '
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 "../$SOURCE_DIR/configure" \
-  -init-submodules \
-  -submodules "$QT_SUBMODULES" \
   -prefix "$SCRIPT_DIR/$INSTALL_DIR" \
   -release -static -no-framework \
   -nomake examples -nomake tests \
