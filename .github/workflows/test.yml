@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   linux-test:
-    name: Linux tiny repo-local tests
+    name: Linux tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -119,7 +119,7 @@ jobs:
           retention-days: 1
 
   macos-test:
-    name: macOS local-like tests (${{ matrix.name }})
+    name: macOS tests (${{ matrix.name }})
     needs: macos-static-deps
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
