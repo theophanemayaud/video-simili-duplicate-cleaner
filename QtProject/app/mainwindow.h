@@ -10,7 +10,7 @@
 
 #include "ui_mainwindow.h"
 
-#include "comparison.h"
+#include "comparison/comparison.h"
 #include "db.h"
 #include "prefs.h"
 #include "video.h"

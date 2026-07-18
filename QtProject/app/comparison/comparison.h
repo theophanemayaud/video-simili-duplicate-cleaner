@@ -21,14 +21,16 @@
 #include "obj-c.h"
 #endif
 
-#include "videopairmatcher.h"
-
 namespace Ui
 {
 class Comparison;
 }
 
 class BackgroundMatchDiscovery;
+struct MatchedVideoPair;
+class Prefs;
+class Video;
+struct VideoMetadata;
 
 class Comparison : public QDialog
 {
@@ -73,8 +75,8 @@ class Comparison : public QDialog
     void restartBackgroundDiscovery();
     void updateDiscoveryProgress(int64_t safeEnd);
     bool navigateForwardFrom(int64_t currentPosition);
-    bool findNextSynchronouslyFrom(int64_t firstPosition);
-    bool findPreviousSynchronouslyFrom(int64_t firstPosition, int64_t lastPosition);
+    bool navigateToNextMatch(int64_t firstPosition);
+    bool navigateToPrevMatch(int64_t firstPosition, int64_t lastPosition);
     bool isPairStillDisplayable(const MatchedVideoPair& pair) const;
     void displayMatchedPair(const MatchedVideoPair& pair);
 
@@ -141,20 +143,20 @@ class Comparison : public QDialog
     void on_selectPhash_clicked(const bool& checked);
     void on_selectSSIM_clicked(const bool& checked);
 
-    void on_leftImage_clicked() { openMedia(_videos[_leftVideo]->_filePathName); }
-    void on_rightImage_clicked() { openMedia(_videos[_rightVideo]->_filePathName); }
+    void on_leftImage_clicked();
+    void on_rightImage_clicked();
     void openMedia(const QString filenamepath);
 
-    void on_leftFileName_clicked() { openFileManager(_videos[_leftVideo]->_filePathName); }
-    void on_rightFileName_clicked() { openFileManager(_videos[_rightVideo]->_filePathName); }
+    void on_leftFileName_clicked();
+    void on_rightFileName_clicked();
     void openFileManager(const QString& filename);
 
     void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
     void on_rightDelete_clicked() { deleteVideo(_rightVideo); }
     void deleteVideo(const int& side, const bool auto_trash_mode = false);
 
-    void on_leftMove_clicked() { moveVideo(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName); }
-    void on_rightMove_clicked() { moveVideo(_videos[_rightVideo]->_filePathName, _videos[_leftVideo]->_filePathName); }
+    void on_leftMove_clicked();
+    void on_rightMove_clicked();
     void moveVideo(const QString& from, const QString& to);
     void on_swapFilenames_clicked() const;
 

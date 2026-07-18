@@ -3,10 +3,10 @@
 #include <QtTest>
 
 // add necessary includes here
-#include "../../app/backgroundmatchdiscovery.h"
-#include "../../app/comparison.h"
-#include "../../app/videopairmatcher.h"
-#include "../../app/videopairspace.h"
+#include "../../app/comparison/comparison.h"
+#include "../../app/comparison/internal/backgroundmatchdiscovery.h"
+#include "../../app/comparison/internal/videopairmatcher.h"
+#include "../../app/comparison/internal/videopairspace.h"
 #include "../../app/videometadata.h"
 
 class test_comparison : public QObject

@@ -2220,7 +2220,7 @@ In each scenario where only one of the two files is either in a protected folder
   <customwidget>
    <class>DiscoveryProgressSlider</class>
    <extends>QSlider</extends>
-   <header>discoveryprogressslider.h</header>
+   <header>comparison/internal/discoveryprogressslider.h</header>
   </customwidget>
   <customwidget>
    <class>ClickableLabel</class>

@@ -109,24 +109,24 @@ set(PROJECT_SOURCES
     app/mainwindow.ui
     app/video.cpp
     app/video.h
-    app/videopairmatcher.cpp
-    app/videopairmatcher.h
-    app/videopairspace.h
-    app/backgroundmatchdiscovery.cpp
-    app/backgroundmatchdiscovery.h
-    app/comparison.cpp
-    app/comparison.h
-    app/comparison.ui
-    app/discoveryprogressslider.cpp
-    app/discoveryprogressslider.h
+    app/comparison/comparison.cpp
+    app/comparison/comparison.h
+    app/comparison/comparison.ui
+    app/comparison/internal/backgroundmatchdiscovery.cpp
+    app/comparison/internal/backgroundmatchdiscovery.h
+    app/comparison/internal/discoveryprogressslider.cpp
+    app/comparison/internal/discoveryprogressslider.h
+    app/comparison/internal/ssim.cpp
+    app/comparison/internal/ssim.h
+    app/comparison/internal/videopairmatcher.cpp
+    app/comparison/internal/videopairmatcher.h
+    app/comparison/internal/videopairspace.h
     app/thumbnail.h
     app/db.cpp
     app/db.h
     app/prefs.h
     app/prefs.cpp
     app/videometadata.h
-    app/ssim.cpp
-    app/ssim.h
     app/files.qrc
 )
 

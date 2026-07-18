@@ -12,12 +12,12 @@ set(TEST_COMPILE_DEFINITIONS
 # Common source files from main app that tests need
 set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/video.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/videopairmatcher.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/backgroundmatchdiscovery.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/videopairmatcher.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/backgroundmatchdiscovery.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/db.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/discoveryprogressslider.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/ssim.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/comparison.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/discoveryprogressslider.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/ssim.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/mainwindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/prefs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/files.qrc

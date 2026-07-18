@@ -1,7 +1,7 @@
 #include "video_simplified_test_helpers.h"
 
-#include "../../app/ssim.h"
-#include "../../app/comparison.h"
+#include "../../app/comparison/comparison.h"
+#include "../../app/comparison/internal/ssim.h"
 #include "../../app/db.h"
 #include "../../app/video.h"
 #include "opencv2/imgproc.hpp"

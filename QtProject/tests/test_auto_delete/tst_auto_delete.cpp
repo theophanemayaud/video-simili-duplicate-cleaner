@@ -9,11 +9,11 @@
 
 #include <functional>
 
-#include "../../app/comparison.h"
+#include "../../app/comparison/comparison.h"
 #include "../../app/db.h"
 #include "../../app/mainwindow.h"
 #include "../../app/prefs.h"
-#include "../../app/ui_comparison.h"
+#include "../../app/comparison/ui_comparison.h"
 
 class TestAutoDelete : public QObject
 {

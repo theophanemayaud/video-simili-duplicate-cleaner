@@ -5,9 +5,10 @@
 #include <QProgressDialog>
 #include <QSlider>
 
-#include "backgroundmatchdiscovery.h"
+#include "internal/backgroundmatchdiscovery.h"
 #include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
-#include "videopairspace.h"
+#include "internal/videopairmatcher.h"
+#include "internal/videopairspace.h"
 
 enum FILENAME_CONTAINED_WITHIN_ANOTHER : int {
     NOT_CONTAINED,
@@ -252,7 +253,7 @@ void Comparison::on_prevVideo_clicked()
 
     const int64_t safeEnd = _backgroundDiscovery->safeEnd();
     if (currentPosition - 1 > safeEnd
-        && findPreviousSynchronouslyFrom(currentPosition - 1, safeEnd + 1))
+        && navigateToPrevMatch(currentPosition - 1, safeEnd + 1))
         return;
 
     int64_t cursor = qMin(currentPosition, safeEnd + 1);
@@ -318,10 +319,10 @@ bool Comparison::navigateForwardFrom(int64_t currentPosition)
     }
 
     const int64_t firstUncheckedPosition = qMax(currentPosition + 1, _backgroundDiscovery->safeEnd() + 1);
-    return findNextSynchronouslyFrom(firstUncheckedPosition);
+    return navigateToNextMatch(firstUncheckedPosition);
 }
 
-bool Comparison::findNextSynchronouslyFrom(int64_t firstPosition)
+bool Comparison::navigateToNextMatch(int64_t firstPosition)
 {
     if (firstPosition < 1 || firstPosition > _maxComparisons)
         return false;
@@ -353,7 +354,7 @@ bool Comparison::findNextSynchronouslyFrom(int64_t firstPosition)
     return false;
 }
 
-bool Comparison::findPreviousSynchronouslyFrom(int64_t firstPosition, int64_t lastPosition)
+bool Comparison::navigateToPrevMatch(int64_t firstPosition, int64_t lastPosition)
 {
     if (firstPosition < lastPosition || firstPosition < 1)
         return false;
@@ -748,6 +749,16 @@ void Comparison::onProgressSliderReleased()
     seekFromSliderPosition(ui->progressBar->sliderPosition());
 }
 
+void Comparison::on_leftFileName_clicked()
+{
+    openFileManager(_videos[_leftVideo]->_filePathName);
+}
+
+void Comparison::on_rightFileName_clicked()
+{
+    openFileManager(_videos[_rightVideo]->_filePathName);
+}
+
 void Comparison::openFileManager(const QString& filename)
 {
 #ifdef Q_OS_WIN
@@ -774,6 +785,16 @@ void Comparison::openFileManager(const QString& filename)
 #elif defined(Q_OS_X11)
     QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(filename.left(filename.lastIndexOf("/"))));
 #endif
+}
+
+void Comparison::on_leftImage_clicked()
+{
+    openMedia(_videos[_leftVideo]->_filePathName);
+}
+
+void Comparison::on_rightImage_clicked()
+{
+    openMedia(_videos[_rightVideo]->_filePathName);
 }
 
 void Comparison::openMedia(const QString filename)
@@ -1005,6 +1026,16 @@ void Comparison::deleteVideo(const int& side, const bool auto_trash_mode)
                 _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
     }
+}
+
+void Comparison::on_leftMove_clicked()
+{
+    moveVideo(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName);
+}
+
+void Comparison::on_rightMove_clicked()
+{
+    moveVideo(_videos[_rightVideo]->_filePathName, _videos[_leftVideo]->_filePathName);
 }
 
 void Comparison::moveVideo(const QString& from, const QString& to)
