@@ -73,7 +73,7 @@ class Comparison : public QDialog
 
     void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();
-    void updateDiscoveryProgress(int64_t safeEnd);
+    void updateDiscoveryProgress(int64_t preScannedEnd);
     bool navigateForwardFrom(int64_t currentPosition);
     bool navigateToNextMatch(int64_t firstPosition);
     bool navigateToPrevMatch(int64_t firstPosition, int64_t lastPosition);

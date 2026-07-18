@@ -176,7 +176,7 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     QSignalSpy finishedSpy(&discovery, &BackgroundMatchDiscovery::finished);
     discovery.start({&first, &second, &third, &fourth}, config);
 
-    QTRY_COMPARE_WITH_TIMEOUT(discovery.safeEnd(), 6, 5000);
+    QTRY_COMPARE_WITH_TIMEOUT(discovery.preScannedEnd(), 6, 5000);
     QCOMPARE(finishedSpy.count(), 1);
     QCOMPARE(discovery.discoveredMatchCount(), 1);
 

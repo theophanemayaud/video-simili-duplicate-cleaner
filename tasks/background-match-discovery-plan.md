@@ -14,16 +14,17 @@ Several workers claim fixed-size contiguous chunks from an atomic counter. Chunk
 results are delivered to the main thread, which owns the candidate map and chunk
 completion bitset.
 
-Workers can finish out of order, but `safeEnd` only advances through contiguous
-completed chunks from position 1. Therefore every pair at or before `safeEnd` is
-known to have been evaluated. The slider paints this safe prefix green.
+Workers can finish out of order, but `preScannedEnd` only advances through
+contiguous completed chunks from position 1. Therefore every pair at or before
+`preScannedEnd` is known to have been evaluated. The slider paints this
+pre-scanned prefix green.
 
 Navigation remains synchronous:
 
-- Next and seek consume sparse discovered candidates inside the safe prefix.
+- Next and seek consume sparse discovered candidates inside the pre-scanned prefix.
 - Previous consumes discovered candidates after synchronously checking any gap
-  between the current position and the safe prefix.
-- Outside the safe prefix, navigation uses the existing pair-by-pair scan.
+  between the current position and the pre-scanned prefix.
+- Outside the pre-scanned prefix, navigation uses the existing pair-by-pair scan.
 - Foreground and background scans may duplicate work. This is intentional: the
   small amount of wasted computation avoids worker retargeting, priorities,
   shared navigation state, and complex cancellation rules.
@@ -44,5 +45,6 @@ not restart discovery:
 - ignored-pair state;
 - filename containment.
 
-Sort changes restart discovery because a partially safe linear prefix cannot be
-translated into a safe prefix after pair positions are reordered.
+Sort changes restart discovery because a partially pre-scanned linear prefix
+cannot be translated into a contiguous pre-scanned prefix after pair positions
+are reordered.

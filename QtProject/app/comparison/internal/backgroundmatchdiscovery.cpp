@@ -21,14 +21,14 @@ void BackgroundMatchDiscovery::start(const QVector<Video*>& videos, const VideoP
     stop();
 
     _maxPosition = VideoPairSpace::comparisonCount(videos.size());
-    _safeEnd = 0;
+    _contiguousScannedEnd = 0;
     _nextChunkToCommit = 0;
     _matches.clear();
     _started = true;
 
     const int chunkCount = int((_maxPosition + _chunkSize - 1) / _chunkSize);
     _completedChunks = QBitArray(chunkCount, false);
-    emit safeEndChanged(0);
+    emit preScannedEndChanged(0);
 
     if (chunkCount == 0) {
         emit finished();
@@ -99,17 +99,17 @@ void BackgroundMatchDiscovery::stop()
 std::optional<MatchedVideoPair> BackgroundMatchDiscovery::nextCandidateAfter(int64_t position) const
 {
     const auto candidate = _matches.upperBound(position);
-    if (candidate == _matches.end() || candidate.key() > _safeEnd)
+    if (candidate == _matches.end() || candidate.key() > _contiguousScannedEnd)
         return std::nullopt;
     return candidate.value();
 }
 
 std::optional<MatchedVideoPair> BackgroundMatchDiscovery::previousCandidateBefore(int64_t position) const
 {
-    if (_matches.isEmpty() || _safeEnd < 1)
+    if (_matches.isEmpty() || _contiguousScannedEnd < 1)
         return std::nullopt;
 
-    auto candidate = _matches.lowerBound(qMin(position, _safeEnd + 1));
+    auto candidate = _matches.lowerBound(qMin(position, _contiguousScannedEnd + 1));
     if (candidate == _matches.begin())
         return std::nullopt;
     --candidate;
@@ -136,13 +136,13 @@ void BackgroundMatchDiscovery::acceptCompletedChunk(quint64 generation, int chun
         _matches.insert(match.position, match);
     _completedChunks.setBit(chunk);
 
-    const int oldSafeEnd = _safeEnd;
+    const int64_t oldContiguousScannedEnd = _contiguousScannedEnd;
     while (_nextChunkToCommit < _completedChunks.size() && _completedChunks.testBit(_nextChunkToCommit))
         ++_nextChunkToCommit;
 
-    _safeEnd = qMin(int64_t(_nextChunkToCommit) * _chunkSize, _maxPosition);
-    if (_safeEnd != oldSafeEnd)
-        emit safeEndChanged(_safeEnd);
-    if (_safeEnd == _maxPosition)
+    _contiguousScannedEnd = qMin(int64_t(_nextChunkToCommit) * _chunkSize, _maxPosition);
+    if (_contiguousScannedEnd != oldContiguousScannedEnd)
+        emit preScannedEndChanged(_contiguousScannedEnd);
+    if (_contiguousScannedEnd == _maxPosition)
         emit finished();
 }

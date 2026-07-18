@@ -39,7 +39,7 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
     connect(ui->progressBar, &QSlider::valueChanged,
             [this](int value) { ui->currentVideo->setText(QString::number(value)); });
     connect(ui->progressBar, &QSlider::sliderReleased, this, &Comparison::onProgressSliderReleased);
-    connect(_backgroundDiscovery.get(), &BackgroundMatchDiscovery::safeEndChanged, this,
+    connect(_backgroundDiscovery.get(), &BackgroundMatchDiscovery::preScannedEndChanged, this,
             &Comparison::updateDiscoveryProgress);
 
     initSortOrder();
@@ -251,12 +251,13 @@ void Comparison::on_prevVideo_clicked()
     if (currentPosition <= 1)
         return;
 
-    const int64_t safeEnd = _backgroundDiscovery->safeEnd();
-    if (currentPosition - 1 > safeEnd
-        && navigateToPrevMatch(currentPosition - 1, safeEnd + 1))
+    const int64_t preScannedEnd = _backgroundDiscovery->preScannedEnd();
+    const int64_t previousPosition = currentPosition - 1;
+    if (previousPosition > preScannedEnd
+        && navigateToPrevMatch(previousPosition, preScannedEnd + 1))
         return;
 
-    int64_t cursor = qMin(currentPosition, safeEnd + 1);
+    int64_t cursor = qMin(currentPosition, preScannedEnd + 1);
     while (const auto candidate = _backgroundDiscovery->previousCandidateBefore(cursor)) {
         if (isPairStillDisplayable(*candidate)) {
             displayMatchedPair(*candidate);
@@ -297,10 +298,10 @@ void Comparison::restartBackgroundDiscovery()
     _backgroundDiscovery->start(_videos, VideoPairMatcher::configFromPrefs(_prefs));
 }
 
-void Comparison::updateDiscoveryProgress(int64_t safeEnd)
+void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
 {
-    ui->progressBar->setDiscoveredValue(progressBarValue(safeEnd));
-    const int percent = _maxComparisons > 0 ? int(100 * safeEnd / _maxComparisons) : 100;
+    ui->progressBar->setDiscoveredValue(progressBarValue(preScannedEnd));
+    const int percent = _maxComparisons > 0 ? int(100 * preScannedEnd / _maxComparisons) : 100;
     ui->progressBar->setToolTip(
         QStringLiteral("Background matching: %1% checked, %2 candidate pair(s) found")
             .arg(percent)
@@ -318,7 +319,8 @@ bool Comparison::navigateForwardFrom(int64_t currentPosition)
         cursor = candidate->position;
     }
 
-    const int64_t firstUncheckedPosition = qMax(currentPosition + 1, _backgroundDiscovery->safeEnd() + 1);
+    const int64_t firstUncheckedPosition =
+        qMax(currentPosition + 1, _backgroundDiscovery->preScannedEnd() + 1);
     return navigateToNextMatch(firstUncheckedPosition);
 }
 

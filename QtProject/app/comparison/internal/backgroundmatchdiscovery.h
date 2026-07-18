@@ -19,7 +19,7 @@ class BackgroundMatchDiscovery : public QObject
 
   public:
     // Discovery deliberately owns no navigation state. Foreground navigation
-    // may duplicate work beyond safeEnd rather than coordinating with workers.
+    // may duplicate work beyond preScannedEnd rather than coordinating with workers.
     explicit BackgroundMatchDiscovery(int chunkSize = 4096, int workerCount = 0, QObject* parent = nullptr);
     ~BackgroundMatchDiscovery() override;
 
@@ -27,7 +27,7 @@ class BackgroundMatchDiscovery : public QObject
     void stop();
 
     bool hasStarted() const { return _started; }
-    int64_t safeEnd() const { return _safeEnd; }
+    int64_t preScannedEnd() const { return _contiguousScannedEnd; }
     int64_t maxPosition() const { return _maxPosition; }
     int discoveredMatchCount() const { return _matches.size(); }
 
@@ -35,7 +35,7 @@ class BackgroundMatchDiscovery : public QObject
     std::optional<MatchedVideoPair> previousCandidateBefore(int64_t position) const;
 
   signals:
-    void safeEndChanged(int64_t safeEnd);
+    void preScannedEndChanged(int64_t preScannedEnd);
     void finished();
 
   private:
@@ -47,11 +47,18 @@ class BackgroundMatchDiscovery : public QObject
     const int _chunkSize;
     const int _requestedWorkerCount;
     int64_t _maxPosition = 0;
-    int64_t _safeEnd = 0;
+    // Highest one-based pair-space position for which every position from 1
+    // through this value has been scanned. Out-of-order completed chunks beyond
+    // this point do not advance it until all preceding chunks are complete.
+    int64_t _contiguousScannedEnd = 0;
     int _nextChunkToCommit = 0;
     bool _started = false;
     quint64 _generation = 0;
     QBitArray _completedChunks;
+    // Keyed by one-based pair-space position so navigation can efficiently find
+    // the next or previous sparse match. Results from chunks completed out of
+    // order are inserted immediately, so this map may contain matches beyond
+    // _contiguousScannedEnd; query methods hide those until the contiguous prefix catches up.
     QMap<int64_t, MatchedVideoPair> _matches;
     QVector<QFuture<void>> _workers;
     std::shared_ptr<RunState> _runState;
