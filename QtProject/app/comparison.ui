@@ -2166,7 +2166,7 @@ In each scenario where only one of the two files is either in a protected folder
       </widget>
      </item>
      <item>
-      <widget class="QSlider" name="progressBar">
+      <widget class="DiscoveryProgressSlider" name="progressBar">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -2217,6 +2217,11 @@ In each scenario where only one of the two files is either in a protected folder
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>DiscoveryProgressSlider</class>
+   <extends>QSlider</extends>
+   <header>discoveryprogressslider.h</header>
+  </customwidget>
   <customwidget>
    <class>ClickableLabel</class>
   </customwidget>

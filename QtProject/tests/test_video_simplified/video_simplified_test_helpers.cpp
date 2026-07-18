@@ -1,4 +1,6 @@
 #include "video_simplified_test_helpers.h"
+
+#include "../../app/ssim.h"
 #include "../../app/comparison.h"
 #include "../../app/db.h"
 #include "../../app/video.h"
@@ -222,7 +224,7 @@ double SimplifiedTestHelpers::compareThumbnails(const QByteArray& thumb1, const 
 
     // Use SSIM with block size of 16 (same as app default)
     const int blockSize = 16;
-    return Comparison::ssim(gray1, gray2, blockSize);
+    return Ssim::calculate(gray1, gray2, blockSize);
 }
 
 bool SimplifiedTestHelpers::compareMetadata(const VideoParam& ref, const VideoParam& current, QString& errorMsg)

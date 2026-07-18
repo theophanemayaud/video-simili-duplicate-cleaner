@@ -12,8 +12,11 @@ set(TEST_COMPILE_DEFINITIONS
 # Common source files from main app that tests need
 set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/video.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/videopairmatcher.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/backgroundmatchdiscovery.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/db.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/discoveryprogressslider.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/ssim.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/mainwindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/prefs.cpp
@@ -60,6 +63,7 @@ function(add_qt_test TEST_NAME)
         Qt6::Concurrent
         Qt6::Test
     )
+    target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../app)
 
     # Add compile definitions
     target_compile_definitions(${TEST_NAME} PRIVATE ${TEST_COMPILE_DEFINITIONS})

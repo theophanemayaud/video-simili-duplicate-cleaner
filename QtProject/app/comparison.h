@@ -13,18 +13,22 @@
 #include <QUuid>
 #include <QWheelEvent>
 
+#include <memory>
+
 #ifdef Q_OS_MACOS
 #include <QProcess> // for running apple scripts and opening file in explorer
 
 #include "obj-c.h"
 #endif
 
-#include "video.h"
+#include "videopairmatcher.h"
 
 namespace Ui
 {
 class Comparison;
 }
+
+class BackgroundMatchDiscovery;
 
 class Comparison : public QDialog
 {
@@ -37,23 +41,19 @@ class Comparison : public QDialog
     Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, const QRect& mainWindowGeometry);
     ~Comparison();
 
-    // SSIM calculation methods - made public and static for reuse in tests
-    static double sigma(const cv::Mat& m, const int& i, const int& j, const int& block_size);
-    static double covariance(const cv::Mat& m0, const cv::Mat& m1, const int& i, const int& j, const int& block_size);
-    static double ssim(const cv::Mat& m0, const cv::Mat& m1, const int& block_size);
-
   private:
     Ui::Comparison* ui;
 
     QVector<Video*> _videos;
     Prefs& _prefs;
+    const int64_t _maxComparisons;
+    std::unique_ptr<BackgroundMatchDiscovery> _backgroundDiscovery;
     int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
     int64_t _spaceSaved = 0;
     bool _seekForwards = true;
 
-    int _durationModifier = 0;
     int _phashSimilarity = 0;
     double _ssimSimilarity = 0.0;
 
@@ -70,6 +70,13 @@ class Comparison : public QDialog
     bool _firstScriptingAskPermission = true;
 
     void seekFromSliderPosition(int position);
+    void restartBackgroundDiscovery();
+    void updateDiscoveryProgress(int64_t safeEnd);
+    bool navigateForwardFrom(int64_t currentPosition);
+    bool findNextSynchronouslyFrom(int64_t firstPosition);
+    bool findPreviousSynchronouslyFrom(int64_t firstPosition, int64_t lastPosition);
+    bool isPairStillDisplayable(const MatchedVideoPair& pair) const;
+    void displayMatchedPair(const MatchedVideoPair& pair);
 
     void loadLockedFolderFromPrefs();
     void addLockedFolderToList(QString folderPath);
@@ -120,7 +127,6 @@ class Comparison : public QDialog
     void on_prevVideo_clicked();
     void on_nextVideo_clicked();
     bool bothVideosMatch(const Video* left, const Video* right);
-    int phashSimilarity(const Video* left, const Video* right, const int& nthHash);
 
     void showVideo(const QString& side);
     QString readableDuration(const int64_t& milliseconds) const;
@@ -132,18 +138,8 @@ class Comparison : public QDialog
     int progressBarValue(int64_t comparisons) const;
     void onProgressSliderReleased();
 
-    void on_selectPhash_clicked(const bool& checked)
-    {
-        if (checked)
-            this->_prefs.comparisonMode(Prefs::_PHASH);
-        emit switchComparisonMode(this->_prefs.comparisonMode());
-    }
-    void on_selectSSIM_clicked(const bool& checked)
-    {
-        if (checked)
-            this->_prefs.comparisonMode(Prefs::_SSIM);
-        emit switchComparisonMode(this->_prefs.comparisonMode());
-    }
+    void on_selectPhash_clicked(const bool& checked);
+    void on_selectSSIM_clicked(const bool& checked);
 
     void on_leftImage_clicked() { openMedia(_videos[_leftVideo]->_filePathName); }
     void on_rightImage_clicked() { openMedia(_videos[_rightVideo]->_filePathName); }

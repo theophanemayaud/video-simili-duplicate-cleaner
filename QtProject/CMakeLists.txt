@@ -109,9 +109,16 @@ set(PROJECT_SOURCES
     app/mainwindow.ui
     app/video.cpp
     app/video.h
+    app/videopairmatcher.cpp
+    app/videopairmatcher.h
+    app/videopairspace.h
+    app/backgroundmatchdiscovery.cpp
+    app/backgroundmatchdiscovery.h
     app/comparison.cpp
     app/comparison.h
     app/comparison.ui
+    app/discoveryprogressslider.cpp
+    app/discoveryprogressslider.h
     app/thumbnail.h
     app/db.cpp
     app/db.h
@@ -119,6 +126,7 @@ set(PROJECT_SOURCES
     app/prefs.cpp
     app/videometadata.h
     app/ssim.cpp
+    app/ssim.h
     app/files.qrc
 )
 
@@ -153,6 +161,7 @@ target_link_libraries(video-simili-duplicate-cleaner PRIVATE
     Qt${QT_VERSION_MAJOR}::Sql
     Qt${QT_VERSION_MAJOR}::Concurrent
 )
+target_include_directories(video-simili-duplicate-cleaner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app)
 
 if(APPLE)
     # We actually overwrite the Info.plist file with the one in the release-build/macos folder
