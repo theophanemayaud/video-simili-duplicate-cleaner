@@ -38,8 +38,13 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
 
     deleteTemporaryFiles();
     loadExtensions();
-    setMatchSimilarityThreshold(this->_prefs.matchSimilarityThreshold());
+    qInfo() << "Main window: loading similarity threshold";
+    const int similarityThreshold = this->_prefs.matchSimilarityThreshold();
+    qInfo() << "Main window: applying similarity threshold";
+    setMatchSimilarityThreshold(similarityThreshold);
+    qInfo() << "Main window: similarity threshold applied";
 
+    qInfo() << "Main window: populating scan controls";
     ui->blocksizeCombo->addItems({QStringLiteral("2"), QStringLiteral("4"), QStringLiteral("8"), QStringLiteral("16")});
     ui->blocksizeCombo->setCurrentIndex(3);
     Thumbnail thumb;
@@ -52,9 +57,12 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     }
     ui->differentDurationCombo->setCurrentIndex(4);
     ui->sameDurationCombo->setCurrentIndex(1);
+    qInfo() << "Main window: scan controls populated";
 
     ui->directoryBox->setFocus();
+    qInfo() << "Main window: loading directory icon";
     ui->browseFolders->setIcon(ui->browseFolders->style()->standardIcon(QStyle::SP_DirOpenIcon));
+    qInfo() << "Main window: directory icon loaded";
 #ifndef Q_OS_MACOS
     ui->browseApplePhotos->hide();
 #endif
@@ -62,10 +70,12 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->progressBar->setVisible(false);
     ui->mainToolBar->setVisible(false);
 
+    qInfo() << "Main window: initializing cache database";
     if (Db::initDbAndCacheLocation(_prefs))
         addStatusMessage("\nCache located at: " + _prefs.cacheFilePathName() + "\n");
     else
         addStatusMessage("\nError accessing cache, will not use any.\n");
+    qInfo() << "Main window: cache database initialized";
 
     // load saved/default settings
     if (this->_prefs.isVerbose())
