@@ -48,6 +48,6 @@ namespace VideoPairMatcher
 {
 VideoPairMatchConfig configFromPrefs(const Prefs& prefs);
 VideoPairMatchResult match(const Video& left, const Video& right, const VideoPairMatchConfig& config);
-}
+} // namespace VideoPairMatcher
 
 #endif // VIDEOPAIRMATCHER_H

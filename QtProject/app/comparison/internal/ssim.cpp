@@ -42,7 +42,7 @@ double covariance(const Mat& m0, const Mat& m1, const int& i, const int& j, cons
     return sd_ro;
 }
 
-}
+} // namespace
 
 double Ssim::calculate(const Mat& m0, const Mat& m1, const int block_size)
 {

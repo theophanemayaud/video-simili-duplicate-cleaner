@@ -26,8 +26,8 @@ void DiscoveryProgressSlider::paintEvent(QPaintEvent* event)
     const QRect groove = style()->subControlRect(QStyle::CC_Slider, &option, QStyle::SC_SliderGroove, this);
     const QRect handle = style()->subControlRect(QStyle::CC_Slider, &option, QStyle::SC_SliderHandle, this);
     const int availableWidth = qMax(0, groove.width() - handle.width());
-    const int safeOffset = QStyle::sliderPositionFromValue(minimum(), maximum(), _discoveredValue,
-                                                           availableWidth, option.upsideDown);
+    const int safeOffset =
+        QStyle::sliderPositionFromValue(minimum(), maximum(), _discoveredValue, availableWidth, option.upsideDown);
     const int safeRight = groove.left() + handle.width() / 2 + safeOffset;
 
     QPainter painter(this);

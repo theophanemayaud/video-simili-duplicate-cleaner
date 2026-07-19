@@ -14,7 +14,7 @@ namespace
 // pairs should keep each worker chunk around 100 ms in the common pHash-dominated
 // case. SSIM chunks can take longer when many pairs pass their pHash prefilter.
 constexpr int DEFAULT_CHUNK_SIZE = 100'000;
-}
+} // namespace
 
 BackgroundMatchDiscovery::BackgroundMatchDiscovery(int chunkSize, int workerCount, QObject* parent)
     : QObject(parent), _requestedChunkSize(qMax(0, chunkSize)), _requestedWorkerCount(workerCount)
@@ -41,9 +41,8 @@ void BackgroundMatchDiscovery::start(const QVector<Video*>& videos, const VideoP
     _completedChunks = QBitArray(chunkCount, false);
     emit preScannedEndChanged(0);
 
-    if (chunkCount == 0) {
+    if (chunkCount == 0)
         return;
-    }
 
     const quint64 generation = _generation;
     const QVector<Video*> videosSnapshot = videos;
@@ -157,8 +156,7 @@ void BackgroundMatchDiscovery::acceptCompletedChunk(quint64 generation, int chun
            && _completedChunks.testBit(_lastContiguousScannedChunk + 1))
         ++_lastContiguousScannedChunk;
 
-    _lastContiguousScannedPairPosition =
-        qMin(int64_t(_lastContiguousScannedChunk + 1) * _chunkSize, _maxPosition);
+    _lastContiguousScannedPairPosition = qMin(int64_t(_lastContiguousScannedChunk + 1) * _chunkSize, _maxPosition);
     if (_lastContiguousScannedPairPosition != oldLastContiguousScannedPairPosition)
         emit preScannedEndChanged(_lastContiguousScannedPairPosition);
 }

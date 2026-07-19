@@ -11,9 +11,9 @@
 #include "../../app/video.h"
 
 #include "../../app/comparison/comparison.h"
+#include "../../app/comparison/ui_comparison.h"
 #include "../../app/db.h"
 #include "../../app/mainwindow.h"
-#include "../../app/comparison/ui_comparison.h"
 
 #include "../test_video_simplified/video_simplified_test_helpers.h"
 
