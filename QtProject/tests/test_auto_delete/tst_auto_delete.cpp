@@ -140,7 +140,9 @@ void TestAutoDelete::runAutoDeleteBySize(const bool keepBiggest) const
     Prefs prefs;
     Db::emptyAllDb(prefs);
 
+    qInfo() << "Auto-delete test: constructing main window";
     MainWindow w;
+    qInfo() << "Auto-delete test: main window constructed";
     w.show();
     w._prefs.useCacheOption(Prefs::NO_CACHE);
     w._prefs.delMode = Prefs::CUSTOM_TRASH;
@@ -148,21 +150,29 @@ void TestAutoDelete::runAutoDeleteBySize(const bool keepBiggest) const
     w.on_thresholdSlider_valueChanged(100);
 
     QDir videoDir(testVideosDir.path());
+    qInfo() << "Auto-delete test: finding videos";
     w.findVideos(videoDir);
+    qInfo() << "Auto-delete test: processing videos";
     w.processVideos();
+    qInfo() << "Auto-delete test: videos processed";
 
     QCOMPARE(w._everyVideo.count(), 2);
     QCOMPARE(w._videoList.count(), 2);
 
+    qInfo() << "Auto-delete test: constructing comparison";
     Comparison comp(w._videoList, w._prefs, w.geometry());
+    qInfo() << "Auto-delete test: comparison constructed";
     QCOMPARE(comp.reportMatchingVideos(), 1);
+    qInfo() << "Auto-delete test: matching videos reported";
     comp.ui->disableDeleteConfirmationCheckbox->setChecked(true);
     comp.ui->autoOnlySizeDontCheckResFpsCheckbox->setChecked(true);
     QVERIFY(comp.ui->radioButton_onlySizeDiffers_keepBiggest->isChecked());
     if (!keepBiggest)
         comp.ui->radioButton_onlySizeDiffers_keepSmallest->setChecked(true);
 
+    qInfo() << "Auto-delete test: running automatic deletion";
     acceptMessageBoxesDuring(2, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
+    qInfo() << "Auto-delete test: automatic deletion finished";
 
     const QString keptVideoPath = keepBiggest ? testBiggerVideoPath : testSmallerVideoPath;
     const QString movedVideoPath = keepBiggest ? testSmallerVideoPath : testBiggerVideoPath;
@@ -179,6 +189,7 @@ void TestAutoDelete::runAutoDeleteBySize(const bool keepBiggest) const
 
     w.close();
     QCoreApplication::processEvents();
+    qInfo() << "Auto-delete test: assertions complete";
 }
 
 QTEST_MAIN(TestAutoDelete)
