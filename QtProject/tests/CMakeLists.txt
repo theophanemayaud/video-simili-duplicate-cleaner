@@ -76,7 +76,9 @@ function(add_qt_test TEST_NAME)
     # Set test properties for better output
     set_tests_properties(${TEST_NAME} PROPERTIES
         TIMEOUT 300
-        ENVIRONMENT "QT_QPA_PLATFORM=${TEST_QPA_PLATFORM}"
+        # The native macOS style can query GUI services that are unavailable on
+        # headless runners. Fusion keeps widget behavior deterministic in tests.
+        ENVIRONMENT "QT_QPA_PLATFORM=${TEST_QPA_PLATFORM};QT_STYLE_OVERRIDE=Fusion"
     )
 endfunction()
 
