@@ -2184,7 +2184,7 @@ In each scenario where only one of the two files is either in a protected folder
      <item>
       <widget class="QLabel" name="currentVideo">
        <property name="text">
-        <string>currentVideo</string>
+        <string/>
        </property>
       </widget>
      </item>

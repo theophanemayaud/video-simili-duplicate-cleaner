@@ -28,7 +28,9 @@ void DiscoveryProgressSlider::paintEvent(QPaintEvent* event)
     const int availableWidth = qMax(0, groove.width() - handle.width());
     const int safeOffset =
         QStyle::sliderPositionFromValue(minimum(), maximum(), _discoveredValue, availableWidth, option.upsideDown);
-    const int safeRight = groove.left() + handle.width() / 2 + safeOffset;
+    const int safeRight = _discoveredValue == maximum()
+                              ? groove.right() + 1
+                              : groove.left() + handle.width() / 2 + safeOffset;
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);

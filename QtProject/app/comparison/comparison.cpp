@@ -51,6 +51,7 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
 
     ui->progressBar->setMinimum(1);
     ui->progressBar->setMaximum(progressBarValue(_maxComparisons));
+    ui->currentVideo->setNum(ui->progressBar->value());
 
     ui->trashedFiles->setVisible(false);                        // hide until at least one file is deleted
     ui->totalVideos->setText(QString::number(_maxComparisons)); // all possible combinations
