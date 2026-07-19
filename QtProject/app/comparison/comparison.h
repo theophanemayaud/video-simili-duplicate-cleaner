@@ -75,8 +75,8 @@ class Comparison : public QDialog
     void restartBackgroundDiscovery();
     void updateDiscoveryProgress(int64_t preScannedEnd);
     bool navigateForwardFrom(int64_t currentPosition);
-    bool navigateToNextMatch(int64_t firstPosition);
-    bool navigateToPrevMatch(int64_t firstPosition, int64_t lastPosition);
+    bool navigateToNextMatch(int64_t fromPosition);
+    bool navigateToPrevMatch(int64_t fromPosition, int64_t throughPosition);
     bool isPairStillDisplayable(const MatchedVideoPair& pair) const;
     void displayMatchedPair(const MatchedVideoPair& pair);
 

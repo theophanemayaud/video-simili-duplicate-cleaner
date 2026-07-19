@@ -6,6 +6,16 @@
 #include <QThread>
 #include <QtConcurrent/QtConcurrent>
 
+namespace
+{
+// Historical large-library pHash timings averaged about 0.6 ms per 1,000 possible
+// pairs, but that scan stopped each row after its first match. Discovery scans
+// every pair, so use a conservative estimate of 1 ms per 1,000 pairs: 100,000
+// pairs should keep each worker chunk around 100 ms in the common pHash-dominated
+// case. SSIM chunks can take longer when many pairs pass their pHash prefilter.
+constexpr int DEFAULT_CHUNK_SIZE = 100'000;
+}
+
 BackgroundMatchDiscovery::BackgroundMatchDiscovery(int chunkSize, int workerCount, QObject* parent)
     : QObject(parent), _requestedChunkSize(qMax(0, chunkSize)), _requestedWorkerCount(workerCount)
 {
@@ -21,7 +31,7 @@ void BackgroundMatchDiscovery::start(const QVector<Video*>& videos, const VideoP
     stop();
 
     _maxPosition = VideoPairSpace::comparisonCount(videos.size());
-    _chunkSize = chunkSizeForRun(videos.size());
+    _chunkSize = _requestedChunkSize > 0 ? _requestedChunkSize : DEFAULT_CHUNK_SIZE;
     _lastContiguousScannedPairPosition = 0;
     _lastContiguousScannedChunk = -1;
     _matches.clear();
@@ -129,18 +139,6 @@ int BackgroundMatchDiscovery::workerCountForRun(int chunkCount) const
     const int idealThreadCount = QThread::idealThreadCount();
     const int availableWorkers = idealThreadCount > 1 ? idealThreadCount - 1 : 1;
     return qMin(availableWorkers, chunkCount);
-}
-
-int BackgroundMatchDiscovery::chunkSizeForRun(int videoCount) const
-{
-    if (_requestedChunkSize > 0)
-        return _requestedChunkSize;
-
-    if (videoCount < 10'000)
-        return 4'096;
-    if (videoCount < 50'000)
-        return 16'384;
-    return 65'536;
 }
 
 void BackgroundMatchDiscovery::acceptCompletedChunk(quint64 generation, int chunk,

@@ -20,7 +20,7 @@ class BackgroundMatchDiscovery : public QObject
   public:
     // Discovery deliberately owns no navigation state. Foreground navigation
     // may duplicate work beyond preScannedEnd rather than coordinating with workers.
-    // A positive chunkSize overrides the size tiers, primarily for focused tests.
+    // A positive chunkSize overrides the fixed default, primarily for focused tests.
     explicit BackgroundMatchDiscovery(int chunkSize = 0, int workerCount = 0, QObject* parent = nullptr);
     ~BackgroundMatchDiscovery() override;
 
@@ -68,7 +68,6 @@ class BackgroundMatchDiscovery : public QObject
     QVector<QFuture<void>> _workers;
     std::shared_ptr<RunState> _runState;
 
-    int chunkSizeForRun(int videoCount) const;
     int workerCountForRun(int chunkCount) const;
     void acceptCompletedChunk(quint64 generation, int chunk, const QVector<MatchedVideoPair>& matches);
 };

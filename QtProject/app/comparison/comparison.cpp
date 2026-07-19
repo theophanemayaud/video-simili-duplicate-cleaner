@@ -6,9 +6,10 @@
 #include <QSlider>
 
 #include "internal/backgroundmatchdiscovery.h"
-#include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
 #include "internal/videopairmatcher.h"
 #include "internal/videopairspace.h"
+
+#include "ui_comparison.h" // WARNING : don't include this in the header file, otherwise includes from other files will be broken
 
 enum FILENAME_CONTAINED_WITHIN_ANOTHER : int {
     NOT_CONTAINED,
@@ -150,6 +151,7 @@ void Comparison::onSortOrderChanged(int index)
 
 void Comparison::applySortOrder()
 {
+    // Idea for later: we could re order in place if background scan is complete
     _backgroundDiscovery->stop();
     switch (_prefs.sortCriterion()) {
     case Prefs::SortCriterion::BySizeDescending:
@@ -253,8 +255,7 @@ void Comparison::on_prevVideo_clicked()
 
     const int64_t preScannedEnd = _backgroundDiscovery->preScannedEnd();
     const int64_t previousPosition = currentPosition - 1;
-    if (previousPosition > preScannedEnd
-        && navigateToPrevMatch(previousPosition, preScannedEnd + 1))
+    if (previousPosition > preScannedEnd && navigateToPrevMatch(previousPosition, preScannedEnd + 1))
         return;
 
     int64_t cursor = qMin(currentPosition, preScannedEnd + 1);
@@ -302,10 +303,9 @@ void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
 {
     ui->progressBar->setDiscoveredValue(progressBarValue(preScannedEnd));
     const int percent = _maxComparisons > 0 ? int(100 * preScannedEnd / _maxComparisons) : 100;
-    ui->progressBar->setToolTip(
-        QStringLiteral("Background matching: %1% checked, %2 candidate pair(s) found")
-            .arg(percent)
-            .arg(_backgroundDiscovery->discoveredMatchCount()));
+    ui->progressBar->setToolTip(QStringLiteral("Background matching: %1% checked, %2 candidate pair(s) found")
+                                    .arg(percent)
+                                    .arg(_backgroundDiscovery->discoveredMatchCount()));
 }
 
 bool Comparison::navigateForwardFrom(int64_t currentPosition)
@@ -319,27 +319,30 @@ bool Comparison::navigateForwardFrom(int64_t currentPosition)
         cursor = candidate->position;
     }
 
-    const int64_t firstUncheckedPosition =
-        qMax(currentPosition + 1, _backgroundDiscovery->preScannedEnd() + 1);
+    const int64_t firstUncheckedPosition = qMax(currentPosition + 1, _backgroundDiscovery->preScannedEnd() + 1);
     return navigateToNextMatch(firstUncheckedPosition);
 }
 
-bool Comparison::navigateToNextMatch(int64_t firstPosition)
+// Foreground fallback for navigating beyond the contiguous range already
+// covered by background discovery. It may duplicate work that a worker is
+// processing out of order, but avoids making manual navigation wait for or
+// coordinate with the background scan.
+bool Comparison::navigateToNextMatch(int64_t fromPosition)
 {
-    if (firstPosition < 1 || firstPosition > _maxComparisons)
+    if (fromPosition < 1 || fromPosition > _maxComparisons)
         return false;
 
-    QProgressDialog progress("Searching for next pair", QString(), progressBarValue(firstPosition),
+    QProgressDialog progress("Searching for next pair", QString(), progressBarValue(fromPosition),
                              progressBarValue(_maxComparisons), this);
     progress.setWindowModality(Qt::WindowModal);
 
     const auto config = VideoPairMatcher::configFromPrefs(_prefs);
-    auto cursor = VideoPairSpace::pairAtPosition(_videos.size(), firstPosition);
+    auto cursor = VideoPairSpace::pairAtPosition(_videos.size(), fromPosition);
     while (true) {
         const auto result = VideoPairMatcher::match(*_videos[cursor.left], *_videos[cursor.right], config);
         if (result.matches) {
-            const MatchedVideoPair pair = {cursor.left, cursor.right, cursor.position,
-                                           result.phashSimilarity, result.ssimSimilarity};
+            const MatchedVideoPair pair = {cursor.left, cursor.right, cursor.position, result.phashSimilarity,
+                                           result.ssimSimilarity};
             if (isPairStillDisplayable(pair)) {
                 displayMatchedPair(pair);
                 return true;
@@ -356,23 +359,26 @@ bool Comparison::navigateToNextMatch(int64_t firstPosition)
     return false;
 }
 
-bool Comparison::navigateToPrevMatch(int64_t firstPosition, int64_t lastPosition)
+// Foreground fallback for the gap between the current position and the
+// contiguous range already covered by background discovery. As above, this
+// deliberately stays independent from any background work on the same pairs.
+bool Comparison::navigateToPrevMatch(int64_t fromPosition, int64_t throughPosition)
 {
-    if (firstPosition < lastPosition || firstPosition < 1)
+    if (fromPosition < throughPosition || fromPosition < 1)
         return false;
 
     QProgressDialog progress("Searching for previous pair", QString(), 0,
-                             progressBarValue(firstPosition - lastPosition + 1), this);
+                             progressBarValue(fromPosition - throughPosition + 1), this);
     progress.setWindowModality(Qt::WindowModal);
 
     const auto config = VideoPairMatcher::configFromPrefs(_prefs);
     int64_t checked = 0;
-    auto cursor = VideoPairSpace::pairAtPosition(_videos.size(), firstPosition);
+    auto cursor = VideoPairSpace::pairAtPosition(_videos.size(), fromPosition);
     while (true) {
         const auto result = VideoPairMatcher::match(*_videos[cursor.left], *_videos[cursor.right], config);
         if (result.matches) {
-            const MatchedVideoPair pair = {cursor.left, cursor.right, cursor.position,
-                                           result.phashSimilarity, result.ssimSimilarity};
+            const MatchedVideoPair pair = {cursor.left, cursor.right, cursor.position, result.phashSimilarity,
+                                           result.ssimSimilarity};
             if (isPairStillDisplayable(pair)) {
                 displayMatchedPair(pair);
                 return true;
@@ -382,13 +388,17 @@ bool Comparison::navigateToPrevMatch(int64_t firstPosition, int64_t lastPosition
         if (++checked % 1000 == 0)
             progress.setValue(progressBarValue(checked));
 
-        if (cursor.position == lastPosition)
+        if (cursor.position == throughPosition)
             break;
         VideoPairSpace::retreatPair(_videos.size(), cursor);
     }
     return false;
 }
 
+// Discovery records visual matches only. Apply these cheaper, mutable filters
+// when a sparse candidate is about to be shown: files can be removed and pairs
+// ignored while discovery is running, and changing the name filter should not
+// require rescanning the full pair space.
 bool Comparison::isPairStillDisplayable(const MatchedVideoPair& pair) const
 {
     const auto* left = _videos[pair.left];
@@ -695,16 +705,22 @@ void Comparison::updateUI()
 
 int64_t Comparison::comparisonsSoFar() const
 {
-    // e.g. 3 videos a, b c
-    // Comparisons 1 2 are a:b and a:c
-    // Comparison  3    is b:c
-    // Slider goes from 1 to maxComparisons
-    // Automatic cleanup loops temporarily move these indexes just outside the
-    // real pair space while reporting progress, so this intentionally remains
-    // arithmetic rather than asserting through positionForPair().
-    const int64_t comparisonsFromCurrentLeft = _videos.size() - _leftVideo;
-    const int64_t remaining = comparisonsFromCurrentLeft * (comparisonsFromCurrentLeft - 1) / 2;
-    return _maxComparisons - remaining + (_rightVideo - _leftVideo);
+    // Before the first match there is no current pair yet.
+    if (_leftVideo == _rightVideo) {
+        Q_ASSERT(_leftVideo == 0);
+        return 0;
+    }
+
+    // Automatic cleanup increments the right index once beyond the list after
+    // completing a row. Report the final pair in that row until the indexes are
+    // moved to the next valid pair.
+    if (_rightVideo == _videos.size()) {
+        if (_leftVideo >= _videos.size() - 1)
+            return _maxComparisons;
+        return VideoPairSpace::positionForPair(_videos.size(), _leftVideo, _videos.size() - 1);
+    }
+
+    return VideoPairSpace::positionForPair(_videos.size(), _leftVideo, _rightVideo);
 }
 
 int Comparison::progressBarValue(int64_t comparisons) const
@@ -751,16 +767,6 @@ void Comparison::onProgressSliderReleased()
     seekFromSliderPosition(ui->progressBar->sliderPosition());
 }
 
-void Comparison::on_leftFileName_clicked()
-{
-    openFileManager(_videos[_leftVideo]->_filePathName);
-}
-
-void Comparison::on_rightFileName_clicked()
-{
-    openFileManager(_videos[_rightVideo]->_filePathName);
-}
-
 void Comparison::openFileManager(const QString& filename)
 {
 #ifdef Q_OS_WIN
@@ -787,6 +793,16 @@ void Comparison::openFileManager(const QString& filename)
 #elif defined(Q_OS_X11)
     QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(filename.left(filename.lastIndexOf("/"))));
 #endif
+}
+
+void Comparison::on_leftFileName_clicked()
+{
+    openFileManager(_videos[_leftVideo]->_filePathName);
+}
+
+void Comparison::on_rightFileName_clicked()
+{
+    openFileManager(_videos[_rightVideo]->_filePathName);
 }
 
 void Comparison::on_leftImage_clicked()
@@ -872,8 +888,8 @@ void Comparison::deleteVideo(const int& side, const bool auto_trash_mode)
             return;
         }
 #ifdef Q_OS_MACOS
-        else if (filename.contains(".photoslibrary"))
-        { // we must never delete files from the Apple Photos Library, although we can detect them !
+        // we must never delete files from the Apple Photos Library, although we can detect them !
+        else if (filename.contains(".photoslibrary")) {
             if (!filename.contains(".photoslibrary/originals/")) {
                 if (!auto_trash_mode)
                     QMessageBox::information(this, "",
@@ -887,8 +903,8 @@ void Comparison::deleteVideo(const int& side, const bool auto_trash_mode)
             else { // only video in subfolder originals are true videos
                 // We'll now tell Apple Photos via AppleScript to add videos to be deleted to a specific album so the user can manually delete them all at once
                 const QString fileNameNoExt = QFileInfo(filename).completeBaseName();
-                if (fileNameNoExt.contains("_"))
-                { // TODO : if contains _ then video is probably a live photo media, so should not modify it ! -> should preferably discard at scan time... ?
+                // TODO : if contains _ then video is probably a live photo media, so should not modify it ! -> should preferably discard at scan time... ?
+                if (fileNameNoExt.contains("_")) {
                     if (!auto_trash_mode)
                         QMessageBox::information(this, "",
                                                  "This video is in an Apple Photos Libray, and seems to be from a Live "
@@ -967,8 +983,8 @@ void Comparison::deleteVideo(const int& side, const bool auto_trash_mode)
                                             QFileInfo(filename).completeBaseName() + "-"
                                                 + QUuid::createUuid().toString().remove("{").remove("}") + "."
                                                 + QFileInfo(filename).suffix());
-                    if (!QFile(filename).rename(newFileInfo.absoluteFilePath()))
-                    { // rename actually moves to new path !
+                    // rename actually moves to new path !
+                    if (!QFile(filename).rename(newFileInfo.absoluteFilePath())) {
                         if (!auto_trash_mode)
                             QMessageBox::information(this, "",
                                                      "Could not move file to selected folder. Check file permissions.");
@@ -1264,9 +1280,8 @@ void Comparison::on_lockedFolderButton_clicked()
     const QString dir =
         QFileDialog::getExistingDirectory(ui->lockedFolderButton, QByteArrayLiteral("Open folder"), chooseLockedAt,
                                           QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (dir.isEmpty()) { //empty because error or none chosen in dialog
+    if (dir.isEmpty()) //empty because error or none chosen in dialog
         return;
-    }
     auto parentDir = QDir(dir);
     parentDir
         .cdUp(); // when a locked folder is selected, it's never children of it that will want to be selected next, rather those next to it
@@ -1792,9 +1807,8 @@ void Comparison::on_pushButton_importantFoldersAdd_clicked()
                                           QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
                                               .first() /*defines where the chooser opens at*/,
                                           QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (dir.isEmpty()) { //empty because error or none chosen in dialog
+    if (dir.isEmpty()) //empty because error or none chosen in dialog
         return;
-    }
     ui->importantFoldersListWidget->addItem(dir);
     ui->importantFoldersListWidget->setFocus();
 }
