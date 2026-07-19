@@ -54,10 +54,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     ui->sameDurationCombo->setCurrentIndex(1);
 
     ui->directoryBox->setFocus();
-#ifndef VID_SIMILI_IN_TESTS
-    // Native system icons are decorative and may query unavailable GUI services on headless test runners.
     ui->browseFolders->setIcon(ui->browseFolders->style()->standardIcon(QStyle::SP_DirOpenIcon));
-#endif
 #ifndef Q_OS_MACOS
     ui->browseApplePhotos->hide();
 #endif
