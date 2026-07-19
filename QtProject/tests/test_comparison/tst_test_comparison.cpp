@@ -173,11 +173,9 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     config.differentDurationModifier = 0;
 
     BackgroundMatchDiscovery discovery(1, 3);
-    QSignalSpy finishedSpy(&discovery, &BackgroundMatchDiscovery::finished);
     discovery.start({&first, &second, &third, &fourth}, config);
 
     QTRY_COMPARE_WITH_TIMEOUT(discovery.preScannedEnd(), 6, 5000);
-    QCOMPARE(finishedSpy.count(), 1);
     QCOMPARE(discovery.discoveredMatchCount(), 1);
 
     const auto next = discovery.nextCandidateAfter(0);

@@ -20,15 +20,15 @@ class BackgroundMatchDiscovery : public QObject
   public:
     // Discovery deliberately owns no navigation state. Foreground navigation
     // may duplicate work beyond preScannedEnd rather than coordinating with workers.
-    explicit BackgroundMatchDiscovery(int chunkSize = 4096, int workerCount = 0, QObject* parent = nullptr);
+    // A positive chunkSize overrides the size tiers, primarily for focused tests.
+    explicit BackgroundMatchDiscovery(int chunkSize = 0, int workerCount = 0, QObject* parent = nullptr);
     ~BackgroundMatchDiscovery() override;
 
     void start(const QVector<Video*>& videos, const VideoPairMatchConfig& config);
     void stop();
 
     bool hasStarted() const { return _started; }
-    int64_t preScannedEnd() const { return _contiguousScannedEnd; }
-    int64_t maxPosition() const { return _maxPosition; }
+    int64_t preScannedEnd() const { return _lastContiguousScannedPairPosition; }
     int discoveredMatchCount() const { return _matches.size(); }
 
     std::optional<MatchedVideoPair> nextCandidateAfter(int64_t position) const;
@@ -36,7 +36,6 @@ class BackgroundMatchDiscovery : public QObject
 
   signals:
     void preScannedEndChanged(int64_t preScannedEnd);
-    void finished();
 
   private:
     struct RunState {
@@ -44,25 +43,32 @@ class BackgroundMatchDiscovery : public QObject
         std::atomic_bool cancelled = false;
     };
 
-    const int _chunkSize;
+    const int _requestedChunkSize;
     const int _requestedWorkerCount;
+    int _chunkSize = 0;
     int64_t _maxPosition = 0;
     // Highest one-based pair-space position for which every position from 1
     // through this value has been scanned. Out-of-order completed chunks beyond
     // this point do not advance it until all preceding chunks are complete.
-    int64_t _contiguousScannedEnd = 0;
-    int _nextChunkToCommit = 0;
+    int64_t _lastContiguousScannedPairPosition = 0;
+    // Zero-based index of the last chunk included in the contiguous completed
+    // prefix. -1 means that no chunk from the beginning has completed yet.
+    int _lastContiguousScannedChunk = -1;
     bool _started = false;
     quint64 _generation = 0;
+    // One bit per zero-based chunk: set when that chunk's worker result has
+    // reached the owner thread. Chunks may complete out of order; the leading
+    // contiguous set of bits is what advances _lastContiguousScannedPairPosition.
     QBitArray _completedChunks;
     // Keyed by one-based pair-space position so navigation can efficiently find
     // the next or previous sparse match. Results from chunks completed out of
     // order are inserted immediately, so this map may contain matches beyond
-    // _contiguousScannedEnd; query methods hide those until the contiguous prefix catches up.
+    // _lastContiguousScannedPairPosition; query methods hide those until the contiguous prefix catches up.
     QMap<int64_t, MatchedVideoPair> _matches;
     QVector<QFuture<void>> _workers;
     std::shared_ptr<RunState> _runState;
 
+    int chunkSizeForRun(int videoCount) const;
     int workerCountForRun(int chunkCount) const;
     void acceptCompletedChunk(quint64 generation, int chunk, const QVector<MatchedVideoPair>& matches);
 };

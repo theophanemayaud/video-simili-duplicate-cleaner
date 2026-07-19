@@ -14,6 +14,11 @@ Several workers claim fixed-size contiguous chunks from an atomic counter. Chunk
 results are delivered to the main thread, which owns the candidate map and chunk
 completion bitset.
 
+Discovery uses three deliberately conservative chunk-size tiers. Libraries with
+fewer than 10,000 videos use 4,096 pairs per chunk, libraries with fewer than
+50,000 use 16,384, and larger libraries use 65,536. This reduces coordination
+overhead at quadratic scales without letting one chunk become excessively slow.
+
 Workers can finish out of order, but `preScannedEnd` only advances through
 contiguous completed chunks from position 1. Therefore every pair at or before
 `preScannedEnd` is known to have been evaluated. The slider paints this

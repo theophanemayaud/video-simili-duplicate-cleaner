@@ -7,7 +7,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 BackgroundMatchDiscovery::BackgroundMatchDiscovery(int chunkSize, int workerCount, QObject* parent)
-    : QObject(parent), _chunkSize(qMax(1, chunkSize)), _requestedWorkerCount(workerCount)
+    : QObject(parent), _requestedChunkSize(qMax(0, chunkSize)), _requestedWorkerCount(workerCount)
 {
 }
 
@@ -21,8 +21,9 @@ void BackgroundMatchDiscovery::start(const QVector<Video*>& videos, const VideoP
     stop();
 
     _maxPosition = VideoPairSpace::comparisonCount(videos.size());
-    _contiguousScannedEnd = 0;
-    _nextChunkToCommit = 0;
+    _chunkSize = chunkSizeForRun(videos.size());
+    _lastContiguousScannedPairPosition = 0;
+    _lastContiguousScannedChunk = -1;
     _matches.clear();
     _started = true;
 
@@ -31,7 +32,6 @@ void BackgroundMatchDiscovery::start(const QVector<Video*>& videos, const VideoP
     emit preScannedEndChanged(0);
 
     if (chunkCount == 0) {
-        emit finished();
         return;
     }
 
@@ -45,40 +45,45 @@ void BackgroundMatchDiscovery::start(const QVector<Video*>& videos, const VideoP
     const int workerCount = workerCountForRun(chunkCount);
     _workers.reserve(workerCount);
     for (int worker = 0; worker < workerCount; ++worker) {
-        _workers.append(QtConcurrent::run(
-            [this, generation, videosSnapshot, configSnapshot, maxPosition, chunkCount, runState]() {
+        _workers.append(QtConcurrent::run([this, generation, videosSnapshot, configSnapshot, maxPosition, chunkCount,
+                                           runState]() {
+            while (!runState->cancelled) {
+                // Chunk indexes are zero-based. fetch_add() returns the
+                // current value to this worker, then increments it for
+                // the next worker claiming a chunk.
+                const int chunk = runState->nextChunk.fetch_add(1);
+                if (chunk >= chunkCount)
+                    return;
+
+                // Pair-space positions are one-based, hence the +1.
+                const int64_t firstPosition = int64_t(chunk) * _chunkSize + 1;
+                const int64_t lastPosition = qMin(firstPosition + _chunkSize - 1, maxPosition);
+                QVector<MatchedVideoPair> matches;
+
+                // To keep chunking simple, we get the first pair position via pairAtPosition
+                // though it is O(log(videoCount)), so make sure chunks are big enough
+                auto pair = VideoPairSpace::pairAtPosition(videosSnapshot.size(), firstPosition);
                 while (!runState->cancelled) {
-                    const int chunk = runState->nextChunk.fetch_add(1);
-                    if (chunk >= chunkCount)
-                        return;
-
-                    const int64_t firstPosition = int64_t(chunk) * _chunkSize + 1;
-                    const int64_t lastPosition = qMin(firstPosition + _chunkSize - 1, maxPosition);
-                    QVector<MatchedVideoPair> matches;
-
-                    auto pair = VideoPairSpace::pairAtPosition(videosSnapshot.size(), firstPosition);
-                    while (!runState->cancelled) {
-                        const auto result = VideoPairMatcher::match(*videosSnapshot[pair.left],
-                                                                  *videosSnapshot[pair.right], configSnapshot);
-                        if (result.matches) {
-                            matches.append({pair.left, pair.right, pair.position, result.phashSimilarity,
-                                            result.ssimSimilarity});
-                        }
-
-                        if (pair.position == lastPosition)
-                            break;
-                        VideoPairSpace::advancePair(videosSnapshot.size(), pair);
+                    const auto result = VideoPairMatcher::match(*videosSnapshot[pair.left], *videosSnapshot[pair.right],
+                                                                configSnapshot);
+                    if (result.matches) {
+                        matches.append(
+                            {pair.left, pair.right, pair.position, result.phashSimilarity, result.ssimSimilarity});
                     }
 
-                    if (runState->cancelled)
-                        return;
-
-                    QMetaObject::invokeMethod(
-                        this,
-                        [this, generation, chunk, matches]() { acceptCompletedChunk(generation, chunk, matches); },
-                        Qt::QueuedConnection);
+                    if (pair.position >= lastPosition)
+                        break;
+                    VideoPairSpace::advancePair(videosSnapshot.size(), pair);
                 }
-            }));
+
+                if (runState->cancelled)
+                    return;
+
+                QMetaObject::invokeMethod(
+                    this, [this, generation, chunk, matches]() { acceptCompletedChunk(generation, chunk, matches); },
+                    Qt::QueuedConnection);
+            }
+        }));
     }
 }
 
@@ -99,17 +104,17 @@ void BackgroundMatchDiscovery::stop()
 std::optional<MatchedVideoPair> BackgroundMatchDiscovery::nextCandidateAfter(int64_t position) const
 {
     const auto candidate = _matches.upperBound(position);
-    if (candidate == _matches.end() || candidate.key() > _contiguousScannedEnd)
+    if (candidate == _matches.end() || candidate.key() > _lastContiguousScannedPairPosition)
         return std::nullopt;
     return candidate.value();
 }
 
 std::optional<MatchedVideoPair> BackgroundMatchDiscovery::previousCandidateBefore(int64_t position) const
 {
-    if (_matches.isEmpty() || _contiguousScannedEnd < 1)
+    if (_matches.isEmpty() || _lastContiguousScannedPairPosition < 1)
         return std::nullopt;
 
-    auto candidate = _matches.lowerBound(qMin(position, _contiguousScannedEnd + 1));
+    auto candidate = _matches.lowerBound(qMin(position, _lastContiguousScannedPairPosition + 1));
     if (candidate == _matches.begin())
         return std::nullopt;
     --candidate;
@@ -126,6 +131,18 @@ int BackgroundMatchDiscovery::workerCountForRun(int chunkCount) const
     return qMin(availableWorkers, chunkCount);
 }
 
+int BackgroundMatchDiscovery::chunkSizeForRun(int videoCount) const
+{
+    if (_requestedChunkSize > 0)
+        return _requestedChunkSize;
+
+    if (videoCount < 10'000)
+        return 4'096;
+    if (videoCount < 50'000)
+        return 16'384;
+    return 65'536;
+}
+
 void BackgroundMatchDiscovery::acceptCompletedChunk(quint64 generation, int chunk,
                                                     const QVector<MatchedVideoPair>& matches)
 {
@@ -136,13 +153,14 @@ void BackgroundMatchDiscovery::acceptCompletedChunk(quint64 generation, int chun
         _matches.insert(match.position, match);
     _completedChunks.setBit(chunk);
 
-    const int64_t oldContiguousScannedEnd = _contiguousScannedEnd;
-    while (_nextChunkToCommit < _completedChunks.size() && _completedChunks.testBit(_nextChunkToCommit))
-        ++_nextChunkToCommit;
+    // The last contiguous scanned chunk is kept as state to avoid re scanning from start the entire bit array
+    const int64_t oldLastContiguousScannedPairPosition = _lastContiguousScannedPairPosition;
+    while (_lastContiguousScannedChunk + 1 < _completedChunks.size()
+           && _completedChunks.testBit(_lastContiguousScannedChunk + 1))
+        ++_lastContiguousScannedChunk;
 
-    _contiguousScannedEnd = qMin(int64_t(_nextChunkToCommit) * _chunkSize, _maxPosition);
-    if (_contiguousScannedEnd != oldContiguousScannedEnd)
-        emit preScannedEndChanged(_contiguousScannedEnd);
-    if (_contiguousScannedEnd == _maxPosition)
-        emit finished();
+    _lastContiguousScannedPairPosition =
+        qMin(int64_t(_lastContiguousScannedChunk + 1) * _chunkSize, _maxPosition);
+    if (_lastContiguousScannedPairPosition != oldLastContiguousScannedPairPosition)
+        emit preScannedEndChanged(_lastContiguousScannedPairPosition);
 }
