@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.14.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.4...v1.14.0) (2026-07-24)
+
+
+### Features
+
+* **auto:** add option to auto delete smaller file and add ci tests ([#189](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/189)) ([08e53ed](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/08e53edc35f75448a8a18c38ad5c5770625e7471))
+* **comparison:** preload match discovery in background for faster manual navigation ([#194](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/194)) ([fc52cf8](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/fc52cf86aef5e017f87951dcbaf21d985c8aa6ee)), closes [#176](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/176) [#189](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/189) [#157](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/157)
+
 ## [1.13.4](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.3...v1.13.4) (2026-05-03)
 
 
