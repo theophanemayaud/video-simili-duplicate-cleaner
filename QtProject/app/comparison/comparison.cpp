@@ -1,6 +1,7 @@
 #include "comparison.h"
 
 #include <QAbstractSlider>
+#include <QElapsedTimer>
 #include <QMimeData>
 #include <QProgressDialog>
 #include <QSlider>
@@ -23,6 +24,9 @@ const QString TEXT_STYLE_ORANGE = QStringLiteral("QLabel { color : peru; }");
 const int64_t FILE_SIZE_BYTES_DIFF_STILL_EQUALS = 100 * 1024;
 const int64_t VIDEO_DURATION_STILL_EQUALS_MS = 1000; //if this close in duration then it's considered equal
 const int BITRATE_DIFF_STILL_EQUAL_kbs = 5;
+// Modal progress updates process UI events and are expensive. Throttling by time
+// keeps navigation responsive without making its overhead depend on library size.
+constexpr qint64 PROGRESS_REFRESH_INTERVAL_MS = 100;
 
 Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, const QRect& mainWindowGeometry)
     : QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam),
@@ -339,6 +343,8 @@ bool Comparison::navigateToNextMatch(int64_t fromPosition)
 
     const auto config = VideoPairMatcher::configFromPrefs(_prefs);
     auto cursor = VideoPairSpace::pairAtPosition(_videos.size(), fromPosition);
+    QElapsedTimer progressRefreshTimer;
+    progressRefreshTimer.start();
     while (true) {
         const auto result = VideoPairMatcher::match(*_videos[cursor.left], *_videos[cursor.right], config);
         if (result.matches) {
@@ -350,8 +356,10 @@ bool Comparison::navigateToNextMatch(int64_t fromPosition)
             }
         }
 
-        if (cursor.position % 1000 == 0)
+        if (progressRefreshTimer.hasExpired(PROGRESS_REFRESH_INTERVAL_MS)) {
             progress.setValue(progressBarValue(cursor.position));
+            progressRefreshTimer.restart();
+        }
 
         if (cursor.position == _maxComparisons)
             break;
@@ -375,6 +383,8 @@ bool Comparison::navigateToPrevMatch(int64_t fromPosition, int64_t throughPositi
     const auto config = VideoPairMatcher::configFromPrefs(_prefs);
     int64_t checked = 0;
     auto cursor = VideoPairSpace::pairAtPosition(_videos.size(), fromPosition);
+    QElapsedTimer progressRefreshTimer;
+    progressRefreshTimer.start();
     while (true) {
         const auto result = VideoPairMatcher::match(*_videos[cursor.left], *_videos[cursor.right], config);
         if (result.matches) {
@@ -386,8 +396,11 @@ bool Comparison::navigateToPrevMatch(int64_t fromPosition, int64_t throughPositi
             }
         }
 
-        if (++checked % 1000 == 0)
+        ++checked;
+        if (progressRefreshTimer.hasExpired(PROGRESS_REFRESH_INTERVAL_MS)) {
             progress.setValue(progressBarValue(checked));
+            progressRefreshTimer.restart();
+        }
 
         if (cursor.position == throughPosition)
             break;
