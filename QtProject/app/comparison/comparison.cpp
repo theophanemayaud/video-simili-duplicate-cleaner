@@ -381,7 +381,6 @@ bool Comparison::navigateToPrevMatch(int64_t fromPosition, int64_t throughPositi
     progress.setWindowModality(Qt::WindowModal);
 
     const auto config = VideoPairMatcher::configFromPrefs(_prefs);
-    int64_t checked = 0;
     auto cursor = VideoPairSpace::pairAtPosition(_videos.size(), fromPosition);
     QElapsedTimer progressRefreshTimer;
     progressRefreshTimer.start();
@@ -396,9 +395,8 @@ bool Comparison::navigateToPrevMatch(int64_t fromPosition, int64_t throughPositi
             }
         }
 
-        ++checked;
         if (progressRefreshTimer.hasExpired(PROGRESS_REFRESH_INTERVAL_MS)) {
-            progress.setValue(progressBarValue(checked));
+            progress.setValue(progressBarValue(fromPosition - cursor.position + 1));
             progressRefreshTimer.restart();
         }
 
