@@ -1,5 +1,4 @@
 #include <QCoreApplication>
-#include <QSignalSpy>
 #include <QtTest>
 
 // add necessary includes here
