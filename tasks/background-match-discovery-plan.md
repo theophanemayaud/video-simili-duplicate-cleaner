@@ -1,0 +1,55 @@
+# Background Match Discovery
+
+## User need
+
+Sparse duplicate libraries make manual review frustrating because finding every
+next match can require scanning a large part of the quadratic video-pair space.
+The app should use the time spent reviewing one pair to discover later matches,
+without making navigation itself asynchronous or coupling workers to user input.
+
+## Design
+
+`BackgroundMatchDiscovery` performs one forward pass over the linear pair space.
+Several workers claim fixed-size contiguous chunks from an atomic counter. Chunk
+results are delivered to the main thread, which owns the candidate map and chunk
+completion bitset.
+
+Discovery uses fixed chunks of 100,000 pairs. Based on historical pHash timings,
+this keeps chunks around 100 ms in the common pHash-dominated case while avoiding
+excessive coordination overhead at quadratic scales. Focused tests can override
+the chunk size through the discovery constructor.
+
+Workers can finish out of order, but `preScannedEnd` only advances through
+contiguous completed chunks from position 1. Therefore every pair at or before
+`preScannedEnd` is known to have been evaluated. The slider paints this
+pre-scanned prefix green.
+
+Navigation remains synchronous:
+
+- Next and seek consume sparse discovered candidates inside the pre-scanned prefix.
+- Previous consumes discovered candidates after synchronously checking any gap
+  between the current position and the pre-scanned prefix.
+- Outside the pre-scanned prefix, navigation uses the existing pair-by-pair scan.
+- Foreground and background scans may duplicate work. This is intentional: the
+  small amount of wasted computation avoids worker retargeting, priorities,
+  shared navigation state, and complex cancellation rules.
+
+## Matching and filtering
+
+`VideoPairMatcher` is a pure synchronous operation shared by foreground and
+background scans. Workers receive an immutable configuration snapshot.
+
+Discovery applies settings that change the content-match result, including the
+comparison mode, threshold, thumbnail mode, SSIM block size, and duration
+modifiers. Changes to those inputs restart discovery.
+
+Cheap, mutable display filters are applied when a candidate is consumed and do
+not restart discovery:
+
+- file existence and trashed state;
+- ignored-pair state;
+- filename containment.
+
+Sort changes restart discovery because a partially pre-scanned linear prefix
+cannot be translated into a contiguous pre-scanned prefix after pair positions
+are reordered.

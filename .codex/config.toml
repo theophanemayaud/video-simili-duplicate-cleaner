@@ -1,0 +1,8 @@
+[[hooks.PostToolUse]]
+matcher = "^apply_patch$"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = '/usr/bin/python3 "$(git rev-parse --show-toplevel)/.codex/hooks/format_touched_cpp.py"'
+timeout = 30
+statusMessage = "Formatting edited C/C++ files"

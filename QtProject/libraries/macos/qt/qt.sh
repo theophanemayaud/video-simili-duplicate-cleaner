@@ -47,6 +47,17 @@ cd "$BUILD_DIR"
   -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
 
+# Xcode 26.5 recognizes __yield as an ARM builtin but still requires its
+# declaration from arm_acle.h. Qt 6.9.3 omits that include, causing the static
+# dependency build to fail with -Wimplicit-function-declaration. Configure must
+# run first because it initializes the qtbase submodule containing this header.
+QT_YIELD_HEADER="../$SOURCE_DIR/qtbase/src/corelib/thread/qyieldcpu.h"
+perl -0pi -e 's{(#include <QtCore/qtconfigmacros\.h>\n)}{$1\n#if defined(Q_PROCESSOR_ARM)\n#  include <arm_acle.h>\n#endif\n}' "$QT_YIELD_HEADER"
+if ! grep -q '#  include <arm_acle.h>' "$QT_YIELD_HEADER"; then
+  echo "[qt.sh] Error: failed to apply the Xcode 26.5 ARM yield compatibility patch." >&2
+  exit 1
+fi
+
 # Build and install
 cmake --build . --parallel "$(sysctl -n hw.logicalcpu)"
 cmake --install .

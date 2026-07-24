@@ -12,9 +12,12 @@ set(TEST_COMPILE_DEFINITIONS
 # Common source files from main app that tests need
 set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/video.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/videopairmatcher.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/backgroundmatchdiscovery.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/db.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/ssim.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/comparison.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/discoveryprogressslider.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/ssim.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/mainwindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/prefs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/files.qrc
@@ -26,16 +29,13 @@ if(APPLE)
     )
 endif()
 
-# If Qt is built without the offscreen platform plugin, use the native platform for CTest.
+# Prefer Qt's offscreen platform so widget tests do not depend on a window server.
 set(TEST_QPA_PLATFORM "offscreen")
 if(APPLE)
-    get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
-    if(QT_QMAKE_EXECUTABLE)
-        get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
-        get_filename_component(QT_INSTALL_DIR "${QT_BIN_DIR}" DIRECTORY)
-        if(NOT EXISTS "${QT_INSTALL_DIR}/plugins/platforms/libqoffscreen.dylib")
-            set(TEST_QPA_PLATFORM "cocoa")
-        endif()
+    if(TARGET Qt6::QOffscreenIntegrationPlugin)
+        set(TEST_PLATFORM_PLUGIN Qt6::QOffscreenIntegrationPlugin)
+    else()
+        set(TEST_QPA_PLATFORM "cocoa")
     endif()
 endif()
 
@@ -60,11 +60,18 @@ function(add_qt_test TEST_NAME)
         Qt6::Concurrent
         Qt6::Test
     )
+    target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../app)
 
     # Add compile definitions
     target_compile_definitions(${TEST_NAME} PRIVATE ${TEST_COMPILE_DEFINITIONS})
 
     target_link_video_processing_dependencies(${TEST_NAME})
+
+    if(TEST_PLATFORM_PLUGIN)
+        # Static Qt plugins must be imported into each test executable. Checking
+        # the CMake target also handles libqoffscreen.a, not only a .dylib file.
+        qt_import_plugins(${TEST_NAME} INCLUDE_BY_TYPE platforms ${TEST_PLATFORM_PLUGIN})
+    endif()
 
     # Register test with CTest
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
