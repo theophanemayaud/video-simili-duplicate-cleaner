@@ -66,7 +66,9 @@ jobs:
       - name: Install vcpkg
         shell: pwsh
         run: |
-          git clone --filter=blob:none https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          # Keep the port history local so manifest resolution does not depend on
+          # a later promisor fetch while the build is already running.
+          git clone --no-filter https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
 
       - name: Verify Visual Studio toolchains
