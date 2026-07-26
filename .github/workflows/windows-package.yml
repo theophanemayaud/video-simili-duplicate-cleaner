@@ -34,8 +34,6 @@ jobs:
             build-script: win-build-x64
             artifact: Video simili duplicate cleaner.x64.msix
     env:
-      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
       VCPKG_DISABLE_METRICS: 1
 
     steps:
@@ -50,6 +48,12 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts
+
+      - name: Set vcpkg paths
+        shell: pwsh
+        run: |
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Restore vcpkg binary cache
         uses: actions/cache@v4
