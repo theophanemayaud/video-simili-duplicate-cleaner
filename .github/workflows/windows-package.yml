@@ -1,0 +1,156 @@
+name: Windows package
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/windows-package.yml"
+      - "QtProject/**"
+      - "package-lock.json"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-package-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Package ${{ matrix.architecture }}
+    # The stable VS2022 image can cross-build ARM64 and build x64 without
+    # depending on the public-preview Windows ARM runner.
+    runs-on: windows-2022
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            build-script: win-build-arm64
+            artifact: Video simili duplicate cleaner.arm64.msix
+          - architecture: x64
+            build-script: win-build-x64
+            artifact: Video simili duplicate cleaner.x64.msix
+    env:
+      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
+      VCPKG_DISABLE_METRICS: 1
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\vcpkg-binary-cache
+          key: windows-vcpkg-${{ matrix.architecture }}-${{ hashFiles('QtProject/vcpkg.json') }}
+          restore-keys: |
+            windows-vcpkg-${{ matrix.architecture }}-
+
+      - name: Install vcpkg at the manifest baseline
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          git -C "$env:VCPKG_ROOT" checkout 96fd599859beaed2ae891a2b2982746f28611b07
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+
+      - name: Verify Visual Studio toolchains
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe was not found on the Windows runner"
+          }
+
+          $installationPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath
+          if (-not $installationPath) {
+            throw "The Visual Studio ARM64 C++ toolchain is not installed"
+          }
+
+          Write-Host "Using Visual Studio at $installationPath"
+
+          $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $makeAppx) {
+            throw "MakeAppx.exe was not found on the Windows runner"
+          }
+
+          $makeAppx.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build MSIX
+        shell: pwsh
+        env:
+          BUILD_SCRIPT: ${{ matrix.build-script }}
+        run: npm run $env:BUILD_SCRIPT
+
+      - name: Collect MSIX
+        shell: pwsh
+        env:
+          MSIX_NAME: ${{ matrix.artifact }}
+        run: |
+          $msix = Join-Path $env:GITHUB_WORKSPACE "QtProject\release-build\windows\$env:MSIX_NAME"
+          if (-not (Test-Path $msix)) {
+            throw "Expected package was not produced: $msix"
+          }
+
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\package" -Force | Out-Null
+          Copy-Item $msix "$env:RUNNER_TEMP\package\$env:MSIX_NAME"
+
+      - name: Upload MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix-${{ matrix.architecture }}
+          path: ${{ runner.temp }}\package\${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 7
+
+  bundle:
+    name: Bundle MSIX packages
+    needs: package
+    runs-on: windows-2022
+    timeout-minutes: 15
+
+    steps:
+      - name: Download MSIX packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: windows-msix-*
+          merge-multiple: true
+          path: ${{ runner.temp }}\bundle
+
+      - name: Create MSIX bundle
+        shell: pwsh
+        run: |
+          $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $makeAppx) {
+            throw "MakeAppx.exe was not found on the Windows runner"
+          }
+
+          $bundle = Join-Path $env:GITHUB_WORKSPACE "Video simili duplicate cleaner.msixbundle"
+          & $makeAppx.FullName bundle /d "$env:RUNNER_TEMP\bundle" /p $bundle
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $bundle)) {
+            throw "MakeAppx failed to create the bundle"
+          }
+
+      - name: Upload MSIX bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msixbundle
+          path: Video simili duplicate cleaner.msixbundle
+          if-no-files-found: error
+          retention-days: 7

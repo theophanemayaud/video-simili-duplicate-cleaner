@@ -9,6 +9,7 @@
         {
             "name": "vcpkg-arm64-static",
             "generator": "Visual Studio 17 2022",
+            "architecture": "ARM64",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
