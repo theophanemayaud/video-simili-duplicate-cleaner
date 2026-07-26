@@ -73,6 +73,9 @@ jobs:
           # Keep the port history local so manifest resolution does not depend on
           # a later promisor fetch while the build is already running.
           git clone --no-filter https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          # This commit has the manifest's Qt/FFmpeg versions and the NASM
+          # version supported by the current AOM port.
+          git -C "$env:VCPKG_ROOT" checkout 12ae26a216f4c922a8189ed5c691bdb3f8bab686
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
 
       - name: Verify Visual Studio toolchains
