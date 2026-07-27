@@ -127,7 +127,8 @@ jobs:
           name: windows-msix-${{ matrix.architecture }}
           path: ${{ runner.temp }}\package\${{ matrix.artifact }}
           if-no-files-found: error
-          retention-days: 1
+          # Keep the package available long enough to download and submit it.
+          retention-days: 2
 
   bundle:
     name: Bundle MSIX packages
@@ -166,4 +167,4 @@ jobs:
           name: windows-msixbundle
           path: Video simili duplicate cleaner.msixbundle
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 2
