@@ -29,12 +29,15 @@ jobs:
         include:
           - architecture: arm64
             build-script: win-build-arm64
+            makeappx_architecture: arm64
             artifact: Video simili duplicate cleaner.arm64.msix
           - architecture: x64
             build-script: win-build-x64
+            makeappx_architecture: x64
             artifact: Video simili duplicate cleaner.x64.msix
     env:
       VCPKG_DISABLE_METRICS: 1
+      MAKEAPPX_ARCHITECTURE: ${{ matrix.makeappx_architecture }}
 
     steps:
       - name: Check out source
@@ -94,6 +97,7 @@ jobs:
           Write-Host "Using Visual Studio at $installationPath"
 
           $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse |
+            Where-Object { $_.Directory.Name -eq $env:MAKEAPPX_ARCHITECTURE } |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
           if (-not $makeAppx) {
@@ -147,6 +151,7 @@ jobs:
         shell: pwsh
         run: |
           $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse |
+            Where-Object { $_.Directory.Name -eq "x64" } |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
           if (-not $makeAppx) {
