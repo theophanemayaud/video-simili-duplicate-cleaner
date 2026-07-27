@@ -1,12 +1,6 @@
 name: Windows package
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/windows-package.yml"
-      - "QtProject/**"
-      - "package-lock.json"
-      - "package.json"
   workflow_dispatch:
 
 permissions:
@@ -133,7 +127,7 @@ jobs:
           name: windows-msix-${{ matrix.architecture }}
           path: ${{ runner.temp }}\package\${{ matrix.artifact }}
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
   bundle:
     name: Bundle MSIX packages
@@ -172,4 +166,4 @@ jobs:
           name: windows-msixbundle
           path: Video simili duplicate cleaner.msixbundle
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
