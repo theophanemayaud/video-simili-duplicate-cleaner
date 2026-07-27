@@ -29,7 +29,9 @@ jobs:
         include:
           - architecture: arm64
             build-script: win-build-arm64
-            makeappx_architecture: arm64
+            # MakeAppx is a host tool; the x64 executable can package ARM64
+            # contents and is the one that runs on this x64 Windows runner.
+            makeappx_architecture: x64
             artifact: Video simili duplicate cleaner.arm64.msix
           - architecture: x64
             build-script: win-build-x64
