@@ -73,11 +73,11 @@ The test VM must trust the corresponding public certificate before installing
 them. Keep `sign_for_testing` disabled for packages intended for Microsoft
 Store submission.
 
-The Windows CMake presets use the `arm64-windows-static` and
-`x64-windows-static` vcpkg triplets. This statically links the MSVC runtime
-into the packaged executable, avoiding a separate runtime installation on a
-clean Windows test image. The MSIX manifest still declares the Microsoft
-VCLibs framework dependency required by the Qt/C++ package.
+For sideload testing, the workflow also uploads the architecture-matched
+`Microsoft.VCLibs.140.00.UWPDesktop` framework package as
+`windows-vclibs-arm64` or `windows-vclibs-x64`. Install that `.appx` first in
+the disposable VM, then install the signed application bundle. The Store path
+is unchanged: the manifest dependency lets the Store provide VCLibs itself.
 
 ### Install the certificate to test install the app.
 Now import the certificate to the computer's trusted certificates, with "Manage computer certificates", go to Trusted People part, click on certificates, and "Action", "All Tasks", import -> then select the exported certificate file, and import it.

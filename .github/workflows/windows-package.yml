@@ -180,6 +180,24 @@ jobs:
           New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\package" -Force | Out-Null
           Copy-Item $msix "$env:RUNNER_TEMP\package\$env:MSIX_NAME"
 
+      - name: Collect matching VCLibs framework package
+        shell: pwsh
+        env:
+          TARGET_ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          $vclibsRoot = Join-Path ${env:ProgramFiles(x86)} "Microsoft SDKs\Windows Kits\10\ExtensionSDKs\Microsoft.VCLibs.Desktop\14.0\Appx\Retail"
+          $vclibs = Get-ChildItem $vclibsRoot -Recurse -Filter "Microsoft.VCLibs.*.14.00.Desktop.appx" |
+            Where-Object { $_.Directory.Name -eq $env:TARGET_ARCHITECTURE } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $vclibs) {
+            throw "Matching VCLibs framework package was not found for $env:TARGET_ARCHITECTURE under $vclibsRoot"
+          }
+
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\vclibs" -Force | Out-Null
+          Copy-Item $vclibs.FullName "$env:RUNNER_TEMP\vclibs\$($vclibs.Name)"
+          Write-Host "Collected $($vclibs.Name)"
+
       - name: Upload MSIX
         uses: actions/upload-artifact@v4
         with:
@@ -187,6 +205,14 @@ jobs:
           path: ${{ runner.temp }}\package\${{ matrix.artifact }}
           if-no-files-found: error
           # Keep the package available long enough to download and submit it.
+          retention-days: 2
+
+      - name: Upload VCLibs dependency
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-vclibs-${{ matrix.architecture }}
+          path: ${{ runner.temp }}\vclibs\*.appx
+          if-no-files-found: error
           retention-days: 2
 
   bundle:
