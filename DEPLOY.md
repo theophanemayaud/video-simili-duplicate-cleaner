@@ -52,6 +52,33 @@ SignTool sign /fd SHA256  /a /f C:\Dev\CertifVideoSimili.pfx /p <certificate pas
 
 See more info in https://docs.microsoft.com/fr-fr/windows/msix/package/sign-app-package-using-signtool
 
+### Sign test artifacts in CI
+
+The `Windows package` GitHub Actions workflow keeps the Store submission path
+unsigned. To produce artifacts that can be installed in the disposable Windows
+test VM, run the workflow manually with `sign_for_testing` enabled.
+
+The repository must have these Actions secrets configured; do not commit either
+the PFX or its password:
+
+- `WINDOWS_MSIX_SIGNING_PFX_BASE64`: base64 contents of a PFX containing the
+  private key.
+- `WINDOWS_MSIX_SIGNING_PFX_PASSWORD`: the PFX password.
+
+The certificate subject must remain exactly
+`CN=4718DAC3-F3E7-40DE-AF8E-C3EB08A4F6AB`, matching `appxmanifest.xml`. The
+workflow validates the subject and expiry, signs both architecture-specific
+MSIX packages and the final bundle, and uploads those signed test artifacts.
+The test VM must trust the corresponding public certificate before installing
+them. Keep `sign_for_testing` disabled for packages intended for Microsoft
+Store submission.
+
+The Windows CMake presets use the `arm64-windows-static` and
+`x64-windows-static` vcpkg triplets. This statically links the MSVC runtime
+into the packaged executable, avoiding a separate runtime installation on a
+clean Windows test image. The MSIX manifest still declares the Microsoft
+VCLibs framework dependency required by the Qt/C++ package.
+
 ### Install the certificate to test install the app.
 Now import the certificate to the computer's trusted certificates, with "Manage computer certificates", go to Trusted People part, click on certificates, and "Action", "All Tasks", import -> then select the exported certificate file, and import it.
 
