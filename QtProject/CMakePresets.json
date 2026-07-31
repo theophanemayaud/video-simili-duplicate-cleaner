@@ -13,7 +13,8 @@
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_TARGET_TRIPLET": "arm64-windows-static-md"
+                "VCPKG_TARGET_TRIPLET": "arm64-windows-static-md-opencv-neon",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/vcpkg-triplets"
             }
         },
         {
@@ -23,7 +24,8 @@
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static-md"
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/vcpkg-triplets"
             }
         },
         {

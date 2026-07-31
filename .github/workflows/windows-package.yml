@@ -40,6 +40,7 @@ jobs:
     env:
       VCPKG_DISABLE_METRICS: 1
       MAKEAPPX_ARCHITECTURE: ${{ matrix.makeappx_architecture }}
+      VCPKG_COMMIT: 12ae26a216f4c922a8189ed5c691bdb3f8bab686
 
     steps:
       - name: Check out source
@@ -68,9 +69,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}\vcpkg-binary-cache
-          key: windows-vcpkg-${{ matrix.architecture }}-${{ hashFiles('QtProject/vcpkg.json') }}
+          # Keep the primary key independent of branch/ref. The restore prefix
+          # searches for any reachable cache for this architecture and vcpkg
+          # revision, while vcpkg's ABI keys separate incompatible builds.
+          key: windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('QtProject/vcpkg.json', 'QtProject/CMakePresets.json', 'QtProject/vcpkg-triplets/**') }}
           restore-keys: |
-            windows-vcpkg-${{ matrix.architecture }}-
+            windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-
 
       - name: Install vcpkg
         shell: pwsh
@@ -80,20 +84,27 @@ jobs:
           git clone --no-filter https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
           # This commit has the manifest's Qt/FFmpeg versions and the NASM
           # version supported by the current AOM port.
-          git -C "$env:VCPKG_ROOT" checkout 12ae26a216f4c922a8189ed5c691bdb3f8bab686
+          git -C "$env:VCPKG_ROOT" checkout $env:VCPKG_COMMIT
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
 
       - name: Verify Visual Studio toolchains
         shell: pwsh
+        env:
+          TARGET_ARCHITECTURE: ${{ matrix.architecture }}
         run: |
           $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
           if (-not (Test-Path $vswhere)) {
             throw "vswhere.exe was not found on the Windows runner"
           }
 
-          $installationPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath
+          $requiredComponent = if ($env:TARGET_ARCHITECTURE -eq "arm64") {
+            "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
+          } else {
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+          }
+          $installationPath = & $vswhere -latest -products * -requires $requiredComponent -property installationPath
           if (-not $installationPath) {
-            throw "The Visual Studio ARM64 C++ toolchain is not installed"
+            throw "The Visual Studio C++ toolchain for $env:TARGET_ARCHITECTURE is not installed"
           }
 
           Write-Host "Using Visual Studio at $installationPath"
@@ -113,6 +124,19 @@ jobs:
         env:
           BUILD_SCRIPT: ${{ matrix.build-script }}
         run: npm run $env:BUILD_SCRIPT
+
+      - name: Collect unsigned MSIX for bundle
+        shell: pwsh
+        env:
+          MSIX_NAME: ${{ matrix.artifact }}
+        run: |
+          $msix = Join-Path $env:GITHUB_WORKSPACE "QtProject\release-build\windows\$env:MSIX_NAME"
+          if (-not (Test-Path $msix)) {
+            throw "Expected package was not produced: $msix"
+          }
+
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\bundle-input" -Force | Out-Null
+          Copy-Item $msix "$env:RUNNER_TEMP\bundle-input\$env:MSIX_NAME"
 
       - name: Prepare test-signing certificate
         if: ${{ inputs.sign_for_testing == true }}
@@ -162,9 +186,13 @@ jobs:
           }
 
           $msix = Join-Path $env:GITHUB_WORKSPACE "QtProject\release-build\windows\$env:MSIX_NAME"
-          & $signTool.FullName sign /fd SHA256 /f $env:SIGNING_PFX /p $env:SIGNING_PFX_PASSWORD $msix
-          if ($LASTEXITCODE -ne 0) {
-            throw "SignTool failed to sign $msix"
+          try {
+            & $signTool.FullName sign /fd SHA256 /f $env:SIGNING_PFX /p $env:SIGNING_PFX_PASSWORD $msix
+            if ($LASTEXITCODE -ne 0) {
+              throw "SignTool failed to sign $msix"
+            }
+          } finally {
+            Remove-Item -LiteralPath $env:SIGNING_PFX -Force -ErrorAction SilentlyContinue
           }
 
       - name: Collect MSIX
@@ -207,6 +235,14 @@ jobs:
           # Keep the package available long enough to download and submit it.
           retention-days: 2
 
+      - name: Upload unsigned MSIX for bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix-bundle-input-${{ matrix.architecture }}
+          path: ${{ runner.temp }}\bundle-input\${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 2
+
       - name: Upload VCLibs dependency
         uses: actions/upload-artifact@v4
         with:
@@ -225,7 +261,7 @@ jobs:
       - name: Download MSIX packages
         uses: actions/download-artifact@v4
         with:
-          pattern: windows-msix-*
+          pattern: windows-msix-bundle-input-*
           merge-multiple: true
           path: ${{ runner.temp }}\bundle
 
@@ -291,9 +327,13 @@ jobs:
           }
 
           $bundle = Join-Path $env:GITHUB_WORKSPACE "Video simili duplicate cleaner.msixbundle"
-          & $signTool.FullName sign /fd SHA256 /f $env:SIGNING_PFX /p $env:SIGNING_PFX_PASSWORD $bundle
-          if ($LASTEXITCODE -ne 0) {
-            throw "SignTool failed to sign $bundle"
+          try {
+            & $signTool.FullName sign /fd SHA256 /f $env:SIGNING_PFX /p $env:SIGNING_PFX_PASSWORD $bundle
+            if ($LASTEXITCODE -ne 0) {
+              throw "SignTool failed to sign $bundle"
+            }
+          } finally {
+            Remove-Item -LiteralPath $env:SIGNING_PFX -Force -ErrorAction SilentlyContinue
           }
 
       - name: Upload MSIX bundle
