@@ -120,19 +120,6 @@ jobs:
           BUILD_SCRIPT: ${{ matrix.build-script }}
         run: npm run $env:BUILD_SCRIPT
 
-      - name: Collect MSIX for bundle
-        shell: pwsh
-        env:
-          MSIX_NAME: ${{ matrix.artifact }}
-        run: |
-          $msix = Join-Path $env:GITHUB_WORKSPACE "QtProject\release-build\windows\$env:MSIX_NAME"
-          if (-not (Test-Path $msix)) {
-            throw "Expected package was not produced: $msix"
-          }
-
-          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\bundle-input" -Force | Out-Null
-          Copy-Item $msix "$env:RUNNER_TEMP\bundle-input\$env:MSIX_NAME"
-
       - name: Collect MSIX
         shell: pwsh
         env:
@@ -143,7 +130,9 @@ jobs:
             throw "Expected package was not produced: $msix"
           }
 
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\bundle-input" -Force | Out-Null
           New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\package" -Force | Out-Null
+          Copy-Item $msix "$env:RUNNER_TEMP\bundle-input\$env:MSIX_NAME"
           Copy-Item $msix "$env:RUNNER_TEMP\package\$env:MSIX_NAME"
 
       - name: Collect matching VCLibs framework package
