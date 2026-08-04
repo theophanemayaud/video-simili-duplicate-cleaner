@@ -52,32 +52,22 @@ SignTool sign /fd SHA256  /a /f C:\Dev\CertifVideoSimili.pfx /p <certificate pas
 
 See more info in https://docs.microsoft.com/fr-fr/windows/msix/package/sign-app-package-using-signtool
 
-### Sign test artifacts in CI
+### Test CI artifacts locally
 
-The `Windows package` GitHub Actions workflow keeps the Store submission path
-unsigned. To produce artifacts that can be installed in the disposable Windows
-test VM, run the workflow manually with `sign_for_testing` enabled.
+The `Windows package` GitHub Actions workflow intentionally publishes unsigned
+MSIX packages and an unsigned bundle. Use the local certificate and SignTool
+instructions above to sign downloaded test artifacts on the disposable VM path;
+do not put a PFX, password, or signing secret in GitHub Actions.
 
-The repository must have these Actions secrets configured; do not commit either
-the PFX or its password:
-
-- `WINDOWS_MSIX_SIGNING_PFX_BASE64`: base64 contents of a PFX containing the
-  private key.
-- `WINDOWS_MSIX_SIGNING_PFX_PASSWORD`: the PFX password.
-
-The certificate subject must remain exactly
-`CN=4718DAC3-F3E7-40DE-AF8E-C3EB08A4F6AB`, matching `appxmanifest.xml`. The
-workflow validates the subject and expiry, signs both architecture-specific
-MSIX packages and the final bundle, and uploads those signed test artifacts.
-The test VM must trust the corresponding public certificate before installing
-them. Keep `sign_for_testing` disabled for packages intended for Microsoft
-Store submission.
-
-For sideload testing, the workflow also uploads the architecture-matched
-`Microsoft.VCLibs.140.00.UWPDesktop` framework package as
+For sideload testing, download the architecture-matched
+`Microsoft.VCLibs.140.00.UWPDesktop` framework package from the workflow as
 `windows-vclibs-arm64` or `windows-vclibs-x64`. Install that `.appx` first in
-the disposable VM, then install the signed application bundle. The Store path
-is unchanged: the manifest dependency lets the Store provide VCLibs itself.
+the disposable VM, then sign and install the application bundle locally. The
+Store path is unchanged: the manifest dependency lets the Store provide
+VCLibs itself.
+
+Never upload a locally signed test artifact to the Microsoft Store; submit the
+unsigned CI bundle instead.
 
 ### Install the certificate to test install the app.
 Now import the certificate to the computer's trusted certificates, with "Manage computer certificates", go to Trusted People part, click on certificates, and "Action", "All Tasks", import -> then select the exported certificate file, and import it.

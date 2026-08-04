@@ -1,13 +1,8 @@
 name: Windows package
 
+# CI publishes unsigned packages; local disposable-VM instructions handle test signing.
 on:
   workflow_dispatch:
-    inputs:
-      sign_for_testing:
-        description: Sign the MSIX packages and bundle for installation in the test VM
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -125,7 +120,7 @@ jobs:
           BUILD_SCRIPT: ${{ matrix.build-script }}
         run: npm run $env:BUILD_SCRIPT
 
-      - name: Collect unsigned MSIX for bundle
+      - name: Collect MSIX for bundle
         shell: pwsh
         env:
           MSIX_NAME: ${{ matrix.artifact }}
@@ -137,63 +132,6 @@ jobs:
 
           New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\bundle-input" -Force | Out-Null
           Copy-Item $msix "$env:RUNNER_TEMP\bundle-input\$env:MSIX_NAME"
-
-      - name: Prepare test-signing certificate
-        if: ${{ inputs.sign_for_testing == true }}
-        shell: pwsh
-        env:
-          SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_MSIX_SIGNING_PFX_BASE64 }}
-          SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_MSIX_SIGNING_PFX_PASSWORD }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:SIGNING_PFX_BASE64)) {
-            throw "WINDOWS_MSIX_SIGNING_PFX_BASE64 is not configured"
-          }
-          if ([string]::IsNullOrWhiteSpace($env:SIGNING_PFX_PASSWORD)) {
-            throw "WINDOWS_MSIX_SIGNING_PFX_PASSWORD is not configured"
-          }
-
-          $pfx = Join-Path $env:RUNNER_TEMP "video-simili-msix-signing.pfx"
-          try {
-            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
-          } catch {
-            throw "WINDOWS_MSIX_SIGNING_PFX_BASE64 is not valid base64: $($_.Exception.Message)"
-          }
-
-          $securePassword = ConvertTo-SecureString $env:SIGNING_PFX_PASSWORD -AsPlainText -Force
-          $certificate = Get-PfxCertificate -FilePath $pfx -Password $securePassword
-          if ($certificate.Subject -ne "CN=4718DAC3-F3E7-40DE-AF8E-C3EB08A4F6AB") {
-            throw "The signing certificate subject does not match the package publisher: $($certificate.Subject)"
-          }
-          if ($certificate.NotAfter -le [DateTime]::Now) {
-            throw "The signing certificate is expired: $($certificate.NotAfter.ToString('u'))"
-          }
-
-          "SIGNING_PFX=$pfx" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Sign MSIX for test installation
-        if: ${{ inputs.sign_for_testing == true }}
-        shell: pwsh
-        env:
-          MSIX_NAME: ${{ matrix.artifact }}
-          SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_MSIX_SIGNING_PFX_PASSWORD }}
-        run: |
-          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter SignTool.exe -Recurse |
-            Where-Object { $_.Directory.Name -eq $env:MAKEAPPX_ARCHITECTURE } |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-          if (-not $signTool) {
-            throw "SignTool.exe was not found on the Windows runner"
-          }
-
-          $msix = Join-Path $env:GITHUB_WORKSPACE "QtProject\release-build\windows\$env:MSIX_NAME"
-          try {
-            & $signTool.FullName sign /fd SHA256 /f $env:SIGNING_PFX /p $env:SIGNING_PFX_PASSWORD $msix
-            if ($LASTEXITCODE -ne 0) {
-              throw "SignTool failed to sign $msix"
-            }
-          } finally {
-            Remove-Item -LiteralPath $env:SIGNING_PFX -Force -ErrorAction SilentlyContinue
-          }
 
       - name: Collect MSIX
         shell: pwsh
@@ -235,7 +173,7 @@ jobs:
           # Keep the package available long enough to download and submit it.
           retention-days: 2
 
-      - name: Upload unsigned MSIX for bundle
+      - name: Upload MSIX for bundle
         uses: actions/upload-artifact@v4
         with:
           name: windows-msix-bundle-input-${{ matrix.architecture }}
@@ -280,60 +218,6 @@ jobs:
           & $makeAppx.FullName bundle /d "$env:RUNNER_TEMP\bundle" /p $bundle
           if ($LASTEXITCODE -ne 0 -or -not (Test-Path $bundle)) {
             throw "MakeAppx failed to create the bundle"
-          }
-
-      - name: Prepare test-signing certificate
-        if: ${{ inputs.sign_for_testing == true }}
-        shell: pwsh
-        env:
-          SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_MSIX_SIGNING_PFX_BASE64 }}
-          SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_MSIX_SIGNING_PFX_PASSWORD }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:SIGNING_PFX_BASE64) -or
-              [string]::IsNullOrWhiteSpace($env:SIGNING_PFX_PASSWORD)) {
-            throw "Windows MSIX signing secrets are not configured"
-          }
-
-          $pfx = Join-Path $env:RUNNER_TEMP "video-simili-msix-signing.pfx"
-          try {
-            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
-          } catch {
-            throw "WINDOWS_MSIX_SIGNING_PFX_BASE64 is not valid base64: $($_.Exception.Message)"
-          }
-
-          $securePassword = ConvertTo-SecureString $env:SIGNING_PFX_PASSWORD -AsPlainText -Force
-          $certificate = Get-PfxCertificate -FilePath $pfx -Password $securePassword
-          if ($certificate.Subject -ne "CN=4718DAC3-F3E7-40DE-AF8E-C3EB08A4F6AB") {
-            throw "The signing certificate subject does not match the package publisher: $($certificate.Subject)"
-          }
-          if ($certificate.NotAfter -le [DateTime]::Now) {
-            throw "The signing certificate is expired: $($certificate.NotAfter.ToString('u'))"
-          }
-
-          "SIGNING_PFX=$pfx" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Sign MSIX bundle for test installation
-        if: ${{ inputs.sign_for_testing == true }}
-        shell: pwsh
-        env:
-          SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_MSIX_SIGNING_PFX_PASSWORD }}
-        run: |
-          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter SignTool.exe -Recurse |
-            Where-Object { $_.Directory.Name -eq "x64" } |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-          if (-not $signTool) {
-            throw "SignTool.exe was not found on the Windows runner"
-          }
-
-          $bundle = Join-Path $env:GITHUB_WORKSPACE "Video simili duplicate cleaner.msixbundle"
-          try {
-            & $signTool.FullName sign /fd SHA256 /f $env:SIGNING_PFX /p $env:SIGNING_PFX_PASSWORD $bundle
-            if ($LASTEXITCODE -ne 0) {
-              throw "SignTool failed to sign $bundle"
-            }
-          } finally {
-            Remove-Item -LiteralPath $env:SIGNING_PFX -Force -ErrorAction SilentlyContinue
           }
 
       - name: Upload MSIX bundle
