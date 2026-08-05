@@ -1,4 +1,4 @@
-name: Local Tests
+name: Test
 
 on:
   pull_request:
@@ -8,12 +8,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: local-tests-${{ github.workflow }}-${{ github.ref }}
+  group: test-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  linux-local-tests:
-    name: Linux tiny repo-local tests
+  linux-test:
+    name: Linux tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -25,9 +25,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .apt-cache/archives
-          key: apt-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/local-tests.yml') }}
+          key: apt-linux-test-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/test.yml') }}
           restore-keys: |
-            apt-linux-local-tests-${{ runner.os }}-${{ runner.arch }}-
+            apt-linux-test-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install dependencies
         run: |
@@ -50,19 +50,19 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S QtProject -B QtProject/builds/ci-local-tests -G Ninja \
+          cmake -S QtProject -B QtProject/builds/ci-test -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug
 
       - name: Build self-contained test targets
         run: |
-          cmake --build QtProject/builds/ci-local-tests --target \
+          cmake --build QtProject/builds/ci-test --target \
             test_comparison \
             test_mainwindow \
             test_auto_delete
 
       - name: Run self-contained tests
         run: |
-          ctest --test-dir QtProject/builds/ci-local-tests \
+          ctest --test-dir QtProject/builds/ci-test \
             --output-on-failure \
             -R "^(test_comparison|test_mainwindow|test_auto_delete)$"
 
@@ -118,8 +118,8 @@ jobs:
           path: macos-static-deps.tar.gz
           retention-days: 1
 
-  macos-local-tests:
-    name: macOS local-like tests (${{ matrix.name }})
+  macos-test:
+    name: macOS tests (${{ matrix.name }})
     needs: macos-static-deps
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
@@ -158,20 +158,20 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S QtProject -B QtProject/builds/ci-macos-local-tests -G Ninja \
+          cmake -S QtProject -B QtProject/builds/ci-macos-test -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_PREFIX_PATH="$PWD/QtProject/libraries/macos/qt/qt-install" \
             -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
 
       - name: Build self-contained test targets
         run: |
-          cmake --build QtProject/builds/ci-macos-local-tests --target \
+          cmake --build QtProject/builds/ci-macos-test --target \
             test_comparison \
             test_mainwindow \
             test_auto_delete
 
       - name: Run self-contained tests
         run: |
-          ctest --test-dir QtProject/builds/ci-macos-local-tests \
+          ctest --test-dir QtProject/builds/ci-macos-test \
             --output-on-failure \
             -R "^(test_comparison|test_mainwindow|test_auto_delete)$"
