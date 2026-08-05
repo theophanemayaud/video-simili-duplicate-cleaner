@@ -52,6 +52,23 @@ SignTool sign /fd SHA256  /a /f C:\Dev\CertifVideoSimili.pfx /p <certificate pas
 
 See more info in https://docs.microsoft.com/fr-fr/windows/msix/package/sign-app-package-using-signtool
 
+### Test CI artifacts locally
+
+The `Windows package` GitHub Actions workflow intentionally publishes unsigned
+MSIX packages and an unsigned bundle. Use the local certificate and SignTool
+instructions above to sign downloaded test artifacts on the disposable VM path;
+do not put a PFX, password, or signing secret in GitHub Actions.
+
+For sideload testing, download the architecture-matched
+`Microsoft.VCLibs.140.00.UWPDesktop` framework package from the workflow as
+`windows-vclibs-arm64` or `windows-vclibs-x64`. Install that `.appx` first in
+the disposable VM, then sign and install the application bundle locally. The
+Store path is unchanged: the manifest dependency lets the Store provide
+VCLibs itself.
+
+Never upload a locally signed test artifact to the Microsoft Store; submit the
+unsigned CI bundle instead.
+
 ### Install the certificate to test install the app.
 Now import the certificate to the computer's trusted certificates, with "Manage computer certificates", go to Trusted People part, click on certificates, and "Action", "All Tasks", import -> then select the exported certificate file, and import it.
 

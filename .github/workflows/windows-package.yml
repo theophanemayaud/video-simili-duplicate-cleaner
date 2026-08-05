@@ -1,0 +1,218 @@
+name: Windows package
+
+# CI publishes unsigned packages; local disposable-VM instructions handle test signing.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-package-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Package ${{ matrix.architecture }}
+    # The stable VS2022 image can cross-build ARM64 and build x64 without
+    # depending on the public-preview Windows ARM runner.
+    runs-on: windows-2022
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            build-script: win-build-arm64
+            # MakeAppx is a host tool; the x64 executable can package ARM64
+            # contents and is the one that runs on this x64 Windows runner.
+            makeappx_architecture: x64
+            artifact: Video simili duplicate cleaner.arm64.msix
+          - architecture: x64
+            build-script: win-build-x64
+            makeappx_architecture: x64
+            artifact: Video simili duplicate cleaner.x64.msix
+    env:
+      VCPKG_DISABLE_METRICS: 1
+      MAKEAPPX_ARCHITECTURE: ${{ matrix.makeappx_architecture }}
+      VCPKG_COMMIT: 12ae26a216f4c922a8189ed5c691bdb3f8bab686
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Set vcpkg paths
+        shell: pwsh
+        run: |
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Prepare vcpkg binary cache
+        shell: pwsh
+        run: New-Item -ItemType Directory -Path $env:VCPKG_DEFAULT_BINARY_CACHE -Force | Out-Null
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\vcpkg-binary-cache
+          # Keep the primary key independent of branch/ref. The restore prefix
+          # searches for any reachable cache for this architecture and vcpkg
+          # revision, while vcpkg's ABI keys separate incompatible builds.
+          key: windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('QtProject/vcpkg.json', 'QtProject/CMakePresets.json', 'QtProject/vcpkg-triplets/**') }}
+          restore-keys: |
+            windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-
+
+      - name: Install vcpkg
+        shell: pwsh
+        run: |
+          # Keep the port history local so manifest resolution does not depend on
+          # a later promisor fetch while the build is already running.
+          git clone --no-filter https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          # This commit has the manifest's Qt/FFmpeg versions and the NASM
+          # version supported by the current AOM port.
+          git -C "$env:VCPKG_ROOT" checkout $env:VCPKG_COMMIT
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+
+      - name: Verify Visual Studio toolchains
+        shell: pwsh
+        env:
+          TARGET_ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe was not found on the Windows runner"
+          }
+
+          $requiredComponent = if ($env:TARGET_ARCHITECTURE -eq "arm64") {
+            "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
+          } else {
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+          }
+          $installationPath = & $vswhere -latest -products * -requires $requiredComponent -property installationPath
+          if (-not $installationPath) {
+            throw "The Visual Studio C++ toolchain for $env:TARGET_ARCHITECTURE is not installed"
+          }
+
+          Write-Host "Using Visual Studio at $installationPath"
+
+          $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse |
+            Where-Object { $_.Directory.Name -eq $env:MAKEAPPX_ARCHITECTURE } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $makeAppx) {
+            throw "MakeAppx.exe was not found on the Windows runner"
+          }
+
+          $makeAppx.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build MSIX
+        shell: pwsh
+        env:
+          BUILD_SCRIPT: ${{ matrix.build-script }}
+        run: npm run $env:BUILD_SCRIPT
+
+      - name: Collect MSIX
+        shell: pwsh
+        env:
+          MSIX_NAME: ${{ matrix.artifact }}
+        run: |
+          $msix = Join-Path $env:GITHUB_WORKSPACE "QtProject\release-build\windows\$env:MSIX_NAME"
+          if (-not (Test-Path $msix)) {
+            throw "Expected package was not produced: $msix"
+          }
+
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\bundle-input" -Force | Out-Null
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\package" -Force | Out-Null
+          Copy-Item $msix "$env:RUNNER_TEMP\bundle-input\$env:MSIX_NAME"
+          Copy-Item $msix "$env:RUNNER_TEMP\package\$env:MSIX_NAME"
+
+      - name: Collect matching VCLibs framework package
+        shell: pwsh
+        env:
+          TARGET_ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          $vclibsRoot = Join-Path ${env:ProgramFiles(x86)} "Microsoft SDKs\Windows Kits\10\ExtensionSDKs\Microsoft.VCLibs.Desktop\14.0\Appx\Retail"
+          $vclibs = Get-ChildItem $vclibsRoot -Recurse -Filter "Microsoft.VCLibs.*.14.00.Desktop.appx" |
+            Where-Object { $_.Directory.Name -eq $env:TARGET_ARCHITECTURE } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $vclibs) {
+            throw "Matching VCLibs framework package was not found for $env:TARGET_ARCHITECTURE under $vclibsRoot"
+          }
+
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\vclibs" -Force | Out-Null
+          Copy-Item $vclibs.FullName "$env:RUNNER_TEMP\vclibs\$($vclibs.Name)"
+          Write-Host "Collected $($vclibs.Name)"
+
+      - name: Upload MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix-${{ matrix.architecture }}
+          path: ${{ runner.temp }}\package\${{ matrix.artifact }}
+          if-no-files-found: error
+          # Keep the package available long enough to download and submit it.
+          retention-days: 2
+
+      - name: Upload MSIX for bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix-bundle-input-${{ matrix.architecture }}
+          path: ${{ runner.temp }}\bundle-input\${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Upload VCLibs dependency
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-vclibs-${{ matrix.architecture }}
+          path: ${{ runner.temp }}\vclibs\*.appx
+          if-no-files-found: error
+          retention-days: 2
+
+  bundle:
+    name: Bundle MSIX packages
+    needs: package
+    runs-on: windows-2022
+    timeout-minutes: 15
+
+    steps:
+      - name: Download MSIX packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: windows-msix-bundle-input-*
+          merge-multiple: true
+          path: ${{ runner.temp }}\bundle
+
+      - name: Create MSIX bundle
+        shell: pwsh
+        run: |
+          $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse |
+            Where-Object { $_.Directory.Name -eq "x64" } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $makeAppx) {
+            throw "MakeAppx.exe was not found on the Windows runner"
+          }
+
+          $bundle = Join-Path $env:GITHUB_WORKSPACE "Video simili duplicate cleaner.msixbundle"
+          & $makeAppx.FullName bundle /d "$env:RUNNER_TEMP\bundle" /p $bundle
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $bundle)) {
+            throw "MakeAppx failed to create the bundle"
+          }
+
+      - name: Upload MSIX bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msixbundle
+          path: Video simili duplicate cleaner.msixbundle
+          if-no-files-found: error
+          retention-days: 2
