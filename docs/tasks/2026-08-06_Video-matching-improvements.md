@@ -15,30 +15,30 @@ We should improve recall in three narrowly scoped ways:
 
 1. Replace an uninformative near-black sampled frame with one nearby sample.
 2. Remove confidently detected, symmetric encoded black bars from the image used for matching.
-3. Try 90-degree and 270-degree fingerprints when metadata and duration strongly indicate that one video is a quarter-turn copy of the other.
+3. Optionally compare fingerprints at 90, 180, and 270 degrees to detect physically rotated copies.
 
-These transformations should happen while building matching fingerprints. Pair comparison should consume the normalized fingerprints and normally remain unaware of black-frame substitution or black-bar cropping. Rotation is the exception because it must be a deliberately gated fallback after the unchanged-orientation comparison fails.
+These transformations should happen while building matching fingerprints. Pair comparison should consume the normalized fingerprints and normally remain unaware of black-frame substitution or black-bar cropping. Rotated matching should be controlled by a persisted setting which is off by default, leaving the current rotation-specific fingerprint work and comparison behavior unchanged unless the user explicitly enables it.
 
-The changes must not ship based only on more true-positive examples. The release gate is no additional matches in a representative negative-pair corpus, including different vertical videos with identical pillar bars. Trying several rotations and taking the highest score without extra gates is explicitly not acceptable: every unrelated pair would get more opportunities to cross the threshold.
+The changes must not ship based only on more true-positive examples. The release gate is no additional matches in a representative negative-pair corpus, including different vertical videos with identical pillar bars. Trying several rotations gives unrelated pairs more opportunities to cross the threshold, so rotated fallback matches still require a second visual safeguard and explicit negative-corpus validation.
 
 ## Goals
 
-- Recover duplicate pairs that are currently missed because one copy is physically rotated by a quarter turn.
+- Recover duplicate pairs that are currently missed because one copy is physically rotated by 90, 180, or 270 degrees.
 - Prevent a sampled black/title frame from making an otherwise usable video unmatchable or materially weakening its fingerprint.
 - Make letterboxed and pillarboxed copies comparable to copies without encoded bars.
 - Reduce the black-bar false positives described in issue #138.
 - Preserve existing matching behavior for ordinary videos as closely as possible.
-- Keep the fast path cheap for videos without black frames, black bars, or an orientation mismatch.
+- Keep the fast path cheap for videos without black frames or black bars, and preserve the current rotation cost when rotated matching is disabled.
 - Make the behavior deterministic and testable in no-cache, warm-cache, and cache-only scans.
 
 ## Non-goals
 
 - Arbitrary crop, zoom, or pan matching. That remains the larger scope of issue #17.
 - Horizontal or vertical mirroring.
-- Arbitrary rotation angles. The first version supports only 90-degree and 270-degree relative rotations, not 180 degrees.
+- Arbitrary rotation angles outside 90-degree increments.
 - Matching partial clips or videos with substantially different durations.
 - Treating a dark scene as corrupt or moving it to the error folder.
-- Adding user-facing settings for the first version. The automatic rules should be conservative enough to be on by default.
+- Adding settings for black-frame substitution or black-bar normalization. Those rules should be conservative enough to be on by default; only rotated-copy detection is opt-in.
 - Changing comparison thresholds globally to compensate for the new behavior.
 
 ## Current behavior and findings
@@ -73,6 +73,8 @@ The missing case is a file whose pixels were physically re-encoded in a differen
 
 For multi-frame modes, rotating the completed collage as one image is also incorrect because it moves the sampled-frame tiles. Each tile must be rotated in place so sample time `n` remains aligned with sample time `n`.
 
+Metadata and frame extraction dominate scan cost. Rotation fingerprints can be derived from the already extracted collage without another FFmpeg seek or metadata read. Historical pHash measurements in `BackgroundMatchDiscovery` estimate roughly one millisecond per 1,000 pairs, and pair discovery now runs in parallel in the background. The expected rotation cost is therefore the much smaller work of producing three extra reduced fingerprints per video and performing up to three extra pHash comparisons per otherwise unmatched pair. SSIM should still run only after a rotated pHash passes its prefilter.
+
 ### Encoded black bars
 
 There is currently no black-bar detection. Bars can cause both error types:
@@ -88,9 +90,9 @@ Taking the maximum score over 0, 90, 180, and 270 degrees changes the score dist
 
 The feature therefore needs:
 
-- conservative transformation eligibility rules;
+- a persisted rotated-copy setting which defaults to off;
 - a second visual check for rotated fallback matches;
-- no 180-degree or mirrored fallback in the first version;
+- all three nonzero right-angle rotations, including 180 degrees, when the setting is enabled;
 - positive and negative corpus measurements before thresholds are finalized.
 
 ## Feature specification
@@ -154,38 +156,36 @@ The implementation should record bar thickness as normalized fractions of frame 
 
 This is deliberately narrower than general crop matching in issue #17.
 
-### 3. Gated quarter-turn matching
+### 3. Opt-in rotated-copy matching
 
-Build three fingerprints for each usable thumbnail segment during extraction:
+Add a checkbox labeled `Detect rotated video copies` to the scan settings. Persist it through `Prefs`/`QSettings` and default it to `false`. Its tooltip should explain that it compares 90, 180, and 270-degree versions and can add fingerprinting and comparison work. Black-frame substitution and black-bar normalization remain independent of this setting.
+
+When the setting is enabled, build four fingerprints for each usable thumbnail segment during extraction:
 
 - unchanged orientation;
 - each tile rotated 90 degrees clockwise in its existing collage cell;
+- each tile rotated 180 degrees in its existing collage cell;
 - each tile rotated 90 degrees counter-clockwise in its existing collage cell.
 
-The fingerprints use the black-bar-normalized matching image. Tile order is unchanged. No full-size rotated images need to be retained after their reduced fingerprints are produced.
+When it is disabled, build only the unchanged fingerprint and run exactly the current orientation comparison. The rotated fingerprints use the black-bar-normalized matching image. Tile order is unchanged. No full-size rotated images need to be retained after their reduced fingerprints are produced.
 
 Pair matching proceeds as follows:
 
-1. Run the existing unchanged-orientation comparison first. If it matches, return it without rotation work.
-2. Consider the quarter-turn fallback only when all of these are true:
-   - one video's presentation orientation is landscape and the other's is portrait;
-   - neither display aspect ratio is near square;
-   - the display aspect ratios are reciprocal within a small tolerance, allowing resolution changes;
-   - durations differ by no more than the existing one-second “same duration” tolerance; and
-   - both segments have usable fingerprints.
-3. Compare the unchanged fingerprint on one side with the clockwise and counter-clockwise fingerprints on the other. This covers either relative quarter turn without a 3x3 cross-product.
+1. If rotated-copy detection is disabled, run only the existing unchanged-orientation comparison.
+2. If enabled, run the unchanged-orientation comparison first. If it matches, return it without further rotation work.
+3. Otherwise compare the unchanged fingerprint on one side with the 90, 180, and 270-degree fingerprints on the other. Rotating only one side covers every relative right-angle orientation without a 4x4 cross-product.
 4. A rotated fallback must pass both pHash and SSIM safeguards, even when the selected UI mode is pHash. This secondary check is required because the fallback gives a pair more matching opportunities.
 5. Apply conservative minimum floors to the rotated pHash and raw SSIM scores in addition to the user-selected threshold. Initial calibration candidates are 57/64 pHash bits and 0.90 raw SSIM, but these are not release decisions until measured against the fixture corpus.
-6. Record the winning relative rotation in `VideoPairMatchResult` for tests and verbose diagnostics. The first version does not need new comparison-window controls or automatic display rotation.
+6. Record the winning relative rotation in `VideoPairMatchResult` for tests and verbose diagnostics. The first version does not need automatic display rotation in the comparison window.
 
-The normal comparison path and its thresholds remain unchanged. The fallback does not include 180-degree rotation because same-orientation metadata provides no equally cheap eligibility gate. It can be evaluated later as a separate feature with its own false-positive evidence.
+The normal comparison path and its thresholds remain unchanged. The setting, rather than orientation metadata, controls whether the extra comparisons happen. This makes the behavior complete for right-angle rotations, including upside-down 180-degree copies, without adding any cost or false-positive opportunity to the default configuration.
 
 ### Fingerprint representation
 
 The current `grayThumb` stores 16x16 `CV_32F` matrices. Keeping three more float matrices per segment would be needlessly expensive for very large libraries. Store compact 8-bit grayscale SSIM inputs and convert to float only for the small number of pairs that reach SSIM:
 
 ```cpp
-enum class FingerprintRotation { none, clockwise90, counterClockwise90 };
+enum class FingerprintRotation { none, clockwise90, rotated180, counterClockwise90 };
 
 struct VisualFingerprint {
     uint64_t phash = 0;
@@ -194,7 +194,7 @@ struct VisualFingerprint {
 };
 ```
 
-`Video` can hold this for up to two `cutEnds` segments and three orientations. Three 256-byte SSIM inputs use less pixel storage per segment than one current 16x16 float matrix, before small struct overhead. This keeps rotation support from multiplying per-video memory.
+`Video` can hold this for up to two `cutEnds` segments and four orientations. Four 256-byte SSIM inputs use the same pixel storage per segment as one current 16x16 float matrix, before small struct overhead. This keeps comprehensive right-angle support from materially multiplying per-video memory.
 
 The zero pHash should no longer be the only validity signal. An explicit `usable` flag avoids coupling black-frame policy to a hash value that can otherwise be valid data.
 
@@ -203,12 +203,13 @@ The zero pHash should no longer be the only validity signal. An explicit `usable
 - The no-bars path performs only a downscale and small edge-band checks per sampled frame.
 - Detailed band walking runs only after the edge fast path finds a candidate.
 - A low-information frame triggers at most one extra decode.
-- Base pair comparison performs exactly the current unchanged-orientation work.
-- Rotation fallback is evaluated only for opposite-orientation, reciprocal-aspect, same-duration pairs after the base comparison fails.
+- With rotated-copy detection off, no rotation-specific fingerprints or comparisons are added; the other matching improvements remain independent.
+- With it enabled, three rotated reduced fingerprints are computed once per video from already extracted frames; no additional FFmpeg decoding or metadata reads are needed.
+- An otherwise unmatched pair performs at most three additional XOR/popcount pHash comparisons. Existing measurements estimate the current pHash path at about one millisecond per 1,000 pairs, and background discovery parallelizes this work.
 - SSIM remains behind pHash, and rotated SSIM runs only for a rotated pHash candidate.
 - Peak extraction memory must not retain full-size copies for every rotation. Build one reduced orientation at a time and keep only compact fingerprints.
 
-Release target: less than 5% p95 extraction-time regression on a representative no-bars corpus, no material pair-scan regression for a same-orientation library, and no increase in peak memory attributable to stored rotation fingerprints. These targets may be adjusted only with measured results recorded in the implementing PR.
+Release target: with rotated-copy detection off, less than 5% p95 extraction-time regression on a representative no-bars corpus and no material pair-scan regression. With it enabled, record extraction and complete pair-discovery overhead for small, large, dense, and sparse libraries. Peak memory must remain comparable to the current representation. These targets may be adjusted only with measured results recorded in the implementing PR.
 
 ## False-positive safety and acceptance criteria
 
@@ -217,7 +218,7 @@ Create a labeled corpus before finalizing constants. It must contain at least:
 Positive pairs:
 
 - original and recompressed copy;
-- original and physically rotated 90-degree/270-degree recompress;
+- original and physically rotated 90, 180, and 270-degree recompresses;
 - original and copy with symmetric letterbox bars;
 - original and copy with symmetric pillarbox bars;
 - copies with a black frame at a nominal sample but matching content at the substitute position;
@@ -231,17 +232,18 @@ Negative pairs:
 - naturally dark scenes with nonuniform detail;
 - frames with one-sided black borders;
 - frames with black corners but no continuous bars;
-- unrelated landscape/portrait pairs whose aspect ratios are reciprocal;
-- near-square videos, which must not enter rotation fallback.
+- unrelated videos at each relative right-angle rotation;
+- same-orientation, same-duration negatives which exercise the 180-degree fallback.
 
 Acceptance criteria:
 
 - All matches found by the current implementation in the corpus remain matches.
-- The targeted rotated, bar-normalized, and substituted-frame positive pairs match at the agreed default settings.
+- The targeted bar-normalized and substituted-frame positive pairs match at the agreed default settings; rotated positives match when rotated-copy detection is enabled.
+- With rotated-copy detection disabled, rotation fingerprints are not generated and pair decisions remain identical to the base path.
 - No pair labeled negative becomes a match at the default threshold or at the lower threshold selected for the issue #138 regression set.
 - Different videos sharing bars score based on their active pictures and no longer match merely because of the bars.
 - Fresh, warm-cache, and cache-only results are documented; a cache-only run using a previously repaired cache must match the warm-cache result.
-- The one-retry bound and rotation eligibility gates are covered by tests.
+- The one-retry bound and both states of the rotated-copy preference are covered by tests.
 - Performance and peak-memory targets above are measured, not inferred from operation counts.
 
 “No new false positives” is evaluated against this corpus and existing end-to-end fixtures. It cannot be proven for every possible video, so the implementation must fail closed whenever detection is ambiguous.
@@ -263,7 +265,7 @@ This phase prevents tuning only against the motivating positives.
 1. Introduce pure helpers for:
    - low-information black classification;
    - symmetric bar detection and consensus;
-   - tile-wise crop/resize and quarter-turn transforms; and
+   - tile-wise crop/resize and right-angle transforms; and
    - compact pHash/SSIM fingerprint construction.
 2. Keep file I/O, FFmpeg seeking, and cache writes in `Video`; keep image classification deterministic and independently testable.
 3. Replace implicit `hash == 0` validity with an explicit usable flag while preserving current results before enabling new behavior.
@@ -287,14 +289,14 @@ Likely files: `QtProject/app/video.h`, `QtProject/app/video.cpp`, a small `visua
 4. Run all issue #138 positive and negative fixtures before changing any threshold.
 5. Measure the ordinary-video extraction overhead and tighten the early-return path if needed.
 
-### Phase 5: quarter-turn fingerprints and fallback
+### Phase 5: opt-in rotated fingerprints and fallback
 
-1. Generate compact unchanged/clockwise/counter-clockwise fingerprints tile by tile.
-2. Extend `VideoPairMatchResult` with the selected relative rotation.
-3. Keep the current base comparison first and unchanged.
-4. Add orientation, reciprocal-aspect, near-square, and duration gates.
+1. Add and persist the `Detect rotated video copies` preference, defaulting to off, and include it in the immutable scan-time match configuration.
+2. Generate compact unchanged/90/180/270-degree fingerprints tile by tile only when enabled.
+3. Extend `VideoPairMatchResult` with the selected relative rotation.
+4. Keep the current base comparison first and unchanged, then compare all three rotated fingerprints when enabled.
 5. Add the pHash-plus-SSIM rotated fallback and calibrate its minimum floors from the full corpus.
-6. Verify background match discovery remains deterministic and reports the same base matches.
+6. Verify background match discovery remains deterministic, reports the same base matches when disabled, and measures enabled-mode overhead.
 
 ### Phase 6: end-to-end verification
 
@@ -316,7 +318,7 @@ In verbose mode, report aggregate counts rather than noisy per-pair output:
 - successful and failed substitutions;
 - videos with accepted letterbox/pillarbox normalization;
 - ambiguous bar candidates rejected;
-- pairs eligible for rotation fallback;
+- pairs which perform rotation fallback;
 - rotated pHash candidates, rotated SSIM checks, and accepted rotated matches.
 
 These counters make threshold and performance regressions diagnosable without adding telemetry or changing normal UI output.
@@ -328,6 +330,6 @@ These counters make threshold and performance regressions diagnosable without ad
 - Keep one bounded black-frame substitute attempt.
 - Crop only symmetric, consensus bars and fail closed on ambiguity.
 - Handle rotation metadata during decode as today; the fallback is only for physically rotated pixels.
-- Start with 90-degree and 270-degree rotations, not 180-degree or mirrors.
+- Keep rotated-copy detection off by default and compare 90, 180, and 270-degree variants when enabled; mirrors remain out of scope.
 - Require both pHash and SSIM evidence for a rotated fallback.
 - Treat zero additional corpus false positives as a release gate, not a best-effort aspiration.
