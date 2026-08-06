@@ -7,7 +7,6 @@ Related reports:
 - [Discussion #178: rotated videos are missed](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/discussions/178)
 - [Issue #138: embedded black bars create false positives](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/138)
 - [Issue #91: all-black captures are repeatedly rejected](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/91)
-- [Issue #27: fresh and cached captures can produce different hashes](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/27)
 - [Issue #17: arbitrary cropped-video matching](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/17)
 
 ## Summary
@@ -254,7 +253,7 @@ Acceptance criteria:
 1. Add small deterministic video fixtures, generated from distinct source patterns and encoded with the project's supported FFmpeg workflow.
 2. Produce rotated, bar-encoded, and black-sample variants from those sources. Keep commands or a fixture-generation script beside the tests so the intent is reproducible.
 3. Record current pair scores and match decisions for every labeled positive and negative pair in pHash and SSIM modes.
-4. Record no-cache, warm-cache, and cache-only behavior, including the known fresh/cache hash difference from issue #27.
+4. Record no-cache, warm-cache, and cache-only behavior for the new matching paths.
 5. Add a small extraction benchmark for ordinary videos and videos that activate each new path.
 
 This phase prevents tuning only against the motivating positives.
