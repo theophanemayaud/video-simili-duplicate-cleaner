@@ -39,6 +39,7 @@ The changes must not ship based only on more true-positive examples. The release
 - Matching partial clips or videos with substantially different durations.
 - Treating a dark scene as corrupt or moving it to the error folder.
 - Adding settings for black-frame substitution or black-bar normalization. Those rules should be conservative enough to be on by default; only rotated-copy detection is opt-in.
+- Migrating, converting, or lazily repairing existing cache records for the new matching approach. A whole-cache invalidation and full rescan after upgrade is acceptable.
 - Changing comparison thresholds globally to compensate for the new behavior.
 
 ## Current behavior and findings
@@ -47,7 +48,7 @@ The changes must not ship based only on more true-positive examples. The release
 
 `Video::takeScreenCaptures()` samples fixed positions from `Thumbnail::percentages()`, currently between 1 and 12 frames depending on the thumbnail mode. A decode failure already triggers a different recovery path: `ofDuration` is reduced by six percentage points and the whole capture sequence is retried against the shortened usable duration. There is no retry based on the visual contents of a successfully decoded frame.
 
-The capture cache stores JPEG frames in columns named for the nominal sample positions (`at8` through `at96`). It does not store pHashes or SSIM matrices. This lets bar normalization and rotation fingerprints be recomputed from existing cached captures without a schema migration.
+The capture cache stores JPEG frames in columns named for the nominal sample positions (`at8` through `at96`). It does not store pHashes or SSIM matrices. Existing cached captures may be reused only if they are already valid inputs to the new pipeline without special conversion. If the persisted input contract changes, invalidate the old cache as a whole and rebuild it instead of adding a migration path.
 
 ### “All black” detection
 
@@ -114,9 +115,18 @@ Why one fixed attempt: it is deterministic, gives two duplicate copies the same 
 Cache behavior:
 
 - Store a successful substitute in the original nominal cache column. `at48`, for example, means “the resolved capture for the 48% slot,” not necessarily a frame decoded at exactly 48%.
-- A normal warm-cache scan may detect an old cached black frame, decode the substitute, and overwrite that nominal slot. This lazily repairs old caches.
-- `CACHE_ONLY` must never read the video. If its cached nominal frame is black, it cannot repair that slot during that run.
+- Apply the same current-run substitution rule to any compatible cached capture; do not add special detection or recovery logic for records written by an older version.
+- `CACHE_ONLY` must never read the video. If its cached nominal frame is unusable, it cannot substitute that slot during that run.
 - Black-frame classification must tolerate JPEG noise because cached captures are lossy.
+
+#### Cache transition
+
+Do not implement a record-by-record migration strategy for this work. Before implementation, decide whether the old cached JPEG captures remain valid raw inputs:
+
+- If they do, read them normally and derive the new fingerprints without rewriting records merely because they are old.
+- If they do not, bump one cache-generation value, invalidate the old cache in full, and let the next normal scan rebuild it from the videos.
+
+Do not add legacy fingerprint formats, conversion code, lazy repair passes, or fallback matching behavior. After invalidation, normal cache mode may take as long as a first scan; that is an accepted upgrade cost. Cache-only mode must fail cleanly for invalidated/missing entries rather than crashing or mixing generations.
 
 Final validity remains mode-aware:
 
@@ -222,7 +232,7 @@ Positive pairs:
 - original and copy with symmetric letterbox bars;
 - original and copy with symmetric pillarbox bars;
 - copies with a black frame at a nominal sample but matching content at the substitute position;
-- the above in both no-cache and warm-cache scans.
+- the above in no-cache and warm-cache scans built with the current cache generation.
 
 Negative pairs:
 
@@ -242,7 +252,8 @@ Acceptance criteria:
 - With rotated-copy detection disabled, rotation fingerprints are not generated and pair decisions remain identical to the base path.
 - No pair labeled negative becomes a match at the default threshold or at the lower threshold selected for the issue #138 regression set.
 - Different videos sharing bars score based on their active pictures and no longer match merely because of the bars.
-- Fresh, warm-cache, and cache-only results are documented; a cache-only run using a previously repaired cache must match the warm-cache result.
+- Fresh, warm-cache, and cache-only results built with the current cache generation are documented and consistent.
+- An incompatible old cache is invalidated as a unit and leads to a clean cache miss/full rescan, with no record migration or mixed-generation results.
 - The one-retry bound and both states of the rotated-copy preference are covered by tests.
 - Performance and peak-memory targets above are measured, not inferred from operation counts.
 
@@ -255,7 +266,7 @@ Acceptance criteria:
 1. Add small deterministic video fixtures, generated from distinct source patterns and encoded with the project's supported FFmpeg workflow.
 2. Produce rotated, bar-encoded, and black-sample variants from those sources. Keep commands or a fixture-generation script beside the tests so the intent is reproducible.
 3. Record current pair scores and match decisions for every labeled positive and negative pair in pHash and SSIM modes.
-4. Record no-cache, warm-cache, and cache-only behavior for the new matching paths.
+4. Record no-cache, warm-cache, and cache-only behavior for the new matching paths using the current cache generation.
 5. Add a small extraction benchmark for ordinary videos and videos that activate each new path.
 
 This phase prevents tuning only against the motivating positives.
@@ -270,6 +281,7 @@ This phase prevents tuning only against the motivating positives.
 2. Keep file I/O, FFmpeg seeking, and cache writes in `Video`; keep image classification deterministic and independently testable.
 3. Replace implicit `hash == 0` validity with an explicit usable flag while preserving current results before enabling new behavior.
 4. Update SSIM input handling to consume compact 8-bit data and convert to float at comparison time.
+5. If persisted captures are incompatible, add only a whole-cache generation invalidation; do not add conversion or recovery code.
 
 Likely files: `QtProject/app/video.h`, `QtProject/app/video.cpp`, a small `visualfingerprint.{h,cpp}` helper, `QtProject/app/comparison/internal/ssim.*`, and focused tests.
 
@@ -279,7 +291,7 @@ Likely files: `QtProject/app/video.h`, `QtProject/app/video.cpp`, a small `visua
 2. Add the single directional substitute attempt.
 3. Overwrite the nominal cache slot only when the substitute succeeds.
 4. Make final rejection depend on useful captures for the selected thumbnail mode.
-5. Add tests for forward/backward direction, retry bounds, failed substitutes, warm-cache lazy repair, and cache-only no-I/O behavior.
+5. Add tests for forward/backward direction, retry bounds, failed substitutes, normal compatible-cache handling, and cache-only no-I/O behavior.
 
 ### Phase 4: black-bar normalization
 
