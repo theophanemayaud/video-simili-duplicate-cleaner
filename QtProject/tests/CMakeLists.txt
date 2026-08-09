@@ -114,3 +114,10 @@ add_qt_test(test_video_simplified
         test_video_simplified/tst_video_simplified.cpp
         test_video_simplified/video_simplified_test_helpers.cpp
 )
+
+# Test 6: compact matching feature contract and end-to-end fixtures
+add_qt_test(test_video_matching_features
+    SOURCES
+        test_video_matching_features/tst_video_matching_features.cpp
+        video_matching_fixture_manifest.cpp
+)

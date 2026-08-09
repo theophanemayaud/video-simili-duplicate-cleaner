@@ -321,7 +321,7 @@ Keep required unit and end-to-end coverage self-contained and fast. The existing
 
 Most image-policy cases should use generated in-memory `QImage`/pixel fixtures and add no binary files: uniform black/gray/white frames, dark nonuniform detail, title cards, symmetric bars, one-sided borders, black corners, inconsistent cross-frame boundaries, and right-angle tile transforms.
 
-For decoder/cache/end-to-end wiring, add one reproducible group of tiny videos, approximately 160x90, 10–12 seconds, low frame rate, no audio, and efficiently encoded:
+For decoder/cache/end-to-end wiring, add one reproducible group of tiny videos with no canvas edge longer than 200 pixels, approximately 10 seconds long, low frame rate, no audio, and efficiently encoded. Use narrow portrait sources so identical pillar bars occupy enough of the encoded frame to be a meaningful negative guard:
 
 1. two visually distinct base sources `A` and `B` with identical duration/dimensions and asymmetric moving detail;
 2. physical 90, 180, and 270-degree re-encodes of `A`, with rotation metadata removed;
@@ -352,6 +352,20 @@ Reuse and label existing natural cases where useful: metadata-rotated files for 
 Add a versioned `matching-ground-truth.csv` to the external corpus repository with one row per video: relative path, expected processing state, stable content-group ID, physical orientation, and fixture tags. Files in the same content group are positives subject to the rotation setting; different content groups are negatives. Seed the manifest from the 19 exact duplicate groups and current matcher candidates, then manually review the remaining ambiguous groups once. Tests must report incorrect pair identities, not merely a changed aggregate match count.
 
 Use the same manifest reader and pair assertions for the tracked and external tiers. The tracked suite runs normally; the external suite remains an explicit local test which skips cleanly when its corpus path is absent. Both tiers run through the app's actual fingerprint/matcher code, while the external tier additionally records extraction time, pair-discovery time, and peak memory.
+
+### Prepared red-test baseline (2026-08-09)
+
+The fixture phase is now implemented without implementing the matching behavior:
+
+- The repository contains the planned ten-video matrix under `samples/videos/matching`. Its video payload is 186,548 bytes and the generator plus manifest bring the complete addition to 189,899 bytes. The complete tracked `samples/videos` tree is 1,211,247 bytes.
+- The tracked A/B sources are 40x160, ten-second, 10 fps H.264 videos. The matrix includes physical 90/180/270-degree copies, letterbox and pillarbox copies, identical-bar A/B negatives, monochrome windows at 8% and 96% with informative 10%/94% substitutes, and a physically rotated Display Matrix copy.
+- The external corpus adds eleven derivatives in a separate `Matching feature fixtures` directory, leaving the legacy 218-video `Videos` tree and its reference counts unchanged. The video payload is 5,183,898 bytes; generator and manifest included, the external addition is 5,207,152 bytes.
+- The external manifest has 229 rows: all 218 legacy videos plus the eleven derivatives. The strict current matcher produced 154 pair edges forming 54 complete, filename-consistent groups. Those groups seed the no-new-cross-group baseline. A tagged 22-video subset supplies the feature contracts and natural guards.
+- Both generation scripts reproduce byte-identical outputs on the current FFmpeg toolchain. Tests consume the checked-in files and do not invoke FFmpeg.
+
+`test_video_matching_features` is a required CI target. Its focused contracts currently fail for Display Matrix presentation normalization, monochrome substitution, letterbox/pillarbox normalization, and physical 90/180/270-degree matching. Its tracked end-to-end rows fail in no-cache, warm-cache, and cache-only modes with rotation both disabled and enabled. The same target runs four optional local external feature rows and a separate 218-video no-new-pairs baseline; external rows skip when the corpus is absent.
+
+The 218-video baseline and the existing whole-app aggregate tests remain green. The feature matrices fail only on processing, missing-pair, or current metadata-orientation decisions; the labeled negative pairs do not add unexpected matches. Pure in-memory classifier/bar-boundary unit tests are intentionally not backed by a test-only implementation: they should be added against the production pure-image helper when Phase 2 creates that unit boundary.
 
 ## False-positive safety and acceptance criteria
 

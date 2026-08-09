@@ -28,6 +28,9 @@ struct VideoPairMatchConfig {
     int ssimBlockSize = 16;
     int sameDurationModifier = 1;
     int differentDurationModifier = 4;
+    // Test-first contract for the planned opt-in matcher. It is intentionally
+    // ignored until rotated fingerprints are implemented.
+    bool detectRotatedCopies = false;
 };
 
 struct VideoPairMatchResult {
