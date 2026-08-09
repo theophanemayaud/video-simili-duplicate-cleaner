@@ -230,7 +230,7 @@ This is deliberately narrower than general crop matching in issue #17.
 
 ### 3. Opt-in rotated-copy matching
 
-Add a checkbox labeled `Detect rotated video copies` to the scan settings. Persist it through `Prefs`/`QSettings` and default it to `false`. Its tooltip should explain that it compares 90, 180, and 270-degree versions and can add fingerprinting and comparison work. Black-frame substitution and black-bar normalization remain independent of this setting.
+Add a checkbox labeled `Detect rotated video copies` to the scan settings. Persist it through `Prefs`/`QSettings` and default it to `false`. Its tooltip should explain that it compares 90, 180, and 270-degree versions and can add fingerprinting and comparison work. Monochrome-frame substitution and black-bar normalization remain independent of this setting.
 
 When the setting is enabled, build four fingerprints for each usable thumbnail segment during extraction:
 
