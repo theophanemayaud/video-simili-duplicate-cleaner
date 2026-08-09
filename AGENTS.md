@@ -22,6 +22,8 @@ This is a C++ desktop app built with CMake and relying on static libraries like 
 - `QtProject/app/*.ui`: Qt Designer forms with auto-connected `on_<object>_<signal>` slots. Keep UI changes consistent with the generated `ui_*.h` flow.
 - `QtProject/tests`: Qt Test executables. `test_auto_delete` covers focused end-to-end cleanup behavior using checked-in sample videos and a temporary custom trash folder; `test_video_simplified` uses checked-in sample videos for metadata/thumbnail checks; `test_video` mixes useful local-fixture checks with slow/external suites, so run only explicit functions by default.
 - `samples/videos`: small representative fixtures for video-processing tests. Avoid replacing binary fixtures unless needed for the test intent.
+- Keep repository-tracked video fixtures within a few MB total because every clone downloads them.
+- Keep the optional `/Dev` video corpus lean as well; a few GB total is acceptable.
 - `DEPENDENCIES.md` and `DEPLOY.md`: source of truth for dependency and packaging workflows.
 
 ## Common Commands

@@ -26,6 +26,7 @@ The changes must not ship based only on more true-positive examples. The release
 ## Goals
 
 - Recover duplicate pairs that are currently missed because one copy is physically rotated by 90, 180, or 270 degrees.
+- Normalize both legacy rotation tags and FFmpeg Display Matrix presentation metadata during ordinary decoding.
 - Prevent a sampled black, white, gray, or otherwise near-monochrome frame from making an otherwise usable video unmatchable or materially weakening its fingerprint.
 - Make letterboxed and pillarboxed copies comparable to copies without encoded bars.
 - Reduce the black-bar false positives described in issue #138.
@@ -33,6 +34,7 @@ The changes must not ship based only on more true-positive examples. The release
 - Keep the fast path cheap for videos without low-information frames or black bars, and preserve the current rotation cost when rotated matching is disabled.
 - Make the behavior deterministic and testable in no-cache, warm-cache, and cache-only scans.
 - Reduce matching-specific state and branching: one analysis pass per frame, one fingerprint representation, and one pair-comparison path.
+- Use a two-tier test corpus: a few megabytes of deterministic repository fixtures for required tests, plus the existing few-gigabyte `/Dev` corpus for labeled real-world regression and performance coverage.
 
 ## Non-goals
 
@@ -46,6 +48,7 @@ The changes must not ship based only on more true-positive examples. The release
 - Changing comparison thresholds globally to compensate for the new behavior.
 - A general rewrite of FFmpeg decoding, the cache database, thumbnail modes, or the comparison UI.
 - Adding user-facing controls for individual rotation angles, analysis thresholds, retries, or black-bar behavior.
+- Checking the external `/Dev` corpus into this repository or building a full Cartesian product of every transform.
 
 ## Complexity budget and simplification opportunities
 
@@ -127,9 +130,11 @@ Content quality should therefore be classified per sampled frame before collage 
 
 ### Rotation
 
-Rotation metadata is already handled. `Video::getMetadata()` reads the stream's `rotate` tag, swaps presentation width/height for quarter turns, and `getQImageFromFrame()` transforms decoded frames. Copies whose difference is only correct rotation metadata should already arrive in the same presentation orientation.
+Rotation metadata is only partially handled. `Video::getMetadata()` reads the legacy stream `rotate` dictionary tag, swaps presentation width/height for quarter turns, and `getQImageFromFrame()` transforms decoded frames. It does not read FFmpeg Display Matrix side data, which is how all eight metadata-rotated files found in the local corpus express their `-90` degree presentation. Those files therefore expose an existing normalization gap.
 
-The missing case is a file whose pixels were physically re-encoded in a different orientation, as reported in Discussion #178. Neither current metric is rotation-invariant:
+Normalize both metadata representations into one presentation angle and apply it once during decode. Correct presentation metadata is authoritative and remains always enabled; it must not depend on the opt-in rotated-copy setting. Once both forms are handled, copies whose only difference is correct rotation metadata should arrive in the same presentation orientation.
+
+The opt-in fallback addresses the separate case where pixels were physically re-encoded in a different orientation, as reported in Discussion #178. Neither current metric is rotation-invariant:
 
 - pHash compares the positions of low-frequency DCT coefficients. Rotating the image moves and changes those coefficients.
 - SSIM compares corresponding spatial blocks. A rotated block is compared with a different part of the other image.
@@ -165,7 +170,7 @@ The feature therefore needs:
 For every freshly decoded or cached sampled frame:
 
 1. Build the one shared, aspect-preserving grayscale analysis proxy, with its longest edge no larger than 64 pixels. Use it for both low-information and black-bar candidate analysis before discarding its pixels.
-2. Classify the frame as low information only when a dominant luminance band covers nearly the complete proxy. An initial candidate is at least 98% of pixels within a luminance span no wider than 12/255; finalize both constants from fixtures. This is intentionally color-neutral, retains the current near-monochrome intent, and tolerates codec noise without using the first pixel as its reference.
+2. Classify the frame as low information only when a dominant luminance band covers nearly the complete proxy and meaningful spatial detail is absent. A screening candidate of at least 98% of pixels within a luminance span no wider than 12/255 incorrectly classified an existing very dark video with visible detail, so those constants are not release defaults. Finalize one simple, color-neutral predicate from the tracked fixtures and labeled local corpus; do not retain the first-pixel heuristic or add a separate black-only path.
 3. If the frame is usable, continue unchanged.
 4. If it is low information and disk decoding is allowed, make exactly one substitute attempt:
    - for a nominal position below 50%, add two percentage points;
@@ -230,6 +235,8 @@ This is deliberately narrower than general crop matching in issue #17.
 
 ### 3. Opt-in rotated-copy matching
 
+Before generating fingerprints, resolve the presentation angle from either the legacy `rotate` tag or Display Matrix side data. If both representations are present, use one documented and tested precedence rule based on FFmpeg's API output; never apply both transformations. This metadata normalization is part of ordinary decoding and is covered with the setting both off and on.
+
 Add a checkbox labeled `Detect rotated video copies` to the scan settings. Persist it through `Prefs`/`QSettings` and default it to `false`. Its tooltip should explain that it compares 90, 180, and 270-degree versions and can add fingerprinting and comparison work. Monochrome-frame substitution and black-bar normalization remain independent of this setting.
 
 When the setting is enabled, build four fingerprints for each usable thumbnail segment during extraction:
@@ -284,6 +291,68 @@ The zero pHash should no longer be the only validity signal. An explicit `usable
 
 Release target: with rotated-copy detection off, less than 5% p95 extraction-time regression on a representative no-bars corpus and no material pair-scan regression. With it enabled, record extraction and complete pair-discovery overhead for small, large, dense, and sparse libraries. Peak memory must remain comparable to the current representation. These targets may be adjusted only with measured results recorded in the implementing PR.
 
+## Test-data audit and two-tier fixture strategy
+
+### Existing data audit (2026-08-09)
+
+The repository-tracked `samples/videos` set contains two encodes of the same video plus their reference metadata/thumbnails. It is about 1.0 MB total and is useful for basic extraction, cache, and same-content matching checks. It contains none of the three new feature variants and no unrelated same-duration source for negative matching.
+
+The external local corpus at `/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds/Videos` currently contains 218 videos and occupies about 2.6 GB. The existing test baseline expects 214 processable videos and 84 matching videos. Its useful breadth includes:
+
+- ten container extensions and ten decoded video codecs;
+- 198 landscape, 18 portrait, and 2 square encoded dimensions;
+- durations from below one second to over 27 minutes; and
+- 19 byte-identical duplicate groups containing 57 files, plus re-encoded and renamed copies.
+
+This makes it a good format, natural-content, cache, performance, and broad regression corpus. It is not yet a ground-truth matching corpus: the test asserts aggregate counts, and the corpus has no manifest identifying which exact pairs should or should not match. The existing per-file `.txt` and `.jpg` references validate extraction output, not duplicate relationships.
+
+A read-only screening audit of metadata and the union of all current sample positions found these feature-coverage gaps:
+
+- **Rotation:** eight files carry `-90` degree FFmpeg Display Matrix side data, but the app currently reads only the legacy `rotate` tag. They expose a metadata-normalization gap rather than proving the existing path. No likely pair was found that matched only after physically rotating pixels, and there is no known 90/180/270 physical-rotation matrix.
+- **Low-information samples:** current reference hashes contain four videos with both `cutEnds` hashes zero and one with a single zero end. Applying the draft proxy rule to all twelve union sample positions found only two candidate videos; only two of nineteen nearby substitute attempts became informative. Neither supplies a labeled duplicate pair proving the feature. One candidate, `100_6248.dv`, contains visible nighttime detail despite its overwhelmingly dark background, demonstrating that the provisional histogram threshold is too aggressive by itself.
+- **Black bars:** a conservative proxy screen found four single-frame candidates, but only one candidate across every sampled mode, and that was a roughly one-proxy-pixel pillar border on a file whose current reference thumbnail is empty. The `MOV06487` re-encoded pair has the same substantial pillar bars on both copies; it does not provide a barred-versus-barless positive. A dark `IMG_3561.MOV` frame looked bar-like at one position but failed cross-frame consensus, making it a useful natural negative rather than a positive.
+- **Interactions:** there is no known pair combining substitution, bar normalization, and physical rotation.
+
+These counts are screening evidence, not proposed algorithm baselines. The audit used the draft proxy concepts to locate candidates; final labels require visual review and the implementation must be evaluated through the app's actual decoder and matcher.
+
+### Tier 1: tiny repository-tracked fixtures
+
+Keep required unit and end-to-end coverage self-contained and fast. The existing tracked media is about 1.0 MB; target no more than roughly 2 MB of new video data so the complete tracked video set remains only a few megabytes.
+
+Most image-policy cases should use generated in-memory `QImage`/pixel fixtures and add no binary files: uniform black/gray/white frames, dark nonuniform detail, title cards, symmetric bars, one-sided borders, black corners, inconsistent cross-frame boundaries, and right-angle tile transforms.
+
+For decoder/cache/end-to-end wiring, add one reproducible group of tiny videos, approximately 160x90, 10–12 seconds, low frame rate, no audio, and efficiently encoded:
+
+1. two visually distinct base sources `A` and `B` with identical duration/dimensions and asymmetric moving detail;
+2. physical 90, 180, and 270-degree re-encodes of `A`, with rotation metadata removed;
+3. letterboxed and pillarboxed copies of `A`;
+4. a pillarboxed copy of `B` using exactly the same bars as `A`, for the issue #138-style negative; and
+5. one copy of `A` with short near-monochrome windows at deterministic sample positions, while the specified +/-2 percentage-point substitutes remain informative; and
+6. one physically rotated copy of `A` carrying inverse Display Matrix metadata so its intended presentation is unchanged.
+
+That is a ten-video feature matrix. The same files supply positives and negatives: `A` against its variants must match under the applicable setting, while every `A`/`B` pairing must remain negative, including relative rotations and identical pillar bars. Use asymmetric sources so 180-degree behavior cannot pass accidentally. The metadata-corrected copy must match even when rotated-copy detection is disabled.
+
+Track the binaries, one small manifest, and the exact FFmpeg generation script/commands. The script documents reproducibility but tests consume the checked-in binaries and must not require an FFmpeg executable at runtime. Use one new self-contained end-to-end test to exercise actual extraction, warm cache, cache-only reuse, base matching, the rotated setting off/on, and representative `thumb1`, multi-frame, and `cutEnds` paths. Keep threshold and edge-policy permutations in pure helper tests rather than multiplying video files.
+
+### Tier 2: labeled external `/Dev` corpus
+
+Keep the external corpus for realistic encoding diversity, natural negatives, performance, and full-library false-positive checks. It is already about 2.6 GB; prefer derivatives of small existing sources, budget new files to at most roughly 250 MB, and aim to keep the corpus near or below 3 GB total.
+
+Add only the real-world cases absent from the audit:
+
+- physical 90, 180, and 270-degree re-encodes of one real source;
+- one correctly oriented companion for an existing Display Matrix file, to verify metadata normalization independently of fallback matching;
+- barless, letterboxed, and pillarboxed versions of one source plus a different source with identical bars;
+- early- and late-position monochrome-window variants with informative substitutes;
+- at least one transform encoded differently from its source, rather than a byte-identical copy; and
+- one combined stress variant, such as physical rotation plus encoded bars plus a replaceable monochrome sample, instead of a full transform Cartesian product.
+
+Reuse and label existing natural cases where useful: metadata-rotated files for the unchanged path, `100_6248.dv` as a dark-detail classifier guard, `IMG_3561.MOV` as a cross-frame bar-consensus rejection, and the two barred `MOV06487` encodes as same-bars/same-content coverage.
+
+Add a versioned `matching-ground-truth.csv` to the external corpus repository with one row per video: relative path, expected processing state, stable content-group ID, physical orientation, and fixture tags. Files in the same content group are positives subject to the rotation setting; different content groups are negatives. Seed the manifest from the 19 exact duplicate groups and current matcher candidates, then manually review the remaining ambiguous groups once. Tests must report incorrect pair identities, not merely a changed aggregate match count.
+
+Use the same manifest reader and pair assertions for the tracked and external tiers. The tracked suite runs normally; the external suite remains an explicit local test which skips cleanly when its corpus path is absent. Both tiers run through the app's actual fingerprint/matcher code, while the external tier additionally records extraction time, pair-discovery time, and peak memory.
+
 ## False-positive safety and acceptance criteria
 
 Create a labeled corpus before finalizing constants. It must contain at least:
@@ -295,6 +364,7 @@ Positive pairs:
 - original and copy with symmetric letterbox bars;
 - original and copy with symmetric pillarbox bars;
 - copies with a black frame at a nominal sample but matching content at the substitute position;
+- one pair combining physical rotation, encoded bars, and a replaceable monochrome sample;
 - the above in no-cache and warm-cache scans built with the current cache generation.
 
 Negative pairs:
@@ -321,6 +391,10 @@ Acceptance criteria:
 - An incompatible old cache is invalidated as a unit and leads to a clean cache miss/full rescan, with no record migration or mixed-generation results.
 - The one-retry bound and both states of the rotated-copy preference are covered by tests.
 - Performance and peak-memory targets above are measured, not inferred from operation counts.
+- The tracked ten-video matrix and its references add no more than roughly 2 MB, keeping all repository-tracked video fixtures within a few MB total.
+- The external corpus has pair-level ground truth and reports the exact unexpected/missing pairs; aggregate counts alone are no longer accepted as feature validation.
+- External derivatives add no more than roughly 250 MB and keep the full local corpus near or below 3 GB unless a larger addition is separately justified.
+- The existing dark-detail and inconsistent-bar natural cases remain negative classifier/crop guards.
 
 “No new false positives” is evaluated against this corpus and existing end-to-end fixtures. It cannot be proven for every possible video, so the implementation must fail closed whenever detection is ambiguous.
 
@@ -337,11 +411,13 @@ Complexity acceptance criteria:
 
 ### Phase 1: fixtures and baseline
 
-1. Add small deterministic video fixtures, generated from distinct source patterns and encoded with the project's supported FFmpeg workflow.
-2. Produce rotated, bar-encoded, and black-sample variants from those sources. Keep commands or a fixture-generation script beside the tests so the intent is reproducible.
-3. Record current pair scores and match decisions for every labeled positive and negative pair in pHash and SSIM modes.
-4. Record no-cache, warm-cache, and cache-only behavior for the new matching paths using the current cache generation.
-5. Add a small extraction benchmark for ordinary videos and videos that activate each new path.
+1. Define one simple manifest schema and one pair-assertion helper shared by the tracked and external tiers.
+2. Add in-memory image fixtures for classifier, bar-boundary/consensus, crop, and rotation policy without adding video files.
+3. Generate and check in the ten-video synthetic matrix and its reproducible FFmpeg script, staying within the roughly 2 MB addition budget.
+4. Add and manually review the external corpus manifest, then generate only the missing real-world derivatives within the roughly 250 MB addition budget.
+5. Record current pHash/SSIM scores and exact pair decisions for every labeled positive and negative pair, with rotation disabled and enabled.
+6. Record no-cache, warm-cache, and cache-only behavior for the tracked matrix and current-generation external corpus.
+7. Add a small extraction benchmark for ordinary videos and videos that activate each new path; keep the complete external scan as an explicit local benchmark.
 
 This phase prevents tuning only against the motivating positives.
 
@@ -377,22 +453,25 @@ Likely files: `QtProject/app/video.h`, `QtProject/app/video.cpp`, a small `visua
 
 ### Phase 5: opt-in rotated fingerprints and fallback
 
-1. Add and persist the `Detect rotated video copies` preference, defaulting to off, and include it in the immutable scan-time match configuration.
-2. Drive one fingerprint loop with a fixed orientation list: only unchanged when disabled, or unchanged/90/180/270 when enabled. Reuse one scratch image.
-3. Factor one fingerprint-pair scorer out of the current matcher and use it for both base and rotated candidates, including one shared duration adjustment.
-4. Keep the current base comparison first, then loop over all three relative rotations when enabled; do not add eligibility heuristics or a 4x4 comparison matrix.
-5. Extend only the transient `VideoPairMatchResult` with the selected relative rotation. Do not add cache or comparison-UI state.
-6. Add the pHash-plus-SSIM rotated safety policy around the common scorer and calibrate its minimum floors from the full corpus.
-7. Verify background match discovery remains deterministic, reports the same base matches when disabled, and measures enabled-mode overhead.
+1. Normalize legacy `rotate` tags and Display Matrix side data into one presentation transform, applied once and independent of the fallback setting.
+2. Add and persist the `Detect rotated video copies` preference, defaulting to off, and include it in the immutable scan-time match configuration.
+3. Drive one fingerprint loop with a fixed orientation list: only unchanged when disabled, or unchanged/90/180/270 when enabled. Reuse one scratch image.
+4. Factor one fingerprint-pair scorer out of the current matcher and use it for both base and rotated candidates, including one shared duration adjustment.
+5. Keep the current base comparison first, then loop over all three relative rotations when enabled; do not add eligibility heuristics or a 4x4 comparison matrix.
+6. Extend only the transient `VideoPairMatchResult` with the selected relative rotation. Do not add cache or comparison-UI state.
+7. Add the pHash-plus-SSIM rotated safety policy around the common scorer and calibrate its minimum floors from the full corpus.
+8. Verify background match discovery remains deterministic, reports the same base matches when disabled, and measures enabled-mode overhead.
 
 ### Phase 6: end-to-end verification
 
 Run, at minimum:
 
 - the new visual-helper and pair-matcher tests;
+- the new self-contained tracked-video matching test in no-cache, warm-cache, and cache-only modes;
 - `test_comparison`, including background discovery;
 - `test_video_simplified` on the macOS development setup;
-- explicit `test_video` whole-app cases relevant to thumbnail/cache behavior; and
+- explicit `test_video` whole-app cases relevant to thumbnail/cache behavior;
+- the manifest-driven external `/Dev` corpus test when that corpus is available; and
 - the self-contained baseline from `AGENTS.md`.
 
 Do not run the full `test_video` executable by default because it includes the separately mounted `test_100GB*` cases. Reference thumbnails and hashes will likely change when matching normalization changes; update them only after the labeled corpus passes and record why each expected value changed.
@@ -418,7 +497,7 @@ Keep these in one scan-local aggregate diagnostics structure rather than adding 
 - Preserve original bars in the review thumbnail.
 - Keep one bounded monochrome-frame substitute attempt.
 - Crop only symmetric, unanimously agreed bars and fail closed on ambiguity.
-- Handle rotation metadata during decode as today; the fallback is only for physically rotated pixels.
+- Normalize legacy rotation tags and Display Matrix side data during decode; the opt-in fallback is only for physically rotated pixels.
 - Keep rotated-copy detection off by default and compare 90, 180, and 270-degree variants when enabled; mirrors remain out of scope.
 - Use one common pair scorer and a fixed orientation loop; do not build a second rotated matcher.
 - Require both pHash and SSIM evidence for a rotated fallback.
