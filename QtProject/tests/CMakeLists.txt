@@ -12,6 +12,7 @@ set(TEST_COMPILE_DEFINITIONS
 # Common source files from main app that tests need
 set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/video.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/visualfingerprint.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/videopairmatcher.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/backgroundmatchdiscovery.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/db.cpp

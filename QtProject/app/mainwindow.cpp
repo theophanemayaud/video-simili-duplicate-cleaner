@@ -70,6 +70,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     // load saved/default settings
     if (this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
+    ui->detectRotatedCopiesCheckbox->setChecked(this->_prefs.detectRotatedCopies());
     foreach (QString folder, this->_prefs.scanLocations()) {
         if (!folder.isEmpty())
             this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
@@ -527,6 +528,7 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     on_actionRestoreMoveToTrash_triggered();
     on_actionRestore_simple_skip_of_error_videos_triggered();
     ui->verboseCheckbox->setCheckState(Qt::Unchecked);
+    ui->detectRotatedCopiesCheckbox->setChecked(false);
 
     this->ui->directoryBox->clear();
 

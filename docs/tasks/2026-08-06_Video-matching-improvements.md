@@ -1,6 +1,6 @@
 # Video matching improvements
 
-Status: draft feature specification and implementation plan
+Status: implemented; draft PR validation in progress
 
 Related reports:
 
@@ -22,6 +22,19 @@ These transformations should happen while building matching fingerprints. Pair c
 The implementation should also simplify the existing matching path rather than leave old and new representations side by side. All three improvements should share one frame-analysis and fingerprint pipeline, with one explicit validity signal and one pair-scoring implementation.
 
 The changes must not ship based only on more true-positive examples. The release gate is no additional matches in a representative negative-pair corpus, including different vertical videos with identical pillar bars. Trying several rotations gives unrelated pairs more opportunities to cross the threshold, so rotated fallback matches still require a second visual safeguard and explicit negative-corpus validation.
+
+## Implementation result (2026-08-11)
+
+The three improvements now share `VisualFingerprintBuilder` and one compact `VisualFingerprint` representation. The old `hash[]`, `grayThumb[]`, pHash-zero sentinel, and duplicate comparison branches have been removed.
+
+- Every fresh or cached frame is analyzed through one aspect-preserving grayscale proxy capped at 64 pixels on its longest edge. A frame is low-information only when its proxy has both standard deviation below 2 and luminance range no wider than 12. This deliberately conservative rule rejects uniform frames while retaining the existing dark-detail guard.
+- A low-information nominal capture receives exactly one directional +/-2 percentage-point retry when decoding is allowed. A successful substitute is stored in the nominal cache slot. Cache-only scans never read the video.
+- Black bars use a near-black luminance ceiling of 20, 98% row/column coverage, 4%-45% symmetric opposing insets, at least 10% active picture, one-axis-only acceptance, and unanimous agreement across the informative extracted frames. Bars remain visible in the GUI thumbnail and are cropped only from matching inputs.
+- Legacy rotate tags and Display Matrix side data are normalized into one presentation transform, with Display Matrix taking precedence. This is always active. Physically rotated fallback remains a separate persisted setting, off by default.
+- Rotation-on extraction builds 0/90/180/270 fingerprints from matching tiles reduced to at most 64 pixels before rotation. Fallback requires at least 57/64 raw pHash agreement and 0.90 raw SSIM, in addition to applicable user thresholds.
+- SQLite cache generation 2 invalidates an incompatible old cache as one unit. There is no record conversion, mixed-generation read, or recovery strategy; users rescan normally.
+
+The first implementation intentionally does not add persisted analysis data, per-video transform state, record migration, configurable retry/threshold machinery, or scan-wide diagnostic state. Focused tests report calibration scores when needed.
 
 ## Goals
 
@@ -107,7 +120,7 @@ The cache continues to store only the resolved JPEG for each nominal slot. Do no
 
 Generate transformed variants from a small set of base fixtures and drive expectations from one labeled pair table. Avoid separate test harnesses for rotation, substitution, bars, and cache modes when the same end-to-end matrix can exercise their combinations.
 
-## Current behavior and findings
+## Pre-implementation behavior and findings
 
 ### Frame extraction
 
@@ -357,15 +370,28 @@ Use the same manifest reader and pair assertions for the tracked and external ti
 
 The fixture phase is now implemented without implementing the matching behavior:
 
-- The repository contains the planned ten-video matrix under `samples/videos/matching`. Its video payload is 186,548 bytes and the generator plus manifest bring the complete addition to 189,899 bytes. The complete tracked `samples/videos` tree is 1,211,247 bytes.
-- The tracked A/B sources are 40x160, ten-second, 10 fps H.264 videos. The matrix includes physical 90/180/270-degree copies, letterbox and pillarbox copies, identical-bar A/B negatives, monochrome windows at 8% and 96% with informative 10%/94% substitutes, and a physically rotated Display Matrix copy.
-- The external corpus adds eleven derivatives in a separate `Matching feature fixtures` directory, leaving the legacy 218-video `Videos` tree and its reference counts unchanged. The video payload is 5,183,898 bytes; generator and manifest included, the external addition is 5,207,152 bytes.
+- The repository contains the planned ten-video matrix under `samples/videos/matching`. Its final video payload is 104,369 bytes and the generator plus manifest bring the matrix to 107,971 bytes. The complete tracked `samples/videos` tree is 1,129,319 bytes.
+- The tracked A/B sources are temporally stable 40x160, ten-second, 10 fps H.264 videos. This keeps the +/-2% case focused on substitution instead of motion drift. The matrix includes physical 90/180/270-degree copies, letterbox and pillarbox copies, identical-bar A/B negatives, monochrome windows at 8% and 96% with informative 10%/94% substitutes, and a physically rotated Display Matrix copy.
+- The external corpus adds eleven derivatives under `Videos/Matching feature fixtures`, so the existing whole-app and per-video tests exercise the expanded 229-video tree as well as the focused feature matrix. The final video payload is 6,933,906 bytes; references, generator, and manifest included, the feature addition is about 7.17 MB.
 - The external manifest has 229 rows: all 218 legacy videos plus the eleven derivatives. The strict current matcher produced 154 pair edges forming 54 complete, filename-consistent groups. Those groups seed the no-new-cross-group baseline. A tagged 22-video subset supplies the feature contracts and natural guards.
 - Both generation scripts reproduce byte-identical outputs on the current FFmpeg toolchain. Tests consume the checked-in files and do not invoke FFmpeg.
 
-`test_video_matching_features` is a required CI target. Its focused contracts currently fail for Display Matrix presentation normalization, monochrome substitution, letterbox/pillarbox normalization, and physical 90/180/270-degree matching. Its tracked end-to-end rows fail in no-cache, warm-cache, and cache-only modes with rotation both disabled and enabled. The same target runs four optional local external feature rows and a separate 218-video no-new-pairs baseline; external rows skip when the corpus is absent.
+`test_video_matching_features` is a required CI target. Its focused contracts now pass for Display Matrix presentation normalization, monochrome substitution, letterbox/pillarbox normalization, physical 90/180/270-degree matching, the rotation preference, whole-cache invalidation, and conservative in-memory bar analysis. Its tracked end-to-end rows pass in no-cache, warm-cache, and cache-only modes with rotation both disabled and enabled. The same target runs four optional local external feature rows and a separate legacy-corpus no-new-cross-group baseline; external rows skip when the corpus is absent.
 
-The 218-video baseline and the existing whole-app aggregate tests remain green. The feature matrices fail only on processing, missing-pair, or current metadata-orientation decisions; the labeled negative pairs do not add unexpected matches. Pure in-memory classifier/bar-boundary unit tests are intentionally not backed by a test-only implementation: they should be added against the production pure-image helper when Phase 2 creates that unit boundary.
+The manifest excludes substantially different-duration partial clips from required recovery while still rejecting them as cross-content false positives. This keeps the feature aligned with its explicit non-goal rather than weakening the matcher to satisfy two pre-existing partial-clip cases.
+
+### Validation results (2026-08-11)
+
+- Required comparison, main-window, auto-delete, simplified-video, and matching-feature tests pass locally.
+- The tracked ten-video matrix passes every fresh, warm-cache, and cache-only row, with rotation both off and on. Rotation-on no-cache extraction is 15 ms versus 12 ms off on this tiny synthetic set.
+- The 22-video real-world feature set passes all labeled pairs. After reducing matching scratch tiles before rotation, no-cache extraction is 1.122 s with rotation on versus 1.096 s off. The identical-pillar-bar negative remains far below the rotated floor.
+- The legacy 218-video labeled baseline takes 20.895 s versus its recorded 20.828 s pre-implementation run (+0.3%) and adds no cross-content matches.
+- The expanded ordinary `/Dev` whole-app scan finds 229 files, 226 valid videos, and 89 matched videos. No-cache is 3.380 s total; warm-cache is 1.110 s assessed; cache-only is 0.659 s assessed.
+- On the mounted 100GB corpus, rotation off finds 12,506 files, 12,352 valid videos, and 6,552 matched videos in 237.641 s extraction / 246.092 s total. Rotation on finds the same files and valid videos and 6,556 matched videos in 253.217 s extraction / 276.596 s total: approximately +6.6% extraction and +12.4% total for the opt-in setting. Pair comparison itself remains 23.379 s with rotation on versus 8.451 s off.
+- A warm-cache 100GB assessed scan completes in 44.978 s, below its 50-second test budget, and finds 12,351 valid / 6,543 matched videos.
+- The 100GB per-file reference audit reports 279 changed thumbnails out of 12,506 (2.2%), with no metadata or decode regressions. Representative inspection shows the large visual changes are intended corrections of previously sideways Display Matrix videos; SSIM-close changes are matching-fingerprint bar normalization. The stored reference files have not been refreshed automatically.
+
+The one-shot macOS process-memory readings varied between runs and allocators: maximum resident size was 2.63 GB off and 3.71 GB on, while the reported peak-footprint metric moved in the opposite direction. The retained fingerprint representation itself remains comparable to the old representation: four compact 256-byte SSIM inputs per segment replace one 256-float SSIM matrix per segment. Treat the one-shot process figures as diagnostic rather than a stable memory regression measurement.
 
 ## False-positive safety and acceptance criteria
 

@@ -120,6 +120,16 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="detectRotatedCopiesCheckbox">
+          <property name="toolTip">
+           <string>Also compare 90°, 180°, and 270° fingerprints. This can add fingerprinting and comparison work.</string>
+          </property>
+          <property name="text">
+           <string>Detect rotated video copies</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="verboseCheckbox">
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;List all processed video names.  &lt;/p&gt;&lt;p&gt;Errors will be listed in any case.&lt;/p&gt;&lt;p&gt;All logs will be kept in log files.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>

@@ -27,11 +27,15 @@ run_ffmpeg() {
     "$ffmpeg_bin" -hide_banner -loglevel error -y "$@"
 }
 
-# A and B are deliberately asymmetric portrait sources with the same duration.
+# A and B are deliberately asymmetric, temporally stable portrait sources.
+# Stability keeps the +/-2% substitution fixture focused on low-information
+# replacement rather than measuring motion between neighboring timestamps.
 # Their matching pillar bars therefore cannot be used as duplicate evidence.
-run_ffmpeg -f lavfi -i "testsrc2=size=40x160:rate=10:duration=10" \
+run_ffmpeg -f lavfi -i "testsrc2=size=40x160:rate=10:duration=0.1" \
+    -vf "tpad=stop_mode=clone:stop_duration=9.9" \
     "${common_output[@]}" "$fixture_dir/a-original.mp4"
-run_ffmpeg -f lavfi -i "testsrc=size=40x160:rate=10:duration=10" \
+run_ffmpeg -f lavfi -i "testsrc=size=40x160:rate=10:duration=0.1" \
+    -vf "tpad=stop_mode=clone:stop_duration=9.9" \
     "${common_output[@]}" "$fixture_dir/b-original.mp4"
 
 run_ffmpeg -i "$fixture_dir/a-original.mp4" -vf "transpose=clock" \

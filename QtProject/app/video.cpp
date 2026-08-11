@@ -1,5 +1,7 @@
 #include "video.h"
 
+#include <cmath>
+
 #define FAIL_ON_FRAME_DECODE_NB_FAIL 10
 
 #define ESTIMATE_DURATION_FROM_FRAME_NB 5
@@ -9,6 +11,34 @@
 
 Prefs Video::_prefs;
 int Video::_jpegQuality = _okJpegQuality;
+
+namespace
+{
+int normalizedRightAngle(int angle)
+{
+    angle %= 360;
+    if (angle < 0)
+        angle += 360;
+    if (angle == 90 || angle == 180 || angle == 270)
+        return angle;
+    return 0;
+}
+
+int presentationRotation(const ffmpeg::AVStream* stream)
+{
+    const ffmpeg::AVPacketSideData* sideData =
+        ffmpeg::av_packet_side_data_get(stream->codecpar->coded_side_data, stream->codecpar->nb_coded_side_data,
+                                        ffmpeg::AV_PKT_DATA_DISPLAYMATRIX);
+    if (sideData != nullptr && sideData->size >= 9 * sizeof(int32_t)) {
+        const double angle = ffmpeg::av_display_rotation_get(reinterpret_cast<const int32_t*>(sideData->data));
+        if (!std::isnan(angle))
+            return normalizedRightAngle(-qRound(angle));
+    }
+
+    const ffmpeg::AVDictionaryEntry* tag = ffmpeg::av_dict_get(stream->metadata, "rotate", nullptr, 0);
+    return tag == nullptr ? 0 : normalizedRightAngle(QString::fromUtf8(tag->value).toInt());
+}
+} // namespace
 
 Video::Video(const Prefs& prefsParam, const QString& filePathName) : _filePathName(filePathName)
 {
@@ -88,9 +118,8 @@ QString Video::internalProcess()
     if (!err.isEmpty()) {
         return QString("capture failed: %1").arg(err);
     }
-    else if ((this->_prefs.thumbnailsMode() != cutEnds && hash[0] == 0)
-             || // only cutends separates hashes for captures, other just treat as one big capture
-             (this->_prefs.thumbnailsMode() == cutEnds && hash[0] == 0 && hash[1] == 0))
+    else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
+             || (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
     { //all screen captures black
         return "all screen captures black";
     }
@@ -170,16 +199,14 @@ const QString Video::getMetadata(const QString& filename)
     if (vs->avg_frame_rate.den != 0)
         framerate = round(ffmpeg::av_q2d(vs->avg_frame_rate) * 10) / 10;
 
-    // handle rotated videos
-    ffmpeg::AVDictionaryEntry* tag = NULL;
-    tag = ffmpeg::av_dict_get(vs->metadata, "rotate", NULL /* not wanting to specify any position*/, 0 /*no flags*/);
-    if (tag) {
-        _rotateAngle = QString(tag->value).toInt();
-        if (_rotateAngle == 90 || _rotateAngle == 270) {
-            const short temp = width;
-            width = height;
-            height = temp;
-        }
+    // Display Matrix is the modern representation and takes precedence over
+    // the legacy rotate tag. Both describe the same presentation transform,
+    // so they must never be applied cumulatively.
+    const int metadataPresentationRotation = presentationRotation(vs);
+    if (metadataPresentationRotation == 90 || metadataPresentationRotation == 270) {
+        const short temp = width;
+        width = height;
+        height = temp;
     }
 
     // Get GPS and other video metadata
@@ -237,7 +264,9 @@ const QString Video::takeScreenCaptures(const Db& cache)
 {
     Thumbnail thumb(this->_prefs.thumbnailsMode());
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
+    thumbnail.fill(Qt::black);
     const QVector<int> percentages = thumb.percentages(); // percent from 1 to 100
+    std::vector<FrameAnalysis> analyses(static_cast<size_t>(percentages.count()));
     int capture = percentages.count();
     int ofDuration = 100; // used to "rescale" total duration... as duration*percent*ofDuration
 
@@ -259,13 +288,11 @@ const QString Video::takeScreenCaptures(const Db& cache)
 
         if (this->_prefs.useCacheOption() != Prefs::NO_CACHE && !cachedImage.isNull()) //image was already in cache
         {
-            frame.load(&captureBuffer, QByteArrayLiteral("JPG")); //was saved in cache as small size, resize to original
-            frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            frame.load(&captureBuffer, QByteArrayLiteral("JPG"));
         }
         else if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
             frame = ffmpegLib_captureAt(percentages[capture], ofDuration);
-            if (!frame.isNull() && this->_prefs.useCacheOption() == Prefs::WITH_CACHE)
-                writeToCache = true;
+            writeToCache = !frame.isNull() && this->_prefs.useCacheOption() == Prefs::WITH_CACHE;
         }
 
         if (frame.isNull()) //taking screen capture may fail if video is broken
@@ -290,6 +317,20 @@ const QString Video::takeScreenCaptures(const Db& cache)
             return err;
         }
 
+        FrameAnalysis analysis = VisualFingerprintBuilder::analyzeFrame(frame);
+        if (!analysis.informative && this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
+            const int substitutePercent = percentages[capture] < 50
+                                              ? percentages[capture] + _monochromeSubstituteOffset
+                                              : percentages[capture] - _monochromeSubstituteOffset;
+            QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
+            const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);
+            if (!substitute.isNull() && substituteAnalysis.informative) {
+                frame = substitute;
+                analysis = substituteAnalysis;
+                writeToCache = this->_prefs.useCacheOption() == Prefs::WITH_CACHE;
+            }
+        }
+
         if (frame.width() > width || frame.height() > height) { //metadata parsing error or variable resolution
             return QString("capture height=%1 width=%2 is different from metadata height=%3 width=%4")
                 .arg(frame.height())
@@ -297,6 +338,10 @@ const QString Video::takeScreenCaptures(const Db& cache)
                 .arg(height)
                 .arg(width);
         }
+
+        analyses[static_cast<size_t>(capture)] = analysis;
+        if (frame.size() != QSize(width, height))
+            frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 
         QPainter painter(&thumbnail); //copy captured frame into right place in thumbnail
         painter.drawImage(capture % thumb.cols() * width, capture / thumb.cols() * height, frame);
@@ -308,64 +353,59 @@ const QString Video::takeScreenCaptures(const Db& cache)
         }
     }
 
-    const int hashes =
-        this->_prefs.thumbnailsMode() == cutEnds ? 2 : 1; //if cutEnds mode: separate hash for beginning and end
-    processThumbnail(thumbnail, hashes);
+    processThumbnail(thumbnail, thumb, analyses);
     return "";
 }
 
-void Video::processThumbnail(QImage& thumbnail, const int& hashes)
+void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses)
 {
-    for (int hash = 0; hash < hashes; hash++) {
-        QImage image = thumbnail;
-        if (this->_prefs.thumbnailsMode() == cutEnds) //if cutEnds mode: separate thumbnail into first and last frames
-            image = thumbnail.copy(hash * thumbnail.width() / 2, 0, thumbnail.width() / 2, thumbnail.height());
+    const std::optional<NormalizedCrop> crop = VisualFingerprintBuilder::unanimousBlackBarCrop(analyses);
+    const int segments = this->_prefs.thumbnailsMode() == cutEnds ? 2 : 1;
+    const int orientationCount = this->_prefs.detectRotatedCopies() ? 4 : 1;
+    for (int segment = 0; segment < segments; ++segment) {
+        const int firstCapture = this->_prefs.thumbnailsMode() == cutEnds ? segment : 0;
+        const int captureCount = this->_prefs.thumbnailsMode() == cutEnds ? 1 : static_cast<int>(analyses.size());
+        const int columns = this->_prefs.thumbnailsMode() == cutEnds ? 1 : thumb.cols();
+        const int rows = this->_prefs.thumbnailsMode() == cutEnds ? 1 : thumb.rows();
+        bool segmentUsable = false;
+        for (int index = firstCapture; index < firstCapture + captureCount; ++index)
+            segmentUsable = segmentUsable || analyses.at(static_cast<size_t>(index)).informative;
 
-        cv::Mat mat =
-            cv::Mat(image.height(), image.width(), CV_8UC3, image.bits(), static_cast<uint>(image.bytesPerLine()));
-        this->hash[hash] = computePhash(mat); //pHash
-
-        cv::resize(mat, mat, cv::Size(_ssimSize, _ssimSize), 0, 0, cv::INTER_AREA);
-        cv::cvtColor(mat, grayThumb[hash], cv::COLOR_BGR2GRAY);
-        grayThumb[hash].cv::Mat::convertTo(grayThumb[hash], CV_32F); //ssim
+        for (int orientation = 0; orientation < orientationCount; ++orientation) {
+            const auto rotation = static_cast<FingerprintRotation>(orientation);
+            if (!crop.has_value() && rotation == FingerprintRotation::none) {
+                QImage matchingImage = thumbnail;
+                if (this->_prefs.thumbnailsMode() == cutEnds)
+                    matchingImage = thumbnail.copy(segment * width, 0, width, height);
+                fingerprints[segment][orientation] =
+                    VisualFingerprintBuilder::build(matchingImage, segmentUsable);
+                continue;
+            }
+            QImage matchingImage;
+            QPainter matchingPainter;
+            for (int localIndex = 0; localIndex < captureCount; ++localIndex) {
+                const int captureIndex = firstCapture + localIndex;
+                const QRect tileRect((captureIndex % thumb.cols()) * width, (captureIndex / thumb.cols()) * height,
+                                     width, height);
+                const QImage transformed =
+                    VisualFingerprintBuilder::transformTile(thumbnail.copy(tileRect), crop, rotation);
+                if (matchingImage.isNull()) {
+                    matchingImage = QImage(columns * transformed.width(), rows * transformed.height(),
+                                           QImage::Format_RGB888);
+                    matchingImage.fill(Qt::black);
+                    matchingPainter.begin(&matchingImage);
+                }
+                matchingPainter.drawImage((localIndex % columns) * transformed.width(),
+                                           (localIndex / columns) * transformed.height(), transformed);
+            }
+            matchingPainter.end();
+            fingerprints[segment][orientation] = VisualFingerprintBuilder::build(matchingImage, segmentUsable);
+        }
     }
 
     thumbnail = minimizeImage(thumbnail);
     QBuffer buffer(&this->thumbnail);
     thumbnail.save(&buffer, QByteArrayLiteral("JPG"), _jpegQuality); //save GUI thumbnail as tiny JPEG
-}
-
-uint64_t Video::computePhash(const cv::Mat& input) const
-{
-    cv::Mat resizeImg, grayImg, grayFImg, dctImg, topLeftDCT;
-    cv::resize(input, resizeImg, cv::Size(_pHashSize, _pHashSize), 0, 0, cv::INTER_AREA);
-    cv::cvtColor(resizeImg, grayImg, cv::COLOR_BGR2GRAY); //resize image to 32x32 grayscale
-
-    int shadesOfGray = 0;
-    uchar* pixel = reinterpret_cast<uchar*>(grayImg.data); //pointer to pixel values, starts at first one
-    const uchar* lastPixel = pixel + _pHashSize * _pHashSize;
-    const uchar firstPixel = *pixel;
-
-    for (pixel++; pixel < lastPixel; pixel++)      //skip first element since that one is already firstPixel
-        shadesOfGray += qAbs(firstPixel - *pixel); //compare all pixels with first one, tabulate differences
-    if (shadesOfGray < _almostBlackBitmap)
-        return 0; //reject video if capture was (almost) monochrome
-
-    grayImg.convertTo(grayFImg, CV_32F);
-    cv::dct(grayFImg, dctImg);                       //compute DCT (discrete cosine transform)
-    dctImg(cv::Rect(0, 0, 8, 8)).copyTo(topLeftDCT); //use only upper left 8*8 transforms (most significant ones)
-
-    const float firstElement = *reinterpret_cast<float*>(topLeftDCT.data); //compute avg but skip first element
-    const float average = (static_cast<float>(cv::sum(topLeftDCT)[0]) - firstElement) / 63; //(it's very big)
-
-    uint64_t hash = 0;
-    float* transform = reinterpret_cast<float*>(topLeftDCT.data);
-    const float* endOfData = transform + 64;
-    for (int i = 0; transform < endOfData; i++, transform++) //construct hash from all 8x8 bits
-        if (*transform > average)
-            hash |= 1ULL << i; //larger than avg = 1, smaller than avg = 0
-
-    return hash;
 }
 
 QImage Video::minimizeImage(const QImage& image) const
@@ -454,6 +494,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
         return img;
     }
     ffmpeg::AVStream* vs = fmt_ctx->streams[stream_index]; // set shorter reference to video stream of interest
+    const int capturePresentationRotation = presentationRotation(vs);
     // av_find_best_stream should not return non video stream if video stream requested !
     if (vs->codecpar->codec_type != ffmpeg::AVMEDIA_TYPE_VIDEO) {
         qDebug() << "FFMPEG returned stream was not video... !" << _filePathName;
@@ -702,7 +743,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
                     }
                 }
                 if ((curr_ts - wanted_ts) >= -ts_diff) { // must read frames until we get before wanted time stamp
-                    img = getQImageFromFrame(vFrame);
+                    img = getQImageFromFrame(vFrame, capturePresentationRotation);
                     if (img.isNull()) {
                         qDebug() << "Failed to save img for file " << _filePathName;
                         ffmpeg::av_packet_free(&vPacket);
@@ -755,7 +796,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     return img;
 }
 
-QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
+QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame, int presentationRotation) const
 {
     // first convert frame to rgb24
     ffmpeg::SwsContext* img_convert_ctx = ffmpeg::sws_getContext(
@@ -894,11 +935,11 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const
     ffmpeg::sws_freeContext(img_convert_ctx);
 
     // if the video had rotated metadata, it needs to be flipped !
-    if (_rotateAngle % 360 == 90)
+    if (presentationRotation == 90)
         image = image.transformed(QTransform().rotate(90.0));
-    else if (_rotateAngle % 360 == 180)
+    else if (presentationRotation == 180)
         image = image.transformed(QTransform().rotate(180.0));
-    else if (_rotateAngle % 360 == 270)
+    else if (presentationRotation == 270)
         image = image.transformed(QTransform().rotate(270.0));
 
     return image; // If fail/error on sws_scale or avpicture_alloc, it will simply be a null image

@@ -23,6 +23,7 @@ class test_comparison : public QObject
     void test_videoToDelete_OnlyTimeDiffs();
     void test_videoPairSpaceRoundTrip();
     void test_videoPairMatcherUsesConfigSnapshot();
+    void test_rotatedMatcherRequiresSsimSafeguard();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
 };
 
@@ -135,8 +136,10 @@ void test_comparison::test_videoPairMatcherUsesConfigSnapshot()
     Prefs prefs;
     Video left(prefs, QStringLiteral("left"));
     Video right(prefs, QStringLiteral("right"));
-    left.hash[0] = 0xAAAAAAAAAAAAAAAA;
-    right.hash[0] = 0xAAAAAAAAAAAAAAAB;
+    left.fingerprint(0).phash = 0xAAAAAAAAAAAAAAAA;
+    right.fingerprint(0).phash = 0xAAAAAAAAAAAAAAAB;
+    left.fingerprint(0).usable = true;
+    right.fingerprint(0).usable = true;
     left.duration = right.duration = 1000;
 
     VideoPairMatchConfig config;
@@ -153,6 +156,35 @@ void test_comparison::test_videoPairMatcherUsesConfigSnapshot()
     QCOMPARE(result.phashSimilarity, 63);
 }
 
+void test_comparison::test_rotatedMatcherRequiresSsimSafeguard()
+{
+    Prefs prefs;
+    Video left(prefs, QStringLiteral("left"));
+    Video right(prefs, QStringLiteral("right"));
+    left.duration = right.duration = 1000;
+    left.fingerprint(0).usable = true;
+    right.fingerprint(0).usable = true;
+    right.fingerprint(0, FingerprintRotation::clockwise90).usable = true;
+    left.fingerprint(0).phash = 0;
+    right.fingerprint(0).phash = UINT64_MAX;
+    right.fingerprint(0, FingerprintRotation::clockwise90).phash = 0;
+    right.fingerprint(0, FingerprintRotation::clockwise90).ssimPixels.fill(255);
+
+    VideoPairMatchConfig config;
+    config.thumbnailsMode = thumb1;
+    config.comparisonMode = Prefs::_PHASH;
+    config.thresholdPhash = 57;
+    config.sameDurationModifier = 0;
+    config.differentDurationModifier = 0;
+    config.detectRotatedCopies = true;
+    QVERIFY(!VideoPairMatcher::match(left, right, config).matches);
+
+    right.fingerprint(0, FingerprintRotation::clockwise90).ssimPixels = left.fingerprint(0).ssimPixels;
+    const VideoPairMatchResult result = VideoPairMatcher::match(left, right, config);
+    QVERIFY(result.matches);
+    QCOMPARE(result.relativeRotation, FingerprintRotation::clockwise90);
+}
+
 void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix()
 {
     Prefs prefs;
@@ -160,9 +192,11 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     Video second(prefs, QStringLiteral("second"));
     Video third(prefs, QStringLiteral("third"));
     Video fourth(prefs, QStringLiteral("fourth"));
-    first.hash[0] = fourth.hash[0] = 0xFF00FF00FF00FF00;
-    second.hash[0] = 0xAAAAAAAAAAAAAAAA;
-    third.hash[0] = 0x5555555555555555;
+    first.fingerprint(0).phash = fourth.fingerprint(0).phash = 0xFF00FF00FF00FF00;
+    second.fingerprint(0).phash = 0xAAAAAAAAAAAAAAAA;
+    third.fingerprint(0).phash = 0x5555555555555555;
+    first.fingerprint(0).usable = second.fingerprint(0).usable = third.fingerprint(0).usable =
+        fourth.fingerprint(0).usable = true;
 
     VideoPairMatchConfig config;
     config.thumbnailsMode = thumb1;

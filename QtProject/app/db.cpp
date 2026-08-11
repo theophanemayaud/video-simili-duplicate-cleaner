@@ -109,6 +109,25 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
     query.exec(QStringLiteral("PRAGMA synchronous = OFF;"));
     query.exec(QStringLiteral("PRAGMA journal_mode = WAL;"));
 
+    // Generation 2 captures are presentation-normalized and may contain a
+    // resolved substitute for a low-information nominal slot. Old JPEGs are
+    // therefore not safe matching inputs. Invalidate the cache as one unit;
+    // deliberately do not add record migration or mixed-generation reads.
+    constexpr int CACHE_GENERATION = 2;
+    int generation = 0;
+    if (query.exec(QStringLiteral("PRAGMA user_version;")) && query.next())
+        generation = query.value(0).toInt();
+    bool hasExistingCache = false;
+    query.prepare(QStringLiteral("SELECT 1 FROM sqlite_master WHERE type='table' AND name='capture';"));
+    if (query.exec())
+        hasExistingCache = query.next();
+    if (hasExistingCache && generation != CACHE_GENERATION) {
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS metadata;"));
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS capture;"));
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS ignored_pairs;"));
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS version;"));
+    }
+
     query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS "
                               "metadata ("
                               "id TEXT PRIMARY KEY, "
@@ -157,6 +176,7 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
                               "version TEXT PRIMARY KEY"
                               ");"));
     query.exec(QStringLiteral("INSERT OR REPLACE INTO version VALUES('%1');").arg(appVersion));
+    query.exec(QStringLiteral("PRAGMA user_version = %1;").arg(CACHE_GENERATION));
 }
 
 QString Db::getUserSelectedCacheNamePath(const Prefs& prefs)

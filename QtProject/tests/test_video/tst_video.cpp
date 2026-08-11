@@ -75,7 +75,7 @@ class TestVideo : public QObject
     }
 
     // Check ref params with no cache - DATA-DRIVEN TESTS
-    void test_check_refvidparams_nocache_data() { populateRefVidParamsTestData(_videoDir, 218); };
+    void test_check_refvidparams_nocache_data() { populateRefVidParamsTestData(_videoDir, 229); };
     void test_check_refvidparams_nocache()
     {
         refVidParamsTestConfig conf;
@@ -87,7 +87,7 @@ class TestVideo : public QObject
         checkSingleVideoParams(conf);
     };
 
-    void test_check_refvidparams_withcache_data() { populateRefVidParamsTestData(_videoDir, 218); };
+    void test_check_refvidparams_withcache_data() { populateRefVidParamsTestData(_videoDir, 229); };
     void test_check_refvidparams_withcache()
     {
         refVidParamsTestConfig conf;
@@ -96,7 +96,7 @@ class TestVideo : public QObject
         conf.acceptSmallDurationDiff = true;
         checkSingleVideoParams(conf);
     };
-    void test_check_refvidparams_withCacheOnly_data() { populateRefVidParamsTestData(_videoDir, 218); };
+    void test_check_refvidparams_withCacheOnly_data() { populateRefVidParamsTestData(_videoDir, 229); };
     void test_check_refvidparams_withCacheOnly()
     {
         refVidParamsTestConfig conf;
@@ -161,9 +161,9 @@ class TestVideo : public QObject
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::NO_CACHE;
         conf.ref_ms_time = 4.0 * 1000;
-        conf.nb_vids_to_find = 218;
-        conf.nb_valid_vids_to_find = 214;
-        conf.nb_matching_vids_to_find = 84;
+        conf.nb_vids_to_find = 229;
+        conf.nb_valid_vids_to_find = 226;
+        conf.nb_matching_vids_to_find = 89;
         runWholeAppScan(_videoDir, &conf);
     };
 
@@ -172,9 +172,9 @@ class TestVideo : public QObject
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::WITH_CACHE;
         conf.ref_ms_time = 1.5 * 1000;
-        conf.nb_vids_to_find = 218;
-        conf.nb_valid_vids_to_find = 214;
-        conf.nb_matching_vids_to_find = 84;
+        conf.nb_vids_to_find = 229;
+        conf.nb_valid_vids_to_find = 226;
+        conf.nb_matching_vids_to_find = 89;
         runWholeAppScan(_videoDir, &conf);
     };
 
@@ -183,9 +183,9 @@ class TestVideo : public QObject
         wholeAppTestConfig conf;
         conf.cacheOption = Prefs::CACHE_ONLY;
         conf.ref_ms_time = 0.8 * 1000;
-        conf.nb_vids_to_find = 218;
-        conf.nb_valid_vids_to_find = 214;
-        conf.nb_matching_vids_to_find = 84;
+        conf.nb_vids_to_find = 229;
+        conf.nb_valid_vids_to_find = 226;
+        conf.nb_matching_vids_to_find = 89;
         runWholeAppScan(_videoDir, &conf);
     };
 
@@ -230,8 +230,21 @@ class TestVideo : public QObject
         conf.cacheOption = Prefs::NO_CACHE;
         conf.ref_ms_time = 4 * 60 * 1000;
         conf.nb_vids_to_find = 12506;
-        conf.nb_valid_vids_to_find = 12331;
-        conf.nb_matching_vids_to_find = 6535;
+        conf.nb_valid_vids_to_find = 12352;
+        conf.nb_matching_vids_to_find = 6552;
+        runWholeAppScan(_100GBvideoDir, &conf);
+    };
+    void test_100GBwholeApp_nocache_rotations()
+    {
+        wholeAppTestConfig conf;
+        conf.cacheOption = Prefs::NO_CACHE;
+        conf.detectRotatedCopies = true;
+        conf.ref_ms_time = 6 * 60 * 1000;
+        conf.nb_vids_to_find = 12506;
+        conf.nb_valid_vids_to_find = 12352;
+        // Calibrated by the explicit local benchmark; pair-level precision is
+        // asserted by the labeled tracked and /Dev feature matrices instead.
+        conf.nb_matching_vids_to_find = 6556;
         runWholeAppScan(_100GBvideoDir, &conf);
     };
     void test_100GBwholeApp_cached()
@@ -240,8 +253,8 @@ class TestVideo : public QObject
         conf.cacheOption = Prefs::WITH_CACHE;
         conf.ref_ms_time = 50 * 1000;
         conf.nb_vids_to_find = 12506;
-        conf.nb_valid_vids_to_find = 12331;
-        conf.nb_matching_vids_to_find = 6527;
+        conf.nb_valid_vids_to_find = 12351;
+        conf.nb_matching_vids_to_find = 6543;
         runWholeAppScan(_100GBvideoDir, &conf);
     };
 
@@ -256,6 +269,7 @@ class TestVideo : public QObject
 
         // inside the app it default to 100, but for tests it's could be interesting if lower
         uint videoSimilarityThreshold = 100;
+        bool detectRotatedCopies = false;
 
         /* Small test set
          *  - No cache
@@ -263,16 +277,20 @@ class TestVideo : public QObject
          *      -- 200
          *      -- 209: after adding 9 new videos including gps, oct 2025
          *      -- 218: after adding 9 more videos in apple photos library, nov 2025
+         *      -- 229: after adding 11 matching feature fixtures, aug 2026
          *  - Cached
          *      -- 207: before remove big files
          *      -- 200
          *      -- 209: after adding 9 new videos including gps, oct 2025
          *      -- 218: after adding 9 more videos in apple photos library, nov 2025
+         *      -- 229: after adding 11 matching feature fixtures, aug 2026
          * 100GB test set
          *  - No cache
          *      -- 12 505
+         *      -- 12 506: matching improvements audit, aug 2026
          *  - Cached
          *      -- 12 505
+         *      -- 12 506: matching improvements audit, aug 2026
          */
         int nb_vids_to_find;
 
@@ -282,11 +300,15 @@ class TestVideo : public QObject
          *      -- 197
          *      -- 205: after adding 9 new videos including gps, oct 2025
          *      -- 214: after adding 9 more videos in apple photos library, nov 2025
+         *      -- 224: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+         *      -- 226: after matching improvements recover two feature fixtures, aug 2026
          *  - Cached
          *      -- 204: before remove big file tests
          *      -- 197
          *      -- 205: after adding 9 new videos including gps, oct 2025
          *      -- 214: after adding 9 more videos in apple photos library, nov 2025
+         *      -- 224: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+         *      -- 226: after matching improvements recover two feature fixtures, aug 2026
          *  - Cache only
          *      -- 204: before remove big file tests
          *      -- 197
@@ -296,10 +318,12 @@ class TestVideo : public QObject
          *      -- 12 328: after redo of caching
          *      -- 12 330: arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 12 331: November 2025 update, before delete custom threadpool
+         *      -- 12 352: matching improvements, aug 2026
          *  - Cached
          *      -- 12 330: after redo of caching
          *      -- 12 330: arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 12 331: November 2025 update, before delete custom threadpool
+         *      -- 12 351: warm-cache matching improvements, aug 2026
          */
         int nb_valid_vids_to_find;
 
@@ -309,17 +333,23 @@ class TestVideo : public QObject
          *      -- 70 noticed as of 2025 oct.
          *      -- 75: after adding 9 new videos including gps, oct 2025
          *      -- 84: after adding 9 more videos in apple photos library, nov 2025
+         *      -- 85: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+         *      -- 89: after matching improvements, aug 2026
          *  - Cached
          *      -- 72 (before some changes that made it go down 1)
          *      -- 71 noticed as of 2025 oct.
          *      -- 75: after adding 9 new videos including gps, oct 2025
          *      -- 84: after adding 9 more videos in apple photos library, nov 2025
+         *      -- 85: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+         *      -- 89: after matching improvements, aug 2026
          *  - Cache only
          *      -- 74: before remove big file tests
          *      -- 72 (before some changes that made it go down 1)
          *      -- 71 noticed as of 2025 oct.
          *      -- 75: after adding 9 new videos including gps, oct 2025
          *      -- 84: after adding 9 more videos in apple photos library, nov 2025
+         *      -- 85: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+         *      -- 89: after matching improvements, aug 2026
          * 100GB test set
          *  - No cache
          *      -- 6 626: mix lib&exec metadata, exec captures
@@ -327,12 +357,14 @@ class TestVideo : public QObject
          *      -- 6 558 (97.1GB): arm but intel build
          *      -- 6 568 (97.2 GB): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 6 535 (97.0 GB): November 2025 update, before delete custom threadpool
+         *      -- 6 552 off / 6 556 rotation on: matching improvements, aug 2026
          *  - Cached
          *      -- 6 626: mix lib&exec metadata, exec captures
          *      -- 6 553: lib(only) metadata, lib(only) captures
          *      -- 6 550 (97.1GB): after redo of caching
          *      -- 6 555 (97.1 GB): arm m3 Pro with arm build & arm lib - 2024 oct.
          *      -- 6 527 (97.0 GB): November 2025 update, before delete custom threadpool
+         *      -- 6 543: warm-cache matching improvements, aug 2026
          */
         int nb_matching_vids_to_find;
 
@@ -499,6 +531,7 @@ void TestVideo::runWholeAppScan(QDir videoDir, wholeAppTestConfig* conf)
 
     if (conf != nullptr) {
         w.on_thresholdSlider_valueChanged(conf->videoSimilarityThreshold);
+        w.ui->detectRotatedCopiesCheckbox->setChecked(conf->detectRotatedCopies);
 
         switch (conf->cacheOption) {
         case Prefs::CACHE_ONLY:
@@ -672,8 +705,9 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(const
     // pHash works by comparing number of equal bits between two hashes
     if (conf.compareThumbsVisualConfig->compareThumbHashes) {
         int distance1 = 64, distance2 = 64;
-        uint64_t differentBits1 = videoParam.hash1 ^ vid->hash[0]; //XOR to value (only ones for differing bits)
-        uint64_t differentBits2 = videoParam.hash2 ^ vid->hash[1];
+        uint64_t differentBits1 =
+            videoParam.hash1 ^ vid->fingerprint(0).phash; //XOR to value (only ones for differing bits)
+        uint64_t differentBits2 = videoParam.hash2 ^ vid->fingerprint(1).phash;
         while (differentBits1) {
             differentBits1 &= differentBits1 - 1; //count number of bits of value
             distance1--;
@@ -859,8 +893,8 @@ void TestVideo::createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheO
         videoParam.audio = vid->audio;
         videoParam.width = vid->width;
         videoParam.height = vid->height;
-        videoParam.hash1 = vid->hash[0];
-        videoParam.hash2 = vid->hash[1];
+        videoParam.hash1 = vid->fingerprint(0).phash;
+        videoParam.hash2 = vid->fingerprint(1).phash;
         videoParam.thumbnail = vid->thumbnail;
 
         // Remove old files if they exist

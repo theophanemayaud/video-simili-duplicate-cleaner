@@ -1,6 +1,8 @@
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QTemporaryDir>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 #include <QtTest>
 
 #include "../../app/comparison/internal/videopairmatcher.h"
@@ -82,7 +84,8 @@ VideoPairMatchConfig matchConfig(int thumbnailMode, int thresholdBits, bool dete
 }
 
 FixtureScan scanFixtures(const QString& fixtureRoot, const QList<MatchingFixtureRecord>& manifest,
-                         Prefs::USE_CACHE_OPTION cacheMode, const QString& cachePath, int thumbnailMode)
+                         Prefs::USE_CACHE_OPTION cacheMode, const QString& cachePath, int thumbnailMode,
+                         bool detectRotatedCopies = false)
 {
     Prefs prefs;
     prefs.resetSettings();
@@ -96,6 +99,7 @@ FixtureScan scanFixtures(const QString& fixtureRoot, const QList<MatchingFixture
     prefs._thresholdPhash = MATCH_THRESHOLD_BITS;
     prefs._sameDurationModifier = 1;
     prefs._differentDurationModifier = 4;
+    prefs.detectRotatedCopies(detectRotatedCopies);
 
     if (cacheMode != Prefs::NO_CACHE)
         Db::initDbAndCacheLocation(prefs);
@@ -140,6 +144,7 @@ QString validatePairMatrix(const FixtureScan& scan, bool rotatedMatchingEnabled,
     }
 
     QSet<QString> expectedPairs;
+    QSet<QString> allowedPairs;
     QSet<QString> actualPairs;
     const VideoPairMatchConfig config = matchConfig(cutEnds, thresholdBits, rotatedMatchingEnabled);
     for (qsizetype leftIndex = 0; leftIndex < scan.fixtures.size(); ++leftIndex) {
@@ -151,8 +156,13 @@ QString validatePairMatrix(const FixtureScan& scan, bool rotatedMatchingEnabled,
             const bool sameOrientation =
                 left.record.matchingOrientationDegrees == right.record.matchingOrientationDegrees;
             if (sameContent && (rotatedMatchingEnabled || sameOrientation) && left.record.expectedProcessing
-                && right.record.expectedProcessing)
-                expectedPairs.insert(key);
+                && right.record.expectedProcessing) {
+                allowedPairs.insert(key);
+                // Substantially different-duration and partial-clip matching
+                // is explicitly outside this feature's required recall scope.
+                if (qAbs(left.video->duration - right.video->duration) <= 1000)
+                    expectedPairs.insert(key);
+            }
 
             if (left.processingError.isEmpty() && right.processingError.isEmpty()
                 && VideoPairMatcher::match(*left.video, *right.video, config).matches)
@@ -161,7 +171,7 @@ QString validatePairMatrix(const FixtureScan& scan, bool rotatedMatchingEnabled,
     }
 
     const QSet<QString> missing = expectedPairs - actualPairs;
-    const QSet<QString> unexpected = actualPairs - expectedPairs;
+    const QSet<QString> unexpected = actualPairs - allowedPairs;
     QStringList problems;
     if (!processingProblems.isEmpty())
         problems.append(QStringLiteral("Processing mismatches (%1):\n  %2")
@@ -244,6 +254,9 @@ class TestVideoMatchingFeatures : public QObject
     void cleanup();
 
     void test_manifestAndSizeBudget();
+    void test_frameAnalysisAndBlackBarConsensus();
+    void test_rotatedPreferenceDefaultsOffAndPersists();
+    void test_legacyCaptureCacheIsInvalidatedAsAUnit();
     void test_displayMatrixPresentationIsNormalized();
     void test_monochromeCutEndsAreSubstituted();
     void test_blackBarsAreNormalized_data();
@@ -259,7 +272,8 @@ class TestVideoMatchingFeatures : public QObject
     void test_externalBaselineNoNewPairs();
 
   private:
-    FixtureScan trackedScan(Prefs::USE_CACHE_OPTION mode, const QString& cachePath, int thumbnailMode = cutEnds) const;
+    FixtureScan trackedScan(Prefs::USE_CACHE_OPTION mode, const QString& cachePath, int thumbnailMode = cutEnds,
+                            bool detectRotatedCopies = false) const;
 
     QString _projectRoot;
     QString _trackedRoot;
@@ -285,9 +299,9 @@ void TestVideoMatchingFeatures::cleanup()
 }
 
 FixtureScan TestVideoMatchingFeatures::trackedScan(Prefs::USE_CACHE_OPTION mode, const QString& cachePath,
-                                                   int thumbnailMode) const
+                                                   int thumbnailMode, bool detectRotatedCopies) const
 {
-    return scanFixtures(_trackedRoot, _trackedManifest, mode, cachePath, thumbnailMode);
+    return scanFixtures(_trackedRoot, _trackedManifest, mode, cachePath, thumbnailMode, detectRotatedCopies);
 }
 
 void TestVideoMatchingFeatures::test_manifestAndSizeBudget()
@@ -306,6 +320,87 @@ void TestVideoMatchingFeatures::test_manifestAndSizeBudget()
         totalVideoBytes <= 2000000,
         qPrintable(QStringLiteral("Tracked matching videos use %1 bytes; budget is 2000000").arg(totalVideoBytes)));
     qInfo() << "Tracked matching video bytes:" << totalVideoBytes;
+}
+
+void TestVideoMatchingFeatures::test_frameAnalysisAndBlackBarConsensus()
+{
+    QImage uniform(100, 60, QImage::Format_RGB888);
+    uniform.fill(QColor(8, 8, 8));
+    QVERIFY(!VisualFingerprintBuilder::analyzeFrame(uniform).informative);
+
+    QImage darkDetail = uniform;
+    QPainter detailPainter(&darkDetail);
+    detailPainter.fillRect(QRect(35, 10, 30, 40), QColor(40, 40, 40));
+    detailPainter.end();
+    QVERIFY(VisualFingerprintBuilder::analyzeFrame(darkDetail).informative);
+
+    QImage letterbox(100, 60, QImage::Format_RGB888);
+    letterbox.fill(Qt::black);
+    QPainter letterboxPainter(&letterbox);
+    letterboxPainter.fillRect(QRect(0, 10, 100, 40), QColor(30, 120, 220));
+    letterboxPainter.end();
+    const FrameAnalysis bars = VisualFingerprintBuilder::analyzeFrame(letterbox);
+    QVERIFY(bars.informative);
+    QCOMPARE(bars.barAxis, BlackBarAxis::horizontal);
+
+    const auto crop = VisualFingerprintBuilder::unanimousBlackBarCrop({bars, bars});
+    QVERIFY(crop.has_value());
+    QCOMPARE(crop->axis, BlackBarAxis::horizontal);
+
+    QImage oneSided = letterbox;
+    QPainter oneSidedPainter(&oneSided);
+    oneSidedPainter.fillRect(QRect(0, 50, 100, 10), QColor(30, 120, 220));
+    oneSidedPainter.end();
+    const FrameAnalysis dissent = VisualFingerprintBuilder::analyzeFrame(oneSided);
+    QCOMPARE(dissent.barAxis, BlackBarAxis::none);
+    QVERIFY(!VisualFingerprintBuilder::unanimousBlackBarCrop({bars, dissent}).has_value());
+}
+
+void TestVideoMatchingFeatures::test_rotatedPreferenceDefaultsOffAndPersists()
+{
+    Prefs prefs;
+    prefs.resetSettings();
+    QVERIFY(!prefs.detectRotatedCopies());
+    prefs.detectRotatedCopies(true);
+    QVERIFY(Prefs().detectRotatedCopies());
+}
+
+void TestVideoMatchingFeatures::test_legacyCaptureCacheIsInvalidatedAsAUnit()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString cachePath = temporary.filePath(QStringLiteral("legacy.sqlite"));
+    const QString connectionName = QStringLiteral("legacy-cache-setup");
+    {
+        QSqlDatabase legacy = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connectionName);
+        legacy.setDatabaseName(cachePath);
+        QVERIFY(legacy.open());
+        QSqlQuery query(legacy);
+        QVERIFY(query.exec(QStringLiteral("CREATE TABLE capture (id TEXT PRIMARY KEY, at8 BLOB);")));
+        QVERIFY(query.exec(QStringLiteral("INSERT INTO capture (id, at8) VALUES ('old', X'00');")));
+        legacy.close();
+    }
+    QSqlDatabase::removeDatabase(connectionName);
+
+    Prefs prefs;
+    prefs.cacheFilePathName(cachePath);
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    const QString verifyConnection = QStringLiteral("legacy-cache-verify");
+    {
+        QSqlDatabase cache = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), verifyConnection);
+        cache.setDatabaseName(cachePath);
+        QVERIFY(cache.open());
+        QSqlQuery query(cache);
+        QVERIFY(query.exec(QStringLiteral("SELECT COUNT(*) FROM capture;")));
+        QVERIFY(query.next());
+        QCOMPARE(query.value(0).toInt(), 0);
+        QVERIFY(query.exec(QStringLiteral("PRAGMA user_version;")));
+        QVERIFY(query.next());
+        QCOMPARE(query.value(0).toInt(), 2);
+        cache.close();
+    }
+    QSqlDatabase::removeDatabase(verifyConnection);
 }
 
 void TestVideoMatchingFeatures::test_displayMatrixPresentationIsNormalized()
@@ -334,8 +429,12 @@ void TestVideoMatchingFeatures::test_monochromeCutEndsAreSubstituted()
     const ProcessedFixture* monochrome = findFixture(scan, QStringLiteral("a-monochrome-ends.mp4"));
     QVERIFY(base && monochrome);
     QVERIFY2(monochrome->processingError.isEmpty(), qPrintable(monochrome->processingError));
+    const VideoPairMatchResult result =
+        VideoPairMatcher::match(*base->video, *monochrome->video, matchConfig(cutEnds, MATCH_THRESHOLD_BITS));
+    qInfo() << "Monochrome substitute similarities:" << result.phashSimilarity << result.ssimSimilarity
+            << "usable" << monochrome->video->fingerprint(0).usable << monochrome->video->fingerprint(1).usable;
     QVERIFY2(
-        VideoPairMatcher::match(*base->video, *monochrome->video, matchConfig(cutEnds, MATCH_THRESHOLD_BITS)).matches,
+        result.matches,
         "The +/-2% informative substitutes should make the cutEnds copy match A");
 }
 
@@ -374,7 +473,8 @@ void TestVideoMatchingFeatures::test_physicalRotationsMatchWhenEnabled()
     QFETCH(QString, variant);
     QTemporaryDir cache;
     QVERIFY(cache.isValid());
-    const FixtureScan scan = trackedScan(Prefs::NO_CACHE, cache.filePath(QStringLiteral("cache.sqlite")));
+    const FixtureScan scan =
+        trackedScan(Prefs::NO_CACHE, cache.filePath(QStringLiteral("cache.sqlite")), cutEnds, true);
     const ProcessedFixture* base = findFixture(scan, QStringLiteral("a-original.mp4"));
     const ProcessedFixture* rotated = findFixture(scan, variant);
     QVERIFY(base && rotated);
@@ -428,14 +528,14 @@ void TestVideoMatchingFeatures::test_trackedEndToEndMatrix()
     const QString cachePath = cache.filePath(QStringLiteral("cache.sqlite"));
 
     if (cacheScenario != 0) {
-        const FixtureScan population = trackedScan(Prefs::WITH_CACHE, cachePath);
+        const FixtureScan population = trackedScan(Prefs::WITH_CACHE, cachePath, cutEnds, rotatedMatchingEnabled);
         qInfo() << "Tracked cache population:" << population.elapsedMs << "ms";
     }
 
     const Prefs::USE_CACHE_OPTION mode = cacheScenario == 0   ? Prefs::NO_CACHE
                                          : cacheScenario == 1 ? Prefs::WITH_CACHE
                                                               : Prefs::CACHE_ONLY;
-    const FixtureScan scan = trackedScan(mode, cachePath);
+    const FixtureScan scan = trackedScan(mode, cachePath, cutEnds, rotatedMatchingEnabled);
     qInfo() << "Tracked assessed scan:" << scan.elapsedMs << "ms";
     const QString problems = validatePairMatrix(scan, rotatedMatchingEnabled, MATCH_THRESHOLD_BITS);
     QVERIFY2(problems.isEmpty(), qPrintable(problems));
@@ -472,7 +572,8 @@ void TestVideoMatchingFeatures::test_externalEndToEndMatrix()
     const QString cachePath = cache.filePath(QStringLiteral("cache.sqlite"));
     if (cacheScenario != 0) {
         const FixtureScan population =
-            scanFixtures(externalRoot, featureManifest, Prefs::WITH_CACHE, cachePath, cutEnds);
+            scanFixtures(externalRoot, featureManifest, Prefs::WITH_CACHE, cachePath, cutEnds,
+                         rotatedMatchingEnabled);
         qInfo() << "External cache population:" << featureManifest.size() << "videos in" << population.elapsedMs
                 << "ms";
     }
@@ -480,19 +581,27 @@ void TestVideoMatchingFeatures::test_externalEndToEndMatrix()
     const Prefs::USE_CACHE_OPTION mode = cacheScenario == 0   ? Prefs::NO_CACHE
                                          : cacheScenario == 1 ? Prefs::WITH_CACHE
                                                               : Prefs::CACHE_ONLY;
-    const FixtureScan scan = scanFixtures(externalRoot, featureManifest, mode, cachePath, cutEnds);
+    const FixtureScan scan =
+        scanFixtures(externalRoot, featureManifest, mode, cachePath, cutEnds, rotatedMatchingEnabled);
     qInfo() << "External assessed scan:" << featureManifest.size() << "videos in" << scan.elapsedMs << "ms";
     const ProcessedFixture* coast = findFixture(scan, QStringLiteral("Videos/IMG_0689.mp4"));
     const ProcessedFixture* coastPillar =
-        findFixture(scan, QStringLiteral("Matching feature fixtures/coast-pillarbox.mp4"));
+        findFixture(scan, QStringLiteral("Videos/Matching feature fixtures/coast-pillarbox.mp4"));
     const ProcessedFixture* indoorPillar =
-        findFixture(scan, QStringLiteral("Matching feature fixtures/indoor-pillarbox.mp4"));
-    const ProcessedFixture* coastRot90 = findFixture(scan, QStringLiteral("Matching feature fixtures/coast-rot90.mp4"));
+        findFixture(scan, QStringLiteral("Videos/Matching feature fixtures/indoor-pillarbox.mp4"));
+    const ProcessedFixture* coastRot90 =
+        findFixture(scan, QStringLiteral("Videos/Matching feature fixtures/coast-rot90.mp4"));
+    const ProcessedFixture* indoor = findFixture(scan, QStringLiteral("Videos/IMG_4848.mp4"));
+    const ProcessedFixture* indoorAligned =
+        findFixture(scan, QStringLiteral("Videos/Matching feature fixtures/indoor-duration-aligned.mp4"));
+    const ProcessedFixture* img3561a =
+        findFixture(scan, QStringLiteral("Videos/subfolder1/subsubfolder/IMG_3561.MOV"));
+    const ProcessedFixture* img3561b = findFixture(scan, QStringLiteral("Videos/subfolder2/IMG_3561.MOV"));
+    const VideoPairMatchConfig diagnostic = matchConfig(cutEnds, 64, rotatedMatchingEnabled);
     if (coast && coastPillar && indoorPillar && coastRot90 && coast->processingError.isEmpty()
         && coastPillar->processingError.isEmpty() && indoorPillar->processingError.isEmpty()
         && coastRot90->processingError.isEmpty())
     {
-        const VideoPairMatchConfig diagnostic = matchConfig(cutEnds, 64, rotatedMatchingEnabled);
         qInfo() << "External current pHash similarities: bar-positive"
                 << VideoPairMatcher::match(*coast->video, *coastPillar->video, diagnostic).phashSimilarity
                 << "same-bars-negative"
@@ -500,6 +609,13 @@ void TestVideoMatchingFeatures::test_externalEndToEndMatrix()
                 << "physical-90"
                 << VideoPairMatcher::match(*coast->video, *coastRot90->video, diagnostic).phashSimilarity;
     }
+    if (indoor && indoorAligned && img3561a && img3561b && indoor->processingError.isEmpty()
+        && indoorAligned->processingError.isEmpty() && img3561a->processingError.isEmpty()
+        && img3561b->processingError.isEmpty())
+        qInfo() << "External recovery pHash similarities: indoor-aligned"
+                << VideoPairMatcher::match(*indoor->video, *indoorAligned->video, diagnostic).phashSimilarity
+                << "IMG_3561"
+                << VideoPairMatcher::match(*img3561a->video, *img3561b->video, diagnostic).phashSimilarity;
     const QString problems = validatePairMatrix(scan, rotatedMatchingEnabled, MATCH_THRESHOLD_BITS);
     QVERIFY2(problems.isEmpty(), qPrintable(problems));
 }

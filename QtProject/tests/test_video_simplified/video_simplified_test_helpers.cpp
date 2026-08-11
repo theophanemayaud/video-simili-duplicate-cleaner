@@ -43,8 +43,8 @@ VideoParam SimplifiedTestHelpers::scanVideoMetadata(const QString& videoPath, Pr
     param.audio = vid.audio;
     param.width = vid.width;
     param.height = vid.height;
-    param.hash1 = vid.hash[0];
-    param.hash2 = vid.hash[1];
+    param.hash1 = vid.fingerprint(0).phash;
+    param.hash2 = vid.fingerprint(1).phash;
     param.thumbnail = vid.thumbnail;
 
     return param;

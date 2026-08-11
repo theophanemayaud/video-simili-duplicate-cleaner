@@ -36,11 +36,11 @@ class Thumbnail
                                           {8, 96}};
 
   public:
-    int countModes() { return m_modeNames.count(); }
-    QString modeName(const int mode) { return m_modeNames[mode]; }
-    int cols() { return m_layout[m_mode][0]; }
-    int rows() { return m_layout[m_mode][1]; }
-    QVector<int> percentages() { return m_capturePos[m_mode]; } // percent from 1 to 100
+    int countModes() const { return m_modeNames.count(); }
+    QString modeName(const int mode) const { return m_modeNames[mode]; }
+    int cols() const { return m_layout[m_mode][0]; }
+    int rows() const { return m_layout[m_mode][1]; }
+    QVector<int> percentages() const { return m_capturePos[m_mode]; } // percent from 1 to 100
 };
 
 #endif // THUMBNAIL_H
