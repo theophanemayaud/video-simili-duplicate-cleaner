@@ -300,6 +300,7 @@ void MainWindow::processVideos()
         addStatusMessage(QStringLiteral("\nFound %1 cached video file(s):\n").arg(_prefs._numberOfVideos));
     if (_prefs._numberOfVideos > 0) {
         ui->selectThumbnails->setDisabled(true);
+        ui->detectRotatedCopiesCheckbox->setDisabled(true);
         ui->processedFiles->setVisible(true);
         if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY)
             ui->processedFiles->setText(QStringLiteral("0/%1").arg(_prefs._numberOfVideos));
@@ -401,6 +402,7 @@ void MainWindow::processVideos()
     QApplication::processEvents(); // process any remaining signals
 
     ui->selectThumbnails->setDisabled(false);
+    ui->detectRotatedCopiesCheckbox->setDisabled(false);
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->statusBar->setVisible(false);

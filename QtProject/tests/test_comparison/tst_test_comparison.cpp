@@ -4,6 +4,7 @@
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
 #include "../../app/comparison/internal/backgroundmatchdiscovery.h"
+#include "../../app/comparison/internal/ssim.h"
 #include "../../app/comparison/internal/videopairmatcher.h"
 #include "../../app/comparison/internal/videopairspace.h"
 #include "../../app/videometadata.h"
@@ -24,6 +25,7 @@ class test_comparison : public QObject
     void test_videoPairSpaceRoundTrip();
     void test_videoPairMatcherUsesConfigSnapshot();
     void test_rotatedMatcherRequiresSsimSafeguard();
+    void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
 };
 
@@ -183,6 +185,42 @@ void test_comparison::test_rotatedMatcherRequiresSsimSafeguard()
     const VideoPairMatchResult result = VideoPairMatcher::match(left, right, config);
     QVERIFY(result.matches);
     QCOMPARE(result.relativeRotation, FingerprintRotation::clockwise90);
+}
+
+void test_comparison::test_rotatedMatcherAppliesDurationModifierToSsimThreshold()
+{
+    Prefs prefs;
+    Video left(prefs, QStringLiteral("left"));
+    Video right(prefs, QStringLiteral("right"));
+    VisualFingerprint& leftFingerprint = left.fingerprint(0);
+    VisualFingerprint& rotatedFingerprint = right.fingerprint(0, FingerprintRotation::clockwise90);
+    leftFingerprint.usable = rotatedFingerprint.usable = true;
+    leftFingerprint.phash = rotatedFingerprint.phash = 0;
+    for (size_t index = 0; index < leftFingerprint.ssimPixels.size(); ++index)
+        leftFingerprint.ssimPixels[index] = rotatedFingerprint.ssimPixels[index] = static_cast<uint8_t>(index);
+    rotatedFingerprint.ssimPixels[0] = 32;
+
+    const cv::Mat leftPixels(16, 16, CV_8UC1, leftFingerprint.ssimPixels.data());
+    const cv::Mat rightPixels(16, 16, CV_8UC1, rotatedFingerprint.ssimPixels.data());
+    const double rawSsim = Ssim::calculate(leftPixels, rightPixels, 16);
+    QVERIFY(rawSsim > 0.90);
+    QVERIFY(rawSsim < 1.0);
+
+    VideoPairMatchConfig config;
+    config.thumbnailsMode = thumb1;
+    config.comparisonMode = Prefs::_SSIM;
+    config.thresholdPhash = 57;
+    config.detectRotatedCopies = true;
+
+    left.duration = right.duration = 1000;
+    config.sameDurationModifier = 1;
+    config.thresholdSSIM = rawSsim + 0.5 / 64.0;
+    QVERIFY(VideoPairMatcher::match(left, right, config).matches);
+
+    right.duration = 3000;
+    config.differentDurationModifier = 4;
+    config.thresholdSSIM = rawSsim - 2.0 / 64.0;
+    QVERIFY(!VideoPairMatcher::match(left, right, config).matches);
 }
 
 void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix()

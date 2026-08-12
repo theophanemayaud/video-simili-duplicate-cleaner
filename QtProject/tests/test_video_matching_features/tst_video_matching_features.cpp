@@ -378,6 +378,9 @@ void TestVideoMatchingFeatures::test_legacyCaptureCacheIsInvalidatedAsAUnit()
         QSqlQuery query(legacy);
         QVERIFY(query.exec(QStringLiteral("CREATE TABLE capture (id TEXT PRIMARY KEY, at8 BLOB);")));
         QVERIFY(query.exec(QStringLiteral("INSERT INTO capture (id, at8) VALUES ('old', X'00');")));
+        QVERIFY(query.exec(QStringLiteral(
+            "CREATE TABLE ignored_pairs (pathName1 TEXT, pathName2 TEXT, PRIMARY KEY (pathName1, pathName2));")));
+        QVERIFY(query.exec(QStringLiteral("INSERT INTO ignored_pairs VALUES ('left.mp4', 'right.mp4');")));
         legacy.close();
     }
     QSqlDatabase::removeDatabase(connectionName);
@@ -395,6 +398,10 @@ void TestVideoMatchingFeatures::test_legacyCaptureCacheIsInvalidatedAsAUnit()
         QVERIFY(query.exec(QStringLiteral("SELECT COUNT(*) FROM capture;")));
         QVERIFY(query.next());
         QCOMPARE(query.value(0).toInt(), 0);
+        QVERIFY(query.exec(QStringLiteral("SELECT COUNT(*) FROM ignored_pairs "
+                                          "WHERE pathName1 = 'left.mp4' AND pathName2 = 'right.mp4';")));
+        QVERIFY(query.next());
+        QCOMPARE(query.value(0).toInt(), 1);
         QVERIFY(query.exec(QStringLiteral("PRAGMA user_version;")));
         QVERIFY(query.next());
         QCOMPARE(query.value(0).toInt(), 2);

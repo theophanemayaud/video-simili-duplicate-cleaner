@@ -55,11 +55,11 @@ VideoPairMatchResult scoreFingerprints(const Video& leftVideo, const Video& righ
     if (rotated) {
         if (rawPhash < MIN_ROTATED_PHASH_SIMILARITY || result.phashSimilarity < config.thresholdPhash)
             return result;
-        result.ssimSimilarity = ssimSimilarity(left, right, config.ssimBlockSize);
-        const double requiredSsim = config.comparisonMode == Prefs::_SSIM
-                                        ? qMax(config.thresholdSSIM, MIN_ROTATED_SSIM_SIMILARITY)
-                                        : MIN_ROTATED_SSIM_SIMILARITY;
-        result.matches = result.ssimSimilarity >= requiredSsim;
+        const double rawSsim = ssimSimilarity(left, right, config.ssimBlockSize);
+        if (rawSsim < MIN_ROTATED_SSIM_SIMILARITY)
+            return result;
+        result.ssimSimilarity = rawSsim + modifier / 64.0;
+        result.matches = config.comparisonMode != Prefs::_SSIM || result.ssimSimilarity > config.thresholdSSIM;
         return result;
     }
 

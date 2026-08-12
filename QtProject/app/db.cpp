@@ -111,8 +111,10 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
 
     // Generation 2 captures are presentation-normalized and may contain a
     // resolved substitute for a low-information nominal slot. Old JPEGs are
-    // therefore not safe matching inputs. Invalidate the cache as one unit;
-    // deliberately do not add record migration or mixed-generation reads.
+    // therefore not safe matching inputs. Invalidate the derived cache tables
+    // as one unit, while preserving ignored_pairs because those are user
+    // decisions. Deliberately do not add record migration or mixed-generation
+    // reads.
     constexpr int CACHE_GENERATION = 2;
     int generation = 0;
     if (query.exec(QStringLiteral("PRAGMA user_version;")) && query.next())
@@ -124,7 +126,6 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
     if (hasExistingCache && generation != CACHE_GENERATION) {
         query.exec(QStringLiteral("DROP TABLE IF EXISTS metadata;"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS capture;"));
-        query.exec(QStringLiteral("DROP TABLE IF EXISTS ignored_pairs;"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS version;"));
     }
 

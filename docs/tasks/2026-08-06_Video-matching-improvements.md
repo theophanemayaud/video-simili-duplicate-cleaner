@@ -32,7 +32,7 @@ The three improvements now share `VisualFingerprintBuilder` and one compact `Vis
 - Black bars use a near-black luminance ceiling of 20, 98% row/column coverage, 4%-45% symmetric opposing insets, at least 10% active picture, one-axis-only acceptance, and unanimous agreement across the informative extracted frames. Bars remain visible in the GUI thumbnail and are cropped only from matching inputs.
 - Legacy rotate tags and Display Matrix side data are normalized into one presentation transform, with Display Matrix taking precedence. This is always active. Physically rotated fallback remains a separate persisted setting, off by default.
 - Rotation-on extraction builds 0/90/180/270 fingerprints from matching tiles reduced to at most 64 pixels before rotation. Fallback requires at least 57/64 raw pHash agreement and 0.90 raw SSIM, in addition to applicable user thresholds.
-- SQLite cache generation 2 invalidates an incompatible old cache as one unit. There is no record conversion, mixed-generation read, or recovery strategy; users rescan normally.
+- SQLite cache generation 2 invalidates the incompatible derived metadata and captures as one unit while preserving user-authored ignored pairs. There is no record conversion, mixed-generation read, or recovery strategy; users rescan normally.
 
 The first implementation intentionally does not add persisted analysis data, per-video transform state, record migration, configurable retry/threshold machinery, or scan-wide diagnostic state. Focused tests report calibration scores when needed.
 
@@ -428,7 +428,7 @@ Acceptance criteria:
 - Different videos sharing bars score based on their active pictures and no longer match merely because of the bars.
 - A multi-frame bar crop is accepted only with unanimous axis/boundary agreement; an ambiguous or dissenting tile leaves the whole set uncropped.
 - Fresh, warm-cache, and cache-only results built with the current cache generation are documented and consistent.
-- An incompatible old cache is invalidated as a unit and leads to a clean cache miss/full rescan, with no record migration or mixed-generation results.
+- An incompatible old cache's derived metadata and captures are invalidated as a unit and lead to a clean cache miss/full rescan, with no record migration or mixed-generation results; user-authored ignored pairs remain intact.
 - The one-retry bound and both states of the rotated-copy preference are covered by tests.
 - Performance and peak-memory targets above are measured, not inferred from operation counts.
 - The tracked ten-video matrix and its references add no more than roughly 2 MB, keeping all repository-tracked video fixtures within a few MB total.
