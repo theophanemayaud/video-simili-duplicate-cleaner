@@ -256,7 +256,7 @@ class TestVideoMatchingFeatures : public QObject
     void test_manifestAndSizeBudget();
     void test_frameAnalysisAndBlackBarConsensus();
     void test_rotatedPreferenceDefaultsOffAndPersists();
-    void test_legacyCaptureCacheIsInvalidatedAsAUnit();
+    void test_existingCaptureCacheIsReusedWithoutInvalidation();
     void test_displayMatrixPresentationIsNormalized();
     void test_monochromeCutEndsAreSubstituted();
     void test_blackBarsAreNormalized_data();
@@ -365,7 +365,7 @@ void TestVideoMatchingFeatures::test_rotatedPreferenceDefaultsOffAndPersists()
     QVERIFY(Prefs().detectRotatedCopies());
 }
 
-void TestVideoMatchingFeatures::test_legacyCaptureCacheIsInvalidatedAsAUnit()
+void TestVideoMatchingFeatures::test_existingCaptureCacheIsReusedWithoutInvalidation()
 {
     QTemporaryDir temporary;
     QVERIFY(temporary.isValid());
@@ -381,6 +381,7 @@ void TestVideoMatchingFeatures::test_legacyCaptureCacheIsInvalidatedAsAUnit()
         QVERIFY(query.exec(QStringLiteral(
             "CREATE TABLE ignored_pairs (pathName1 TEXT, pathName2 TEXT, PRIMARY KEY (pathName1, pathName2));")));
         QVERIFY(query.exec(QStringLiteral("INSERT INTO ignored_pairs VALUES ('left.mp4', 'right.mp4');")));
+        QVERIFY(query.exec(QStringLiteral("PRAGMA user_version = 1;")));
         legacy.close();
     }
     QSqlDatabase::removeDatabase(connectionName);
@@ -395,16 +396,16 @@ void TestVideoMatchingFeatures::test_legacyCaptureCacheIsInvalidatedAsAUnit()
         cache.setDatabaseName(cachePath);
         QVERIFY(cache.open());
         QSqlQuery query(cache);
-        QVERIFY(query.exec(QStringLiteral("SELECT COUNT(*) FROM capture;")));
+        QVERIFY(query.exec(QStringLiteral("SELECT at8 FROM capture WHERE id = 'old';")));
         QVERIFY(query.next());
-        QCOMPARE(query.value(0).toInt(), 0);
+        QCOMPARE(query.value(0).toByteArray(), QByteArray::fromHex("00"));
         QVERIFY(query.exec(QStringLiteral("SELECT COUNT(*) FROM ignored_pairs "
                                           "WHERE pathName1 = 'left.mp4' AND pathName2 = 'right.mp4';")));
         QVERIFY(query.next());
         QCOMPARE(query.value(0).toInt(), 1);
         QVERIFY(query.exec(QStringLiteral("PRAGMA user_version;")));
         QVERIFY(query.next());
-        QCOMPARE(query.value(0).toInt(), 2);
+        QCOMPARE(query.value(0).toInt(), 1);
         cache.close();
     }
     QSqlDatabase::removeDatabase(verifyConnection);

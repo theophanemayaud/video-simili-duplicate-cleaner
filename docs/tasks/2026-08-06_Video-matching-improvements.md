@@ -32,7 +32,7 @@ The three improvements now share `VisualFingerprintBuilder` and one compact `Vis
 - Black bars use a near-black luminance ceiling of 20, 98% row/column coverage, 4%-45% symmetric opposing insets, at least 10% active picture, one-axis-only acceptance, and unanimous agreement across the informative extracted frames. Bars remain visible in the GUI thumbnail and are cropped only from matching inputs.
 - Legacy rotate tags and Display Matrix side data are normalized into one presentation transform, with Display Matrix taking precedence. This is always active. Physically rotated fallback remains a separate persisted setting, off by default.
 - Rotation-on extraction builds 0/90/180/270 fingerprints from matching tiles reduced to at most 64 pixels before rotation. Fallback requires at least 57/64 raw pHash agreement and 0.90 raw SSIM, in addition to applicable user thresholds.
-- SQLite cache generation 2 invalidates the incompatible derived metadata and captures as one unit while preserving user-authored ignored pairs. There is no record conversion, mixed-generation read, or recovery strategy; users rescan normally.
+- Existing cache records are reused without a generation marker or forced invalidation. Restored JPEG captures go through the same new analysis pipeline. Fresh extraction gets the improved presentation-metadata normalization; an already cached metadata-rotated video may retain its previous dimensions/orientation until it is naturally refreshed, which is an accepted small tradeoff for keeping cache handling simple.
 
 The first implementation intentionally does not add persisted analysis data, per-video transform state, record migration, configurable retry/threshold machinery, or scan-wide diagnostic state. Focused tests report calibration scores when needed.
 
@@ -57,7 +57,7 @@ The first implementation intentionally does not add persisted analysis data, per
 - Matching partial clips or videos with substantially different durations.
 - Treating a dark scene as corrupt or moving it to the error folder.
 - Adding settings for monochrome-frame substitution or black-bar normalization. Those rules should be conservative enough to be on by default; only rotated-copy detection is opt-in.
-- Migrating, converting, or lazily repairing existing cache records for the new matching approach. A whole-cache invalidation and full rescan after upgrade is acceptable.
+- Migrating, converting, lazily repairing, or forcibly invalidating existing cache records for the new matching approach. Existing cached JPEGs remain usable raw inputs and are reused as-is; no cache-generation or recovery machinery is added. A small loss of the new metadata-rotation normalization for already cached videos is an accepted tradeoff.
 - Changing comparison thresholds globally to compensate for the new behavior.
 - A general rewrite of FFmpeg decoding, the cache database, thumbnail modes, or the comparison UI.
 - Adding user-facing controls for individual rotation angles, analysis thresholds, retries, or black-bar behavior.
@@ -116,7 +116,7 @@ Keep only one user preference: `Detect rotated video copies`. Do not add a 4x4 o
 
 ### Keep cache and tests data-oriented
 
-The cache continues to store only the resolved JPEG for each nominal slot. Do not persist frame classifications, actual substitute timestamps, bar boundaries, pHashes, SSIM pixels, or rotations. Compatible captures flow through the same analysis as fresh captures; incompatible data is handled only by whole-cache invalidation.
+The cache continues to store only the resolved JPEG for each nominal slot. Do not persist frame classifications, actual substitute timestamps, bar boundaries, pHashes, SSIM pixels, or rotations. Existing and fresh captures flow through the same analysis; keep the cache schema unchanged and do not add generation, invalidation, migration, or mixed-format handling.
 
 Generate transformed variants from a small set of base fixtures and drive expectations from one labeled pair table. Avoid separate test harnesses for rotation, substitution, bars, and cache modes when the same end-to-end matrix can exercise their combinations.
 
@@ -126,7 +126,7 @@ Generate transformed variants from a small set of base fixtures and drive expect
 
 `Video::takeScreenCaptures()` samples fixed positions from `Thumbnail::percentages()`, currently between 1 and 12 frames depending on the thumbnail mode. A decode failure already triggers a different recovery path: `ofDuration` is reduced by six percentage points and the whole capture sequence is retried against the shortened usable duration. There is no retry based on the visual contents of a successfully decoded frame.
 
-The capture cache stores JPEG frames in columns named for the nominal sample positions (`at8` through `at96`). It does not store pHashes or SSIM matrices. Existing cached captures may be reused only if they are already valid inputs to the new pipeline without special conversion. If the persisted input contract changes, invalidate the old cache as a whole and rebuild it instead of adding a migration path.
+The capture cache stores JPEG frames in columns named for the nominal sample positions (`at8` through `at96`). It does not store pHashes or SSIM matrices. Existing cached captures are valid image inputs to the new analysis and are reused without conversion or forced rebuilding. Freshly decoded frames still receive the improved presentation-metadata normalization; old cached metadata and pixels are not retroactively repaired.
 
 ### “All black” detection
 
@@ -199,14 +199,9 @@ Cache behavior:
 - `CACHE_ONLY` must never read the video. If its cached nominal frame is unusable, it cannot substitute that slot during that run.
 - Low-information classification must tolerate JPEG noise because cached captures are lossy.
 
-#### Cache transition
+#### Cache policy
 
-Do not implement a record-by-record migration strategy for this work. Before implementation, decide whether the old cached JPEG captures remain valid raw inputs:
-
-- If they do, read them normally and derive the new fingerprints without rewriting records merely because they are old.
-- If they do not, bump one cache-generation value, invalidate the old cache in full, and let the next normal scan rebuild it from the videos.
-
-Do not add legacy fingerprint formats, conversion code, lazy repair passes, or fallback matching behavior. After invalidation, normal cache mode may take as long as a first scan; that is an accepted upgrade cost. Cache-only mode must fail cleanly for invalidated/missing entries rather than crashing or mixing generations.
+Read existing captures normally and derive the new fingerprints from them. Do not add a cache-generation marker, record migration, conversion code, lazy repair pass, forced invalidation, or fallback matching behavior. Cache-only mode continues to use whatever is already stored and cannot repair an old metadata-rotated capture without a fresh scan.
 
 Final validity remains mode-aware:
 
@@ -376,7 +371,7 @@ The fixture phase is now implemented without implementing the matching behavior:
 - The external manifest has 229 rows: all 218 legacy videos plus the eleven derivatives. The strict current matcher produced 154 pair edges forming 54 complete, filename-consistent groups. Those groups seed the no-new-cross-group baseline. A tagged 22-video subset supplies the feature contracts and natural guards.
 - Both generation scripts reproduce byte-identical outputs on the current FFmpeg toolchain. Tests consume the checked-in files and do not invoke FFmpeg.
 
-`test_video_matching_features` is a required CI target. Its focused contracts now pass for Display Matrix presentation normalization, monochrome substitution, letterbox/pillarbox normalization, physical 90/180/270-degree matching, the rotation preference, whole-cache invalidation, and conservative in-memory bar analysis. Its tracked end-to-end rows pass in no-cache, warm-cache, and cache-only modes with rotation both disabled and enabled. The same target runs four optional local external feature rows and a separate legacy-corpus no-new-cross-group baseline; external rows skip when the corpus is absent.
+`test_video_matching_features` is a required CI target. Its focused contracts now pass for Display Matrix presentation normalization, monochrome substitution, letterbox/pillarbox normalization, physical 90/180/270-degree matching, the rotation preference, cache reuse without invalidation, and conservative in-memory bar analysis. Its tracked end-to-end rows pass in no-cache, warm-cache, and cache-only modes with rotation both disabled and enabled. The same target runs four optional local external feature rows and a separate legacy-corpus no-new-cross-group baseline; external rows skip when the corpus is absent.
 
 The manifest excludes substantially different-duration partial clips from required recovery while still rejecting them as cross-content false positives. This keeps the feature aligned with its explicit non-goal rather than weakening the matcher to satisfy two pre-existing partial-clip cases.
 
@@ -405,7 +400,7 @@ Positive pairs:
 - original and copy with symmetric pillarbox bars;
 - copies with a black frame at a nominal sample but matching content at the substitute position;
 - one pair combining physical rotation, encoded bars, and a replaceable monochrome sample;
-- the above in no-cache and warm-cache scans built with the current cache generation.
+- the above in no-cache, warm-cache, and cache-only scans using the same cache records where applicable.
 
 Negative pairs:
 
@@ -427,8 +422,8 @@ Acceptance criteria:
 - No pair labeled negative becomes a match at the default threshold or at the lower threshold selected for the issue #138 regression set.
 - Different videos sharing bars score based on their active pictures and no longer match merely because of the bars.
 - A multi-frame bar crop is accepted only with unanimous axis/boundary agreement; an ambiguous or dissenting tile leaves the whole set uncropped.
-- Fresh, warm-cache, and cache-only results built with the current cache generation are documented and consistent.
-- An incompatible old cache's derived metadata and captures are invalidated as a unit and lead to a clean cache miss/full rescan, with no record migration or mixed-generation results; user-authored ignored pairs remain intact.
+- Fresh, warm-cache, and cache-only results using existing cache records are documented and consistent.
+- Existing caches are opened and reused without a generation reset or record migration. New analysis runs on restored JPEGs; the small loss of metadata-rotation normalization for already cached videos is documented and accepted.
 - The one-retry bound and both states of the rotated-copy preference are covered by tests.
 - Performance and peak-memory targets above are measured, not inferred from operation counts.
 - The tracked ten-video matrix and its references add no more than roughly 2 MB, keeping all repository-tracked video fixtures within a few MB total.
@@ -456,7 +451,7 @@ Complexity acceptance criteria:
 3. Generate and check in the ten-video synthetic matrix and its reproducible FFmpeg script, staying within the roughly 2 MB addition budget.
 4. Add and manually review the external corpus manifest, then generate only the missing real-world derivatives within the roughly 250 MB addition budget.
 5. Record current pHash/SSIM scores and exact pair decisions for every labeled positive and negative pair, with rotation disabled and enabled.
-6. Record no-cache, warm-cache, and cache-only behavior for the tracked matrix and current-generation external corpus.
+6. Record no-cache, warm-cache, and cache-only behavior for the tracked matrix and the external corpus, reusing the same cache records between runs.
 7. Add a small extraction benchmark for ordinary videos and videos that activate each new path; keep the complete external scan as an explicit local benchmark.
 
 This phase prevents tuning only against the motivating positives.
@@ -470,7 +465,7 @@ This phase prevents tuning only against the motivating positives.
 2. Do not introduce a transform class hierarchy or separate feature pipelines. Keep file I/O, FFmpeg seeking, and cache writes in `Video`; keep the small image functions deterministic and independently testable.
 3. Replace `hash[]`, `grayThumb[]`, `_almostBlackBitmap`, and implicit `hash == 0` validity with `VisualFingerprint` and its explicit usable flag. Delete the superseded path in the same phase rather than retaining a compatibility branch.
 4. Centralize segment construction and validity so `cutEnds` behavior is expressed once. Update SSIM input handling to consume compact 8-bit data and convert to float only at comparison time.
-5. If persisted captures are incompatible, add only a whole-cache generation invalidation; do not add conversion or recovery code.
+5. Keep the existing capture cache schema and read restored JPEGs through the same analysis pipeline; do not add cache generation, invalidation, conversion, or recovery code.
 
 Likely files: `QtProject/app/video.h`, `QtProject/app/video.cpp`, a small `visualfingerprint.{h,cpp}` helper, `QtProject/app/comparison/internal/ssim.*`, and focused tests.
 
