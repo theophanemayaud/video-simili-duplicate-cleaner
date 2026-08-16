@@ -5,15 +5,15 @@
 #include "../../app/db.h"
 #include "../../app/prefs.h"
 #include "../../app/video.h"
-#include "video_simplified_test_helpers.h"
+#include "video_extraction_test_helpers.h"
 
-class TestVideoSimplified : public QObject
+class TestVideoExtractionRegression : public QObject
 {
     Q_OBJECT
 
   public:
-    TestVideoSimplified();
-    ~TestVideoSimplified();
+    TestVideoExtractionRegression();
+    ~TestVideoExtractionRegression();
 
   private slots:
     void initTestCase();
@@ -32,11 +32,11 @@ class TestVideoSimplified : public QObject
     QString projectRoot;
 };
 
-TestVideoSimplified::TestVideoSimplified() {}
+TestVideoExtractionRegression::TestVideoExtractionRegression() {}
 
-TestVideoSimplified::~TestVideoSimplified() {}
+TestVideoExtractionRegression::~TestVideoExtractionRegression() {}
 
-void TestVideoSimplified::initTestCase()
+void TestVideoExtractionRegression::initTestCase()
 {
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
     Prefs().resetSettings();
@@ -60,7 +60,7 @@ void TestVideoSimplified::initTestCase()
     QVERIFY2(QFileInfo::exists(samplesDir), QString("Samples directory not found: %1").arg(samplesDir).toUtf8());
 }
 
-void TestVideoSimplified::test_videoScanning_data()
+void TestVideoExtractionRegression::test_videoScanning_data()
 {
     QTest::addColumn<QString>("videoName");
     QTest::addColumn<int>("cacheMode");
@@ -85,7 +85,7 @@ void TestVideoSimplified::test_videoScanning_data()
     }
 }
 
-void TestVideoSimplified::test_videoScanning()
+void TestVideoExtractionRegression::test_videoScanning()
 {
     QFETCH(QString, videoName);
     QFETCH(int, cacheMode);
@@ -111,14 +111,14 @@ void TestVideoSimplified::test_videoScanning()
         Db::initDbAndCacheLocation(cachePrefs);
 
         // Do a scan with cache to populate if needed
-        VideoParam warmupParam = SimplifiedTestHelpers::scanVideoMetadata(videoPath, cachePrefs);
+        VideoParam warmupParam = VideoExtractionTestHelpers::scanVideoMetadata(videoPath, cachePrefs);
         QVERIFY2(!warmupParam.thumbnail.isEmpty(), QString("Failed to warm up cache for: %1").arg(videoPath).toUtf8());
     }
 
     // Load reference data
     VideoParam refParam;
-    SimplifiedTestHelpers::loadMetadataFromFile(refMetadataPath, refParam);
-    QByteArray refThumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(refThumbPath);
+    VideoExtractionTestHelpers::loadMetadataFromFile(refMetadataPath, refParam);
+    QByteArray refThumbnail = VideoExtractionTestHelpers::loadThumbnailFromFile(refThumbPath);
 
     QVERIFY2(!refThumbnail.isEmpty(), QString("Failed to load reference thumbnail: %1").arg(refThumbPath).toUtf8());
 
@@ -126,16 +126,16 @@ void TestVideoSimplified::test_videoScanning()
     Prefs prefs;
     prefs.useCacheOption(static_cast<Prefs::USE_CACHE_OPTION>(cacheMode));
 
-    VideoParam currentParam = SimplifiedTestHelpers::scanVideoMetadata(videoPath, prefs);
+    VideoParam currentParam = VideoExtractionTestHelpers::scanVideoMetadata(videoPath, prefs);
 
     QVERIFY2(!currentParam.thumbnail.isEmpty(), QString("Failed to scan video: %1").arg(videoPath).toUtf8());
 
     // Compare metadata
     QString errorMsg;
-    QVERIFY2(SimplifiedTestHelpers::compareMetadata(refParam, currentParam, errorMsg), errorMsg.toUtf8());
+    QVERIFY2(VideoExtractionTestHelpers::compareMetadata(refParam, currentParam, errorMsg), errorMsg.toUtf8());
 
     // Compare thumbnails
-    double ssim = SimplifiedTestHelpers::compareThumbnails(refThumbnail, currentParam.thumbnail);
+    double ssim = VideoExtractionTestHelpers::compareThumbnails(refThumbnail, currentParam.thumbnail);
 
     // we expect some combinations to fail and some to pass
     bool shouldPass = false;
@@ -160,8 +160,8 @@ void TestVideoSimplified::test_videoScanning()
 // Uncomment this function and add it to private slots to generate reference data
 /*
 // Generate reference data for test videos
-// To use: run: ./test_video_simplified generateReferenceData
-void TestVideoSimplified::generateReferenceData()
+// To use: run: ./test_repo_video_extraction_regression generateReferenceData
+void TestVideoExtractionRegression::generateReferenceData()
 {
     // Run with NO_CACHE to generate baseline reference data
     Prefs prefs;
@@ -176,7 +176,7 @@ void TestVideoSimplified::generateReferenceData()
         QVERIFY2(QFileInfo::exists(videoPath), 
             QString("Video not found: %1").arg(videoPath).toUtf8());
         
-        VideoParam param = SimplifiedTestHelpers::scanVideoMetadata(videoPath, prefs);
+        VideoParam param = VideoExtractionTestHelpers::scanVideoMetadata(videoPath, prefs);
         QVERIFY2(!param.thumbnail.isEmpty(), 
             QString("Failed to process video: %1").arg(videoPath).toUtf8());
         
@@ -193,9 +193,9 @@ void TestVideoSimplified::generateReferenceData()
             QFile::remove(thumbPath);
         }
         
-        QVERIFY2(SimplifiedTestHelpers::saveMetadataToFile(param, metadataPath, QDir(samplesDir)),
+        QVERIFY2(VideoExtractionTestHelpers::saveMetadataToFile(param, metadataPath, QDir(samplesDir)),
             QString("Failed to save metadata: %1").arg(metadataPath).toUtf8());
-        QVERIFY2(SimplifiedTestHelpers::saveThumbnail(param.thumbnail, thumbPath),
+        QVERIFY2(VideoExtractionTestHelpers::saveThumbnail(param.thumbnail, thumbPath),
             QString("Failed to save thumbnail: %1").arg(thumbPath).toUtf8());
         
         qDebug() << "Successfully generated reference data for:" << video;
@@ -212,13 +212,13 @@ void TestVideoSimplified::generateReferenceData()
 }
 */
 
-void TestVideoSimplified::cleanupTestCase()
+void TestVideoExtractionRegression::cleanupTestCase()
 {
     // Clean up database if needed
     Prefs prefs;
     Db::emptyAllDb(prefs);
 }
 
-QTEST_MAIN(TestVideoSimplified)
+QTEST_MAIN(TestVideoExtractionRegression)
 
-#include "tst_video_simplified.moc"
+#include "tst_video_extraction_regression.moc"

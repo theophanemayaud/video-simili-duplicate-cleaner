@@ -1,4 +1,4 @@
-#include "video_simplified_test_helpers.h"
+#include "video_extraction_test_helpers.h"
 
 #include "../../app/comparison/comparison.h"
 #include "../../app/comparison/internal/ssim.h"
@@ -15,7 +15,7 @@ using namespace cv;
 
 // ------------------- Public Helper Functions -------------------
 
-VideoParam SimplifiedTestHelpers::scanVideoMetadata(const QString& videoPath, Prefs& prefs)
+VideoParam VideoExtractionTestHelpers::scanVideoMetadata(const QString& videoPath, Prefs& prefs)
 {
     VideoParam param;
 
@@ -43,14 +43,14 @@ VideoParam SimplifiedTestHelpers::scanVideoMetadata(const QString& videoPath, Pr
     param.audio = vid.audio;
     param.width = vid.width;
     param.height = vid.height;
-    param.hash1 = vid.hash[0];
-    param.hash2 = vid.hash[1];
+    param.hash1 = vid.fingerprint(0).phash;
+    param.hash2 = vid.fingerprint(1).phash;
     param.thumbnail = vid.thumbnail;
 
     return param;
 }
 
-bool SimplifiedTestHelpers::saveMetadataToFile(const VideoParam& param, const QString& filePath,
+bool VideoExtractionTestHelpers::saveMetadataToFile(const VideoParam& param, const QString& filePath,
                                                const QDir& videoBaseDir)
 {
     if (QFileInfo::exists(filePath)) {
@@ -86,7 +86,7 @@ bool SimplifiedTestHelpers::saveMetadataToFile(const VideoParam& param, const QS
     return true;
 }
 
-void SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, VideoParam& param)
+void VideoExtractionTestHelpers::loadMetadataFromFile(const QString& filePath, VideoParam& param)
 {
     QFile file(filePath);
     QVERIFY2(file.open(QIODevice::ReadOnly),
@@ -161,7 +161,7 @@ void SimplifiedTestHelpers::loadMetadataFromFile(const QString& filePath, VideoP
     param.hash2 = data["hash2"].toULongLong();
 }
 
-bool SimplifiedTestHelpers::saveThumbnail(const QByteArray& thumbnail, const QString& path)
+bool VideoExtractionTestHelpers::saveThumbnail(const QByteArray& thumbnail, const QString& path)
 {
     if (QFileInfo::exists(path)) {
         qWarning() << "Thumbnail already exists, not overwriting:" << path;
@@ -185,7 +185,7 @@ bool SimplifiedTestHelpers::saveThumbnail(const QByteArray& thumbnail, const QSt
     return true;
 }
 
-QByteArray SimplifiedTestHelpers::loadThumbnailFromFile(const QString& path)
+QByteArray VideoExtractionTestHelpers::loadThumbnailFromFile(const QString& path)
 {
     QFile thumbFile(path);
     if (!thumbFile.open(QIODevice::ReadOnly)) {
@@ -199,7 +199,7 @@ QByteArray SimplifiedTestHelpers::loadThumbnailFromFile(const QString& path)
     return data;
 }
 
-double SimplifiedTestHelpers::compareThumbnails(const QByteArray& thumb1, const QByteArray& thumb2)
+double VideoExtractionTestHelpers::compareThumbnails(const QByteArray& thumb1, const QByteArray& thumb2)
 {
     if (thumb1.isEmpty() || thumb2.isEmpty()) {
         qWarning() << "One or both thumbnails are empty";
@@ -227,7 +227,7 @@ double SimplifiedTestHelpers::compareThumbnails(const QByteArray& thumb1, const 
     return Ssim::calculate(gray1, gray2, blockSize);
 }
 
-bool SimplifiedTestHelpers::compareMetadata(const VideoParam& ref, const VideoParam& current, QString& errorMsg)
+bool VideoExtractionTestHelpers::compareMetadata(const VideoParam& ref, const VideoParam& current, QString& errorMsg)
 {
     errorMsg.clear();
 
@@ -287,7 +287,7 @@ bool SimplifiedTestHelpers::compareMetadata(const VideoParam& ref, const VideoPa
 
 // ------------------- Private Helper Functions -------------------
 
-Mat SimplifiedTestHelpers::thumbnailToGrayMat(const QByteArray& thumbnail)
+Mat VideoExtractionTestHelpers::thumbnailToGrayMat(const QByteArray& thumbnail)
 {
     // Load thumbnail as QImage
     QImage image;

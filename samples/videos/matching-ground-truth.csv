@@ -1,0 +1,13 @@
+file,content_group,expected_processing,matching_orientation_degrees,tags
+Nice_383p_500kbps.mp4,Nice,success,0,established_duplicate
+Nice_720p_1000kbps.mp4,Nice,success,0,established_duplicate
+matching/a-original.mp4,A,success,0,base
+matching/a-rot90.mp4,A,success,90,physical_rotation
+matching/a-rot180.mp4,A,success,180,physical_rotation
+matching/a-rot270.mp4,A,success,270,physical_rotation
+matching/a-letterbox.mp4,A,success,0,letterbox
+matching/a-pillarbox.mp4,A,success,0,pillarbox
+matching/a-monochrome-ends.mp4,A,success,0,monochrome_at_8_and_96
+matching/a-display-matrix.mp4,A,success,0,display_matrix_90
+matching/b-original.mp4,B,success,0,negative_base
+matching/b-pillarbox.mp4,B,success,0,negative_same_pillarbox

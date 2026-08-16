@@ -28,6 +28,7 @@ struct VideoPairMatchConfig {
     int ssimBlockSize = 16;
     int sameDurationModifier = 1;
     int differentDurationModifier = 4;
+    bool detectRotatedCopies = false;
 };
 
 struct VideoPairMatchResult {

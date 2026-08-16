@@ -1,5 +1,5 @@
-#ifndef VIDEO_SIMPLIFIED_TEST_HELPERS_H
-#define VIDEO_SIMPLIFIED_TEST_HELPERS_H
+#ifndef VIDEO_EXTRACTION_TEST_HELPERS_H
+#define VIDEO_EXTRACTION_TEST_HELPERS_H
 
 #include "../../app/prefs.h"
 #include "../helpers.h"
@@ -10,7 +10,7 @@
 #include <QFileInfo>
 #include <QString>
 
-class SimplifiedTestHelpers
+class VideoExtractionTestHelpers
 {
   public:
     // Scan a video and return all its metadata and thumbnail
@@ -40,4 +40,4 @@ class SimplifiedTestHelpers
     static cv::Mat thumbnailToGrayMat(const QByteArray& thumbnail);
 };
 
-#endif // VIDEO_SIMPLIFIED_TEST_HELPERS_H
+#endif // VIDEO_EXTRACTION_TEST_HELPERS_H

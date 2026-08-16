@@ -24,7 +24,7 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    friend class TestVideo;
+    friend class TestLocalVideoCorpus;
     friend class TestAutoDelete;
 
   public:
@@ -112,6 +112,11 @@ class MainWindow : public QMainWindow
     {
         this->_prefs.setVerbose(arg1 == 2); /* 2 -> checked, 0 -> unchecked*/
     };
+    void on_detectRotatedCopiesCheckbox_toggled(bool checked)
+    {
+        this->shouldScan = true;
+        this->_prefs.detectRotatedCopies(checked);
+    }
 
     void on_actionRestore_all_settings_triggered();
 
