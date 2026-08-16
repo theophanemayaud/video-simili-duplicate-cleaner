@@ -23,46 +23,50 @@ constexpr double MIN_ACTIVE_FRACTION = 0.10;
 constexpr double LOW_INFORMATION_STDDEV = 2.0;
 constexpr int LOW_INFORMATION_RANGE = 12;
 
-QImage grayscaleProxy(const QImage& frame)
+QImage grayscaleAnalysisImage(const QImage& frame)
 {
     if (frame.isNull())
         return {};
 
-    QImage proxy = frame.convertToFormat(QImage::Format_Grayscale8);
-    const int longestEdge = qMax(proxy.width(), proxy.height());
+    QImage analysisImage = frame.convertToFormat(QImage::Format_Grayscale8);
+    const int longestEdge = qMax(analysisImage.width(), analysisImage.height());
     if (longestEdge > ANALYSIS_MAX_EDGE) {
         const double scale = static_cast<double>(ANALYSIS_MAX_EDGE) / longestEdge;
-        proxy = proxy.scaled(qMax(1, qRound(proxy.width() * scale)), qMax(1, qRound(proxy.height() * scale)),
-                             Qt::IgnoreAspectRatio, Qt::FastTransformation);
+        // Cap the longest edge while retaining the frame shape. A fixed square
+        // would distort bar thickness; later code converts it to a fraction of
+        // this analysis image before cropping the full-size tile.
+        analysisImage = analysisImage.scaled(qMax(1, qRound(analysisImage.width() * scale)),
+                                             qMax(1, qRound(analysisImage.height() * scale)),
+                                             Qt::IgnoreAspectRatio, Qt::FastTransformation);
     }
-    return proxy;
+    return analysisImage;
 }
 
-bool lineIsBlack(const QImage& proxy, BlackBarAxis axis, int position)
+bool lineIsBlack(const QImage& analysisImage, BlackBarAxis axis, int position)
 {
     int black = 0;
-    const int samples = axis == BlackBarAxis::horizontal ? proxy.width() : proxy.height();
+    const int samples = axis == BlackBarAxis::horizontal ? analysisImage.width() : analysisImage.height();
     for (int sample = 0; sample < samples; ++sample) {
         const int x = axis == BlackBarAxis::horizontal ? sample : position;
         const int y = axis == BlackBarAxis::horizontal ? position : sample;
-        if (proxy.constScanLine(y)[x] <= NEAR_BLACK)
+        if (analysisImage.constScanLine(y)[x] <= NEAR_BLACK)
             ++black;
     }
     return static_cast<double>(black) / samples >= BLACK_LINE_COVERAGE;
 }
 
-std::pair<int, int> scanOpposingBars(const QImage& proxy, BlackBarAxis axis)
+std::pair<int, int> scanOpposingBars(const QImage& analysisImage, BlackBarAxis axis)
 {
-    const int extent = axis == BlackBarAxis::horizontal ? proxy.height() : proxy.width();
-    if (!lineIsBlack(proxy, axis, 0) || !lineIsBlack(proxy, axis, extent - 1))
+    const int extent = axis == BlackBarAxis::horizontal ? analysisImage.height() : analysisImage.width();
+    if (!lineIsBlack(analysisImage, axis, 0) || !lineIsBlack(analysisImage, axis, extent - 1))
         return {0, 0};
 
     int leading = 0;
-    while (leading < extent && lineIsBlack(proxy, axis, leading))
+    while (leading < extent && lineIsBlack(analysisImage, axis, leading))
         ++leading;
 
     int trailing = 0;
-    while (trailing < extent - leading && lineIsBlack(proxy, axis, extent - 1 - trailing))
+    while (trailing < extent - leading && lineIsBlack(analysisImage, axis, extent - 1 - trailing))
         ++trailing;
 
     const int minimumBar = qMax(2, static_cast<int>(std::ceil(extent * MIN_BAR_FRACTION)));
@@ -104,22 +108,22 @@ uint64_t computePhash(const cv::Mat& input)
 
 FrameAnalysis VisualFingerprintBuilder::analyzeFrame(const QImage& frame)
 {
-    const QImage proxy = grayscaleProxy(frame);
+    const QImage analysisImage = grayscaleAnalysisImage(frame);
     FrameAnalysis result;
-    if (proxy.isNull())
+    if (analysisImage.isNull())
         return result;
 
-    result.proxyWidth = proxy.width();
-    result.proxyHeight = proxy.height();
+    result.analysisWidth = analysisImage.width();
+    result.analysisHeight = analysisImage.height();
 
     double sum = 0.0;
     double sumSquares = 0.0;
     int minimum = 255;
     int maximum = 0;
-    const int pixels = proxy.width() * proxy.height();
-    for (int y = 0; y < proxy.height(); ++y) {
-        const uchar* line = proxy.constScanLine(y);
-        for (int x = 0; x < proxy.width(); ++x) {
+    const int pixels = analysisImage.width() * analysisImage.height();
+    for (int y = 0; y < analysisImage.height(); ++y) {
+        const uchar* line = analysisImage.constScanLine(y);
+        for (int x = 0; x < analysisImage.width(); ++x) {
             const int value = line[x];
             sum += value;
             sumSquares += value * value;
@@ -134,8 +138,8 @@ FrameAnalysis VisualFingerprintBuilder::analyzeFrame(const QImage& frame)
     if (!result.informative)
         return result;
 
-    const auto horizontal = scanOpposingBars(proxy, BlackBarAxis::horizontal);
-    const auto vertical = scanOpposingBars(proxy, BlackBarAxis::vertical);
+    const auto horizontal = scanOpposingBars(analysisImage, BlackBarAxis::horizontal);
+    const auto vertical = scanOpposingBars(analysisImage, BlackBarAxis::vertical);
     const bool hasHorizontal = horizontal.first > 0;
     const bool hasVertical = vertical.first > 0;
     if (hasHorizontal == hasVertical)
@@ -169,23 +173,23 @@ VisualFingerprintBuilder::unanimousBlackBarCrop(const std::vector<FrameAnalysis>
         return std::nullopt;
 
     const double firstLeading = static_cast<double>(informative.front()->leadingBar)
-                                / (axis == BlackBarAxis::horizontal ? informative.front()->proxyHeight
-                                                                   : informative.front()->proxyWidth);
+                                / (axis == BlackBarAxis::horizontal ? informative.front()->analysisHeight
+                                                                   : informative.front()->analysisWidth);
     const double firstTrailing = static_cast<double>(informative.front()->trailingBar)
-                                 / (axis == BlackBarAxis::horizontal ? informative.front()->proxyHeight
-                                                                    : informative.front()->proxyWidth);
+                                 / (axis == BlackBarAxis::horizontal ? informative.front()->analysisHeight
+                                                                    : informative.front()->analysisWidth);
     std::vector<double> leading;
     std::vector<double> trailing;
     for (const FrameAnalysis* analysis : informative) {
         if (analysis->barAxis != axis)
             return std::nullopt;
-        const int extent = axis == BlackBarAxis::horizontal ? analysis->proxyHeight : analysis->proxyWidth;
+        const int extent = axis == BlackBarAxis::horizontal ? analysis->analysisHeight : analysis->analysisWidth;
         const double normalizedLeading = static_cast<double>(analysis->leadingBar) / extent;
         const double normalizedTrailing = static_cast<double>(analysis->trailingBar) / extent;
         if (std::abs(normalizedLeading - firstLeading) * extent > 1.0
             || std::abs(normalizedTrailing - firstTrailing) * extent > 1.0)
             return std::nullopt;
-        // A proxy boundary represents an interval in the source image. Its
+        // An analysis-image boundary represents an interval in the source image. Its
         // center is a better source-space estimate than the outer edge,
         // especially for bars whose scaled thickness is fractional.
         leading.push_back((analysis->leadingBar + 0.5) / extent);

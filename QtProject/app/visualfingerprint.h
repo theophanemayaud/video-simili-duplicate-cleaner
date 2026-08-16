@@ -32,8 +32,8 @@ struct FrameAnalysis {
     BlackBarAxis barAxis = BlackBarAxis::none;
     int leadingBar = 0;
     int trailingBar = 0;
-    int proxyWidth = 0;
-    int proxyHeight = 0;
+    int analysisWidth = 0;
+    int analysisHeight = 0;
 };
 
 struct NormalizedCrop {
