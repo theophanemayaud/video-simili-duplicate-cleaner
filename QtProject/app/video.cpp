@@ -264,7 +264,7 @@ const QString Video::takeScreenCaptures(const Db& cache)
     Thumbnail thumb(this->_prefs.thumbnailsMode());
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
     const QVector<int> percentages = thumb.percentages(); // percent from 1 to 100
-    std::vector<FrameAnalysis> analyses(static_cast<size_t>(percentages.count()));
+    std::vector<FrameAnalysis> frameAnalyses(static_cast<size_t>(percentages.count()));
     int capture = percentages.count();
     int ofDuration = 100; // used to "rescale" total duration... as duration*percent*ofDuration
 
@@ -337,7 +337,7 @@ const QString Video::takeScreenCaptures(const Db& cache)
                 .arg(width);
         }
 
-        analyses[static_cast<size_t>(capture)] = analysis;
+        frameAnalyses[static_cast<size_t>(capture)] = analysis;
         // Cached captures are stored small; normalize every frame once after any substitute frame is selected.
         if (frame.size() != QSize(width, height))
             frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
@@ -352,7 +352,7 @@ const QString Video::takeScreenCaptures(const Db& cache)
         }
     }
 
-    processThumbnail(thumbnail, thumb, analyses);
+    processThumbnail(thumbnail, thumb, frameAnalyses);
     return "";
 }
 
