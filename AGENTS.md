@@ -9,6 +9,11 @@ The goal of this project is to help users find duplicate or similar videos by co
 - Capture why important functionality exists, or why certain decisions (code, feature, architecture, etc.) were made, not only what it does, so future refactors can preserve intent.
 - Design in a way that can be properly tested. Prefer tests that are more representative of actual use cases and thus end to end. These add value and confidence, even if they need to be refactored over time. Use lower level unit tests more for temporary testing during implementation or more complex functionality, but it's ok to delete them quickly once they are no longer relevant.
 
+## Pull Requests
+
+- Use Conventional Commit-style PR titles, such as `fix(comparison): restore slider after cancelled navigation`.
+- Squash-merge pull requests into `main` and use the PR title as the resulting commit title.
+
 ## Project Shape
 
 This is a C++ desktop app built with CMake and relying on static libraries like Qt 6 Widgets for the UI, FFmpeg to read video metadata and extract frames, and OpenCV to support perceptual comparisons.
