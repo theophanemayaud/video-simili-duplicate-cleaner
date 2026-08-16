@@ -98,7 +98,7 @@ class Video : public QObject
     static constexpr int _videoStillUsable = 90;   //90% of video duration is considered usable
     static constexpr int _thumbnailMaxWidth = 448; //small size to save memory and cache space
     static constexpr int _thumbnailMaxHeight = 336;
-    static constexpr int _monochromeSubstituteOffset = 2;
+    static constexpr int _monochromeSubstituteOffset = 2; // retry 2% toward the video centre, near the intended sample
 };
 
 #endif // VIDEO_H
