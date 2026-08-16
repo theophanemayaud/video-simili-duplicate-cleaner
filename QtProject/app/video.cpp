@@ -407,7 +407,8 @@ void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const st
             segmentUsable = segmentUsable || analyses.at(static_cast<size_t>(index)).informative;
 
         for (const FingerprintRotation rotation : allFingerprintRotations) {
-            // Rotation variants are opt-in; every generated variant crops detected black bars before rotating.
+            // Detect black bars once from the original unrotated frames (analyses), then reuse that crop for each
+            // generated rotation variant before rotating it.
             if (!detectRotatedCopies && rotation != FingerprintRotation::none)
                 continue;
             if (!crop.has_value() && rotation == FingerprintRotation::none) {
