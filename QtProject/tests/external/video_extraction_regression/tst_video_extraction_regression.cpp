@@ -54,10 +54,6 @@ class TestVideoExtractionRegression : public QObject
     {
         VideoCorpusTestHelpers::generateReferenceData(ExternalFixturePaths::videos(), Prefs::WITH_CACHE);
     }
-    void regenerateLargeReferenceDataNoCache()
-    {
-        VideoCorpusTestHelpers::generateReferenceData(ExternalFixturePaths::mountedLargeVideos(), Prefs::NO_CACHE);
-    }
 #endif
 };
 

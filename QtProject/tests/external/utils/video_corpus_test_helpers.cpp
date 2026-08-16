@@ -136,6 +136,7 @@ void VideoCorpusTestHelpers::verifyReferenceVideo(Prefs::USE_CACHE_OPTION cacheO
 void VideoCorpusTestHelpers::generateReferenceData(const QDir& videoDir, Prefs::USE_CACHE_OPTION cacheOption)
 {
     QVERIFY2(videoDir.exists(), qPrintable(QStringLiteral("Corpus is not available: %1").arg(videoDir.path())));
+    emptyDatabase();
 
     MainWindow window;
     window.loadExtensions();
@@ -159,16 +160,31 @@ void VideoCorpusTestHelpers::generateReferenceData(const QDir& videoDir, Prefs::
         if (videoInfo.isDir())
             continue;
 
+        if (cacheOption != Prefs::NO_CACHE) {
+            Prefs warmupPrefs = prefs;
+            warmupPrefs.useCacheOption(Prefs::WITH_CACHE);
+            Video warmup(warmupPrefs, videoPath);
+            if (!warmup.process().success) {
+                qWarning() << "Failed to warm the capture cache for:" << videoPath;
+                ++errorCount;
+                continue;
+            }
+        }
+
+        const VideoParam param = VideoExtractionTestHelpers::scanVideoMetadata(videoPath, prefs);
+        if (!param.videoInfo.exists()) {
+            qWarning() << "Failed to generate reference data for:" << videoPath;
+            ++errorCount;
+            continue;
+        }
+
         const QString metadataPath = videoPath + QStringLiteral(".") + suffix + QStringLiteral(".txt");
         const QString thumbnailPath = videoPath + QStringLiteral(".") + suffix + QStringLiteral(".jpg");
         QFile::remove(metadataPath);
         QFile::remove(thumbnailPath);
-
-        const VideoParam param = VideoExtractionTestHelpers::scanVideoMetadata(videoPath, prefs);
-        if (!param.videoInfo.exists()
-            || !VideoExtractionTestHelpers::saveMetadataToFile(param, metadataPath, videoDir)
+        if (!VideoExtractionTestHelpers::saveMetadataToFile(param, metadataPath, videoDir)
             || !VideoExtractionTestHelpers::saveThumbnail(param.thumbnail, thumbnailPath)) {
-            qWarning() << "Failed to generate reference data for:" << videoPath;
+            qWarning() << "Failed to write reference data for:" << videoPath;
             ++errorCount;
             continue;
         }

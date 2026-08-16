@@ -104,6 +104,15 @@ class TestLargeVideoCorpus : public QObject
         expectation.maximumElapsedMs = 50 * 1000;
         VideoCorpusTestHelpers::runWholeAppScan(ExternalFixturePaths::mountedLargeVideos(), expectation);
     }
+
+    // Maintenance-only mounted-corpus reference regeneration. Enable only
+    // when the external reference files intentionally need to be refreshed.
+#if 0
+    void regenerateLargeReferenceDataNoCache()
+    {
+        VideoCorpusTestHelpers::generateReferenceData(ExternalFixturePaths::mountedLargeVideos(), Prefs::NO_CACHE);
+    }
+#endif
 };
 
 QTEST_MAIN(TestLargeVideoCorpus)

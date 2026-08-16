@@ -99,8 +99,8 @@ The separately mounted 100GB corpus is measured by `test_external_large_video_co
 ### Recorded validation (2026-08-11)
 
 - The tracked matrix passed fresh, warm-cache, and cache-only scans with rotation both off and on. Tiny no-cache extraction was 12 ms off and 15 ms on.
-- The 22-video local feature subset passed every labeled pair. No-cache extraction was 1.096 s off and 1.122 s on after reducing tiles before rotation.
-- The 218-video local baseline took 20.895 s versus 20.828 s before implementation (+0.3%) and added no cross-content pair. The expanded whole-app corpus found 229 files, 226 valid videos, and 89 matched videos.
+- The 22-video external feature subset passed every labeled pair. No-cache extraction was 1.096 s off and 1.122 s on after reducing tiles before rotation.
+- The 218-video external baseline took 20.895 s versus 20.828 s before implementation (+0.3%) and added no cross-content pair. The expanded whole-app corpus found 229 files, 226 valid videos, and 89 matched videos.
 - The mounted corpus found 12,506 files, 12,352 valid videos, and 6,552 matches with rotation off; rotation on found 6,556 matches. The opt-in setting measured +6.6% extraction and +12.4% total scan time. Warm-cache assessment completed in 44.978 s, under its 50-second budget.
 
 ## Implementation map and invariants
