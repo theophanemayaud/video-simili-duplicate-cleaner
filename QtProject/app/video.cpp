@@ -393,7 +393,7 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
 
 void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses)
 {
-    // Detect bars once on the original unrotated sampled frames, then reuse the crop for every rotation variant.
+    // Detect bars once on the selected sampled frames before transformations, then reuse the crop for every rotation variant.
     const std::optional<NormalizedCrop> crop = VisualFingerprintBuilder::unanimousBlackBarCrop(analyses);
     const bool cutEndsMode = this->_prefs.thumbnailsMode() == cutEnds;
     const bool detectRotatedCopies = this->_prefs.detectRotatedCopies();
@@ -411,7 +411,7 @@ void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const st
             if (!detectRotatedCopies && rotation != FingerprintRotation::none)
                 continue;
             if (!crop.has_value() && rotation == FingerprintRotation::none) {
-                // Keep the historical matching image untouched when no normalization is needed.
+                // Use the assembled sample collage (or selected cut-ends segment) unchanged when no crop or rotation is needed.
                 QImage matchingImage = thumbnail;
                 if (cutEndsMode)
                     matchingImage = thumbnail.copy(segment * width, 0, width, height);
