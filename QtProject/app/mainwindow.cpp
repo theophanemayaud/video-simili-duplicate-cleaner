@@ -511,6 +511,15 @@ void MainWindow::on_actionEmpty_cache_triggered()
         addStatusMessage(QString("\nFailed to empty cache at:  %1\n").arg(_prefs.cacheFilePathName()));
 }
 
+void MainWindow::on_actionClear_failed_videos_from_cache_triggered()
+{
+    const int cleared = Db(_prefs.cacheFilePathName()).clearFailedVideos();
+    if (cleared >= 0)
+        addStatusMessage(QStringLiteral("\nCleared %1 failed videos from cache.\n").arg(cleared));
+    else
+        addStatusMessage(QStringLiteral("\nFailed to clear failed videos from cache.\n"));
+}
+
 void MainWindow::on_actionSet_custom_cache_location_triggered()
 {
     if (Db::initCustomDbAndCacheLocation(_prefs))

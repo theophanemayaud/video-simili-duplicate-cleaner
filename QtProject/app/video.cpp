@@ -78,9 +78,37 @@ Video::ProcessingResult Video::process()
     result.success = false;
     result.video = this;
 
+    const QFileInfo before(_filePathName);
+    const bool fileExisted = before.exists();
+    const qint64 initialSize = before.size();
+    const qint64 initialModifiedMs = before.lastModified().toMSecsSinceEpoch();
+    if (fileExisted && _prefs.useCacheOption() != Prefs::NO_CACHE) {
+        Db cache(_prefs.cacheFilePathName());
+        const Db::FailedVideoCacheLookup failed =
+            cache.lookupFailedVideo(_filePathName, initialSize, initialModifiedMs, _prefs.thumbnailsMode());
+        if (failed.state == Db::FailedVideoCacheLookup::Changed) {
+            // The path now identifies different file contents, so none of its path-keyed cache remains trustworthy.
+            cache.removeVideo(_filePathName);
+        }
+        else if (failed.state == Db::FailedVideoCacheLookup::Unchanged) {
+            result.errorMsg = QStringLiteral("previously failed; skipped processing: %1").arg(failed.error);
+            return result;
+        }
+    }
+
     auto err = this->internalProcess();
-    if (!err.isEmpty())
+    if (!err.isEmpty()) {
         result.errorMsg = err;
+        if (fileExisted && _prefs.useCacheOption() == Prefs::WITH_CACHE) {
+            const QFileInfo after(_filePathName);
+            if (after.exists() && after.size() == initialSize
+                && after.lastModified().toMSecsSinceEpoch() == initialModifiedMs)
+            {
+                Db(_prefs.cacheFilePathName())
+                    .writeFailedVideo(_filePathName, initialSize, initialModifiedMs, _prefs.thumbnailsMode(), err);
+            }
+        }
+    }
     else
         result.success = true;
     return result;

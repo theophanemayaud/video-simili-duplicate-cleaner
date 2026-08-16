@@ -571,6 +571,7 @@
      <string>Tools</string>
     </property>
     <addaction name="actionEmpty_cache"/>
+    <addaction name="actionClear_failed_videos_from_cache"/>
     <addaction name="actionSet_custom_cache_location"/>
     <addaction name="actionRestore_default_cache_location"/>
     <addaction name="separator"/>
@@ -617,6 +618,11 @@
    </property>
    <property name="text">
     <string>Empty cache</string>
+   </property>
+  </action>
+  <action name="actionClear_failed_videos_from_cache">
+   <property name="text">
+    <string>Clear failed videos from cache</string>
    </property>
   </action>
   <action name="actionCredits">

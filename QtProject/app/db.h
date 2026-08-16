@@ -21,6 +21,16 @@ class Db
 {
 
   public:
+    struct FailedVideoCacheLookup
+    {
+        enum State {
+            NotFound,
+            Unchanged,
+            Changed
+        } state = NotFound;
+        QString error;
+    };
+
     struct ApplePhotosNameCacheEntry
     {
         enum State {
@@ -71,6 +81,14 @@ class Db
 
     //save image in cache
     void writeCapture(const QString& filePathname, const int& percent, const QByteArray& image) const;
+
+    // Failed videos are keyed by path and sampling mode. A changed file invalidates all path-keyed cache data.
+    FailedVideoCacheLookup lookupFailedVideo(const QString& filePathname, qint64 size, qint64 modifiedMs,
+                                             int thumbnailMode) const;
+    bool writeFailedVideo(const QString& filePathname, qint64 size, qint64 modifiedMs, int thumbnailMode,
+                          const QString& error) const;
+    // Returns the number of cleared entries, or -1 when the database operation fails.
+    int clearFailedVideos() const;
 
     //returns false was not cached or could not be removed
     bool removeVideo(const QString& filePathname) const;
