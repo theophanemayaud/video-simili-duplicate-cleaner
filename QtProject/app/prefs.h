@@ -326,6 +326,22 @@ class Prefs
         QSettings(APP_NAME, APP_NAME).setValue("verbose_logging", verbose);
     }
 
+    bool detectRotatedCopies() const
+    {
+        if (this->detectRotatedCopiesStatic == nullptr)
+            this->detectRotatedCopiesStatic =
+                std::make_unique<bool>(QSettings(APP_NAME, APP_NAME).value("detect_rotated_copies", false).toBool());
+        return *this->detectRotatedCopiesStatic;
+    }
+    void detectRotatedCopies(const bool enabled)
+    {
+        if (this->detectRotatedCopiesStatic == nullptr)
+            this->detectRotatedCopiesStatic = std::make_unique<bool>(enabled);
+        else
+            *this->detectRotatedCopiesStatic = enabled;
+        QSettings(APP_NAME, APP_NAME).setValue("detect_rotated_copies", enabled);
+    }
+
     SortCriterion sortCriterion() const
     {
         if (this->sortCriterionStatic == nullptr) {
@@ -354,6 +370,7 @@ class Prefs
         this->cacheFilePathNameStatic = nullptr;
         this->useCacheOptionStatic = nullptr;
         this->verboseStatic = nullptr;
+        this->detectRotatedCopiesStatic = nullptr;
         this->sortCriterionStatic = nullptr;
         this->customTrashFolderConfiguredStatic = nullptr;
         this->customTrashFolderStatic = nullptr;
@@ -369,6 +386,7 @@ class Prefs
     inline static std::unique_ptr<QString> cacheFilePathNameStatic = nullptr;
     inline static std::unique_ptr<USE_CACHE_OPTION> useCacheOptionStatic = nullptr;
     inline static std::unique_ptr<bool> verboseStatic = nullptr;
+    inline static std::unique_ptr<bool> detectRotatedCopiesStatic = nullptr;
     inline static std::unique_ptr<SortCriterion> sortCriterionStatic = nullptr;
     // To know whether the custom trash folder setting was loaded from QSettings we need an extra flag
     // because a QDir has no good state of "initialized but no value", it would just be root directory

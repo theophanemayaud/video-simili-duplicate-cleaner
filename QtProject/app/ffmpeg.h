@@ -11,6 +11,7 @@ extern "C" {
 
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
+#include "libavutil/display.h"
 #include "libswscale/swscale.h"
 }
 } // namespace ffmpeg

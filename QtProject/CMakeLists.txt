@@ -109,6 +109,8 @@ set(PROJECT_SOURCES
     app/mainwindow.ui
     app/video.cpp
     app/video.h
+    app/visualfingerprint.cpp
+    app/visualfingerprint.h
     app/comparison/comparison.cpp
     app/comparison/comparison.h
     app/comparison/comparison.ui

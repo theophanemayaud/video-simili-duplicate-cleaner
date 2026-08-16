@@ -1,9 +1,12 @@
 #include <QCoreApplication>
 #include <QtTest>
 
+#include <cmath>
+
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
 #include "../../app/comparison/internal/backgroundmatchdiscovery.h"
+#include "../../app/comparison/internal/ssim.h"
 #include "../../app/comparison/internal/videopairmatcher.h"
 #include "../../app/comparison/internal/videopairspace.h"
 #include "../../app/videometadata.h"
@@ -23,6 +26,9 @@ class test_comparison : public QObject
     void test_videoToDelete_OnlyTimeDiffs();
     void test_videoPairSpaceRoundTrip();
     void test_videoPairMatcherUsesConfigSnapshot();
+    void test_ssimUsesEachBlockForMeans();
+    void test_rotatedMatcherRequiresSsimSafeguard();
+    void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
 };
 
@@ -135,8 +141,10 @@ void test_comparison::test_videoPairMatcherUsesConfigSnapshot()
     Prefs prefs;
     Video left(prefs, QStringLiteral("left"));
     Video right(prefs, QStringLiteral("right"));
-    left.hash[0] = 0xAAAAAAAAAAAAAAAA;
-    right.hash[0] = 0xAAAAAAAAAAAAAAAB;
+    left.fingerprint(0).phash = 0xAAAAAAAAAAAAAAAA;
+    right.fingerprint(0).phash = 0xAAAAAAAAAAAAAAAB;
+    left.fingerprint(0).usable = true;
+    right.fingerprint(0).usable = true;
     left.duration = right.duration = 1000;
 
     VideoPairMatchConfig config;
@@ -153,6 +161,88 @@ void test_comparison::test_videoPairMatcherUsesConfigSnapshot()
     QCOMPARE(result.phashSimilarity, 63);
 }
 
+void test_comparison::test_ssimUsesEachBlockForMeans()
+{
+    cv::Mat left(16, 16, CV_8UC1);
+    cv::Mat right(16, 16, CV_8UC1);
+    for (int row = 0; row < 16; ++row) {
+        for (int column = 0; column < 16; ++column) {
+            left.at<uchar>(row, column) = static_cast<uchar>((row * 17 + column * 7) % 191);
+            right.at<uchar>(row, column) = static_cast<uchar>((row * 13 + column * 11 + 29) % 191);
+        }
+    }
+
+    // These non-default block sizes expose an indexing error that sampled the
+    // means from (k, l) instead of each block's origin (k * blockSize, l * blockSize).
+    QVERIFY(std::abs(Ssim::calculate(left, right, 2) - 0.65639372860369649) < 1e-9);
+    QVERIFY(std::abs(Ssim::calculate(left, right, 4) - 0.46552455674718085) < 1e-9);
+    QVERIFY(std::abs(Ssim::calculate(left, right, 8) - 0.46507329051917068) < 1e-9);
+}
+
+void test_comparison::test_rotatedMatcherRequiresSsimSafeguard()
+{
+    Prefs prefs;
+    Video left(prefs, QStringLiteral("left"));
+    Video right(prefs, QStringLiteral("right"));
+    left.duration = right.duration = 1000;
+    left.fingerprint(0).usable = true;
+    right.fingerprint(0).usable = true;
+    right.fingerprint(0, FingerprintRotation::clockwise90).usable = true;
+    left.fingerprint(0).phash = 0;
+    right.fingerprint(0).phash = UINT64_MAX;
+    right.fingerprint(0, FingerprintRotation::clockwise90).phash = 0;
+    right.fingerprint(0, FingerprintRotation::clockwise90).ssimPixels.fill(255);
+
+    VideoPairMatchConfig config;
+    config.thumbnailsMode = thumb1;
+    config.comparisonMode = Prefs::_PHASH;
+    config.thresholdPhash = 57;
+    config.sameDurationModifier = 0;
+    config.differentDurationModifier = 0;
+    config.detectRotatedCopies = true;
+    QVERIFY(!VideoPairMatcher::match(left, right, config).matches);
+
+    right.fingerprint(0, FingerprintRotation::clockwise90).ssimPixels = left.fingerprint(0).ssimPixels;
+    const VideoPairMatchResult result = VideoPairMatcher::match(left, right, config);
+    QVERIFY(result.matches);
+}
+
+void test_comparison::test_rotatedMatcherAppliesDurationModifierToSsimThreshold()
+{
+    Prefs prefs;
+    Video left(prefs, QStringLiteral("left"));
+    Video right(prefs, QStringLiteral("right"));
+    VisualFingerprint& leftFingerprint = left.fingerprint(0);
+    VisualFingerprint& rotatedFingerprint = right.fingerprint(0, FingerprintRotation::clockwise90);
+    leftFingerprint.usable = rotatedFingerprint.usable = true;
+    leftFingerprint.phash = rotatedFingerprint.phash = 0;
+    for (size_t index = 0; index < leftFingerprint.ssimPixels.size(); ++index)
+        leftFingerprint.ssimPixels[index] = rotatedFingerprint.ssimPixels[index] = static_cast<uint8_t>(index);
+    rotatedFingerprint.ssimPixels[0] = 32;
+
+    const cv::Mat leftPixels(16, 16, CV_8UC1, leftFingerprint.ssimPixels.data());
+    const cv::Mat rightPixels(16, 16, CV_8UC1, rotatedFingerprint.ssimPixels.data());
+    const double rawSsim = Ssim::calculate(leftPixels, rightPixels, 16);
+    QVERIFY(rawSsim > 0.90);
+    QVERIFY(rawSsim < 1.0);
+
+    VideoPairMatchConfig config;
+    config.thumbnailsMode = thumb1;
+    config.comparisonMode = Prefs::_SSIM;
+    config.thresholdPhash = 57;
+    config.detectRotatedCopies = true;
+
+    left.duration = right.duration = 1000;
+    config.sameDurationModifier = 1;
+    config.thresholdSSIM = rawSsim + 0.5 / 64.0;
+    QVERIFY(VideoPairMatcher::match(left, right, config).matches);
+
+    right.duration = 3000;
+    config.differentDurationModifier = 4;
+    config.thresholdSSIM = rawSsim - 2.0 / 64.0;
+    QVERIFY(!VideoPairMatcher::match(left, right, config).matches);
+}
+
 void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix()
 {
     Prefs prefs;
@@ -160,9 +250,11 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     Video second(prefs, QStringLiteral("second"));
     Video third(prefs, QStringLiteral("third"));
     Video fourth(prefs, QStringLiteral("fourth"));
-    first.hash[0] = fourth.hash[0] = 0xFF00FF00FF00FF00;
-    second.hash[0] = 0xAAAAAAAAAAAAAAAA;
-    third.hash[0] = 0x5555555555555555;
+    first.fingerprint(0).phash = fourth.fingerprint(0).phash = 0xFF00FF00FF00FF00;
+    second.fingerprint(0).phash = 0xAAAAAAAAAAAAAAAA;
+    third.fingerprint(0).phash = 0x5555555555555555;
+    first.fingerprint(0).usable = second.fingerprint(0).usable = third.fingerprint(0).usable =
+        fourth.fingerprint(0).usable = true;
 
     VideoPairMatchConfig config;
     config.thumbnailsMode = thumb1;

@@ -9,12 +9,15 @@
 #include <QTemporaryDir>
 
 #include "ffmpeg.h"
-#include "opencv2/imgproc.hpp"
 
 #include "db.h"
 #include "prefs.h"
+#include "visualfingerprint.h"
 #include "videometadata.h"
 #include <QtCore/qmutex.h>
+
+#include <array>
+#include <vector>
 
 class Db;
 
@@ -53,9 +56,17 @@ class Video : public QObject
     short width = 0;
     short height = 0;
     QByteArray thumbnail;
-    cv::Mat grayThumb[2];
-    uint64_t hash[2] = {0, 0};
+    std::array<std::array<VisualFingerprint, 4>, 2> fingerprints;
     bool trashed = false;
+
+    const VisualFingerprint& fingerprint(int segment, FingerprintRotation rotation = FingerprintRotation::none) const
+    {
+        return fingerprints.at(segment).at(static_cast<int>(rotation));
+    }
+    VisualFingerprint& fingerprint(int segment, FingerprintRotation rotation = FingerprintRotation::none)
+    {
+        return fingerprints.at(segment).at(static_cast<int>(rotation));
+    }
 
     static VideoMetadata videoToMetadata(const Video& vid);
 
@@ -64,22 +75,29 @@ class Video : public QObject
                                const int ofDuration = 100); // new methods for capture of image, using ffmpeg library
 
   private:
+    struct ResolvedCapture {
+        QImage frame;
+        FrameAnalysis analysis;
+        bool writeToCache = false;
+    };
+
     const QString getMetadata(const QString& filename); // returns error message or empty string if success
     const QString takeScreenCaptures(const Db& cache);
+    // Content-quality selection is separate from the outer decode-failure retry.
+    ResolvedCapture resolveCaptureSlot(const Db& cache, int percentage, int ofDuration);
     QString internalProcess();
-    void processThumbnail(QImage& thumbnail, const int& hashes);
-    uint64_t computePhash(const cv::Mat& input) const;
+    // Builds the comparison fingerprints from the selected frames and their analyses, then stores a minimized copy of
+    // the original collage for the review UI. Cached and decoded frames have already followed the same analysis path.
+    void processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses);
     QImage minimizeImage(const QImage& image) const;
     QString msToHHMMSS(const int64_t& time) const;
-    QImage getQImageFromFrame(const ffmpeg::AVFrame* pFrame) const;
+    QImage getQImageFromFrame(const ffmpeg::AVFrame* pFrame, int presentationRotation) const;
 
     uint progress = 1; // to detect scenarios where ffmpeg gets stuck we update progress from time to time
     bool shouldStop = false;
     QMutex progressLock; // lock write when updating progress or terminating thread
 
   private:
-    int _rotateAngle = 0;
-
     static Prefs _prefs;
     static int _jpegQuality;
 
@@ -90,9 +108,7 @@ class Video : public QObject
     static constexpr int _videoStillUsable = 90;   //90% of video duration is considered usable
     static constexpr int _thumbnailMaxWidth = 448; //small size to save memory and cache space
     static constexpr int _thumbnailMaxHeight = 336;
-    static constexpr int _pHashSize = 32;           //phash generated from 32x32 image
-    static constexpr int _ssimSize = 16;            //larger than 16x16 seems to have slower comparison
-    static constexpr int _almostBlackBitmap = 1500; //monochrome thumbnail if less shades of gray than this
+    static constexpr int _monochromeSubstituteOffset = 2; // retry 2% toward the video centre, near the intended sample
 };
 
 #endif // VIDEO_H

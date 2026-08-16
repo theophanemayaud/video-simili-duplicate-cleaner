@@ -70,6 +70,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     // load saved/default settings
     if (this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
+    ui->detectRotatedCopiesCheckbox->setChecked(this->_prefs.detectRotatedCopies());
     foreach (QString folder, this->_prefs.scanLocations()) {
         if (!folder.isEmpty())
             this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
@@ -299,6 +300,7 @@ void MainWindow::processVideos()
         addStatusMessage(QStringLiteral("\nFound %1 cached video file(s):\n").arg(_prefs._numberOfVideos));
     if (_prefs._numberOfVideos > 0) {
         ui->selectThumbnails->setDisabled(true);
+        ui->detectRotatedCopiesCheckbox->setDisabled(true);
         ui->processedFiles->setVisible(true);
         if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY)
             ui->processedFiles->setText(QStringLiteral("0/%1").arg(_prefs._numberOfVideos));
@@ -400,6 +402,7 @@ void MainWindow::processVideos()
     QApplication::processEvents(); // process any remaining signals
 
     ui->selectThumbnails->setDisabled(false);
+    ui->detectRotatedCopiesCheckbox->setDisabled(false);
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->statusBar->setVisible(false);
@@ -527,6 +530,7 @@ void MainWindow::on_actionRestore_all_settings_triggered()
     on_actionRestoreMoveToTrash_triggered();
     on_actionRestore_simple_skip_of_error_videos_triggered();
     ui->verboseCheckbox->setCheckState(Qt::Unchecked);
+    ui->detectRotatedCopiesCheckbox->setChecked(false);
 
     this->ui->directoryBox->clear();
 
