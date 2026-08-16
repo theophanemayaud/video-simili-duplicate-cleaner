@@ -2,10 +2,10 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include "local/fixture_paths.h"
+#include "local/utils/fixture_paths.h"
 #include "prefs.h"
-#include "video_matching_fixture_manifest.h"
-#include "video_matching_test_helpers.h"
+#include "shared/video_matching_fixture_manifest.h"
+#include "shared/video_matching_test_helpers.h"
 
 namespace
 {

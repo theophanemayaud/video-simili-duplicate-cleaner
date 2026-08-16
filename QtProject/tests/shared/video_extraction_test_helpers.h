@@ -2,7 +2,7 @@
 #define VIDEO_EXTRACTION_TEST_HELPERS_H
 
 #include "../app/prefs.h"
-#include "helpers.h"
+#include "video_params.h"
 
 #include "opencv2/core.hpp"
 

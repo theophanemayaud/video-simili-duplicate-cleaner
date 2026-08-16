@@ -1,11 +1,11 @@
 #include "video_corpus_test_helpers.h"
 
-#include "../../app/comparison/comparison.h"
-#include "../../app/comparison/ui_comparison.h"
-#include "../../app/db.h"
-#include "../../app/mainwindow.h"
-#include "../../app/video.h"
-#include "video_extraction_test_helpers.h"
+#include "../../../app/comparison/comparison.h"
+#include "../../../app/comparison/ui_comparison.h"
+#include "../../../app/db.h"
+#include "../../../app/mainwindow.h"
+#include "../../../app/video.h"
+#include "shared/video_extraction_test_helpers.h"
 
 #include <QCoreApplication>
 #include <QElapsedTimer>

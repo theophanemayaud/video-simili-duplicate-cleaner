@@ -107,16 +107,16 @@ set_tests_properties(test_repo_auto_delete PROPERTIES LABELS "repo-fixtures")
 add_qt_test(test_local_video_extraction_regression
     SOURCES
         local/video_extraction_regression/tst_video_extraction_regression.cpp
-        local/video_corpus_test_helpers.cpp
-        video_extraction_test_helpers.cpp
+        local/utils/video_corpus_test_helpers.cpp
+        shared/video_extraction_test_helpers.cpp
 )
 
 # Test 5: optional ~/Dev end-to-end whole-app scans
 add_qt_test(test_local_whole_app_scan
     SOURCES
         local/whole_app_scan/tst_whole_app_scan.cpp
-        local/video_corpus_test_helpers.cpp
-        video_extraction_test_helpers.cpp
+        local/utils/video_corpus_test_helpers.cpp
+        shared/video_extraction_test_helpers.cpp
 )
 set_tests_properties(test_local_video_extraction_regression test_local_whole_app_scan
     PROPERTIES LABELS "local-fixtures" RUN_SERIAL TRUE
@@ -126,8 +126,8 @@ set_tests_properties(test_local_video_extraction_regression test_local_whole_app
 add_qt_test(test_local_large_video_corpus
     SOURCES
         local/large_video_corpus/tst_large_video_corpus.cpp
-        local/video_corpus_test_helpers.cpp
-        video_extraction_test_helpers.cpp
+        local/utils/video_corpus_test_helpers.cpp
+        shared/video_extraction_test_helpers.cpp
 )
 set_tests_properties(test_local_large_video_corpus PROPERTIES
     TIMEOUT 7200
@@ -139,7 +139,7 @@ set_tests_properties(test_local_large_video_corpus PROPERTIES
 add_qt_test(test_repo_video_extraction_regression
     SOURCES
         test_repo_video_extraction_regression/tst_video_extraction_regression.cpp
-        video_extraction_test_helpers.cpp
+        shared/video_extraction_test_helpers.cpp
 )
 set_tests_properties(test_repo_video_extraction_regression PROPERTIES LABELS "repo-fixtures")
 
@@ -147,8 +147,8 @@ set_tests_properties(test_repo_video_extraction_regression PROPERTIES LABELS "re
 add_qt_test(test_repo_video_matching
     SOURCES
         test_repo_video_matching/tst_repo_video_matching.cpp
-        video_matching_fixture_manifest.cpp
-        video_matching_test_helpers.cpp
+        shared/video_matching_fixture_manifest.cpp
+        shared/video_matching_test_helpers.cpp
 )
 set_tests_properties(test_repo_video_matching PROPERTIES LABELS "repo-fixtures")
 
@@ -156,7 +156,7 @@ set_tests_properties(test_repo_video_matching PROPERTIES LABELS "repo-fixtures")
 add_qt_test(test_local_video_matching
     SOURCES
         local/video_matching/tst_video_matching.cpp
-        video_matching_fixture_manifest.cpp
-        video_matching_test_helpers.cpp
+        shared/video_matching_fixture_manifest.cpp
+        shared/video_matching_test_helpers.cpp
 )
 set_tests_properties(test_local_video_matching PROPERTIES LABELS "local-fixtures")

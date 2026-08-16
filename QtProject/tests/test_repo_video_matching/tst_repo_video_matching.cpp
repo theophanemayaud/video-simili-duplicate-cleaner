@@ -8,8 +8,8 @@
 #include "../../app/db.h"
 #include "../../app/prefs.h"
 #include "../../app/visualfingerprint.h"
-#include "../video_matching_fixture_manifest.h"
-#include "../video_matching_test_helpers.h"
+#include "shared/video_matching_fixture_manifest.h"
+#include "shared/video_matching_test_helpers.h"
 
 namespace
 {

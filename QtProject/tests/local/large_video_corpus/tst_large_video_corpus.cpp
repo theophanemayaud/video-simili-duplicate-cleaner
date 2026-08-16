@@ -1,6 +1,6 @@
 #include <QtTest>
 
-#include "local/video_corpus_test_helpers.h"
+#include "local/utils/video_corpus_test_helpers.h"
 
 namespace
 {

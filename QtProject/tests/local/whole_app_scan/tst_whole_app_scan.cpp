@@ -1,7 +1,7 @@
 #include <QtTest>
 
-#include "local/fixture_paths.h"
-#include "local/video_corpus_test_helpers.h"
+#include "local/utils/fixture_paths.h"
+#include "local/utils/video_corpus_test_helpers.h"
 
 /*
  * Historical ~/Dev whole-app observations. These timings depend on the machine

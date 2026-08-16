@@ -3,7 +3,7 @@
 
 #include "../app/comparison/internal/videopairmatcher.h"
 #include "../app/prefs.h"
-#include "video_matching_fixture_manifest.h"
+#include "shared/video_matching_fixture_manifest.h"
 
 #include <QList>
 #include <QString>

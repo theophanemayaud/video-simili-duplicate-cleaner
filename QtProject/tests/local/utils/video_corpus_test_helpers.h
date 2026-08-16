@@ -1,7 +1,7 @@
 #ifndef VIDEO_CORPUS_TEST_HELPERS_H
 #define VIDEO_CORPUS_TEST_HELPERS_H
 
-#include "../../app/prefs.h"
+#include "../../../app/prefs.h"
 
 #include <QDir>
 
