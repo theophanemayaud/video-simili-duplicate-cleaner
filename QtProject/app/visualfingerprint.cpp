@@ -13,8 +13,8 @@ namespace
 {
 constexpr int ANALYSIS_MAX_EDGE = 64;
 constexpr int MATCHING_TILE_MAX_EDGE = 64;
-constexpr int PHASH_SIZE = 32;
-constexpr int SSIM_SIZE = 16;
+constexpr int PHASH_SIZE = 32; // pHash is generated from a 32x32 image.
+constexpr int SSIM_SIZE = 16;  // Larger SSIM grids slow comparisons without useful matching benefit.
 constexpr int NEAR_BLACK = 20;
 constexpr double BLACK_LINE_COVERAGE = 0.98;
 constexpr double MIN_BAR_FRACTION = 0.04;
@@ -129,6 +129,7 @@ FrameAnalysis VisualFingerprintBuilder::analyzeFrame(const QImage& frame)
     }
     const double mean = sum / pixels;
     const double variance = qMax(0.0, sumSquares / pixels - mean * mean);
+    // A frame needs either overall contrast or a meaningful brightness range. This preserves dark title/detail frames.
     result.informative = std::sqrt(variance) >= LOW_INFORMATION_STDDEV || maximum - minimum > LOW_INFORMATION_RANGE;
     if (!result.informative)
         return result;
