@@ -86,6 +86,8 @@ class Video : public QObject
     // Content-quality selection is separate from the outer decode-failure retry.
     ResolvedCapture resolveCaptureSlot(const Db& cache, int percentage, int ofDuration);
     QString internalProcess();
+    // Builds the comparison fingerprints from the selected frames and their analyses, then stores a minimized copy of
+    // the original collage for the review UI. Cached and decoded frames have already followed the same analysis path.
     void processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses);
     QImage minimizeImage(const QImage& image) const;
     QString msToHHMMSS(const int64_t& time) const;
