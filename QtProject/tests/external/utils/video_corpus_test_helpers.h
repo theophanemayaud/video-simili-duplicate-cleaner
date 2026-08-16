@@ -15,7 +15,7 @@ struct WholeAppScanExpectation {
     bool detectRotatedCopies = false;
 };
 
-// Shared mechanics only: the /Dev and mounted-large corpus targets own their
+// Shared mechanics only: the ~/Dev and mounted-large corpus targets own their
 // paths, expected counts, and Qt Test slots.
 class VideoCorpusTestHelpers
 {
@@ -24,6 +24,7 @@ class VideoCorpusTestHelpers
     static void emptyDatabase();
     static void addReferenceVideoRows(const QDir& videoDir, int expectedVideoCount);
     static void verifyReferenceVideo(Prefs::USE_CACHE_OPTION cacheOption, bool acceptSmallDurationDiff);
+    static void generateReferenceData(const QDir& videoDir, Prefs::USE_CACHE_OPTION cacheOption);
     static void runWholeAppScan(const QDir& videoDir, const WholeAppScanExpectation& expectation);
 };
 

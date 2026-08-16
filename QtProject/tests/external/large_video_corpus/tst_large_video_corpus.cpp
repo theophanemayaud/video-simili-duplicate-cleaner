@@ -1,19 +1,7 @@
 #include <QtTest>
 
+#include "external/utils/fixture_paths.h"
 #include "external/utils/video_corpus_test_helpers.h"
-
-namespace
-{
-QDir largeCorpus()
-{
-#ifdef Q_OS_MACOS
-    return QDir(QStringLiteral(
-        "/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Videos/"));
-#else
-    return {};
-#endif
-}
-} // namespace
 
 /*
  * Historical mounted-corpus observations. Timings are hardware-dependent; the
@@ -79,7 +67,7 @@ class TestLargeVideoCorpus : public QObject
     void emptyDb() { VideoCorpusTestHelpers::emptyDatabase(); }
     void test_referenceVideosNoCache_data()
     {
-        VideoCorpusTestHelpers::addReferenceVideoRows(largeCorpus(), 12506);
+        VideoCorpusTestHelpers::addReferenceVideoRows(ExternalFixturePaths::mountedLargeVideos(), 12506);
     }
     void test_referenceVideosNoCache()
     {
@@ -93,7 +81,7 @@ class TestLargeVideoCorpus : public QObject
         expectation.expectedValidVideos = 12352;
         expectation.expectedMatchingVideos = 6552;
         expectation.maximumElapsedMs = 4 * 60 * 1000;
-        VideoCorpusTestHelpers::runWholeAppScan(largeCorpus(), expectation);
+        VideoCorpusTestHelpers::runWholeAppScan(ExternalFixturePaths::mountedLargeVideos(), expectation);
     }
     void test_wholeAppNoCacheWithRotations()
     {
@@ -104,7 +92,7 @@ class TestLargeVideoCorpus : public QObject
         expectation.expectedValidVideos = 12352;
         expectation.expectedMatchingVideos = 6556;
         expectation.maximumElapsedMs = 6 * 60 * 1000;
-        VideoCorpusTestHelpers::runWholeAppScan(largeCorpus(), expectation);
+        VideoCorpusTestHelpers::runWholeAppScan(ExternalFixturePaths::mountedLargeVideos(), expectation);
     }
     void test_wholeAppCached()
     {
@@ -114,7 +102,7 @@ class TestLargeVideoCorpus : public QObject
         expectation.expectedValidVideos = 12351;
         expectation.expectedMatchingVideos = 6543;
         expectation.maximumElapsedMs = 50 * 1000;
-        VideoCorpusTestHelpers::runWholeAppScan(largeCorpus(), expectation);
+        VideoCorpusTestHelpers::runWholeAppScan(ExternalFixturePaths::mountedLargeVideos(), expectation);
     }
 };
 

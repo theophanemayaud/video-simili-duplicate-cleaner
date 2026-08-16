@@ -1,9 +1,9 @@
-#ifndef LOCAL_FIXTURE_PATHS_H
-#define LOCAL_FIXTURE_PATHS_H
+#ifndef EXTERNAL_FIXTURE_PATHS_H
+#define EXTERNAL_FIXTURE_PATHS_H
 
 #include <QDir>
 
-namespace LocalFixturePaths
+namespace ExternalFixturePaths
 {
 inline QString root()
 {
@@ -19,6 +19,16 @@ inline QDir videos()
 {
     return QDir(QDir(root()).filePath(QStringLiteral("Videos")));
 }
-} // namespace LocalFixturePaths
 
-#endif // LOCAL_FIXTURE_PATHS_H
+inline QDir mountedLargeVideos()
+{
+#ifdef Q_OS_MACOS
+    return QDir(QStringLiteral(
+        "/Volumes/4TBSSD/Video duplicates - just for checking later my video duplicate program still works/Videos/"));
+#else
+    return {};
+#endif
+}
+} // namespace ExternalFixturePaths
+
+#endif // EXTERNAL_FIXTURE_PATHS_H

@@ -20,7 +20,7 @@ class TestVideoExtractionRegression : public QObject
 
     void test_check_refvidparams_nocache_data()
     {
-        VideoCorpusTestHelpers::addReferenceVideoRows(LocalFixturePaths::videos(), 229);
+        VideoCorpusTestHelpers::addReferenceVideoRows(ExternalFixturePaths::videos(), 229);
     }
     void test_check_refvidparams_nocache()
     {
@@ -28,7 +28,7 @@ class TestVideoExtractionRegression : public QObject
     }
     void test_check_refvidparams_withcache_data()
     {
-        VideoCorpusTestHelpers::addReferenceVideoRows(LocalFixturePaths::videos(), 229);
+        VideoCorpusTestHelpers::addReferenceVideoRows(ExternalFixturePaths::videos(), 229);
     }
     void test_check_refvidparams_withcache()
     {
@@ -36,12 +36,29 @@ class TestVideoExtractionRegression : public QObject
     }
     void test_check_refvidparams_withCacheOnly_data()
     {
-        VideoCorpusTestHelpers::addReferenceVideoRows(LocalFixturePaths::videos(), 229);
+        VideoCorpusTestHelpers::addReferenceVideoRows(ExternalFixturePaths::videos(), 229);
     }
     void test_check_refvidparams_withCacheOnly()
     {
         VideoCorpusTestHelpers::verifyReferenceVideo(Prefs::CACHE_ONLY, true);
     }
+
+    // Maintenance-only reference regeneration. Enable one wrapper when the
+    // external reference files intentionally need to be refreshed.
+#if 0
+    void regenerateReferenceDataNoCache()
+    {
+        VideoCorpusTestHelpers::generateReferenceData(ExternalFixturePaths::videos(), Prefs::NO_CACHE);
+    }
+    void regenerateReferenceDataWithCache()
+    {
+        VideoCorpusTestHelpers::generateReferenceData(ExternalFixturePaths::videos(), Prefs::WITH_CACHE);
+    }
+    void regenerateLargeReferenceDataNoCache()
+    {
+        VideoCorpusTestHelpers::generateReferenceData(ExternalFixturePaths::mountedLargeVideos(), Prefs::NO_CACHE);
+    }
+#endif
 };
 
 QTEST_MAIN(TestVideoExtractionRegression)

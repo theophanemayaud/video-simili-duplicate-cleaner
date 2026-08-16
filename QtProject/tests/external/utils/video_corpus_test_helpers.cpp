@@ -10,6 +10,8 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QFile>
+#include <QDirIterator>
 #include <QTest>
 
 #include <algorithm>
@@ -129,6 +131,56 @@ void VideoCorpusTestHelpers::verifyReferenceVideo(Prefs::USE_CACHE_OPTION cacheO
     Video video(prefs, videoPath);
     QVERIFY2(video.process().success, "Could not process reference video");
     compareReferenceVideo(referenceThumbnail, reference, video, acceptSmallDurationDiff);
+}
+
+void VideoCorpusTestHelpers::generateReferenceData(const QDir& videoDir, Prefs::USE_CACHE_OPTION cacheOption)
+{
+    QVERIFY2(videoDir.exists(), qPrintable(QStringLiteral("Corpus is not available: %1").arg(videoDir.path())));
+
+    MainWindow window;
+    window.loadExtensions();
+    QVERIFY(!window._extensionList.isEmpty());
+    window.close();
+
+    QDir scanDir = videoDir;
+    scanDir.setNameFilters(window._extensionList);
+    QDirIterator iterator(scanDir, QDirIterator::Subdirectories);
+    Prefs prefs;
+    prefs.useCacheOption(cacheOption);
+    const QString suffix = cacheOption == Prefs::NO_CACHE ? QStringLiteral("nocache") : QStringLiteral("withcache");
+    QElapsedTimer timer;
+    timer.start();
+    int processedCount = 0;
+    int errorCount = 0;
+
+    while (iterator.hasNext()) {
+        const QString videoPath = iterator.next();
+        const QFileInfo videoInfo(videoPath);
+        if (videoInfo.isDir())
+            continue;
+
+        const QString metadataPath = videoPath + QStringLiteral(".") + suffix + QStringLiteral(".txt");
+        const QString thumbnailPath = videoPath + QStringLiteral(".") + suffix + QStringLiteral(".jpg");
+        QFile::remove(metadataPath);
+        QFile::remove(thumbnailPath);
+
+        const VideoParam param = VideoExtractionTestHelpers::scanVideoMetadata(videoPath, prefs);
+        if (!param.videoInfo.exists()
+            || !VideoExtractionTestHelpers::saveMetadataToFile(param, metadataPath, videoDir)
+            || !VideoExtractionTestHelpers::saveThumbnail(param.thumbnail, thumbnailPath)) {
+            qWarning() << "Failed to generate reference data for:" << videoPath;
+            ++errorCount;
+            continue;
+        }
+
+        ++processedCount;
+        if (processedCount % 10 == 0)
+            qDebug() << "Progress:" << processedCount << "videos processed...";
+    }
+
+    qDebug() << "Generated" << suffix << "reference data for" << processedCount << "videos in" << timer.elapsed()
+             << "ms; errors:" << errorCount;
+    QVERIFY2(errorCount == 0, qPrintable(QStringLiteral("Reference generation failed for %1 videos").arg(errorCount)));
 }
 
 void VideoCorpusTestHelpers::runWholeAppScan(const QDir& videoDir, const WholeAppScanExpectation& expectation)

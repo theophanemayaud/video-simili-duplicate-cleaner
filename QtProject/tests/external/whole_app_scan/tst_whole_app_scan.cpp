@@ -62,7 +62,7 @@ class TestWholeAppScan : public QObject
         expectation.expectedValidVideos = 226;
         expectation.expectedMatchingVideos = 89;
         expectation.maximumElapsedMs = 4000;
-        VideoCorpusTestHelpers::runWholeAppScan(LocalFixturePaths::videos(), expectation);
+        VideoCorpusTestHelpers::runWholeAppScan(ExternalFixturePaths::videos(), expectation);
     }
     void test_whole_app_cached()
     {
@@ -72,7 +72,7 @@ class TestWholeAppScan : public QObject
         expectation.expectedValidVideos = 226;
         expectation.expectedMatchingVideos = 89;
         expectation.maximumElapsedMs = 1500;
-        VideoCorpusTestHelpers::runWholeAppScan(LocalFixturePaths::videos(), expectation);
+        VideoCorpusTestHelpers::runWholeAppScan(ExternalFixturePaths::videos(), expectation);
     }
     void test_whole_app_cache_only()
     {
@@ -82,7 +82,7 @@ class TestWholeAppScan : public QObject
         expectation.expectedValidVideos = 226;
         expectation.expectedMatchingVideos = 89;
         expectation.maximumElapsedMs = 800;
-        VideoCorpusTestHelpers::runWholeAppScan(LocalFixturePaths::videos(), expectation);
+        VideoCorpusTestHelpers::runWholeAppScan(ExternalFixturePaths::videos(), expectation);
     }
 };
 
