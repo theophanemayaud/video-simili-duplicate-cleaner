@@ -103,7 +103,7 @@ add_qt_test(test_repo_auto_delete
 )
 set_tests_properties(test_repo_auto_delete PROPERTIES LABELS "repo-fixtures")
 
-# Test 4: optional /Dev extraction and reference regression
+# Test 4: optional ~/Dev extraction and reference regression
 add_qt_test(test_local_video_extraction_regression
     SOURCES
         local/video_extraction_regression/tst_video_extraction_regression.cpp
@@ -111,7 +111,7 @@ add_qt_test(test_local_video_extraction_regression
         video_extraction_test_helpers.cpp
 )
 
-# Test 5: optional /Dev end-to-end whole-app scans
+# Test 5: optional ~/Dev end-to-end whole-app scans
 add_qt_test(test_local_whole_app_scan
     SOURCES
         local/whole_app_scan/tst_whole_app_scan.cpp
@@ -132,6 +132,7 @@ add_qt_test(test_local_large_video_corpus
 set_tests_properties(test_local_large_video_corpus PROPERTIES
     TIMEOUT 7200
     LABELS "external-corpus;requires-mounted-100gb"
+    RUN_SERIAL TRUE
 )
 
 # Test 7: checked-in metadata and thumbnail extraction snapshots
@@ -151,7 +152,7 @@ add_qt_test(test_repo_video_matching
 )
 set_tests_properties(test_repo_video_matching PROPERTIES LABELS "repo-fixtures")
 
-# Test 9: optional /Dev matching contract.
+# Test 9: optional ~/Dev matching contract.
 add_qt_test(test_local_video_matching
     SOURCES
         local/video_matching/tst_video_matching.cpp

@@ -43,6 +43,39 @@ VideoParam VideoExtractionTestHelpers::scanVideoMetadata(const QString& videoPat
     return param;
 }
 
+bool VideoExtractionTestHelpers::saveMetadataToFile(const VideoParam& param, const QString& filePath,
+                                                    const QDir&)
+{
+    if (QFileInfo::exists(filePath)) {
+        qWarning() << "Metadata file already exists, not overwriting:" << filePath;
+        return false;
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Failed to open metadata file for writing:" << filePath;
+        return false;
+    }
+
+    QTextStream output(&file);
+    output << "videoFilename:" << param.videoInfo.fileName() << "\n";
+    output << "thumbnailFilename:" << param.videoInfo.fileName() << "\n";
+    output << "size:" << param.size << "\n";
+    output << "modified:" << param.modified.toString(VideoParam::timeformat()) << "\n";
+    output << "duration:" << param.duration << "\n";
+    output << "bitrate:" << param.bitrate << "\n";
+    output << "framerate:" << param.framerate << "\n";
+    output << "codec:" << param.codec << "\n";
+    output << "audio:" << param.audio << "\n";
+    output << "width:" << param.width << "\n";
+    output << "height:" << param.height << "\n";
+    output << "hash1:" << param.hash1 << "\n";
+    output << "hash2:" << param.hash2 << "\n";
+
+    file.close();
+    return true;
+}
+
 void VideoExtractionTestHelpers::loadMetadataFromFile(const QString& filePath, VideoParam& param)
 {
     QFile file(filePath);
@@ -107,6 +140,30 @@ double VideoExtractionTestHelpers::compareThumbnails(const QByteArray& thumb1, c
     if (gray1.empty() || gray2.empty() || gray1.size() != gray2.size())
         return 0.0;
     return Ssim::calculate(gray1, gray2, 16);
+}
+
+bool VideoExtractionTestHelpers::saveThumbnail(const QByteArray& thumbnail, const QString& path)
+{
+    if (QFileInfo::exists(path)) {
+        qWarning() << "Thumbnail already exists, not overwriting:" << path;
+        return false;
+    }
+
+    QFile thumbFile(path);
+    if (!thumbFile.open(QIODevice::WriteOnly)) {
+        qWarning() << "Failed to open thumbnail file for writing:" << path;
+        return false;
+    }
+
+    const qint64 written = thumbFile.write(thumbnail);
+    thumbFile.close();
+
+    if (written != thumbnail.size()) {
+        qWarning() << "Failed to write complete thumbnail data";
+        return false;
+    }
+
+    return true;
 }
 
 bool VideoExtractionTestHelpers::compareMetadata(const VideoParam& ref, const VideoParam& current, QString& errorMsg)
