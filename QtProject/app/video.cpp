@@ -24,6 +24,8 @@ int normalizedRightAngle(int angle)
     return 0;
 }
 
+// Display Matrix is the modern representation and takes precedence over the legacy rotate tag.
+// Both describe the same presentation transform, so they must never be applied cumulatively.
 int presentationRotation(const ffmpeg::AVStream* stream)
 {
     const ffmpeg::AVPacketSideData* sideData =
@@ -199,9 +201,6 @@ const QString Video::getMetadata(const QString& filename)
     if (vs->avg_frame_rate.den != 0)
         framerate = round(ffmpeg::av_q2d(vs->avg_frame_rate) * 10) / 10;
 
-    // Display Matrix is the modern representation and takes precedence over
-    // the legacy rotate tag. Both describe the same presentation transform,
-    // so they must never be applied cumulatively.
     const int metadataPresentationRotation = presentationRotation(vs);
     if (metadataPresentationRotation == 90 || metadataPresentationRotation == 270) {
         const short temp = width;
@@ -264,7 +263,6 @@ const QString Video::takeScreenCaptures(const Db& cache)
 {
     Thumbnail thumb(this->_prefs.thumbnailsMode());
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
-    thumbnail.fill(Qt::black);
     const QVector<int> percentages = thumb.percentages(); // percent from 1 to 100
     std::vector<FrameAnalysis> analyses(static_cast<size_t>(percentages.count()));
     int capture = percentages.count();

@@ -24,7 +24,7 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    friend class TestVideo;
+    friend class TestLocalVideoCorpus;
     friend class TestAutoDelete;
 
   public:

@@ -371,7 +371,7 @@ The fixture phase is now implemented without implementing the matching behavior:
 - The external manifest has 229 rows: all 218 legacy videos plus the eleven derivatives. The strict current matcher produced 154 pair edges forming 54 complete, filename-consistent groups. Those groups seed the no-new-cross-group baseline. A tagged 22-video subset supplies the feature contracts and natural guards.
 - Both generation scripts reproduce byte-identical outputs on the current FFmpeg toolchain. Tests consume the checked-in files and do not invoke FFmpeg.
 
-`test_video_matching_features` is a required CI target. Its focused contracts now pass for Display Matrix presentation normalization, monochrome substitution, letterbox/pillarbox normalization, physical 90/180/270-degree matching, the rotation preference, cache reuse without invalidation, and conservative in-memory bar analysis. Its tracked end-to-end rows pass in no-cache, warm-cache, and cache-only modes with rotation both disabled and enabled. The same target runs four optional local external feature rows and a separate legacy-corpus no-new-cross-group baseline; external rows skip when the corpus is absent.
+`test_repo_video_matching` is the required CI target. Its single tracked manifest contains both established Nice-video duplicates and the new matching fixtures. Its focused contracts cover Display Matrix presentation normalization, monochrome substitution, letterbox/pillarbox normalization, physical 90/180/270-degree matching, the rotation preference, cache reuse without invalidation, and conservative in-memory bar analysis. Its tracked end-to-end rows pass in no-cache, warm-cache, and cache-only modes with rotation both disabled and enabled. `test_local_video_matching` owns the optional external feature rows and the separate legacy-corpus no-new-cross-group baseline; it is explicitly labeled as local and skips cleanly when the corpus is absent.
 
 The manifest excludes substantially different-duration partial clips from required recovery while still rejecting them as cross-content false positives. This keeps the feature aligned with its explicit non-goal rather than weakening the matcher to satisfy two pre-existing partial-clip cases.
 
@@ -504,12 +504,12 @@ Run, at minimum:
 - the new visual-helper and pair-matcher tests;
 - the new self-contained tracked-video matching test in no-cache, warm-cache, and cache-only modes;
 - `test_comparison`, including background discovery;
-- `test_video_simplified` on the macOS development setup;
-- explicit `test_video` whole-app cases relevant to thumbnail/cache behavior;
+- `test_repo_video_extraction_regression` on the macOS development setup;
+- explicit `test_local_video_corpus` whole-app cases relevant to thumbnail/cache behavior;
 - the manifest-driven external `/Dev` corpus test when that corpus is available; and
 - the self-contained baseline from `AGENTS.md`.
 
-Do not run the full `test_video` executable by default because it includes the separately mounted `test_100GB*` cases. Reference thumbnails and hashes will likely change when matching normalization changes; update them only after the labeled corpus passes and record why each expected value changed.
+Do not run the full `test_local_video_corpus` executable by default because it includes the separately mounted `test_100GB*` cases. Reference thumbnails and hashes will likely change when matching normalization changes; update them only after the labeled corpus passes and record why each expected value changed.
 
 ## Diagnostics
 

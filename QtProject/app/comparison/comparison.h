@@ -35,7 +35,7 @@ struct VideoMetadata;
 class Comparison : public QDialog
 {
     Q_OBJECT
-    friend class TestVideo;
+    friend class TestLocalVideoCorpus;
     friend class TestAutoDelete;
     friend class test_comparison;
 

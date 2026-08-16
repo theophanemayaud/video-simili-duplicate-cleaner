@@ -46,7 +46,7 @@ QString formatSetDifference(const QString& label, const QSet<QString>& pairs)
 QString projectRoot()
 {
     QDir candidate(QDir::currentPath());
-    while (!candidate.exists(QStringLiteral("samples/videos/matching/matching-ground-truth.csv")))
+    while (!candidate.exists(QStringLiteral("samples/videos/matching-ground-truth.csv")))
         if (!candidate.cdUp())
             return {};
     return candidate.absolutePath();
@@ -245,7 +245,8 @@ QString validateBaseline(const FixtureScan& scan)
 }
 } // namespace
 
-class TestVideoMatchingFeatures : public QObject
+#if !defined(VIDEO_SIMILI_LOCAL_VIDEO_MATCHING)
+class TestRepoVideoMatching : public QObject
 {
     Q_OBJECT
 
@@ -267,9 +268,6 @@ class TestVideoMatchingFeatures : public QObject
 
     void test_trackedEndToEndMatrix_data();
     void test_trackedEndToEndMatrix();
-    void test_externalEndToEndMatrix_data();
-    void test_externalEndToEndMatrix();
-    void test_externalBaselineNoNewPairs();
 
   private:
     FixtureScan trackedScan(Prefs::USE_CACHE_OPTION mode, const QString& cachePath, int thumbnailMode = cutEnds,
@@ -280,12 +278,12 @@ class TestVideoMatchingFeatures : public QObject
     QList<MatchingFixtureRecord> _trackedManifest;
 };
 
-void TestVideoMatchingFeatures::initTestCase()
+void TestRepoVideoMatching::initTestCase()
 {
     qSetMessagePattern(QStringLiteral("%{file}(%{line}) %{function}: %{message}"));
     _projectRoot = projectRoot();
     QVERIFY2(!_projectRoot.isEmpty(), "Could not find the repository root");
-    _trackedRoot = QDir(_projectRoot).filePath(QStringLiteral("samples/videos/matching"));
+    _trackedRoot = QDir(_projectRoot).filePath(QStringLiteral("samples/videos"));
 
     QString error;
     QVERIFY2(MatchingFixtureManifest::load(QDir(_trackedRoot).filePath(QStringLiteral("matching-ground-truth.csv")),
@@ -293,20 +291,20 @@ void TestVideoMatchingFeatures::initTestCase()
              qPrintable(error));
 }
 
-void TestVideoMatchingFeatures::cleanup()
+void TestRepoVideoMatching::cleanup()
 {
     Prefs().resetSettings();
 }
 
-FixtureScan TestVideoMatchingFeatures::trackedScan(Prefs::USE_CACHE_OPTION mode, const QString& cachePath,
-                                                   int thumbnailMode, bool detectRotatedCopies) const
+FixtureScan TestRepoVideoMatching::trackedScan(Prefs::USE_CACHE_OPTION mode, const QString& cachePath,
+                                               int thumbnailMode, bool detectRotatedCopies) const
 {
     return scanFixtures(_trackedRoot, _trackedManifest, mode, cachePath, thumbnailMode, detectRotatedCopies);
 }
 
-void TestVideoMatchingFeatures::test_manifestAndSizeBudget()
+void TestRepoVideoMatching::test_manifestAndSizeBudget()
 {
-    QCOMPARE(_trackedManifest.size(), 10);
+    QCOMPARE(_trackedManifest.size(), 12);
     qint64 totalVideoBytes = 0;
     QSet<QString> groups;
     for (const MatchingFixtureRecord& fixture : _trackedManifest) {
@@ -315,14 +313,14 @@ void TestVideoMatchingFeatures::test_manifestAndSizeBudget()
         totalVideoBytes += video.size();
         groups.insert(fixture.contentGroup);
     }
-    QCOMPARE(groups, QSet<QString>({QStringLiteral("A"), QStringLiteral("B")}));
+    QCOMPARE(groups, QSet<QString>({QStringLiteral("A"), QStringLiteral("B"), QStringLiteral("Nice")}));
     QVERIFY2(
         totalVideoBytes <= 2000000,
         qPrintable(QStringLiteral("Tracked matching videos use %1 bytes; budget is 2000000").arg(totalVideoBytes)));
     qInfo() << "Tracked matching video bytes:" << totalVideoBytes;
 }
 
-void TestVideoMatchingFeatures::test_frameAnalysisAndBlackBarConsensus()
+void TestRepoVideoMatching::test_frameAnalysisAndBlackBarConsensus()
 {
     QImage uniform(100, 60, QImage::Format_RGB888);
     uniform.fill(QColor(8, 8, 8));
@@ -356,7 +354,7 @@ void TestVideoMatchingFeatures::test_frameAnalysisAndBlackBarConsensus()
     QVERIFY(!VisualFingerprintBuilder::unanimousBlackBarCrop({bars, dissent}).has_value());
 }
 
-void TestVideoMatchingFeatures::test_rotatedPreferenceDefaultsOffAndPersists()
+void TestRepoVideoMatching::test_rotatedPreferenceDefaultsOffAndPersists()
 {
     Prefs prefs;
     prefs.resetSettings();
@@ -365,7 +363,7 @@ void TestVideoMatchingFeatures::test_rotatedPreferenceDefaultsOffAndPersists()
     QVERIFY(Prefs().detectRotatedCopies());
 }
 
-void TestVideoMatchingFeatures::test_existingCaptureCacheIsReusedWithoutInvalidation()
+void TestRepoVideoMatching::test_existingCaptureCacheIsReusedWithoutInvalidation()
 {
     QTemporaryDir temporary;
     QVERIFY(temporary.isValid());
@@ -411,13 +409,13 @@ void TestVideoMatchingFeatures::test_existingCaptureCacheIsReusedWithoutInvalida
     QSqlDatabase::removeDatabase(verifyConnection);
 }
 
-void TestVideoMatchingFeatures::test_displayMatrixPresentationIsNormalized()
+void TestRepoVideoMatching::test_displayMatrixPresentationIsNormalized()
 {
     QTemporaryDir cache;
     QVERIFY(cache.isValid());
     const FixtureScan scan = trackedScan(Prefs::NO_CACHE, cache.filePath(QStringLiteral("cache.sqlite")));
-    const ProcessedFixture* base = findFixture(scan, QStringLiteral("a-original.mp4"));
-    const ProcessedFixture* metadata = findFixture(scan, QStringLiteral("a-display-matrix.mp4"));
+    const ProcessedFixture* base = findFixture(scan, QStringLiteral("matching/a-original.mp4"));
+    const ProcessedFixture* metadata = findFixture(scan, QStringLiteral("matching/a-display-matrix.mp4"));
     QVERIFY(base && metadata);
     QVERIFY2(base->processingError.isEmpty(), qPrintable(base->processingError));
     QVERIFY2(metadata->processingError.isEmpty(), qPrintable(metadata->processingError));
@@ -428,13 +426,13 @@ void TestVideoMatchingFeatures::test_displayMatrixPresentationIsNormalized()
         "A Display Matrix-normalized copy should match without physical-rotation fallback");
 }
 
-void TestVideoMatchingFeatures::test_monochromeCutEndsAreSubstituted()
+void TestRepoVideoMatching::test_monochromeCutEndsAreSubstituted()
 {
     QTemporaryDir cache;
     QVERIFY(cache.isValid());
     const FixtureScan scan = trackedScan(Prefs::NO_CACHE, cache.filePath(QStringLiteral("cache.sqlite")));
-    const ProcessedFixture* base = findFixture(scan, QStringLiteral("a-original.mp4"));
-    const ProcessedFixture* monochrome = findFixture(scan, QStringLiteral("a-monochrome-ends.mp4"));
+    const ProcessedFixture* base = findFixture(scan, QStringLiteral("matching/a-original.mp4"));
+    const ProcessedFixture* monochrome = findFixture(scan, QStringLiteral("matching/a-monochrome-ends.mp4"));
     QVERIFY(base && monochrome);
     QVERIFY2(monochrome->processingError.isEmpty(), qPrintable(monochrome->processingError));
     const VideoPairMatchResult result =
@@ -446,20 +444,20 @@ void TestVideoMatchingFeatures::test_monochromeCutEndsAreSubstituted()
         "The +/-2% informative substitutes should make the cutEnds copy match A");
 }
 
-void TestVideoMatchingFeatures::test_blackBarsAreNormalized_data()
+void TestRepoVideoMatching::test_blackBarsAreNormalized_data()
 {
     QTest::addColumn<QString>("variant");
-    QTest::newRow("letterbox") << QStringLiteral("a-letterbox.mp4");
-    QTest::newRow("pillarbox") << QStringLiteral("a-pillarbox.mp4");
+    QTest::newRow("letterbox") << QStringLiteral("matching/a-letterbox.mp4");
+    QTest::newRow("pillarbox") << QStringLiteral("matching/a-pillarbox.mp4");
 }
 
-void TestVideoMatchingFeatures::test_blackBarsAreNormalized()
+void TestRepoVideoMatching::test_blackBarsAreNormalized()
 {
     QFETCH(QString, variant);
     QTemporaryDir cache;
     QVERIFY(cache.isValid());
     const FixtureScan scan = trackedScan(Prefs::NO_CACHE, cache.filePath(QStringLiteral("cache.sqlite")));
-    const ProcessedFixture* base = findFixture(scan, QStringLiteral("a-original.mp4"));
+    const ProcessedFixture* base = findFixture(scan, QStringLiteral("matching/a-original.mp4"));
     const ProcessedFixture* barred = findFixture(scan, variant);
     QVERIFY(base && barred);
     QVERIFY2(base->processingError.isEmpty(), qPrintable(base->processingError));
@@ -468,22 +466,22 @@ void TestVideoMatchingFeatures::test_blackBarsAreNormalized()
              qPrintable(QStringLiteral("Symmetric bars were not normalized for %1").arg(variant)));
 }
 
-void TestVideoMatchingFeatures::test_physicalRotationsMatchWhenEnabled_data()
+void TestRepoVideoMatching::test_physicalRotationsMatchWhenEnabled_data()
 {
     QTest::addColumn<QString>("variant");
-    QTest::newRow("clockwise-90") << QStringLiteral("a-rot90.mp4");
-    QTest::newRow("rotated-180") << QStringLiteral("a-rot180.mp4");
-    QTest::newRow("counter-clockwise-90") << QStringLiteral("a-rot270.mp4");
+    QTest::newRow("clockwise-90") << QStringLiteral("matching/a-rot90.mp4");
+    QTest::newRow("rotated-180") << QStringLiteral("matching/a-rot180.mp4");
+    QTest::newRow("counter-clockwise-90") << QStringLiteral("matching/a-rot270.mp4");
 }
 
-void TestVideoMatchingFeatures::test_physicalRotationsMatchWhenEnabled()
+void TestRepoVideoMatching::test_physicalRotationsMatchWhenEnabled()
 {
     QFETCH(QString, variant);
     QTemporaryDir cache;
     QVERIFY(cache.isValid());
     const FixtureScan scan =
         trackedScan(Prefs::NO_CACHE, cache.filePath(QStringLiteral("cache.sqlite")), cutEnds, true);
-    const ProcessedFixture* base = findFixture(scan, QStringLiteral("a-original.mp4"));
+    const ProcessedFixture* base = findFixture(scan, QStringLiteral("matching/a-original.mp4"));
     const ProcessedFixture* rotated = findFixture(scan, variant);
     QVERIFY(base && rotated);
     QVERIFY2(base->processingError.isEmpty(), qPrintable(base->processingError));
@@ -494,13 +492,13 @@ void TestVideoMatchingFeatures::test_physicalRotationsMatchWhenEnabled()
              qPrintable(QStringLiteral("Rotated matching did not recover %1").arg(variant)));
 }
 
-void TestVideoMatchingFeatures::test_samePillarBarsDoNotMatchDifferentContent()
+void TestRepoVideoMatching::test_samePillarBarsDoNotMatchDifferentContent()
 {
     QTemporaryDir cache;
     QVERIFY(cache.isValid());
     const FixtureScan scan = trackedScan(Prefs::NO_CACHE, cache.filePath(QStringLiteral("cache.sqlite")));
-    const ProcessedFixture* a = findFixture(scan, QStringLiteral("a-pillarbox.mp4"));
-    const ProcessedFixture* b = findFixture(scan, QStringLiteral("b-pillarbox.mp4"));
+    const ProcessedFixture* a = findFixture(scan, QStringLiteral("matching/a-pillarbox.mp4"));
+    const ProcessedFixture* b = findFixture(scan, QStringLiteral("matching/b-pillarbox.mp4"));
     QVERIFY(a && b);
     QVERIFY2(a->processingError.isEmpty(), qPrintable(a->processingError));
     QVERIFY2(b->processingError.isEmpty(), qPrintable(b->processingError));
@@ -511,7 +509,7 @@ void TestVideoMatchingFeatures::test_samePillarBarsDoNotMatchDifferentContent()
              "Different portrait videos with identical pillar bars matched at the issue #138 threshold");
 }
 
-void TestVideoMatchingFeatures::test_trackedEndToEndMatrix_data()
+void TestRepoVideoMatching::test_trackedEndToEndMatrix_data()
 {
     QTest::addColumn<int>("cacheScenario");
     QTest::addColumn<bool>("rotatedMatchingEnabled");
@@ -527,7 +525,7 @@ void TestVideoMatchingFeatures::test_trackedEndToEndMatrix_data()
     }
 }
 
-void TestVideoMatchingFeatures::test_trackedEndToEndMatrix()
+void TestRepoVideoMatching::test_trackedEndToEndMatrix()
 {
     QFETCH(int, cacheScenario);
     QFETCH(bool, rotatedMatchingEnabled);
@@ -549,7 +547,27 @@ void TestVideoMatchingFeatures::test_trackedEndToEndMatrix()
     QVERIFY2(problems.isEmpty(), qPrintable(problems));
 }
 
-void TestVideoMatchingFeatures::test_externalEndToEndMatrix()
+QTEST_MAIN(TestRepoVideoMatching)
+
+#else
+
+class TestLocalVideoMatching : public QObject
+{
+    Q_OBJECT
+
+  private slots:
+    void cleanup();
+    void test_externalEndToEndMatrix_data();
+    void test_externalEndToEndMatrix();
+    void test_externalBaselineNoNewPairs();
+};
+
+void TestLocalVideoMatching::cleanup()
+{
+    Prefs().resetSettings();
+}
+
+void TestLocalVideoMatching::test_externalEndToEndMatrix()
 {
     QFETCH(int, cacheScenario);
     QFETCH(bool, rotatedMatchingEnabled);
@@ -628,7 +646,7 @@ void TestVideoMatchingFeatures::test_externalEndToEndMatrix()
     QVERIFY2(problems.isEmpty(), qPrintable(problems));
 }
 
-void TestVideoMatchingFeatures::test_externalEndToEndMatrix_data()
+void TestLocalVideoMatching::test_externalEndToEndMatrix_data()
 {
     QTest::addColumn<int>("cacheScenario");
     QTest::addColumn<bool>("rotatedMatchingEnabled");
@@ -638,7 +656,7 @@ void TestVideoMatchingFeatures::test_externalEndToEndMatrix_data()
     QTest::newRow("cache-only-rotation-on") << 2 << true;
 }
 
-void TestVideoMatchingFeatures::test_externalBaselineNoNewPairs()
+void TestLocalVideoMatching::test_externalBaselineNoNewPairs()
 {
     const QString externalRoot = externalFixtureRoot();
     const QString manifestPath = QDir(externalRoot).filePath(QStringLiteral("matching-ground-truth.csv"));
@@ -660,6 +678,8 @@ void TestVideoMatchingFeatures::test_externalBaselineNoNewPairs()
     QVERIFY2(problems.isEmpty(), qPrintable(problems));
 }
 
-QTEST_MAIN(TestVideoMatchingFeatures)
+QTEST_MAIN(TestLocalVideoMatching)
 
-#include "tst_video_matching_features.moc"
+#endif
+
+#include "tst_video_matching.moc"

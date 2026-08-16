@@ -15,16 +15,16 @@
 #include "../../app/db.h"
 #include "../../app/mainwindow.h"
 
-#include "../test_video_simplified/video_simplified_test_helpers.h"
+#include "../test_repo_video_extraction_regression/video_extraction_test_helpers.h"
 
 #include "video_test_helpers.h"
 
-class TestVideo : public QObject
+class TestLocalVideoCorpus : public QObject
 {
     Q_OBJECT
   public:
-    TestVideo();
-    ~TestVideo();
+    TestLocalVideoCorpus();
+    ~TestLocalVideoCorpus();
 
     // Special Qt Test static method called before main() runs
     // Use this to set QTEST_FUNCTION_TIMEOUT for long-running tests
@@ -35,11 +35,11 @@ class TestVideo : public QObject
     QDir _videoDir = QDir("Y:/Videos/");
     const QDir _thumbnailDir_nocache = QDir("Y:/Thumbnails-nocache/");
     const QFileInfo _csvInfo_nocache =
-        QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-nocache.csv");
+        QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_local_video_corpus/ressources/tests-nocache.csv");
 
     const QDir _thumbnailDir_cached = QDir("Y:/Thumbnails-cached/");
     const QFileInfo _csvInfo_cached =
-        QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_video/ressources/tests-cached.csv");
+        QFileInfo("C:/Dev/video-simili-duplicate-cleaner/QtProject/tests/test_local_video_corpus/ressources/tests-cached.csv");
 
     QDir _100GBvideoDir = QDir("");
     const QDir _100GBthumbnailDir_nocache = QDir("");
@@ -498,11 +498,11 @@ class TestVideo : public QObject
     void createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheOption);
 };
 
-TestVideo::TestVideo() {}
+TestLocalVideoCorpus::TestLocalVideoCorpus() {}
 
-TestVideo::~TestVideo() {}
+TestLocalVideoCorpus::~TestLocalVideoCorpus() {}
 
-void TestVideo::initMain()
+void TestLocalVideoCorpus::initMain()
 {
     // Set timeout to 2 hours (7200000ms) for long-running 100GB tests
     // Default is 300000ms (5 minutes)
@@ -510,7 +510,7 @@ void TestVideo::initMain()
 }
 
 // Runs once before test run (not once per test)
-void TestVideo::initTestCase()
+void TestLocalVideoCorpus::initTestCase()
 {
     qSetMessagePattern("%{file}(%{line}) %{function}: %{message}");
     Prefs().resetSettings();
@@ -519,7 +519,7 @@ void TestVideo::initTestCase()
 
 // ----------------------------------------------------------------------------------
 // ---------------------------- START : helper testing functions ----------------------
-void TestVideo::runWholeAppScan(QDir videoDir, wholeAppTestConfig* conf)
+void TestLocalVideoCorpus::runWholeAppScan(QDir videoDir, wholeAppTestConfig* conf)
 {
     QVERIFY(videoDir.exists());
 
@@ -600,7 +600,7 @@ void TestVideo::runWholeAppScan(QDir videoDir, wholeAppTestConfig* conf)
 }
 
 // Helper to populate test data for data-driven tests
-void TestVideo::populateRefVidParamsTestData(const QDir videoDir, const int expectedVideoCount)
+void TestLocalVideoCorpus::populateRefVidParamsTestData(const QDir videoDir, const int expectedVideoCount)
 {
     emptyDb();
     QTest::addColumn<QString>("videoPath");
@@ -647,7 +647,7 @@ void TestVideo::populateRefVidParamsTestData(const QDir videoDir, const int expe
 }
 
 // Helper to perform single video test (called for each test data row)
-void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
+void TestLocalVideoCorpus::checkSingleVideoParams(const refVidParamsTestConfig conf)
 {
     QFETCH(QString, videoPath);
 
@@ -663,11 +663,11 @@ void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
     QVERIFY2(metadataInfo.exists(), QString("Metadata file not found: %1").arg(metadataPath).toUtf8());
 
     VideoParam videoParam;
-    SimplifiedTestHelpers::loadMetadataFromFile(metadataPath, videoParam);
+    VideoExtractionTestHelpers::loadMetadataFromFile(metadataPath, videoParam);
 
     // Load reference thumbnail from individual file (video.mp4.nocache.jpg or video.mp4.withcache.jpg)
     QString thumbnailPath = videoPath + "." + suffix + ".jpg";
-    QByteArray ref_thumbnail = SimplifiedTestHelpers::loadThumbnailFromFile(thumbnailPath);
+    QByteArray ref_thumbnail = VideoExtractionTestHelpers::loadThumbnailFromFile(thumbnailPath);
 
     Prefs prefs;
     prefs.useCacheOption(conf.cacheOption);
@@ -692,10 +692,8 @@ void TestVideo::checkSingleVideoParams(const refVidParamsTestConfig conf)
     delete vid;
 }
 
-void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(const QByteArray ref_thumbnail,
-                                                                           const VideoParam videoParam,
-                                                                           const Video* vid,
-                                                                           const refVidParamsTestConfig conf)
+void TestLocalVideoCorpus::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(
+    const QByteArray ref_thumbnail, const VideoParam videoParam, const Video* vid, const refVidParamsTestConfig conf)
 {
     const QString forVid = QString("For %1").arg(videoParam.thumbnailInfo.absoluteFilePath());
 
@@ -732,7 +730,7 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(const
     }
 
     // SSIM thumbnail comparison
-    auto ssim = SimplifiedTestHelpers::compareThumbnails(ref_thumbnail, vid->thumbnail);
+    auto ssim = VideoExtractionTestHelpers::compareThumbnails(ref_thumbnail, vid->thumbnail);
     // TODO add ssim tolerance as test parameter
     const auto ssimThreshold = 0.90;
     if (ssim < ssimThreshold)
@@ -837,7 +835,7 @@ void TestVideo::compareVideoParamToVideoAndUpdateThumbIfVisuallyIdentifcal(const
 }
 
 // Method to generate .txt, .jpg and ref metadata and thumbnail files
-void TestVideo::createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheOption)
+void TestLocalVideoCorpus::createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheOption)
 {
     emptyDb();
     QElapsedTimer timer;
@@ -904,7 +902,7 @@ void TestVideo::createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheO
             QFile::remove(thumbPath);
 
         // Save metadata
-        if (!SimplifiedTestHelpers::saveMetadataToFile(videoParam, metadataPath, videoDir)) {
+        if (!VideoExtractionTestHelpers::saveMetadataToFile(videoParam, metadataPath, videoDir)) {
             qWarning() << "Failed to save metadata for:" << videoPath;
             errorCount++;
             delete vid;
@@ -912,7 +910,7 @@ void TestVideo::createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheO
         }
 
         // Save thumbnail
-        if (!SimplifiedTestHelpers::saveThumbnail(videoParam.thumbnail, thumbPath)) {
+        if (!VideoExtractionTestHelpers::saveThumbnail(videoParam.thumbnail, thumbPath)) {
             qWarning() << "Failed to save thumbnail for:" << videoPath;
             errorCount++;
             delete vid;
@@ -935,6 +933,6 @@ void TestVideo::createRefVidParams(QDir videoDir, Prefs::USE_CACHE_OPTION cacheO
 // ---------------------------- END : helper testing functions ------------------------
 // ----------------------------------------------------------------------------------
 
-QTEST_MAIN(TestVideo)
+QTEST_MAIN(TestLocalVideoCorpus)
 
 #include "tst_video.moc"

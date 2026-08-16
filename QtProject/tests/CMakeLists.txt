@@ -94,31 +94,42 @@ add_qt_test(test_mainwindow
     SOURCES test_mainwindow/tst_mainwindow.cpp
 )
 
-# Test 3: test_auto_delete
-add_qt_test(test_auto_delete
-    SOURCES test_auto_delete/tst_auto_delete.cpp
+# Test 3: checked-in fixture cleanup flow
+add_qt_test(test_repo_auto_delete
+    SOURCES test_repo_auto_delete/tst_auto_delete.cpp
 )
+set_tests_properties(test_repo_auto_delete PROPERTIES LABELS "repo-fixtures")
 
-# Test 4: test_video
-add_qt_test(test_video
+# Test 4: external local corpora, including the separately mounted 100GB functions
+add_qt_test(test_local_video_corpus
     SOURCES
-        test_video/tst_video.cpp
-        test_video/video_test_helpers.cpp
-        test_video_simplified/video_simplified_test_helpers.cpp
+        test_local_video_corpus/tst_video.cpp
+        test_local_video_corpus/video_test_helpers.cpp
+        test_repo_video_extraction_regression/video_extraction_test_helpers.cpp
 )
-# Set longer CTest timeout for test_video (contains 100GB tests that can take 30+ minutes)
-set_tests_properties(test_video PROPERTIES TIMEOUT 3600)
+# The mounted 100GB functions can take 30+ minutes.
+set_tests_properties(test_local_video_corpus PROPERTIES TIMEOUT 3600 LABELS "external-corpus;requires-mounted-100gb")
 
-# Test 5: test_video_simplified
-add_qt_test(test_video_simplified
+# Test 5: checked-in metadata and thumbnail extraction snapshots
+add_qt_test(test_repo_video_extraction_regression
     SOURCES
-        test_video_simplified/tst_video_simplified.cpp
-        test_video_simplified/video_simplified_test_helpers.cpp
+        test_repo_video_extraction_regression/tst_video_extraction_regression.cpp
+        test_repo_video_extraction_regression/video_extraction_test_helpers.cpp
 )
+set_tests_properties(test_repo_video_extraction_regression PROPERTIES LABELS "repo-fixtures")
 
-# Test 6: compact matching feature contract and end-to-end fixtures
-add_qt_test(test_video_matching_features
+# Test 6: checked-in matching contract and its optional external equivalent.
+add_qt_test(test_repo_video_matching
     SOURCES
-        test_video_matching_features/tst_video_matching_features.cpp
+        test_repo_video_matching/tst_video_matching.cpp
         video_matching_fixture_manifest.cpp
 )
+set_tests_properties(test_repo_video_matching PROPERTIES LABELS "repo-fixtures")
+
+add_qt_test(test_local_video_matching
+    SOURCES
+        test_repo_video_matching/tst_video_matching.cpp
+        video_matching_fixture_manifest.cpp
+)
+target_compile_definitions(test_local_video_matching PRIVATE VIDEO_SIMILI_LOCAL_VIDEO_MATCHING)
+set_tests_properties(test_local_video_matching PROPERTIES LABELS "local-fixtures")
