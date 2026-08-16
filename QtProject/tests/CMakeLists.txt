@@ -61,7 +61,10 @@ function(add_qt_test TEST_NAME)
         Qt6::Concurrent
         Qt6::Test
     )
-    target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../app)
+    target_include_directories(${TEST_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../app
+    )
 
     # Add compile definitions
     target_compile_definitions(${TEST_NAME} PRIVATE ${TEST_COMPILE_DEFINITIONS})
@@ -103,30 +106,33 @@ set_tests_properties(test_repo_auto_delete PROPERTIES LABELS "repo-fixtures")
 # Test 4: optional /Dev extraction and reference regression
 add_qt_test(test_local_video_extraction_regression
     SOURCES
-        test_local_video_extraction_regression/tst_local_video_extraction_regression.cpp
-        video_corpus_test_helpers.cpp
+        local/video_extraction_regression/tst_video_extraction_regression.cpp
+        local/video_corpus_test_helpers.cpp
         video_extraction_test_helpers.cpp
 )
 
 # Test 5: optional /Dev end-to-end whole-app scans
 add_qt_test(test_local_whole_app_scan
     SOURCES
-        test_local_whole_app_scan/tst_local_whole_app_scan.cpp
-        video_corpus_test_helpers.cpp
+        local/whole_app_scan/tst_whole_app_scan.cpp
+        local/video_corpus_test_helpers.cpp
         video_extraction_test_helpers.cpp
 )
 set_tests_properties(test_local_video_extraction_regression test_local_whole_app_scan
-    PROPERTIES LABELS "local-corpus" RUN_SERIAL TRUE
+    PROPERTIES LABELS "local-fixtures" RUN_SERIAL TRUE
 )
 
 # Test 6: separately mounted large corpus. Its functions can take 30+ minutes.
-add_qt_test(test_large_video_corpus
+add_qt_test(test_local_large_video_corpus
     SOURCES
-        test_large_video_corpus/tst_large_video_corpus.cpp
-        video_corpus_test_helpers.cpp
+        local/large_video_corpus/tst_large_video_corpus.cpp
+        local/video_corpus_test_helpers.cpp
         video_extraction_test_helpers.cpp
 )
-set_tests_properties(test_large_video_corpus PROPERTIES TIMEOUT 7200 LABELS "large-corpus;requires-mounted-100gb")
+set_tests_properties(test_local_large_video_corpus PROPERTIES
+    TIMEOUT 7200
+    LABELS "external-corpus;requires-mounted-100gb"
+)
 
 # Test 7: checked-in metadata and thumbnail extraction snapshots
 add_qt_test(test_repo_video_extraction_regression
@@ -148,7 +154,7 @@ set_tests_properties(test_repo_video_matching PROPERTIES LABELS "repo-fixtures")
 # Test 9: optional /Dev matching contract.
 add_qt_test(test_local_video_matching
     SOURCES
-        test_local_video_matching/tst_local_video_matching.cpp
+        local/video_matching/tst_video_matching.cpp
         video_matching_fixture_manifest.cpp
         video_matching_test_helpers.cpp
 )

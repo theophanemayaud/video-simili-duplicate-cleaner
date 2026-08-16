@@ -2,26 +2,18 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include "../../app/prefs.h"
-#include "../video_matching_fixture_manifest.h"
-#include "../video_matching_test_helpers.h"
+#include "local/fixture_paths.h"
+#include "prefs.h"
+#include "video_matching_fixture_manifest.h"
+#include "video_matching_test_helpers.h"
 
 namespace
 {
 constexpr int MATCH_THRESHOLD_BITS = 58; // approximately the 90% UI setting
 
-QString externalFixtureRoot()
-{
-    QString root = qEnvironmentVariable("VIDEO_SIMILI_EXTERNAL_FIXTURES");
-#ifdef Q_OS_MACOS
-    if (root.isEmpty())
-        root = QDir::home().filePath(QStringLiteral("Dev/Videos across all formats with duplicates of all kinds"));
-#endif
-    return root;
-}
 } // namespace
 
-class TestLocalVideoMatching : public QObject
+class TestVideoMatching : public QObject
 {
     Q_OBJECT
 
@@ -32,12 +24,12 @@ class TestLocalVideoMatching : public QObject
     void test_externalBaselineNoNewPairs();
 };
 
-void TestLocalVideoMatching::cleanup()
+void TestVideoMatching::cleanup()
 {
     Prefs().resetSettings();
 }
 
-void TestLocalVideoMatching::test_externalEndToEndMatrix_data()
+void TestVideoMatching::test_externalEndToEndMatrix_data()
 {
     QTest::addColumn<int>("cacheScenario");
     QTest::addColumn<bool>("rotatedMatchingEnabled");
@@ -47,11 +39,11 @@ void TestLocalVideoMatching::test_externalEndToEndMatrix_data()
     QTest::newRow("cache-only-rotation-on") << 2 << true;
 }
 
-void TestLocalVideoMatching::test_externalEndToEndMatrix()
+void TestVideoMatching::test_externalEndToEndMatrix()
 {
     QFETCH(int, cacheScenario);
     QFETCH(bool, rotatedMatchingEnabled);
-    const QString externalRoot = externalFixtureRoot();
+    const QString externalRoot = LocalFixturePaths::root();
     const QString manifestPath = QDir(externalRoot).filePath(QStringLiteral("matching-ground-truth.csv"));
     if (externalRoot.isEmpty() || !QFileInfo::exists(manifestPath))
         QSKIP("Set VIDEO_SIMILI_EXTERNAL_FIXTURES to run the optional external matching corpus");
@@ -88,9 +80,9 @@ void TestLocalVideoMatching::test_externalEndToEndMatrix()
     QVERIFY2(problems.isEmpty(), qPrintable(problems));
 }
 
-void TestLocalVideoMatching::test_externalBaselineNoNewPairs()
+void TestVideoMatching::test_externalBaselineNoNewPairs()
 {
-    const QString externalRoot = externalFixtureRoot();
+    const QString externalRoot = LocalFixturePaths::root();
     const QString manifestPath = QDir(externalRoot).filePath(QStringLiteral("matching-ground-truth.csv"));
     if (externalRoot.isEmpty() || !QFileInfo::exists(manifestPath))
         QSKIP("Set VIDEO_SIMILI_EXTERNAL_FIXTURES to run the optional external matching corpus");
@@ -110,6 +102,6 @@ void TestLocalVideoMatching::test_externalBaselineNoNewPairs()
     QVERIFY2(problems.isEmpty(), qPrintable(problems));
 }
 
-QTEST_MAIN(TestLocalVideoMatching)
+QTEST_MAIN(TestVideoMatching)
 
-#include "tst_local_video_matching.moc"
+#include "tst_video_matching.moc"
