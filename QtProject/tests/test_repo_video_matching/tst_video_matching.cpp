@@ -57,7 +57,7 @@ QString externalFixtureRoot()
     QString root = qEnvironmentVariable("VIDEO_SIMILI_EXTERNAL_FIXTURES");
 #ifdef Q_OS_MACOS
     if (root.isEmpty())
-        root = QStringLiteral("/Users/theophanemayaud/Dev/Videos across all formats with duplicates of all kinds");
+        root = QDir::home().filePath(QStringLiteral("Dev/Videos across all formats with duplicates of all kinds"));
 #endif
     return root;
 }
