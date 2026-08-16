@@ -338,6 +338,7 @@ const QString Video::takeScreenCaptures(const Db& cache)
         }
 
         analyses[static_cast<size_t>(capture)] = analysis;
+        // Cached captures are stored small; normalize every frame once after any substitute frame is selected.
         if (frame.size() != QSize(width, height))
             frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 
