@@ -249,6 +249,11 @@ void Comparison::confirmToExit()
         QKeyEvent* closeEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
         QApplication::postEvent(this, closeEvent); //"pressing" ESC closes dialog
     }
+    else {
+        // A slider drag moves the handle before navigation confirms a pair.
+        // Restore the position of the last pair when closing is cancelled.
+        ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
+    }
 }
 
 void Comparison::on_prevVideo_clicked()
