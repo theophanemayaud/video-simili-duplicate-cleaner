@@ -184,7 +184,6 @@ void test_comparison::test_rotatedMatcherRequiresSsimSafeguard()
     right.fingerprint(0, FingerprintRotation::clockwise90).ssimPixels = left.fingerprint(0).ssimPixels;
     const VideoPairMatchResult result = VideoPairMatcher::match(left, right, config);
     QVERIFY(result.matches);
-    QCOMPARE(result.relativeRotation, FingerprintRotation::clockwise90);
 }
 
 void test_comparison::test_rotatedMatcherAppliesDurationModifierToSsimThreshold()

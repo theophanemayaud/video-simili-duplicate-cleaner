@@ -2,6 +2,8 @@
 
 #include "ssim.h"
 
+#include <bit>
+
 namespace
 {
 // SSIM is substantially more expensive than comparing pHashes, so even in
@@ -20,13 +22,7 @@ int durationModifier(const Video& left, const Video& right, const VideoPairMatch
 
 int rawPhashSimilarity(const VisualFingerprint& left, const VisualFingerprint& right)
 {
-    int similarity = 64;
-    uint64_t differentBits = left.phash ^ right.phash;
-    while (differentBits) {
-        differentBits &= differentBits - 1;
-        similarity--;
-    }
-    return similarity;
+    return 64 - std::popcount(left.phash ^ right.phash);
 }
 
 double ssimSimilarity(const VisualFingerprint& left, const VisualFingerprint& right, int blockSize)
@@ -100,13 +96,12 @@ VideoPairMatchResult VideoPairMatcher::match(const Video& left, const Video& rig
     if (!config.detectRotatedCopies)
         return bestResult;
 
-    for (int orientation = static_cast<int>(FingerprintRotation::clockwise90);
-         orientation <= static_cast<int>(FingerprintRotation::counterClockwise90); ++orientation) {
-        const auto rotation = static_cast<FingerprintRotation>(orientation);
+    for (const FingerprintRotation rotation : allFingerprintRotations) {
+        if (rotation == FingerprintRotation::none)
+            continue;
         for (int hashIndex = 0; hashIndex < hashes; ++hashIndex) {
             VideoPairMatchResult rotated = scoreFingerprints(left, right, left.fingerprint(hashIndex),
                                                              right.fingerprint(hashIndex, rotation), config, true);
-            rotated.relativeRotation = rotation;
             if (rotated.phashSimilarity > bestResult.phashSimilarity)
                 bestResult = rotated;
             if (rotated.matches)

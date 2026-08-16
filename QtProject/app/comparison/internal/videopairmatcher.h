@@ -35,7 +35,6 @@ struct VideoPairMatchResult {
     bool matches = false;
     int phashSimilarity = 0;
     double ssimSimilarity = 0.0;
-    FingerprintRotation relativeRotation = FingerprintRotation::none;
 };
 
 struct MatchedVideoPair {

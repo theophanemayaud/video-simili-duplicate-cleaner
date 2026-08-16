@@ -109,12 +109,6 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
     query.exec(QStringLiteral("PRAGMA synchronous = OFF;"));
     query.exec(QStringLiteral("PRAGMA journal_mode = WAL;"));
 
-    // Captures are raw image inputs; the current matcher derives fingerprints
-    // each run. Keep existing records usable across matching changes instead
-    // of adding cache generations or forcing a full rescan. Fresh decodes may
-    // have newer presentation normalization, which is an accepted small
-    // tradeoff for the simpler cache behavior.
-
     query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS "
                               "metadata ("
                               "id TEXT PRIMARY KEY, "

@@ -19,7 +19,6 @@ constexpr int NEAR_BLACK = 20;
 constexpr double BLACK_LINE_COVERAGE = 0.98;
 constexpr double MIN_BAR_FRACTION = 0.04;
 constexpr double MAX_BAR_FRACTION = 0.45;
-constexpr double MIN_ACTIVE_FRACTION = 0.10;
 constexpr double LOW_INFORMATION_STDDEV = 2.0;
 constexpr int LOW_INFORMATION_RANGE = 12;
 
@@ -71,9 +70,8 @@ std::pair<int, int> scanOpposingBars(const QImage& analysisImage, BlackBarAxis a
 
     const int minimumBar = qMax(2, static_cast<int>(std::ceil(extent * MIN_BAR_FRACTION)));
     const int maximumBar = static_cast<int>(std::floor(extent * MAX_BAR_FRACTION));
-    const int active = extent - leading - trailing;
     if (leading < minimumBar || trailing < minimumBar || leading > maximumBar || trailing > maximumBar
-        || qAbs(leading - trailing) > 1 || active < static_cast<int>(std::ceil(extent * MIN_ACTIVE_FRACTION)))
+        || qAbs(leading - trailing) > 1)
         return {0, 0};
 
     return {leading, trailing};

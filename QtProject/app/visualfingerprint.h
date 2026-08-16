@@ -15,6 +15,13 @@ enum class FingerprintRotation : int {
     counterClockwise90 = 3,
 };
 
+inline constexpr std::array<FingerprintRotation, 4> allFingerprintRotations = {
+    FingerprintRotation::none,
+    FingerprintRotation::clockwise90,
+    FingerprintRotation::rotated180,
+    FingerprintRotation::counterClockwise90,
+};
+
 struct VisualFingerprint {
     uint64_t phash = 0;
     std::array<uint8_t, 16 * 16> ssimPixels{};

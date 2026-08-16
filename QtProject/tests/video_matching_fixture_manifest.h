@@ -10,7 +10,6 @@ struct MatchingFixtureRecord {
     QString contentGroup;
     bool expectedProcessing = true;
     int matchingOrientationDegrees = 0;
-    int physicalRotationDegrees = 0;
     QSet<QString> tags;
 };
 

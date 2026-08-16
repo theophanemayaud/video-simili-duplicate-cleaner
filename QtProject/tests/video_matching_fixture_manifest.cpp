@@ -74,7 +74,6 @@ bool MatchingFixtureManifest::load(const QString& path, QList<MatchingFixtureRec
         QStringLiteral("content_group"),
         QStringLiteral("expected_processing"),
         QStringLiteral("matching_orientation_degrees"),
-        QStringLiteral("physical_rotation_degrees"),
         QStringLiteral("tags"),
     };
     if (!validRow || header != expectedHeader) {
@@ -119,12 +118,10 @@ bool MatchingFixtureManifest::load(const QString& path, QList<MatchingFixtureRec
         }
 
         if (!readInteger(fields.at(3), QStringLiteral("matching_orientation_degrees"), lineNumber,
-                         record.matchingOrientationDegrees, error)
-            || !readInteger(fields.at(4), QStringLiteral("physical_rotation_degrees"), lineNumber,
-                            record.physicalRotationDegrees, error))
+                         record.matchingOrientationDegrees, error))
             return false;
 
-        const QStringList tags = fields.at(5).split('|', Qt::SkipEmptyParts);
+        const QStringList tags = fields.at(4).split('|', Qt::SkipEmptyParts);
         for (const QString& tag : tags)
             record.tags.insert(tag.trimmed());
         records.append(record);

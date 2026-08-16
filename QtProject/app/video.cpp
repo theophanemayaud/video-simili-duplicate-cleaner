@@ -40,6 +40,29 @@ int presentationRotation(const ffmpeg::AVStream* stream)
     const ffmpeg::AVDictionaryEntry* tag = ffmpeg::av_dict_get(stream->metadata, "rotate", nullptr, 0);
     return tag == nullptr ? 0 : normalizedRightAngle(QString::fromUtf8(tag->value).toInt());
 }
+
+QImage buildTransformedMatchingImage(const QImage& thumbnail, const Thumbnail& thumb, int width, int height,
+                                     int firstCapture, int captureCount, int columns, int rows,
+                                     const std::optional<NormalizedCrop>& crop, FingerprintRotation rotation)
+{
+    QImage matchingImage;
+    QPainter matchingPainter;
+    for (int localIndex = 0; localIndex < captureCount; ++localIndex) {
+        const int captureIndex = firstCapture + localIndex;
+        const QRect tileRect((captureIndex % thumb.cols()) * width, (captureIndex / thumb.cols()) * height, width,
+                             height);
+        const QImage transformed = VisualFingerprintBuilder::transformTile(thumbnail.copy(tileRect), crop, rotation);
+        if (matchingImage.isNull()) {
+            matchingImage = QImage(columns * transformed.width(), rows * transformed.height(), QImage::Format_RGB888);
+            matchingImage.fill(Qt::black);
+            matchingPainter.begin(&matchingImage);
+        }
+        matchingPainter.drawImage((localIndex % columns) * transformed.width(),
+                                  (localIndex / columns) * transformed.height(), transformed);
+    }
+    matchingPainter.end();
+    return matchingImage;
+}
 } // namespace
 
 Video::Video(const Prefs& prefsParam, const QString& filePathName) : _filePathName(filePathName)
@@ -275,25 +298,9 @@ const QString Video::takeScreenCaptures(const Db& cache)
         this->progress++;
         locker.unlock();
 
-        QImage frame;
-        QByteArray cachedImage;
-        if (this->_prefs.useCacheOption()
-            != Prefs::
-                NO_CACHE) // TODO-REFACTOR could maybe load from cache in same condition as frame loading and resizing... ?
-            cachedImage = cache.readCapture(_filePathName, percentages[capture]);
-        QBuffer captureBuffer(&cachedImage);
-        bool writeToCache = false;
+        ResolvedCapture resolved = resolveCaptureSlot(cache, percentages[capture], ofDuration);
 
-        if (this->_prefs.useCacheOption() != Prefs::NO_CACHE && !cachedImage.isNull()) //image was already in cache
-        {
-            frame.load(&captureBuffer, QByteArrayLiteral("JPG"));
-        }
-        else if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
-            frame = ffmpegLib_captureAt(percentages[capture], ofDuration);
-            writeToCache = !frame.isNull() && this->_prefs.useCacheOption() == Prefs::WITH_CACHE;
-        }
-
-        if (frame.isNull()) //taking screen capture may fail if video is broken
+        if (resolved.frame.isNull()) //taking screen capture may fail if video is broken
         {
             ofDuration = ofDuration - _goBackwardsPercent;
             if (ofDuration >= _videoStillUsable) //retry a few times, always closer to beginning
@@ -315,19 +322,7 @@ const QString Video::takeScreenCaptures(const Db& cache)
             return err;
         }
 
-        FrameAnalysis analysis = VisualFingerprintBuilder::analyzeFrame(frame);
-        if (!analysis.informative && this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
-            const int substitutePercent = percentages[capture] < 50
-                                              ? percentages[capture] + _monochromeSubstituteOffset
-                                              : percentages[capture] - _monochromeSubstituteOffset;
-            QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
-            const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);
-            if (!substitute.isNull() && substituteAnalysis.informative) {
-                frame = substitute;
-                analysis = substituteAnalysis;
-                writeToCache = this->_prefs.useCacheOption() == Prefs::WITH_CACHE;
-            }
-        }
+        QImage frame = std::move(resolved.frame);
 
         if (frame.width() > width || frame.height() > height) { //metadata parsing error or variable resolution
             return QString("capture height=%1 width=%2 is different from metadata height=%3 width=%4")
@@ -337,7 +332,7 @@ const QString Video::takeScreenCaptures(const Db& cache)
                 .arg(width);
         }
 
-        frameAnalyses[static_cast<size_t>(capture)] = analysis;
+        frameAnalyses[static_cast<size_t>(capture)] = resolved.analysis;
         // Cached captures are stored small; normalize every frame once after any substitute frame is selected.
         if (frame.size() != QSize(width, height))
             frame = frame.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
@@ -345,9 +340,10 @@ const QString Video::takeScreenCaptures(const Db& cache)
         QPainter painter(&thumbnail); //copy captured frame into right place in thumbnail
         painter.drawImage(capture % thumb.cols() * width, capture / thumb.cols() * height, frame);
 
-        if (writeToCache) {
-            frame = minimizeImage(frame);
-            frame.save(&captureBuffer, QByteArrayLiteral("JPG"), _okJpegQuality);
+        if (resolved.writeToCache) {
+            QByteArray cachedImage;
+            QBuffer captureBuffer(&cachedImage);
+            minimizeImage(frame).save(&captureBuffer, QByteArrayLiteral("JPG"), _okJpegQuality);
             cache.writeCapture(_filePathName, percentages[capture], cachedImage);
         }
     }
@@ -356,49 +352,75 @@ const QString Video::takeScreenCaptures(const Db& cache)
     return "";
 }
 
+Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int percentage, const int ofDuration)
+{
+    ResolvedCapture resolved;
+    const bool cacheEnabled = this->_prefs.useCacheOption() == Prefs::WITH_CACHE;
+    const bool decodeAllowed = this->_prefs.useCacheOption() != Prefs::CACHE_ONLY;
+
+    QByteArray cachedImage;
+    if (this->_prefs.useCacheOption() != Prefs::NO_CACHE)
+        cachedImage = cache.readCapture(_filePathName, percentage);
+
+    if (!cachedImage.isNull()) {
+        QBuffer captureBuffer(&cachedImage);
+        resolved.frame.load(&captureBuffer, QByteArrayLiteral("JPG"));
+    }
+    else if (decodeAllowed) {
+        resolved.frame = ffmpegLib_captureAt(percentage, ofDuration);
+        resolved.writeToCache = !resolved.frame.isNull() && cacheEnabled;
+    }
+
+    if (resolved.frame.isNull())
+        return resolved;
+
+    resolved.analysis = VisualFingerprintBuilder::analyzeFrame(resolved.frame);
+    if (resolved.analysis.informative || !decodeAllowed)
+        return resolved;
+
+    const int substitutePercent = percentage < 50 ? percentage + _monochromeSubstituteOffset
+                                                   : percentage - _monochromeSubstituteOffset;
+    QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
+    const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);
+    if (!substitute.isNull() && substituteAnalysis.informative) {
+        resolved.frame = std::move(substitute);
+        resolved.analysis = substituteAnalysis;
+        resolved.writeToCache = cacheEnabled;
+    }
+    return resolved;
+}
+
 void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses)
 {
     const std::optional<NormalizedCrop> crop = VisualFingerprintBuilder::unanimousBlackBarCrop(analyses);
-    const int segments = this->_prefs.thumbnailsMode() == cutEnds ? 2 : 1;
-    const int orientationCount = this->_prefs.detectRotatedCopies() ? 4 : 1;
+    const bool cutEndsMode = this->_prefs.thumbnailsMode() == cutEnds;
+    const bool detectRotatedCopies = this->_prefs.detectRotatedCopies();
+    const int segments = cutEndsMode ? 2 : 1;
     for (int segment = 0; segment < segments; ++segment) {
-        const int firstCapture = this->_prefs.thumbnailsMode() == cutEnds ? segment : 0;
-        const int captureCount = this->_prefs.thumbnailsMode() == cutEnds ? 1 : static_cast<int>(analyses.size());
-        const int columns = this->_prefs.thumbnailsMode() == cutEnds ? 1 : thumb.cols();
-        const int rows = this->_prefs.thumbnailsMode() == cutEnds ? 1 : thumb.rows();
+        const int firstCapture = cutEndsMode ? segment : 0;
+        const int captureCount = cutEndsMode ? 1 : static_cast<int>(analyses.size());
+        const int columns = cutEndsMode ? 1 : thumb.cols();
+        const int rows = cutEndsMode ? 1 : thumb.rows();
         bool segmentUsable = false;
         for (int index = firstCapture; index < firstCapture + captureCount; ++index)
             segmentUsable = segmentUsable || analyses.at(static_cast<size_t>(index)).informative;
 
-        for (int orientation = 0; orientation < orientationCount; ++orientation) {
-            const auto rotation = static_cast<FingerprintRotation>(orientation);
+        for (const FingerprintRotation rotation : allFingerprintRotations) {
+            if (!detectRotatedCopies && rotation != FingerprintRotation::none)
+                continue;
             if (!crop.has_value() && rotation == FingerprintRotation::none) {
+                // Keep the historical matching image untouched when no normalization is needed.
                 QImage matchingImage = thumbnail;
-                if (this->_prefs.thumbnailsMode() == cutEnds)
+                if (cutEndsMode)
                     matchingImage = thumbnail.copy(segment * width, 0, width, height);
-                fingerprints[segment][orientation] =
+                fingerprints[segment][static_cast<int>(rotation)] =
                     VisualFingerprintBuilder::build(matchingImage, segmentUsable);
                 continue;
             }
-            QImage matchingImage;
-            QPainter matchingPainter;
-            for (int localIndex = 0; localIndex < captureCount; ++localIndex) {
-                const int captureIndex = firstCapture + localIndex;
-                const QRect tileRect((captureIndex % thumb.cols()) * width, (captureIndex / thumb.cols()) * height,
-                                     width, height);
-                const QImage transformed =
-                    VisualFingerprintBuilder::transformTile(thumbnail.copy(tileRect), crop, rotation);
-                if (matchingImage.isNull()) {
-                    matchingImage = QImage(columns * transformed.width(), rows * transformed.height(),
-                                           QImage::Format_RGB888);
-                    matchingImage.fill(Qt::black);
-                    matchingPainter.begin(&matchingImage);
-                }
-                matchingPainter.drawImage((localIndex % columns) * transformed.width(),
-                                           (localIndex / columns) * transformed.height(), transformed);
-            }
-            matchingPainter.end();
-            fingerprints[segment][orientation] = VisualFingerprintBuilder::build(matchingImage, segmentUsable);
+            const QImage matchingImage = buildTransformedMatchingImage(thumbnail, thumb, width, height, firstCapture,
+                                                                        captureCount, columns, rows, crop, rotation);
+            fingerprints[segment][static_cast<int>(rotation)] =
+                VisualFingerprintBuilder::build(matchingImage, segmentUsable);
         }
     }
 
