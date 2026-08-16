@@ -393,6 +393,7 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
 
 void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses)
 {
+    // Detect bars once on the original unrotated sampled frames, then reuse the crop for every rotation variant.
     const std::optional<NormalizedCrop> crop = VisualFingerprintBuilder::unanimousBlackBarCrop(analyses);
     const bool cutEndsMode = this->_prefs.thumbnailsMode() == cutEnds;
     const bool detectRotatedCopies = this->_prefs.detectRotatedCopies();
@@ -407,8 +408,6 @@ void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const st
             segmentUsable = segmentUsable || analyses.at(static_cast<size_t>(index)).informative;
 
         for (const FingerprintRotation rotation : allFingerprintRotations) {
-            // Detect black bars once from the original unrotated frames (analyses), then reuse that crop for each
-            // generated rotation variant before rotating it.
             if (!detectRotatedCopies && rotation != FingerprintRotation::none)
                 continue;
             if (!crop.has_value() && rotation == FingerprintRotation::none) {
