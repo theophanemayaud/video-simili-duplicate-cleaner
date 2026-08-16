@@ -92,7 +92,7 @@ The A/B matrix contains asymmetric base videos; physical 90/180/270 copies; lett
 
 ### Optional local corpus
 
-The `/Dev` corpus adds eleven labeled feature derivatives under `Videos/Matching feature fixtures`, yielding 229 manifest rows and a 22-video focused subset. It provides realistic formats, natural dark-detail/bar-consensus guards, labeled physical rotations, and a 218-video legacy no-new-cross-group baseline. It is exercised by `test_local_video_matching`; it is not required for CI.
+The `/Dev` corpus adds eleven labeled feature derivatives under `Videos/Matching feature fixtures`, yielding 229 manifest rows and a 22-video focused subset. It provides realistic formats, natural dark-detail/bar-consensus guards, labeled physical rotations, and a 218-video legacy no-new-cross-group baseline. It is exercised by `test_external_video_matching`; it is not required for CI.
 
 The separately mounted 100GB corpus is measured by `test_large_video_corpus` only. It is intentionally not part of normal development runs.
 

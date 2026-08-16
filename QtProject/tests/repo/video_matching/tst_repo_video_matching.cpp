@@ -5,9 +5,9 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include "../../app/db.h"
-#include "../../app/prefs.h"
-#include "../../app/visualfingerprint.h"
+#include "../../../app/db.h"
+#include "../../../app/prefs.h"
+#include "../../../app/visualfingerprint.h"
 #include "shared/video_matching_fixture_manifest.h"
 #include "shared/video_matching_test_helpers.h"
 

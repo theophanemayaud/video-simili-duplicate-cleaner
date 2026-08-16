@@ -99,37 +99,37 @@ add_qt_test(test_mainwindow
 
 # Test 3: checked-in fixture cleanup flow
 add_qt_test(test_repo_auto_delete
-    SOURCES test_repo_auto_delete/tst_auto_delete.cpp
+    SOURCES repo/auto_delete/tst_auto_delete.cpp
 )
 set_tests_properties(test_repo_auto_delete PROPERTIES LABELS "repo-fixtures")
 
 # Test 4: optional ~/Dev extraction and reference regression
-add_qt_test(test_local_video_extraction_regression
+add_qt_test(test_external_video_extraction_regression
     SOURCES
-        local/video_extraction_regression/tst_video_extraction_regression.cpp
-        local/utils/video_corpus_test_helpers.cpp
+        external/video_extraction_regression/tst_video_extraction_regression.cpp
+        external/utils/video_corpus_test_helpers.cpp
         shared/video_extraction_test_helpers.cpp
 )
 
 # Test 5: optional ~/Dev end-to-end whole-app scans
-add_qt_test(test_local_whole_app_scan
+add_qt_test(test_external_whole_app_scan
     SOURCES
-        local/whole_app_scan/tst_whole_app_scan.cpp
-        local/utils/video_corpus_test_helpers.cpp
+        external/whole_app_scan/tst_whole_app_scan.cpp
+        external/utils/video_corpus_test_helpers.cpp
         shared/video_extraction_test_helpers.cpp
 )
-set_tests_properties(test_local_video_extraction_regression test_local_whole_app_scan
-    PROPERTIES LABELS "local-fixtures" RUN_SERIAL TRUE
+set_tests_properties(test_external_video_extraction_regression test_external_whole_app_scan
+    PROPERTIES LABELS "external-fixtures" RUN_SERIAL TRUE
 )
 
 # Test 6: separately mounted large corpus. Its functions can take 30+ minutes.
-add_qt_test(test_local_large_video_corpus
+add_qt_test(test_external_large_video_corpus
     SOURCES
-        local/large_video_corpus/tst_large_video_corpus.cpp
-        local/utils/video_corpus_test_helpers.cpp
+        external/large_video_corpus/tst_large_video_corpus.cpp
+        external/utils/video_corpus_test_helpers.cpp
         shared/video_extraction_test_helpers.cpp
 )
-set_tests_properties(test_local_large_video_corpus PROPERTIES
+set_tests_properties(test_external_large_video_corpus PROPERTIES
     TIMEOUT 7200
     LABELS "external-corpus;requires-mounted-100gb"
     RUN_SERIAL TRUE
@@ -138,7 +138,7 @@ set_tests_properties(test_local_large_video_corpus PROPERTIES
 # Test 7: checked-in metadata and thumbnail extraction snapshots
 add_qt_test(test_repo_video_extraction_regression
     SOURCES
-        test_repo_video_extraction_regression/tst_video_extraction_regression.cpp
+        repo/video_extraction_regression/tst_video_extraction_regression.cpp
         shared/video_extraction_test_helpers.cpp
 )
 set_tests_properties(test_repo_video_extraction_regression PROPERTIES LABELS "repo-fixtures")
@@ -146,17 +146,17 @@ set_tests_properties(test_repo_video_extraction_regression PROPERTIES LABELS "re
 # Test 8: checked-in matching contract.
 add_qt_test(test_repo_video_matching
     SOURCES
-        test_repo_video_matching/tst_repo_video_matching.cpp
+        repo/video_matching/tst_repo_video_matching.cpp
         shared/video_matching_fixture_manifest.cpp
         shared/video_matching_test_helpers.cpp
 )
 set_tests_properties(test_repo_video_matching PROPERTIES LABELS "repo-fixtures")
 
 # Test 9: optional ~/Dev matching contract.
-add_qt_test(test_local_video_matching
+add_qt_test(test_external_video_matching
     SOURCES
-        local/video_matching/tst_video_matching.cpp
+        external/video_matching/tst_video_matching.cpp
         shared/video_matching_fixture_manifest.cpp
         shared/video_matching_test_helpers.cpp
 )
-set_tests_properties(test_local_video_matching PROPERTIES LABELS "local-fixtures")
+set_tests_properties(test_external_video_matching PROPERTIES LABELS "external-fixtures")

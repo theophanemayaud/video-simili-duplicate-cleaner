@@ -2,9 +2,9 @@
 #include <QFile>
 #include <QtTest>
 
-#include "../../app/db.h"
-#include "../../app/prefs.h"
-#include "../../app/video.h"
+#include "../../../app/db.h"
+#include "../../../app/prefs.h"
+#include "../../../app/video.h"
 #include "shared/video_extraction_test_helpers.h"
 
 class TestVideoExtractionRegression : public QObject

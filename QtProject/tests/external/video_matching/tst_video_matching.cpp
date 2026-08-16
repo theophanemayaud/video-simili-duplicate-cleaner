@@ -2,7 +2,7 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include "local/utils/fixture_paths.h"
+#include "external/utils/fixture_paths.h"
 #include "prefs.h"
 #include "shared/video_matching_fixture_manifest.h"
 #include "shared/video_matching_test_helpers.h"

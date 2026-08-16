@@ -1,7 +1,7 @@
 #include <QtTest>
 
-#include "local/utils/fixture_paths.h"
-#include "local/utils/video_corpus_test_helpers.h"
+#include "external/utils/fixture_paths.h"
+#include "external/utils/video_corpus_test_helpers.h"
 
 /*
  * Historical per-video extraction/reference-suite timings. These observations
