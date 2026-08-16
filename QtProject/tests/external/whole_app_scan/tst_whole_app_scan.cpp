@@ -3,48 +3,92 @@
 #include "external/utils/fixture_paths.h"
 #include "external/utils/video_corpus_test_helpers.h"
 
-/*
- * Historical ~/Dev whole-app observations. These timings depend on the machine
- * and workload; the executable limits used by the tests remain beside each
- * expectation below.
+/* Historical ~/Dev whole-app observations. Timings depend on hardware and
+ * workload; the executable limits remain beside each expectation below.
  *
- * Total videos, no-cache and cached:
- *   207 before removing the big-file fixtures; 200 afterward; 209 after adding
- *   9 videos including GPS cases (Oct 2025); 218 after adding 9 Apple Photos
- *   videos (Nov 2025); 229 after adding 11 matching-feature fixtures (Aug 2026).
+ * Total videos
+ * Small test set
+ *  - No cache
+ *      -- 207: before remove big files
+ *      -- 200
+ *      -- 209: after adding 9 new videos including gps, oct 2025
+ *      -- 218: after adding 9 more videos in apple photos library, nov 2025
+ *      -- 229: after adding 11 matching feature fixtures, aug 2026
+ *  - Cached
+ *      -- 207: before remove big files
+ *      -- 200
+ *      -- 209: after adding 9 new videos including gps, oct 2025
+ *      -- 218: after adding 9 more videos in apple photos library, nov 2025
+ *      -- 229: after adding 11 matching feature fixtures, aug 2026
  *
- * Valid videos:
- *   No-cache: 204 before removing the big-file fixtures; 197 afterward; 205
- *   after the GPS additions; 214 after the Apple Photos additions; 224 after
- *   adding the matching fixtures; 226 after matching improvements (Aug 2026).
- *   Cached: the same 204, 197, 205, 214, 224, and 226 milestones.
- *   Cache-only: 204 before removing the big-file fixtures; 197 afterward; 205
- *   after the GPS additions.
+ * Valid videos
+ * Small test set
+ *  - No cache
+ *      -- 204: before remove big file tests
+ *      -- 197
+ *      -- 205: after adding 9 new videos including gps, oct 2025
+ *      -- 214: after adding 9 more videos in apple photos library, nov 2025
+ *      -- 224: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+ *      -- 226: after matching improvements recover two feature fixtures, aug 2026
+ *  - Cached
+ *      -- 204: before remove big file tests
+ *      -- 197
+ *      -- 205: after adding 9 new videos including gps, oct 2025
+ *      -- 214: after adding 9 more videos in apple photos library, nov 2025
+ *      -- 224: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+ *      -- 226: after matching improvements recover two feature fixtures, aug 2026
+ *  - Cache only
+ *      -- 204: before remove big file tests
+ *      -- 197
+ *      -- 205: after adding 9 new videos including gps, oct 2025
  *
- * Matching videos:
- *   No-cache: 71 before a change reduced it by one; 70 observed in Oct 2025;
- *   75 after the GPS additions; 84 after the Apple Photos additions; 85 after
- *   adding the matching fixtures; 89 after matching improvements (Aug 2026).
- *   Cached: 72 before a change reduced it by one; then 71, 75, 84, 85, and 89
- *   at the same milestones.
- *   Cache-only: 74 before removing the big-file fixtures; then 72, 71, 75, 84,
- *   85, and 89 at the same milestones.
+ * Matching videos
+ * Small test set
+ *  - No cache
+ *      -- 71 (before some changes that made it go down 1)
+ *      -- 70 noticed as of 2025 oct.
+ *      -- 75: after adding 9 new videos including gps, oct 2025
+ *      -- 84: after adding 9 more videos in apple photos library, nov 2025
+ *      -- 85: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+ *      -- 89: after matching improvements, aug 2026
+ *  - Cached
+ *      -- 72 (before some changes that made it go down 1)
+ *      -- 71 noticed as of 2025 oct.
+ *      -- 75: after adding 9 new videos including gps, oct 2025
+ *      -- 84: after adding 9 more videos in apple photos library, nov 2025
+ *      -- 85: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+ *      -- 89: after matching improvements, aug 2026
+ *  - Cache only
+ *      -- 74: before remove big file tests
+ *      -- 72 (before some changes that made it go down 1)
+ *      -- 71 noticed as of 2025 oct.
+ *      -- 75: after adding 9 new videos including gps, oct 2025
+ *      -- 84: after adding 9 more videos in apple photos library, nov 2025
+ *      -- 85: after adding 11 matching feature fixtures, before matching improvements, aug 2026
+ *      -- 89: after matching improvements, aug 2026
  *
- * Whole-scan timings:
- *   No-cache: 13.5s on Windows Intel and 13s on macOS Intel before removing the
- *   big-file fixtures; 6s on Apple M1; 3.122s (3.37s, 2.995s, ...) on an M3 Pro
- *   ARM build in Oct 2024; about 4.5s (3.996s, 4.3s, 4.13s, ...) after the GPS
- *   additions in Oct 2025; about 4.0s (3.701s, 3.871s, 3.803s) after removing
- *   the custom thread pool in Nov 2025.
- *   Cached: 2.75s on Windows Intel and 3s on macOS Intel before removing the
- *   big-file fixtures; 1s on Apple M1; about 650ms (572ms, 570ms, ...) on M3
- *   Pro in Oct 2024; about 2.0s (1.136s, 1.109s, 1.125s, ...) after the GPS
- *   additions; about 1.5s (1.115s, 1.153s, 1.141s) after removing the custom
- *   thread pool, with system-scheduling runs around 1.1s or 1.9s.
- *   Cache-only: 3.203s on macOS Intel before removing the big-file fixtures;
- *   under 1s on Apple M1; 566ms/538ms on M3 Pro in Oct 2024; about 1.0s
- *   (571ms, 567ms, 568ms, ...) after the GPS additions; about 0.8s (694ms,
- *   642ms, 701ms) after removing the custom thread pool in Nov 2025.
+ * Whole-scan timings
+ * Small test set
+ *  - No cache
+ *      -- 13.5 sec: windows intel on intel (before remove big file tests)
+ *      -- 13 sec: macOS intel on intel (before remove big file tests)
+ *      -- 6 sec: macOS arm on M1
+ *      -- 3.122 sec (3.37, 2.995,...): arm m3 Pro with arm build & arm lib - 2024 oct
+ *      -- 4.5 sec (3.996s, 4.3s, 4.13s...): after adding 9 new videos including gps, m3 MBP oct 2025
+ *      -- 4.0 sec (3.701s, 3.871s, 3.803s): arm m3 pro - nov 2025 - after removing custom threadpool
+ *  - Cached
+ *      -- 2.75 sec: windows intel on intel (before remove big file tests 207)
+ *      -- 3 sec: macOS intel on intel (before remove big file tests 207)
+ *      -- 1 sec: macOS arm on M1
+ *      -- 650 ms (0.572, 0.570,...): arm m3 Pro with arm build & arm lib - 2024 oct.
+ *      -- 2.0 sec (1.136s, 1.109s, 1.125s...): after adding 9 new videos including gps, m3 MBP oct 2025
+ *      -- 1.5 sec (1.115s, 1.153s, 1.141s) arm m3 pro - nov 2025 - after removing custom threadpool (bimodal: ~1.1s or ~1.9s due to system scheduling)
+ *  - Cache only
+ *      -- 3.203 sec: macos intel on intel (before remove big file tests 207)
+ *      -- <1 sec: macOS arm on M1
+ *      -- <1 sec (0.566, 0.538,...): arm m3 Pro with arm build & arm lib - 2024 oct.
+ *      -- 1.0 sec (0.571s, 0.567s, 0.568s...): after adding 9 new videos including gps, m3 MBP oct 2025
+ *      -- 0.8 sec (0.694s, 0.642s, 0.701s): arm m3 pro - nov 2025 - after removing custom threadpool
  */
 class TestWholeAppScan : public QObject
 {
