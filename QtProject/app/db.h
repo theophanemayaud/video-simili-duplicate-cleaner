@@ -87,8 +87,8 @@ class Db
                                              int thumbnailMode) const;
     bool writeFailedVideo(const QString& filePathname, qint64 size, qint64 modifiedMs, int thumbnailMode,
                           const QString& error) const;
-    // Returns the number of cleared entries, or -1 when the database operation fails.
-    int clearFailedVideos() const;
+    // Returns the number of distinct videos prepared for retry, or -1 when the database operation fails.
+    int clearFailedVideos();
 
     //returns false was not cached or could not be removed
     bool removeVideo(const QString& filePathname) const;

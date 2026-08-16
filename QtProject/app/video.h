@@ -75,6 +75,12 @@ class Video : public QObject
                                const int ofDuration = 100); // new methods for capture of image, using ffmpeg library
 
   private:
+    struct InternalProcessingOutcome {
+        QString error;
+        // Only deterministic content failures should suppress future FFmpeg work.
+        bool cacheableFailure = false;
+    };
+
     struct ResolvedCapture {
         QImage frame;
         FrameAnalysis analysis;
@@ -85,7 +91,7 @@ class Video : public QObject
     const QString takeScreenCaptures(const Db& cache);
     // Content-quality selection is separate from the outer decode-failure retry.
     ResolvedCapture resolveCaptureSlot(const Db& cache, int percentage, int ofDuration);
-    QString internalProcess();
+    InternalProcessingOutcome internalProcess();
     // Builds the comparison fingerprints from the selected frames and their analyses, then stores a minimized copy of
     // the original collage for the review UI. Cached and decoded frames have already followed the same analysis path.
     void processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses);

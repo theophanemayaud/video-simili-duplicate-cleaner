@@ -455,20 +455,47 @@ bool Db::writeFailedVideo(const QString& filePathname, const qint64 size, const 
     return false;
 }
 
-int Db::clearFailedVideos() const
+int Db::clearFailedVideos()
 {
     if (!_db.isOpen()) {
         qDebug() << "Database not open, can't clear failed-video cache.";
         return -1;
     }
 
-    QSqlQuery query(_db);
-    if (!query.exec(QStringLiteral("DELETE FROM failed_videos;"))) {
-        qDebug() << "Error with clearFailedVideos query=" << query.lastQuery();
-        qDebug() << query.lastError().text();
+    if (!_db.transaction()) {
+        qDebug() << "Error starting clearFailedVideos transaction:" << _db.lastError().text();
         return -1;
     }
-    return query.numRowsAffected();
+
+    QSqlQuery query(_db);
+    if (!query.exec(QStringLiteral("SELECT COUNT(DISTINCT path) FROM failed_videos;")) || !query.next()) {
+        qDebug() << "Error with clearFailedVideos query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        _db.rollback();
+        return -1;
+    }
+    const int failedVideoCount = query.value(0).toInt();
+
+    // Clearing a failure is an explicit retry request, so discard only extraction data for failed paths.
+    const QStringList statements = {
+        QStringLiteral("DELETE FROM capture WHERE id IN (SELECT path FROM failed_videos);"),
+        QStringLiteral("DELETE FROM metadata WHERE id IN (SELECT path FROM failed_videos);"),
+        QStringLiteral("DELETE FROM failed_videos;")};
+    for (const QString& statement : statements) {
+        if (query.exec(statement))
+            continue;
+        qDebug() << "Error with clearFailedVideos query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        _db.rollback();
+        return -1;
+    }
+
+    if (!_db.commit()) {
+        qDebug() << "Error committing clearFailedVideos transaction:" << _db.lastError().text();
+        _db.rollback();
+        return -1;
+    }
+    return failedVideoCount;
 }
 
 bool Db::removeVideo(const QString& filePathname) const

@@ -5,7 +5,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 set(TEST_COMPILE_DEFINITIONS
     VID_SIMILI_IN_TESTS
     QT_DISABLE_DEPRECATED_BEFORE=0x060000
-    APP_NAME="Video simili duplicate cleaner"
+    APP_NAME="Video simili duplicate cleaner tests"
     APP_COPYRIGHT="Copyright © 2020-2025 Théophane Mayaud, 2018-2019 Kristian Koskimäki"
 )
 
