@@ -32,6 +32,8 @@ struct FrameAnalysis {
     BlackBarAxis barAxis = BlackBarAxis::none;
     int leadingBar = 0;
     int trailingBar = 0;
+    // The grayscale analysis image caps its longest side at 64px; the other
+    // side scales proportionally so bar thickness is not distorted.
     int analysisWidth = 0;
     int analysisHeight = 0;
 };
