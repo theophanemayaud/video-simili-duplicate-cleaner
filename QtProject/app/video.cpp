@@ -144,7 +144,8 @@ QString Video::internalProcess()
         return QString("capture failed: %1").arg(err);
     }
     else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
-             || (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
+             || // only cutEnds separates fingerprints for captures; other modes treat the collage as one fingerprint
+             (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
     { //all screen captures black
         return "all screen captures black";
     }
