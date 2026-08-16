@@ -146,7 +146,7 @@ set_tests_properties(test_repo_video_extraction_regression PROPERTIES LABELS "re
 # Test 8: checked-in matching contract.
 add_qt_test(test_repo_video_matching
     SOURCES
-        repo/video_matching/tst_repo_video_matching.cpp
+        repo/video_matching/tst_video_matching.cpp
         shared/video_matching_fixture_manifest.cpp
         shared/video_matching_test_helpers.cpp
 )

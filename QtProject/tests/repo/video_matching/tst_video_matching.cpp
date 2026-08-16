@@ -319,4 +319,4 @@ void TestRepoVideoMatching::test_trackedEndToEndMatrix()
 
 QTEST_MAIN(TestRepoVideoMatching)
 
-#include "tst_repo_video_matching.moc"
+#include "tst_video_matching.moc"
