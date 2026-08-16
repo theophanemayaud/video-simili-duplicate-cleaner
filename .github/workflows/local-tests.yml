@@ -58,14 +58,14 @@ jobs:
           cmake --build QtProject/builds/ci-local-tests --target \
             test_comparison \
             test_mainwindow \
-            test_auto_delete \
-            test_video_matching_features
+            test_repo_auto_delete \
+            test_repo_video_matching
 
       - name: Run self-contained tests
         run: |
           ctest --test-dir QtProject/builds/ci-local-tests \
             --output-on-failure \
-            -R "^(test_comparison|test_mainwindow|test_auto_delete|test_video_matching_features)$"
+            -R "^(test_comparison|test_mainwindow|test_repo_auto_delete|test_repo_video_matching)$"
 
   # We build univeralized static dependencies for macOS directly from latest macOS
   # That we then reuse for all macOS runners
@@ -169,11 +169,11 @@ jobs:
           cmake --build QtProject/builds/ci-macos-local-tests --target \
             test_comparison \
             test_mainwindow \
-            test_auto_delete \
-            test_video_matching_features
+            test_repo_auto_delete \
+            test_repo_video_matching
 
       - name: Run self-contained tests
         run: |
           ctest --test-dir QtProject/builds/ci-macos-local-tests \
             --output-on-failure \
-            -R "^(test_comparison|test_mainwindow|test_auto_delete|test_video_matching_features)$"
+            -R "^(test_comparison|test_mainwindow|test_repo_auto_delete|test_repo_video_matching)$"

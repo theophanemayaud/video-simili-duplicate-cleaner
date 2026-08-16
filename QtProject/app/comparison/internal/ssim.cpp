@@ -57,8 +57,8 @@ double Ssim::calculate(const Mat& m0, const Mat& m1, const int block_size)
             const int m = k * block_size;
             const int n = l * block_size;
 
-            const double avg_o = mean(m0(Range(k, k + block_size), Range(l, l + block_size)))[0];
-            const double avg_r = mean(m1(Range(k, k + block_size), Range(l, l + block_size)))[0];
+            const double avg_o = mean(m0(Range(m, m + block_size), Range(n, n + block_size)))[0];
+            const double avg_r = mean(m1(Range(m, m + block_size), Range(n, n + block_size)))[0];
             const double sigma_o = sigma(m0, m, n, block_size);
             const double sigma_r = sigma(m1, m, n, block_size);
             const double sigma_ro = covariance(m0, m1, m, n, block_size);

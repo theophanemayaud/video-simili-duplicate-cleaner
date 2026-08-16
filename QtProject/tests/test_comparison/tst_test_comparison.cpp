@@ -1,6 +1,8 @@
 #include <QCoreApplication>
 #include <QtTest>
 
+#include <cmath>
+
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
 #include "../../app/comparison/internal/backgroundmatchdiscovery.h"
@@ -24,6 +26,7 @@ class test_comparison : public QObject
     void test_videoToDelete_OnlyTimeDiffs();
     void test_videoPairSpaceRoundTrip();
     void test_videoPairMatcherUsesConfigSnapshot();
+    void test_ssimUsesEachBlockForMeans();
     void test_rotatedMatcherRequiresSsimSafeguard();
     void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
@@ -156,6 +159,24 @@ void test_comparison::test_videoPairMatcherUsesConfigSnapshot()
     const auto result = VideoPairMatcher::match(left, right, config);
     QVERIFY(result.matches);
     QCOMPARE(result.phashSimilarity, 63);
+}
+
+void test_comparison::test_ssimUsesEachBlockForMeans()
+{
+    cv::Mat left(16, 16, CV_8UC1);
+    cv::Mat right(16, 16, CV_8UC1);
+    for (int row = 0; row < 16; ++row) {
+        for (int column = 0; column < 16; ++column) {
+            left.at<uchar>(row, column) = static_cast<uchar>((row * 17 + column * 7) % 191);
+            right.at<uchar>(row, column) = static_cast<uchar>((row * 13 + column * 11 + 29) % 191);
+        }
+    }
+
+    // These non-default block sizes expose an indexing error that sampled the
+    // means from (k, l) instead of each block's origin (k * blockSize, l * blockSize).
+    QVERIFY(std::abs(Ssim::calculate(left, right, 2) - 0.65639372860369649) < 1e-9);
+    QVERIFY(std::abs(Ssim::calculate(left, right, 4) - 0.46552455674718085) < 1e-9);
+    QVERIFY(std::abs(Ssim::calculate(left, right, 8) - 0.46507329051917068) < 1e-9);
 }
 
 void test_comparison::test_rotatedMatcherRequiresSsimSafeguard()
