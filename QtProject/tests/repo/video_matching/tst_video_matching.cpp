@@ -34,6 +34,7 @@ class TestRepoVideoMatching : public QObject
     void initTestCase();
     void cleanup();
     void test_manifestAndSizeBudget();
+    void test_useCacheOptionSetterTakesEffectBeforeRead();
     void test_frameAnalysisAndBlackBarConsensus();
     void test_rotatedPreferenceDefaultsOffAndPersists();
     void test_existingCaptureCacheIsReusedWithoutInvalidation();
@@ -97,6 +98,16 @@ void TestRepoVideoMatching::test_manifestAndSizeBudget()
     QVERIFY2(totalVideoBytes <= 2000000,
              qPrintable(QStringLiteral("Tracked matching videos use %1 bytes; budget is 2000000").arg(totalVideoBytes)));
     qInfo() << "Tracked matching video bytes:" << totalVideoBytes;
+}
+
+void TestRepoVideoMatching::test_useCacheOptionSetterTakesEffectBeforeRead()
+{
+    Prefs prefs;
+    prefs.resetSettings();
+    prefs.useCacheOption(Prefs::NO_CACHE);
+    QCOMPARE(prefs.useCacheOption(), Prefs::NO_CACHE);
+    prefs.useCacheOption(Prefs::CACHE_ONLY);
+    QCOMPARE(prefs.useCacheOption(), Prefs::CACHE_ONLY);
 }
 
 void TestRepoVideoMatching::test_frameAnalysisAndBlackBarConsensus()

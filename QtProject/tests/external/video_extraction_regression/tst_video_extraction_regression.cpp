@@ -22,7 +22,13 @@ class TestVideoExtractionRegression : public QObject
     Q_OBJECT
 
   private slots:
-    void initTestCase() { VideoCorpusTestHelpers::initialize(); }
+    void initTestCase()
+    {
+        VideoCorpusTestHelpers::initialize();
+        const QDir videos = ExternalFixturePaths::videos();
+        if (!videos.exists())
+            QSKIP(qPrintable(QStringLiteral("Optional external corpus unavailable: %1").arg(videos.path())));
+    }
     void emptyDb() { VideoCorpusTestHelpers::emptyDatabase(); }
 
     void test_check_refvidparams_nocache_data()
