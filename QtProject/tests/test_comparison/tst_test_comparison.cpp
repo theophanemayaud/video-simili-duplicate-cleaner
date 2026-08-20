@@ -515,12 +515,29 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
         cache.writeApplePhotosName(cachedPath, QStringLiteral("Cached name.mov"));
     }
 
-    prefs.useCacheOption(Prefs::NO_CACHE);
     Video noCacheVideo(prefs, cachedPath);
     Video otherVideo(prefs, otherPath);
     noCacheVideo.size = 2;
     otherVideo.size = 1;
     QVector<Video*> noCacheVideos = {&noCacheVideo, &otherVideo};
+    std::atomic_int withCacheLookupCalls = 0;
+    {
+        Comparison comparison(noCacheVideos, prefs, QRect());
+        comparison._backgroundDiscovery->stop();
+        comparison._videos = noCacheVideos;
+        comparison._applePhotosNameLookup = [&withCacheLookupCalls](const QString&) {
+            withCacheLookupCalls.fetch_add(1);
+            return QStringLiteral("Must not be called.mov");
+        };
+
+        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        QCOMPARE(noCacheVideo.nameInApplePhotos, QStringLiteral("Cached name.mov"));
+    }
+    QCOMPARE(withCacheLookupCalls.load(), 0);
+
+    // Reopen the same Video objects after switching modes: NO_CACHE must not
+    // reuse the name retained from the previous WITH_CACHE comparison.
+    prefs.useCacheOption(Prefs::NO_CACHE);
     std::atomic_int noCacheLookupCalls = 0;
     {
         Comparison comparison(noCacheVideos, prefs, QRect());

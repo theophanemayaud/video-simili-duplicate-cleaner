@@ -585,7 +585,12 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
         return;
 
     const Prefs::USE_CACHE_OPTION cacheMode = _prefs.useCacheOption();
-    if (cacheMode != Prefs::NO_CACHE) {
+    if (cacheMode == Prefs::NO_CACHE) {
+        // Video objects survive reopening results, so discard a name obtained
+        // under a previous cache-enabled comparison before looking it up live.
+        video->nameInApplePhotos.clear();
+    }
+    else {
         // A missing row means this is the first attempt, while a failed row
         // avoids another potentially long query.
         const Db::ApplePhotosNameCacheEntry cachedName =
