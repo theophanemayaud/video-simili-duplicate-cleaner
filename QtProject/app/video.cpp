@@ -88,7 +88,10 @@ Video::ProcessingResult Video::process()
             cache.lookupFailedVideo(_filePathName, initialSize, initialModifiedMs, _prefs.thumbnailsMode());
         if (failed.state == Db::FailedVideoCacheLookup::Changed) {
             // The path now identifies different file contents, so none of its path-keyed cache remains trustworthy.
-            cache.removeVideo(_filePathName);
+            if (!cache.invalidateChangedFailedVideo(_filePathName)) {
+                result.errorMsg = QStringLiteral("could not invalidate changed video cache; will retry next scan");
+                return result;
+            }
         }
         else if (failed.state == Db::FailedVideoCacheLookup::Unchanged) {
             result.errorMsg = QStringLiteral("previously failed; skipped processing: %1").arg(failed.error);
@@ -352,6 +355,8 @@ const QString Video::takeScreenCaptures(const Db& cache)
                         .arg(ofDuration);
             return err;
         }
+        if (resolved.substituteDecodeFailed)
+            return QStringLiteral("could not capture substitute frame at %1%").arg(percentages[capture]);
 
         QImage frame = std::move(resolved.frame);
 
@@ -412,8 +417,12 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
     const int substitutePercent = percentage < 50 ? percentage + _monochromeSubstituteOffset
                                                    : percentage - _monochromeSubstituteOffset;
     QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
+    if (substitute.isNull()) {
+        resolved.substituteDecodeFailed = true;
+        return resolved;
+    }
     const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);
-    if (!substitute.isNull() && substituteAnalysis.informative) {
+    if (substituteAnalysis.informative) {
         resolved.frame = std::move(substitute);
         resolved.analysis = substituteAnalysis;
         resolved.writeToCache = cacheEnabled;

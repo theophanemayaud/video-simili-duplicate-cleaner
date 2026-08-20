@@ -87,6 +87,8 @@ class Db
                                              int thumbnailMode) const;
     bool writeFailedVideo(const QString& filePathname, qint64 size, qint64 modifiedMs, int thumbnailMode,
                           const QString& error) const;
+    // A changed failed file must never reuse a partial old cache; false leaves every row untouched for a later retry.
+    bool invalidateChangedFailedVideo(const QString& filePathname);
     // Returns the number of distinct videos prepared for retry, or -1 when the database operation fails.
     int clearFailedVideos();
 

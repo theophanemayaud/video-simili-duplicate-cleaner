@@ -85,6 +85,7 @@ class Video : public QObject
         QImage frame;
         FrameAnalysis analysis;
         bool writeToCache = false;
+        bool substituteDecodeFailed = false;
     };
 
     const QString getMetadata(const QString& filename); // returns error message or empty string if success

@@ -3,8 +3,11 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 #include <QTemporaryDir>
 #include <QTextEdit>
+#include <QUuid>
 #include <QtTest>
 
 #include "db.h"
@@ -157,17 +160,47 @@ void TestFailedVideoCache::test_processingCachePolicy()
         cache.writeApplePhotosName(terminalPath, QStringLiteral("stale name"));
         cache.writePairToIgnore(terminalPath, otherPath);
     }
-    const QString allBlackError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
-    QCOMPARE(allBlackError, QStringLiteral("all screen captures black"));
-    Db::FailedVideoCacheLookup marker = lookup(cachePath, terminalPath, cutEnds);
-    QCOMPARE(marker.state, Db::FailedVideoCacheLookup::Unchanged);
-    QCOMPARE(marker.error, allBlackError);
-    QCOMPARE(processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds),
-             QStringLiteral("previously failed; skipped processing: %1").arg(allBlackError));
+    // A substitute decode can fail temporarily even though the cached primary frame is black.
+    const QString substituteError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(substituteError.contains(QStringLiteral("capture failed: could not capture substitute frame")));
+    QCOMPARE(lookup(cachePath, terminalPath, cutEnds).state, Db::FailedVideoCacheLookup::NotFound);
+    const QString retrySubstituteError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(retrySubstituteError.contains(QStringLiteral("capture failed: could not capture substitute frame")));
+    QVERIFY(!retrySubstituteError.startsWith(QStringLiteral("previously failed")));
+
+    {
+        Db cache(cachePath);
+        const QFileInfo signature(terminalPath);
+        QVERIFY(cache.writeFailedVideo(terminalPath, signature.size(), signature.lastModified().toMSecsSinceEpoch(),
+                                       cutEnds, QStringLiteral("previous failure")));
+    }
 
     QVERIFY(writeInvalidVideo(terminalPath, QByteArrayLiteral(" with changed size"),
                               QIODevice::WriteOnly | QIODevice::Append));
     QCOMPARE(lookup(cachePath, terminalPath, cutEnds).state, Db::FailedVideoCacheLookup::Changed);
+    const QString lockConnectionName = QUuid::createUuid().toString();
+    {
+        QSqlDatabase lock = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), lockConnectionName);
+        lock.setDatabaseName(cachePath);
+        QVERIFY(lock.open());
+        QSqlQuery lockQuery(lock);
+        QVERIFY(lockQuery.exec(QStringLiteral("BEGIN IMMEDIATE;")));
+
+        QCOMPARE(processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds),
+                 QStringLiteral("could not invalidate changed video cache; will retry next scan"));
+        QCOMPARE(lookup(cachePath, terminalPath, cutEnds).state, Db::FailedVideoCacheLookup::Changed);
+        Db cache(cachePath);
+        Video cachedVideo(prefs, terminalPath);
+        QVERIFY(cache.readMetadata(cachedVideo));
+        QVERIFY(!cache.readCapture(terminalPath, 8).isNull());
+        QCOMPARE(cache.readApplePhotosName(terminalPath).state, Db::ApplePhotosNameCacheEntry::Found);
+        QVERIFY(cache.isPairToIgnore(terminalPath, otherPath));
+
+        QVERIFY(lockQuery.exec(QStringLiteral("ROLLBACK;")));
+        lock.close();
+    }
+    QSqlDatabase::removeDatabase(lockConnectionName);
+
     const QString changedFileError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(changedFileError.contains(QStringLiteral("could not read metadata")));
     QVERIFY(!changedFileError.startsWith(QStringLiteral("previously failed")));

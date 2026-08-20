@@ -455,6 +455,45 @@ bool Db::writeFailedVideo(const QString& filePathname, const qint64 size, const 
     return false;
 }
 
+bool Db::invalidateChangedFailedVideo(const QString& filePathname)
+{
+    if (!_db.isOpen()) {
+        qDebug() << "Database not open, can't invalidate changed failed-video cache.";
+        return false;
+    }
+
+    if (!_db.transaction()) {
+        qDebug() << "Error starting changed failed-video cache invalidation:" << _db.lastError().text();
+        return false;
+    }
+
+    QSqlQuery query(_db);
+    const QStringList statements = {
+        QStringLiteral("DELETE FROM apple_photos_names WHERE id = :id;"),
+        QStringLiteral("DELETE FROM ignored_pairs WHERE pathName1 = :id OR pathName2 = :id;"),
+        QStringLiteral("DELETE FROM failed_videos WHERE path = :id;"),
+        QStringLiteral("DELETE FROM metadata WHERE id = :id;"),
+        QStringLiteral("DELETE FROM capture WHERE id = :id;")};
+    for (const QString& statement : statements) {
+        query.prepare(statement);
+        query.bindValue(":id", filePathname);
+        if (query.exec())
+            continue;
+        qDebug() << "Error invalidating changed failed-video cache for video=" << filePathname
+                 << " query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        _db.rollback();
+        return false;
+    }
+
+    if (_db.commit())
+        return true;
+
+    qDebug() << "Error committing changed failed-video cache invalidation:" << _db.lastError().text();
+    _db.rollback();
+    return false;
+}
+
 int Db::clearFailedVideos()
 {
     if (!_db.isOpen()) {
