@@ -623,17 +623,19 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
         const bool cancelled = request->cancelled.load();
 
         const bool found = !name.isEmpty() && !name.contains(OBJ_C_FAILURE_STRING);
-        if (!cancelled && _prefs.useCacheOption() == Prefs::WITH_CACHE) {
-            Db cache(_prefs.cacheFilePathName());
-            if (found)
-                cache.writeApplePhotosName(filePathname, name);
-            else {
-                cache.writeApplePhotosNameFailure(filePathname);
+        if (!cancelled) {
+            if (_prefs.useCacheOption() == Prefs::WITH_CACHE) {
+                Db cache(_prefs.cacheFilePathName());
+                if (found)
+                    cache.writeApplePhotosName(filePathname, name);
+                else
+                    cache.writeApplePhotosNameFailure(filePathname);
+            }
+            if (!found)
                 emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
                                                "If you have multiple libraries this might be normal, "
                                                "it will only work, only with the currently open library.")
                                            .arg(filePathname));
-            }
         }
 
         // A lookup may complete after Cancel or after navigation. Update only

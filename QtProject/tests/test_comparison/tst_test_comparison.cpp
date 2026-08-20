@@ -526,13 +526,16 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
         Comparison comparison(noCacheVideos, prefs, QRect());
         comparison._backgroundDiscovery->stop();
         comparison._videos = noCacheVideos;
+        QSignalSpy statusMessages(&comparison, &Comparison::sendStatusMessage);
         comparison._applePhotosNameLookup = [&noCacheLookupCalls](const QString&) {
             noCacheLookupCalls.fetch_add(1);
-            return QStringLiteral("Live no-cache name.mov");
+            return QStringLiteral(OBJ_C_FAILURE_STRING);
         };
 
         comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
-        QTRY_COMPARE_WITH_TIMEOUT(noCacheVideo.nameInApplePhotos, QStringLiteral("Live no-cache name.mov"), 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(statusMessages.count(), 1, 5000);
+        QVERIFY(statusMessages.first().first().toString().contains(QStringLiteral("Unknown error getting name")));
+        QCOMPARE(noCacheVideo.nameInApplePhotos, QString());
     }
     QCOMPARE(noCacheLookupCalls.load(), 1);
     {
