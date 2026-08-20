@@ -4,6 +4,7 @@
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QMimeData>
+#include <QProcess>
 #include <QProgressDialog>
 #include <QSlider>
 #include <QThreadPool>
@@ -44,6 +45,34 @@ QThreadPool* applePhotosNameLookupThreadPool()
     }();
     return pool;
 }
+
+QString applePhotosNameFromOsaScript(const QString& mediaId)
+{
+    QProcess process;
+    process.setProgram(QStringLiteral("osascript"));
+    process.setArguments({QStringLiteral("-l"),
+                          QStringLiteral("AppleScript"),
+                          QStringLiteral("-e"),
+                          QStringLiteral("on run argv\n"
+                                         "    tell application \"Photos\"\n"
+                                         "        set selMedia to (get media items whose id contains (item 1 of argv))\n"
+                                         "        return filename of item 1 of selMedia\n"
+                                         "    end tell\n"
+                                         "end run"),
+                          QStringLiteral("--"),
+                          mediaId});
+    process.start();
+    if (!process.waitForStarted(-1) || !process.waitForFinished(-1) || process.exitStatus() != QProcess::NormalExit
+        || process.exitCode() != 0)
+        return QStringLiteral(OBJ_C_FAILURE_STRING);
+
+    QString name = QString::fromUtf8(process.readAllStandardOutput());
+    if (name.endsWith('\n'))
+        name.chop(1);
+    if (name.endsWith('\r'))
+        name.chop(1);
+    return name;
+}
 #endif
 
 Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, const QRect& mainWindowGeometry)
@@ -54,10 +83,7 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
     ui->setupUi(this);
 
 #ifdef Q_OS_MACOS
-    _applePhotosNameLookup = [](const QString& mediaId) {
-        const std::string name = Obj_C::obj_C_getMediaName(mediaId.toStdString());
-        return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
-    };
+    _applePhotosNameLookup = applePhotosNameFromOsaScript;
 #endif
 
     this->setGeometry(mainWindowGeometry);
@@ -558,18 +584,22 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
     if (mediaId.contains("_"))
         return;
 
-    // The database records both outcomes: a missing row means this is the
-    // first attempt, while a failed row avoids another potentially long query.
-    const Db::ApplePhotosNameCacheEntry cachedName = Db(_prefs.cacheFilePathName()).readApplePhotosName(filePathname);
-    if (cachedName.state == Db::ApplePhotosNameCacheEntry::Found) {
-        video->nameInApplePhotos = cachedName.name;
-        return;
+    const Prefs::USE_CACHE_OPTION cacheMode = _prefs.useCacheOption();
+    if (cacheMode != Prefs::NO_CACHE) {
+        // A missing row means this is the first attempt, while a failed row
+        // avoids another potentially long query.
+        const Db::ApplePhotosNameCacheEntry cachedName =
+            Db(_prefs.cacheFilePathName()).readApplePhotosName(filePathname);
+        if (cachedName.state == Db::ApplePhotosNameCacheEntry::Found) {
+            video->nameInApplePhotos = cachedName.name;
+            return;
+        }
+        if (cachedName.state == Db::ApplePhotosNameCacheEntry::Failed) {
+            video->nameInApplePhotos.clear();
+            return;
+        }
     }
-    if (cachedName.state == Db::ApplePhotosNameCacheEntry::Failed) {
-        video->nameInApplePhotos.clear();
-        return;
-    }
-    if (!video->nameInApplePhotos.isEmpty())
+    if (cacheMode == Prefs::CACHE_ONLY || !video->nameInApplePhotos.isEmpty())
         return;
 
     if (_applePhotosNameRequests.contains(filePathname))
@@ -583,9 +613,8 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
     auto* watcher = new QFutureWatcher<QString>(this);
     const ApplePhotosNameLookup lookup = _applePhotosNameLookup;
 
-    // NSAppleScript itself stays synchronous. This wrapper only moves that
-    // blocking call off the GUI thread so the user can cancel the wait dialog
-    // and continue navigation while Photos finishes responding in the background.
+    // osascript stays synchronous in its worker. The process boundary keeps
+    // main-thread-only NSAppleScript out of the GUI while Cancel remains responsive.
     connect(watcher, &QFutureWatcher<QString>::finished, this, [this, watcher, filePathname, request] {
         const QString name = watcher->result();
         if (_applePhotosNameRequests.value(filePathname) == request)
@@ -594,7 +623,7 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
         const bool cancelled = request->cancelled.load();
 
         const bool found = !name.isEmpty() && !name.contains(OBJ_C_FAILURE_STRING);
-        if (!cancelled) {
+        if (!cancelled && _prefs.useCacheOption() == Prefs::WITH_CACHE) {
             Db cache(_prefs.cacheFilePathName());
             if (found)
                 cache.writeApplePhotosName(filePathname, name);
@@ -668,13 +697,15 @@ void Comparison::cancelApplePhotosNameLookups()
     if (_applePhotosNameRequests.isEmpty())
         return;
 
-    // Qt cannot interrupt a running NSAppleScript. Mark every queued or active
-    // request terminal first, persist the failure now, then let the one worker
-    // finish or skip queued work without changing the UI or cache again.
+    // Cancel cannot interrupt the current child process. Mark every queued or
+    // active request terminal first, then let the one worker finish or skip
+    // queued work without changing the UI or cache again.
+    const bool writeToCache = _prefs.useCacheOption() == Prefs::WITH_CACHE;
     Db cache(_prefs.cacheFilePathName());
     for (auto it = _applePhotosNameRequests.cbegin(); it != _applePhotosNameRequests.cend(); ++it) {
         it.value()->cancelled.store(true);
-        cache.writeApplePhotosNameFailure(it.key());
+        if (writeToCache)
+            cache.writeApplePhotosNameFailure(it.key());
     }
     _applePhotosNameLookupsInProgress.clear();
     closeApplePhotosNameWaitingDialog();

@@ -1,16 +1,12 @@
 #ifndef OBJCHEADER_H
 #define OBJCHEADER_H
 
-#include <string>
-
 #define OBJ_C_SUCCESS_STRING "VidSimiliSuccess" // Arbitrary success string that must be checked by caller
 #define OBJ_C_FAILURE_STRING "VidSimiliFailure" // Arbitrary failure string that must be checked by caller
 
 class Obj_C
 {
   public:
-    // From Qt C++, convert the owning std::string with QString::fromUtf8().
-
     /* *
          * function:
          * return : string OBJ_C_SUCCESS_STRING if success, or the error if error
@@ -18,12 +14,6 @@ class Obj_C
     static char*
     obj_C_addMediaToAlbum(char* albumName,
                           char* mediaId); //We define a static method to call the function directly using the class_name
-
-    /* *
-         * function:
-         * return : media name if success, or string OBJ_C_FAILURE_STRING if error
-        * */
-    static std::string obj_C_getMediaName(const std::string& mediaId);
 
     /* *
          * function:

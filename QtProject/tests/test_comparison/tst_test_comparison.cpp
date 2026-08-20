@@ -31,6 +31,17 @@ class CachePathRestore
     const QString _originalPath;
 };
 
+class CacheModeRestore
+{
+  public:
+    explicit CacheModeRestore(Prefs& prefs) : _prefs(prefs), _originalMode(prefs.useCacheOption()) {}
+    ~CacheModeRestore() { _prefs.useCacheOption(_originalMode); }
+
+  private:
+    Prefs& _prefs;
+    const Prefs::USE_CACHE_OPTION _originalMode;
+};
+
 class ApplePhotosLookupRaceTestState
 {
   public:
@@ -75,6 +86,7 @@ class test_comparison : public QObject
     void test_applePhotosNameLookupSuccessCaches();
     void test_applePhotosNameLookupClosingComparisonFails();
     void test_applePhotosNameLookupsAreSerialized();
+    void test_applePhotosNameLookupHonorsCacheModes();
 #endif
     void test_videoPairSpaceRoundTrip();
     void test_videoPairMatcherUsesConfigSnapshot();
@@ -478,6 +490,114 @@ void test_comparison::test_applePhotosNameLookupsAreSerialized()
         QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameRequests.isEmpty(), 5000);
         QCOMPARE(lookupCalls.load(), 2);
         QCOMPARE(maximumActiveLookups.load(), 1);
+    }
+
+    QVERIFY(Db::emptyAllDb(prefs));
+}
+
+void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
+{
+    QTemporaryDir cacheDirectory;
+    QVERIFY(cacheDirectory.isValid());
+
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    CacheModeRestore restoreCacheMode(prefs);
+    prefs.cacheFilePathName(cacheDirectory.filePath(QStringLiteral("cache.db")));
+    prefs.useCacheOption(Prefs::WITH_CACHE);
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    const QString cachedPath = QStringLiteral("/Library.photoslibrary/originals/A/CACHED123.mov");
+    const QString cacheOnlyPath = QStringLiteral("/Library.photoslibrary/originals/B/CACHEONLY456.mov");
+    const QString otherPath = QStringLiteral("/tmp/other.mp4");
+    {
+        Db cache(prefs.cacheFilePathName());
+        cache.writeApplePhotosName(cachedPath, QStringLiteral("Cached name.mov"));
+    }
+
+    prefs.useCacheOption(Prefs::NO_CACHE);
+    Video noCacheVideo(prefs, cachedPath);
+    Video otherVideo(prefs, otherPath);
+    noCacheVideo.size = 2;
+    otherVideo.size = 1;
+    QVector<Video*> noCacheVideos = {&noCacheVideo, &otherVideo};
+    std::atomic_int noCacheLookupCalls = 0;
+    {
+        Comparison comparison(noCacheVideos, prefs, QRect());
+        comparison._backgroundDiscovery->stop();
+        comparison._videos = noCacheVideos;
+        comparison._applePhotosNameLookup = [&noCacheLookupCalls](const QString&) {
+            noCacheLookupCalls.fetch_add(1);
+            return QStringLiteral("Live no-cache name.mov");
+        };
+
+        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        QTRY_COMPARE_WITH_TIMEOUT(noCacheVideo.nameInApplePhotos, QStringLiteral("Live no-cache name.mov"), 5000);
+    }
+    QCOMPARE(noCacheLookupCalls.load(), 1);
+    {
+        Db cache(prefs.cacheFilePathName());
+        const Db::ApplePhotosNameCacheEntry cached = cache.readApplePhotosName(cachedPath);
+        QCOMPARE(cached.state, Db::ApplePhotosNameCacheEntry::Found);
+        QCOMPARE(cached.name, QStringLiteral("Cached name.mov"));
+    }
+
+    const QString cancelledPath = QStringLiteral("/Library.photoslibrary/originals/C/CANCEL789.mov");
+    Video cancelledVideo(prefs, cancelledPath);
+    cancelledVideo.size = 2;
+    QVector<Video*> cancelledVideos = {&cancelledVideo, &otherVideo};
+    QSemaphore finishCancelledLookup;
+    std::atomic_bool cancelledLookupStarted = false;
+    {
+        Comparison comparison(cancelledVideos, prefs, QRect());
+        comparison._backgroundDiscovery->stop();
+        comparison._videos = cancelledVideos;
+        comparison._applePhotosNameLookup = [&cancelledLookupStarted, &finishCancelledLookup](const QString&) {
+            cancelledLookupStarted.store(true);
+            finishCancelledLookup.acquire();
+            return QStringLiteral("Cancelled no-cache name.mov");
+        };
+
+        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        QTRY_VERIFY_WITH_TIMEOUT(cancelledLookupStarted.load(), 5000);
+        auto* cancelButton = comparison._applePhotosNameWaitingDialog->findChild<QPushButton*>();
+        QVERIFY(cancelButton != nullptr);
+        cancelButton->click();
+        QTRY_VERIFY_WITH_TIMEOUT(!comparison._applePhotosNameWaitingDialog, 5000);
+        finishCancelledLookup.release();
+        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameRequests.isEmpty(), 5000);
+    }
+    {
+        Db cache(prefs.cacheFilePathName());
+        QCOMPARE(cache.readApplePhotosName(cancelledPath).state, Db::ApplePhotosNameCacheEntry::Unknown);
+    }
+
+    prefs.useCacheOption(Prefs::CACHE_ONLY);
+    Video cacheOnlyVideo(prefs, cacheOnlyPath);
+    Video cacheOnlyOtherVideo(prefs, otherPath);
+    cacheOnlyVideo.size = 2;
+    cacheOnlyOtherVideo.size = 1;
+    QVector<Video*> cacheOnlyVideos = {&cacheOnlyVideo, &cacheOnlyOtherVideo};
+    std::atomic_int cacheOnlyLookupCalls = 0;
+    {
+        Comparison comparison(cacheOnlyVideos, prefs, QRect());
+        comparison._backgroundDiscovery->stop();
+        comparison._videos = cacheOnlyVideos;
+        comparison._applePhotosNameLookup = [&cacheOnlyLookupCalls](const QString&) {
+            cacheOnlyLookupCalls.fetch_add(1);
+            return QStringLiteral("Must not be called.mov");
+        };
+
+        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        QCoreApplication::processEvents();
+        QCOMPARE(cacheOnlyVideo.nameInApplePhotos, QString());
+        QCOMPARE(comparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+                 QStringLiteral("CACHEONLY456.mov"));
+    }
+    QCOMPARE(cacheOnlyLookupCalls.load(), 0);
+    {
+        Db cache(prefs.cacheFilePathName());
+        QCOMPARE(cache.readApplePhotosName(cacheOnlyPath).state, Db::ApplePhotosNameCacheEntry::Unknown);
     }
 
     QVERIFY(Db::emptyAllDb(prefs));

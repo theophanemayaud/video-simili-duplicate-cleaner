@@ -21,8 +21,6 @@
 #include <memory>
 
 #ifdef Q_OS_MACOS
-#include <QProcess> // for running apple scripts and opening file in explorer
-
 #include "obj-c.h"
 #endif
 
