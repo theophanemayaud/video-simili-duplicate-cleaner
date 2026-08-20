@@ -24,10 +24,11 @@ class Db
     struct FailedVideoCacheLookup
     {
         enum State {
+            LookupError,
             NotFound,
             Unchanged,
             Changed
-        } state = NotFound;
+        } state = LookupError;
         QString error;
     };
 

@@ -86,7 +86,11 @@ Video::ProcessingResult Video::process()
         Db cache(_prefs.cacheFilePathName());
         const Db::FailedVideoCacheLookup failed =
             cache.lookupFailedVideo(_filePathName, initialSize, initialModifiedMs, _prefs.thumbnailsMode());
-        if (failed.state == Db::FailedVideoCacheLookup::Changed) {
+        if (failed.state == Db::FailedVideoCacheLookup::LookupError) {
+            result.errorMsg = QStringLiteral("could not look up failed video cache; will retry next scan");
+            return result;
+        }
+        else if (failed.state == Db::FailedVideoCacheLookup::Changed) {
             // The path now identifies different file contents, so none of its path-keyed cache remains trustworthy.
             if (!cache.invalidateChangedFailedVideo(_filePathName)) {
                 result.errorMsg = QStringLiteral("could not invalidate changed video cache; will retry next scan");

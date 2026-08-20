@@ -416,6 +416,7 @@ Db::FailedVideoCacheLookup Db::lookupFailedVideo(const QString& filePathname, co
         return result;
     }
 
+    result.state = FailedVideoCacheLookup::NotFound;
     while (query.next()) {
         if (query.value(0).toLongLong() != size || query.value(1).toLongLong() != modifiedMs) {
             result.state = FailedVideoCacheLookup::Changed;

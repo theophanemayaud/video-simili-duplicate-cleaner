@@ -83,6 +83,7 @@ class TestFailedVideoCache : public QObject
     void init();
     void cleanup();
     void test_processingCachePolicy();
+    void test_lookupErrorStopsProcessing();
     void test_databaseClearingAndRemoval();
     void test_clearActionRetriesVideo();
 };
@@ -223,6 +224,43 @@ void TestFailedVideoCache::test_processingCachePolicy()
     QVERIFY(writeInvalidVideo(emptyPath, {}));
     QVERIFY(processError(emptyPath, cachePath, Prefs::WITH_CACHE, cutEnds).contains(QStringLiteral("file size = 0")));
     QCOMPARE(lookup(cachePath, emptyPath, cutEnds).state, Db::FailedVideoCacheLookup::NotFound);
+}
+
+void TestFailedVideoCache::test_lookupErrorStopsProcessing()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
+    const QString videoPath = temporary.filePath(QStringLiteral("changed.mp4"));
+    QVERIFY(writeInvalidVideo(videoPath, QByteArrayLiteral("not a video")));
+    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(Db::emptyAllDb(prefs));
+    {
+        Db cache(cachePath);
+        writePlausibleMetadata(cache, prefs, videoPath, QFileInfo(videoPath).size());
+        cache.writeCapture(videoPath, 8, QByteArrayLiteral("stale capture"));
+    }
+
+    const QString connectionName = QUuid::createUuid().toString();
+    {
+        QSqlDatabase database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connectionName);
+        database.setDatabaseName(cachePath);
+        QVERIFY(database.open());
+        QSqlQuery query(database);
+        QVERIFY(query.exec(QStringLiteral("DROP TABLE failed_videos;")));
+        database.close();
+    }
+    QSqlDatabase::removeDatabase(connectionName);
+
+    QCOMPARE(lookup(cachePath, videoPath, cutEnds).state, Db::FailedVideoCacheLookup::LookupError);
+    QCOMPARE(processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds),
+             QStringLiteral("could not look up failed video cache; will retry next scan"));
+    {
+        Db cache(cachePath);
+        Video cachedVideo(prefs, videoPath);
+        QVERIFY(cache.readMetadata(cachedVideo));
+        QCOMPARE(cache.readCapture(videoPath, 8), QByteArrayLiteral("stale capture"));
+    }
 }
 
 void TestFailedVideoCache::test_databaseClearingAndRemoval()
