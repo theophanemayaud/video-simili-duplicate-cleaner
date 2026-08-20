@@ -301,6 +301,7 @@ void MainWindow::processVideos()
     if (_prefs._numberOfVideos > 0) {
         ui->selectThumbnails->setDisabled(true);
         ui->detectRotatedCopiesCheckbox->setDisabled(true);
+        ui->actionClear_failed_videos_from_cache->setDisabled(true);
         ui->processedFiles->setVisible(true);
         if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY)
             ui->processedFiles->setText(QStringLiteral("0/%1").arg(_prefs._numberOfVideos));
@@ -403,6 +404,7 @@ void MainWindow::processVideos()
 
     ui->selectThumbnails->setDisabled(false);
     ui->detectRotatedCopiesCheckbox->setDisabled(false);
+    ui->actionClear_failed_videos_from_cache->setDisabled(false);
     ui->processedFiles->setVisible(false);
     ui->progressBar->setVisible(false);
     ui->statusBar->setVisible(false);
