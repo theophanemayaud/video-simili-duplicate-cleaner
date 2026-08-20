@@ -170,7 +170,8 @@ Video::InternalProcessingOutcome Video::internalProcess()
     if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE && durationWasZero && duration != 0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if (!err.isEmpty()) {
-        return {QStringLiteral("capture failed: %1").arg(err), true};
+        // A capture error can be an unavailable source or temporary resource failure, so let the next scan retry it.
+        return {QStringLiteral("capture failed: %1").arg(err)};
     }
     else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
              || // only cutEnds separates fingerprints for captures; other modes treat the collage as one fingerprint

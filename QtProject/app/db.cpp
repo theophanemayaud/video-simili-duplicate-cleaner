@@ -526,6 +526,17 @@ bool Db::removeVideo(const QString& filePathname) const
         qDebug() << error.text();
     }
 
+    // Ignore decisions describe the old content too, so a replacement at this path must be compared again.
+    query.prepare("DELETE FROM ignored_pairs WHERE pathName1 = :id OR pathName2 = :id;");
+    query.bindValue(":id", filePathname);
+    query.exec();
+    error = query.lastError();
+    if (error.isValid()) {
+        qDebug() << "Error with removeVideo ignored-pair query for video=" << filePathname
+                 << " query=" << query.lastQuery();
+        qDebug() << error.text();
+    }
+
     // Failure markers may exist without metadata when FFmpeg rejected the file before metadata could be cached.
     query.prepare("DELETE FROM failed_videos WHERE path = :id;");
     query.bindValue(":id", filePathname);

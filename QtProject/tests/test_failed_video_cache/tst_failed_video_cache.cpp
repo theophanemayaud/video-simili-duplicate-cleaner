@@ -1,6 +1,8 @@
 #include <QAction>
+#include <QBuffer>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
 #include <QTemporaryDir>
 #include <QTextEdit>
 #include <QtTest>
@@ -58,6 +60,16 @@ Db::FailedVideoCacheLookup lookup(const QString& cachePath, const QString& path,
     return Db(cachePath).lookupFailedVideo(path, signature.size(), signature.lastModified().toMSecsSinceEpoch(),
                                            thumbnailMode);
 }
+
+QByteArray blackCapture()
+{
+    QImage image(16, 16, QImage::Format_RGB888);
+    image.fill(Qt::black);
+    QByteArray encoded;
+    QBuffer buffer(&encoded);
+    image.save(&buffer, QByteArrayLiteral("JPG"));
+    return encoded;
+}
 } // namespace
 
 class TestFailedVideoCache : public QObject
@@ -87,71 +99,86 @@ void TestFailedVideoCache::test_processingCachePolicy()
     QTemporaryDir temporary;
     QVERIFY(temporary.isValid());
     const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
-    const QString videoPath = temporary.filePath(QStringLiteral("broken.mp4"));
-    QVERIFY(writeInvalidVideo(videoPath, QByteArrayLiteral("not a video")));
+    const QString transientPath = temporary.filePath(QStringLiteral("transient.mp4"));
+    QVERIFY(writeInvalidVideo(transientPath, QByteArrayLiteral("not a video")));
 
     const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(Db::emptyAllDb(prefs));
 
     // Generic metadata/open failures may be environmental or transient, so unchanged files must remain retryable.
-    const QString firstMetadataError = processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    const QString firstMetadataError = processError(transientPath, cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(firstMetadataError.contains(QStringLiteral("could not read metadata")));
-    QCOMPARE(lookup(cachePath, videoPath, cutEnds).state, Db::FailedVideoCacheLookup::NotFound);
-    const QString secondMetadataError = processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QCOMPARE(lookup(cachePath, transientPath, cutEnds).state, Db::FailedVideoCacheLookup::NotFound);
+    const QString secondMetadataError = processError(transientPath, cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(secondMetadataError.contains(QStringLiteral("could not read metadata")));
     QVERIFY(!secondMetadataError.startsWith(QStringLiteral("previously failed")));
 
-    // Plausible cached metadata gets the invalid file into the expensive capture/decode retry path.
+    // Cached metadata gets the invalid file into the capture/decode path, whose failures may also be transient.
     {
         Db cache(cachePath);
-        writePlausibleMetadata(cache, prefs, videoPath, QFileInfo(videoPath).size());
+        writePlausibleMetadata(cache, prefs, transientPath, QFileInfo(transientPath).size());
     }
-    const QString captureError = processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    const QString captureError = processError(transientPath, cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(captureError.contains(QStringLiteral("capture failed")));
-    Db::FailedVideoCacheLookup marker = lookup(cachePath, videoPath, cutEnds);
-    QCOMPARE(marker.state, Db::FailedVideoCacheLookup::Unchanged);
-    QCOMPARE(marker.error, captureError);
+    QCOMPARE(lookup(cachePath, transientPath, cutEnds).state, Db::FailedVideoCacheLookup::NotFound);
+    const QString retryCaptureError = processError(transientPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(retryCaptureError.contains(QStringLiteral("capture failed")));
+    QVERIFY(!retryCaptureError.startsWith(QStringLiteral("previously failed")));
 
-    const QString skippedError = processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds);
-    QCOMPARE(skippedError, QStringLiteral("previously failed; skipped processing: %1").arg(captureError));
-
-    const QString otherModeError = processError(videoPath, cachePath, Prefs::WITH_CACHE, thumb1);
+    const QString otherModeError = processError(transientPath, cachePath, Prefs::WITH_CACHE, thumb1);
     QVERIFY(otherModeError.contains(QStringLiteral("capture failed")));
     QVERIFY(!otherModeError.startsWith(QStringLiteral("previously failed")));
-    QCOMPARE(lookup(cachePath, videoPath, thumb1).state, Db::FailedVideoCacheLookup::Unchanged);
+    QCOMPARE(lookup(cachePath, transientPath, thumb1).state, Db::FailedVideoCacheLookup::NotFound);
 
-    const QString noCacheError = processError(videoPath, cachePath, Prefs::NO_CACHE, cutEnds);
+    const QString noCacheError = processError(transientPath, cachePath, Prefs::NO_CACHE, cutEnds);
     QVERIFY(noCacheError.contains(QStringLiteral("could not read metadata")));
     QVERIFY(!noCacheError.startsWith(QStringLiteral("previously failed")));
-    const QString noCacheNewModeError = processError(videoPath, cachePath, Prefs::NO_CACHE, thumb2);
+    const QString noCacheNewModeError = processError(transientPath, cachePath, Prefs::NO_CACHE, thumb2);
     QVERIFY(!noCacheNewModeError.isEmpty());
-    QCOMPARE(lookup(cachePath, videoPath, thumb2).state, Db::FailedVideoCacheLookup::NotFound);
+    QCOMPARE(lookup(cachePath, transientPath, thumb2).state, Db::FailedVideoCacheLookup::NotFound);
 
-    const QString cacheOnlyError = processError(videoPath, cachePath, Prefs::CACHE_ONLY, cutEnds);
-    QCOMPARE(cacheOnlyError, QStringLiteral("previously failed; skipped processing: %1").arg(captureError));
-    const QString cacheOnlyMiss = processError(videoPath, cachePath, Prefs::CACHE_ONLY, thumb3);
+    const QString cacheOnlyError = processError(transientPath, cachePath, Prefs::CACHE_ONLY, cutEnds);
+    QVERIFY(!cacheOnlyError.isEmpty());
+    QVERIFY(!cacheOnlyError.startsWith(QStringLiteral("previously failed")));
+    const QString cacheOnlyMiss = processError(transientPath, cachePath, Prefs::CACHE_ONLY, thumb3);
     QVERIFY(!cacheOnlyMiss.isEmpty());
     QVERIFY(!cacheOnlyMiss.startsWith(QStringLiteral("previously failed")));
-    QCOMPARE(lookup(cachePath, videoPath, thumb3).state, Db::FailedVideoCacheLookup::NotFound);
+    QCOMPARE(lookup(cachePath, transientPath, thumb3).state, Db::FailedVideoCacheLookup::NotFound);
 
+    const QString terminalPath = temporary.filePath(QStringLiteral("all-black.mp4"));
+    const QString otherPath = temporary.filePath(QStringLiteral("other.mp4"));
+    QVERIFY(writeInvalidVideo(terminalPath, QByteArrayLiteral("not a video")));
     {
         Db cache(cachePath);
-        cache.writeCapture(videoPath, 8, QByteArrayLiteral("stale capture"));
-        cache.writeApplePhotosName(videoPath, QStringLiteral("stale name"));
+        writePlausibleMetadata(cache, prefs, terminalPath, QFileInfo(terminalPath).size());
+        const QByteArray black = blackCapture();
+        for (const int percentage : Thumbnail(cutEnds).percentages())
+            cache.writeCapture(terminalPath, percentage, black);
+        cache.writeApplePhotosName(terminalPath, QStringLiteral("stale name"));
+        cache.writePairToIgnore(terminalPath, otherPath);
     }
-    QVERIFY(writeInvalidVideo(videoPath, QByteArrayLiteral(" with changed size"),
+    const QString allBlackError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QCOMPARE(allBlackError, QStringLiteral("all screen captures black"));
+    Db::FailedVideoCacheLookup marker = lookup(cachePath, terminalPath, cutEnds);
+    QCOMPARE(marker.state, Db::FailedVideoCacheLookup::Unchanged);
+    QCOMPARE(marker.error, allBlackError);
+    QCOMPARE(processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds),
+             QStringLiteral("previously failed; skipped processing: %1").arg(allBlackError));
+
+    QVERIFY(writeInvalidVideo(terminalPath, QByteArrayLiteral(" with changed size"),
                               QIODevice::WriteOnly | QIODevice::Append));
-    QCOMPARE(lookup(cachePath, videoPath, cutEnds).state, Db::FailedVideoCacheLookup::Changed);
-    const QString changedFileError = processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QCOMPARE(lookup(cachePath, terminalPath, cutEnds).state, Db::FailedVideoCacheLookup::Changed);
+    const QString changedFileError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(changedFileError.contains(QStringLiteral("could not read metadata")));
     QVERIFY(!changedFileError.startsWith(QStringLiteral("previously failed")));
-    QCOMPARE(lookup(cachePath, videoPath, cutEnds).state, Db::FailedVideoCacheLookup::NotFound);
+    QCOMPARE(lookup(cachePath, terminalPath, cutEnds).state, Db::FailedVideoCacheLookup::NotFound);
     {
         Db cache(cachePath);
-        Video cachedVideo(prefs, videoPath);
+        Video cachedVideo(prefs, terminalPath);
         QVERIFY(!cache.readMetadata(cachedVideo));
-        QVERIFY(cache.readCapture(videoPath, 8).isNull());
-        QCOMPARE(cache.readApplePhotosName(videoPath).state, Db::ApplePhotosNameCacheEntry::Unknown);
+        QVERIFY(cache.readCapture(terminalPath, 8).isNull());
+        QCOMPARE(cache.readApplePhotosName(terminalPath).state, Db::ApplePhotosNameCacheEntry::Unknown);
+        QVERIFY(!cache.isPairToIgnore(terminalPath, otherPath));
     }
 
     const QString missingPath = temporary.filePath(QStringLiteral("missing.mp4"));
