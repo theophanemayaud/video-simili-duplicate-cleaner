@@ -110,6 +110,14 @@ void BackgroundMatchDiscovery::stop()
     _started = false;
 }
 
+QVector<MatchedVideoPair> BackgroundMatchDiscovery::safeMatches() const
+{
+    QVector<MatchedVideoPair> matches;
+    for (auto it = _matches.cbegin(); it != _matches.cend() && it.key() <= _lastContiguousScannedPairPosition; ++it)
+        matches.append(it.value());
+    return matches;
+}
+
 std::optional<MatchedVideoPair> BackgroundMatchDiscovery::nextCandidateAfter(int64_t position) const
 {
     const auto candidate = _matches.upperBound(position);

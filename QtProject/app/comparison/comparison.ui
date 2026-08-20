@@ -10,6 +10,12 @@
     <height>598</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>1120</width>
+    <height>650</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>Similiar and duplicate video finder</string>
   </property>
@@ -212,6 +218,49 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
        <property name="bottomMargin">
         <number>0</number>
        </property>
+       <item>
+        <layout class="QVBoxLayout" name="duplicateSetsLayout">
+         <property name="spacing">
+          <number>4</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="duplicateSetsTitle">
+           <property name="text">
+            <string>Duplicate sets</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="duplicateSets">
+           <property name="minimumSize">
+            <size>
+             <width>210</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="alternatingRowColors">
+            <bool>true</bool>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>96</width>
+             <height>68</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="duplicateSetsStatus">
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>Scanning duplicate sets…</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
@@ -1150,6 +1199,55 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
               </layout>
              </item>
             </layout>
+           </item>
+         </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="duplicateSetMembersLayout">
+           <property name="spacing">
+            <number>2</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="duplicateSetMembersTitle">
+             <property name="text">
+              <string>Members</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QListWidget" name="duplicateSetMembers">
+             <property name="flow">
+              <enum>QListView::Flow::LeftToRight</enum>
+             </property>
+             <property name="wrapping">
+              <bool>false</bool>
+             </property>
+             <property name="resizeMode">
+              <enum>QListView::ResizeMode::Adjust</enum>
+             </property>
+             <property name="viewMode">
+              <enum>QListView::ViewMode::IconMode</enum>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>76</width>
+               <height>54</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>104</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="duplicateSetEvidence">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
