@@ -217,7 +217,7 @@ class Prefs
     void useCacheOption(const USE_CACHE_OPTION opt)
     {
         if (this->useCacheOptionStatic == nullptr)
-            this->useCacheOptionStatic = std::make_unique<USE_CACHE_OPTION>(WITH_CACHE);
+            this->useCacheOptionStatic = std::make_unique<USE_CACHE_OPTION>(opt);
         else
             *this->useCacheOptionStatic = opt;
 
