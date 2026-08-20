@@ -516,10 +516,12 @@ int Db::clearFailedVideos()
     }
     const int failedVideoCount = query.value(0).toInt();
 
-    // Clearing a failure is an explicit retry request, so discard only extraction data for failed paths.
+    // Clearing a failure is an explicit retry request, so discard cached extraction and ignore decisions for failed paths.
     const QStringList statements = {
         QStringLiteral("DELETE FROM capture WHERE id IN (SELECT path FROM failed_videos);"),
         QStringLiteral("DELETE FROM metadata WHERE id IN (SELECT path FROM failed_videos);"),
+        QStringLiteral("DELETE FROM ignored_pairs WHERE pathName1 IN (SELECT path FROM failed_videos) "
+                       "OR pathName2 IN (SELECT path FROM failed_videos);"),
         QStringLiteral("DELETE FROM failed_videos;")};
     for (const QString& statement : statements) {
         if (query.exec(statement))

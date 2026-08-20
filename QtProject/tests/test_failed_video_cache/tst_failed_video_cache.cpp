@@ -309,7 +309,7 @@ void TestFailedVideoCache::test_databaseClearingAndRemoval()
         QCOMPARE(cache.readCapture(successfulPath, 8), QByteArrayLiteral("successful capture"));
         QCOMPARE(cache.readApplePhotosName(firstPath).state, Db::ApplePhotosNameCacheEntry::Found);
         QCOMPARE(cache.readApplePhotosName(successfulPath).state, Db::ApplePhotosNameCacheEntry::Found);
-        QVERIFY(cache.isPairToIgnore(firstPath, successfulPath));
+        QVERIFY(!cache.isPairToIgnore(firstPath, successfulPath));
 
         QVERIFY(cache.writeFailedVideo(firstPath, 10, 20, cutEnds, QStringLiteral("first")));
     }
