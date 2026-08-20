@@ -122,6 +122,8 @@ set(PROJECT_SOURCES
     app/comparison/comparison.ui
     app/comparison/internal/backgroundmatchdiscovery.cpp
     app/comparison/internal/backgroundmatchdiscovery.h
+    app/comparison/internal/duplicatesetbuilder.cpp
+    app/comparison/internal/duplicatesetbuilder.h
     app/comparison/internal/discoveryprogressslider.cpp
     app/comparison/internal/discoveryprogressslider.h
     app/comparison/internal/ssim.cpp

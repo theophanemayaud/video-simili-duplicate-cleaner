@@ -16,6 +16,7 @@
 class BackgroundMatchDiscovery : public QObject
 {
     Q_OBJECT
+    friend class test_comparison;
 
   public:
     // Discovery deliberately owns no navigation state. Foreground navigation
@@ -30,6 +31,10 @@ class BackgroundMatchDiscovery : public QObject
     bool hasStarted() const { return _started; }
     int64_t preScannedEnd() const { return _lastContiguousScannedPairPosition; }
     int discoveredMatchCount() const { return _matches.size(); }
+    // Results are exposed only from the completed contiguous prefix. This
+    // keeps consumers from showing later chunks before earlier work is known.
+    QVector<MatchedVideoPair> safeMatches() const;
+    bool isComplete() const { return _started && _lastContiguousScannedPairPosition == _maxPosition; }
 
     std::optional<MatchedVideoPair> nextCandidateAfter(int64_t position) const;
     std::optional<MatchedVideoPair> previousCandidateBefore(int64_t position) const;

@@ -5,6 +5,7 @@
 #include <QMimeData>
 #include <QProcess> // for opening a file in the platform file manager
 #include <QProgressDialog>
+#include <QSignalBlocker>
 #include <QSlider>
 
 #include "internal/backgroundmatchdiscovery.h"
@@ -56,9 +57,25 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
             SLOT(on_thresholdSlider_valueChanged(const int&)));
     connect(ui->progressBar, &QSlider::valueChanged,
             [this](int value) { ui->currentVideo->setText(QString::number(value)); });
-    connect(ui->progressBar, &QSlider::sliderReleased, this, &Comparison::onProgressSliderReleased);
+    // The pair-space slider is retained as a read-only progress indicator for
+    // automatic cleanup and background discovery. Manual review is set-driven;
+    // allowing seeks here would desynchronise the selected set and displayed pair.
+    ui->progressBar->setEnabled(false);
     connect(_backgroundDiscovery.get(), &BackgroundMatchDiscovery::preScannedEndChanged, this,
             &Comparison::updateDiscoveryProgress);
+    connect(ui->duplicateSets, &QListWidget::currentRowChanged, this, &Comparison::on_duplicateSets_currentRowChanged);
+    connect(ui->duplicateSetMembers, &QListWidget::currentRowChanged, this,
+            &Comparison::on_duplicateSetMembers_currentRowChanged);
+    connect(ui->tabWidget, &QTabWidget::currentChanged, this, [this]() {
+        if (ui->tabWidget->currentWidget() != ui->tabManual)
+            return;
+        if (_selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size())
+            showSetMember(_selectedSetMember);
+        else {
+            clearManualComparisonDisplay();
+            setManualComparisonActionsEnabled(false);
+        }
+    });
 
     initSortOrder();
 
@@ -103,14 +120,45 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
 
     //delete right, left, and go right, left shortcuts
     QShortcut* rightDelShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToNextChar), ui->tabManual);
-    connect(rightDelShortcut, SIGNAL(activated()), this, SLOT(on_rightDelete_clicked()));
+    connect(rightDelShortcut, &QShortcut::activated, this, [this]() {
+        // Arrow keys must remain safe, ordinary navigation while either of the
+        // new galleries has focus. Outside the galleries, preserve the existing
+        // review shortcuts.
+        if (ui->duplicateSetMembers->hasFocus()) {
+            const int lastMember = ui->duplicateSetMembers->count() - 1;
+            ui->duplicateSetMembers->setCurrentRow(qMin(ui->duplicateSetMembers->currentRow() + 1, lastMember));
+            return;
+        }
+        if (!ui->duplicateSets->hasFocus())
+            on_rightDelete_clicked();
+    });
     QShortcut* leftDelShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousChar), ui->tabManual);
-    connect(leftDelShortcut, SIGNAL(activated()), this, SLOT(on_leftDelete_clicked()));
+    connect(leftDelShortcut, &QShortcut::activated, this, [this]() {
+        if (ui->duplicateSetMembers->hasFocus()) {
+            ui->duplicateSetMembers->setCurrentRow(qMax(ui->duplicateSetMembers->currentRow() - 1, 1));
+            return;
+        }
+        if (!ui->duplicateSets->hasFocus())
+            on_leftDelete_clicked();
+    });
 
     QShortcut* downShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToNextLine), ui->tabManual);
-    connect(downShortcut, SIGNAL(activated()), this, SLOT(on_nextVideo_clicked()));
+    connect(downShortcut, &QShortcut::activated, this, [this]() {
+        if (ui->duplicateSets->hasFocus()) {
+            const int lastSet = ui->duplicateSets->count() - 1;
+            ui->duplicateSets->setCurrentRow(qMin(ui->duplicateSets->currentRow() + 1, lastSet));
+            return;
+        }
+        on_nextVideo_clicked();
+    });
     QShortcut* upShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousLine), ui->tabManual);
-    connect(upShortcut, SIGNAL(activated()), this, SLOT(on_prevVideo_clicked()));
+    connect(upShortcut, &QShortcut::activated, this, [this]() {
+        if (ui->duplicateSets->hasFocus()) {
+            ui->duplicateSets->setCurrentRow(qMax(ui->duplicateSets->currentRow() - 1, 0));
+            return;
+        }
+        on_prevVideo_clicked();
+    });
 
     // we only show gps info if at least one of the files has it
     ui->labelLeftGps->setVisible(false);
@@ -192,7 +240,6 @@ void Comparison::applySortOrder()
     _rightVideo = 0;
 
     restartBackgroundDiscovery();
-    on_nextVideo_clicked(); // Find and display the first pair from the newly sorted list.
 }
 
 Comparison::~Comparison()
@@ -272,6 +319,13 @@ void Comparison::confirmToExit()
 void Comparison::on_prevVideo_clicked()
 {
     _seekForwards = false;
+    if (ui->tabWidget->currentWidget() == ui->tabManual) {
+        if (_selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size()) {
+            const int lastMember = _duplicateSets[_selectedDuplicateSet].members.size() - 1;
+            showSetMember(_selectedSetMember <= 1 ? lastMember : _selectedSetMember - 1);
+        }
+        return;
+    }
     const int64_t currentPosition = comparisonsSoFar();
     if (currentPosition <= 1)
         return;
@@ -294,6 +348,13 @@ void Comparison::on_prevVideo_clicked()
 void Comparison::on_nextVideo_clicked()
 {
     _seekForwards = true;
+    if (ui->tabWidget->currentWidget() == ui->tabManual) {
+        if (_selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size()) {
+            const int lastMember = _duplicateSets[_selectedDuplicateSet].members.size() - 1;
+            showSetMember(_selectedSetMember >= lastMember ? 1 : _selectedSetMember + 1);
+        }
+        return;
+    }
     if (!navigateForwardFrom(comparisonsSoFar()))
         confirmToExit();
 }
@@ -319,16 +380,251 @@ bool Comparison::bothVideosMatch(const Video* left, const Video* right)
 
 void Comparison::restartBackgroundDiscovery()
 {
+    clearDuplicateSets();
     _backgroundDiscovery->start(_videos, VideoPairMatcher::configFromPrefs(_prefs));
 }
 
 void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
 {
     ui->progressBar->setDiscoveredValue(progressBarValue(preScannedEnd));
+    // Manual review navigates sets and their members, so the old pair position
+    // is no longer meaningful here. Keep the read-only footer aligned with the
+    // background scan instead of moving it whenever another member is shown.
+    if (ui->tabWidget->currentWidget() == ui->tabManual)
+        ui->progressBar->setValue(progressBarValue(preScannedEnd));
     const int percent = _maxComparisons > 0 ? int(100 * preScannedEnd / _maxComparisons) : 100;
     ui->progressBar->setToolTip(QStringLiteral("Background matching: %1% checked, %2 candidate pair(s) found")
                                     .arg(percent)
                                     .arg(_backgroundDiscovery->discoveredMatchCount()));
+    rebuildDuplicateSets();
+}
+
+void Comparison::clearDuplicateSets()
+{
+    _duplicateSets.clear();
+    _eligibleSetMatches.clear();
+    _selectedDuplicateSet = -1;
+    _selectedSetMember = -1;
+    if (!ui)
+        return;
+    const QSignalBlocker blockSetSelection(ui->duplicateSets);
+    const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
+    ui->duplicateSets->clear();
+    ui->duplicateSetMembers->clear();
+    ui->duplicateSetsStatus->setText(QStringLiteral("Scanning duplicate sets…"));
+    ui->duplicateSetEvidence->clear();
+    _currentComparisonIsDirectMatch = false;
+    // Auto cleanup still uses the detailed pair display and its filename as
+    // part of the existing completion/close flow. Only clear that surface when
+    // the user is actually reviewing the set browser.
+    if (ui->tabWidget->currentWidget() == ui->tabManual)
+        clearManualComparisonDisplay();
+    setManualComparisonActionsEnabled(false);
+}
+
+const MatchedVideoPair* Comparison::directEligiblePair(int left, int right) const
+{
+    for (const MatchedVideoPair& pair : _eligibleSetMatches)
+        if ((pair.left == left && pair.right == right) || (pair.left == right && pair.right == left))
+            return &pair;
+    return nullptr;
+}
+
+void Comparison::rebuildDuplicateSets()
+{
+    const int previouslySelectedVideo =
+        _selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size() && _selectedSetMember >= 0
+            ? _duplicateSets[_selectedDuplicateSet].members[_selectedSetMember]
+            : -1;
+    _eligibleSetMatches.clear();
+    for (const MatchedVideoPair& pair : _backgroundDiscovery->safeMatches())
+        if (isPairStillDisplayable(pair))
+            _eligibleSetMatches.append(pair);
+    _duplicateSets = DuplicateSetBuilder::build(_videos.size(), _eligibleSetMatches);
+
+    const QSignalBlocker blockSetSelection(ui->duplicateSets);
+    ui->duplicateSets->clear();
+    int videoCount = 0;
+    for (int setIndex = 0; setIndex < _duplicateSets.size(); ++setIndex) {
+        const DuplicateSet& set = _duplicateSets[setIndex];
+        videoCount += set.members.size();
+        qint64 size = 0;
+        for (int member : set.members)
+            size += _videos[member]->size;
+        auto* item = new QListWidgetItem(
+            QIcon(QPixmap::fromImage(QImage::fromData(_videos[set.members.first()]->thumbnail, "JPG"))),
+            QStringLiteral("Set %1\n%2 videos · %3")
+                .arg(setIndex + 1)
+                .arg(set.members.size())
+                .arg(readableFileSize(size)));
+        item->setData(Qt::UserRole, setIndex);
+        ui->duplicateSets->addItem(item);
+    }
+
+    if (_backgroundDiscovery->isComplete()) {
+        ui->duplicateSetsStatus->setText(
+            _duplicateSets.isEmpty()
+                ? QStringLiteral("No duplicate sets found.")
+                : QStringLiteral("%1 sets · %2 videos").arg(_duplicateSets.size()).arg(videoCount));
+    }
+    else if (_duplicateSets.isEmpty()) {
+        ui->duplicateSetsStatus->setText(QStringLiteral("Scanning duplicate sets…"));
+    }
+    else {
+        ui->duplicateSetsStatus->setText(
+            QStringLiteral("%1 sets · %2 videos — collecting results…").arg(_duplicateSets.size()).arg(videoCount));
+    }
+
+    int selectedSet = -1;
+    int selectedMember = 1;
+    if (previouslySelectedVideo >= 0) {
+        for (int setIndex = 0; setIndex < _duplicateSets.size() && selectedSet < 0; ++setIndex) {
+            const int member = _duplicateSets[setIndex].members.indexOf(previouslySelectedVideo);
+            if (member >= 0) {
+                selectedSet = setIndex;
+                selectedMember = member;
+            }
+        }
+    }
+    if (selectedSet < 0 && !_duplicateSets.isEmpty())
+        selectedSet = 0;
+    _selectedDuplicateSet = -1;
+    _selectedSetMember = -1;
+    if (selectedSet >= 0)
+        selectDuplicateSet(selectedSet, selectedMember);
+    else {
+        const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
+        ui->duplicateSetMembers->clear();
+        ui->duplicateSetEvidence->clear();
+        _currentComparisonIsDirectMatch = false;
+        if (ui->tabWidget->currentWidget() == ui->tabManual)
+            clearManualComparisonDisplay();
+        setManualComparisonActionsEnabled(false);
+    }
+}
+
+void Comparison::selectDuplicateSet(int row, int preferredMember)
+{
+    if (row < 0 || row >= _duplicateSets.size())
+        return;
+    _selectedDuplicateSet = row;
+    const DuplicateSet& set = _duplicateSets[row];
+    const QSignalBlocker blockSetSelection(ui->duplicateSets);
+    const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
+    ui->duplicateSets->setCurrentRow(row);
+    ui->duplicateSetMembers->clear();
+    for (int member = 0; member < set.members.size(); ++member) {
+        const Video* video = _videos[set.members[member]];
+        auto* item = new QListWidgetItem(
+            QIcon(QPixmap::fromImage(QImage::fromData(video->thumbnail, "JPG"))),
+            member == 0 ? QStringLiteral("Reference\n%1").arg(QFileInfo(video->_filePathName).fileName())
+                        : QFileInfo(video->_filePathName).fileName());
+        item->setData(Qt::UserRole, member);
+        ui->duplicateSetMembers->addItem(item);
+    }
+    showSetMember(qBound(1, preferredMember, set.members.size() - 1));
+}
+
+void Comparison::showSetMember(int member)
+{
+    if (_selectedDuplicateSet < 0 || _selectedDuplicateSet >= _duplicateSets.size())
+        return;
+    const DuplicateSet& set = _duplicateSets[_selectedDuplicateSet];
+    if (set.members.size() < 2)
+        return;
+    if (member <= 0)
+        member = 1;
+    member = qBound(1, member, set.members.size() - 1);
+    _selectedSetMember = member;
+    {
+        const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
+        ui->duplicateSetMembers->setCurrentRow(member);
+    }
+
+    const int reference = set.members.first();
+    const int candidate = set.members[member];
+    if (const MatchedVideoPair* direct = directEligiblePair(reference, candidate)) {
+        displayMatchedPair(*direct);
+        _currentComparisonIsDirectMatch = true;
+        ui->ignoreDuplicatePairButton->setEnabled(true);
+        ui->ignoreDuplicatePairButton->setToolTip(
+            QStringLiteral("Ignore this direct discovered match and rebuild duplicate sets."));
+        ui->duplicateSetEvidence->setText(QStringLiteral("Direct discovered match"));
+    }
+    else {
+        const VideoPairMatchResult result = VideoPairMatcher::match(*_videos[reference], *_videos[candidate],
+                                                                    VideoPairMatcher::configFromPrefs(_prefs));
+        displayMatchedPair({reference, candidate, 0, result.phashSimilarity, result.ssimSimilarity});
+        _currentComparisonIsDirectMatch = false;
+        ui->ignoreDuplicatePairButton->setEnabled(false);
+        ui->ignoreDuplicatePairButton->setToolTip(QStringLiteral(
+            "This is a linked-only comparison; these videos have no direct discovered match to ignore."));
+        ui->duplicateSetEvidence->setText(QStringLiteral("Linked through other members — not a direct match"));
+    }
+}
+
+void Comparison::on_duplicateSets_currentRowChanged(int row)
+{
+    selectDuplicateSet(row);
+}
+
+void Comparison::on_duplicateSetMembers_currentRowChanged(int row)
+{
+    showSetMember(row);
+}
+
+void Comparison::setManualComparisonActionsEnabled(bool enabled)
+{
+    ui->leftImage->setEnabled(enabled);
+    ui->rightImage->setEnabled(enabled);
+    ui->leftFileName->setEnabled(enabled);
+    ui->rightFileName->setEnabled(enabled);
+    ui->leftMove->setEnabled(enabled);
+    ui->rightMove->setEnabled(enabled);
+    ui->leftDelete->setEnabled(enabled);
+    ui->rightDelete->setEnabled(enabled);
+    ui->swapFilenames->setEnabled(enabled);
+    ui->prevVideo->setEnabled(enabled);
+    ui->nextVideo->setEnabled(enabled);
+    ui->ignoreDuplicatePairButton->setEnabled(enabled && _currentComparisonIsDirectMatch);
+}
+
+void Comparison::clearManualComparisonDisplay()
+{
+    ui->leftImage->clear();
+    ui->rightImage->clear();
+    ui->leftFileName->clear();
+    ui->rightFileName->clear();
+    ui->leftPathName->clear();
+    ui->rightPathName->clear();
+    ui->leftFileSize->clear();
+    ui->rightFileSize->clear();
+    ui->leftDuration->clear();
+    ui->rightDuration->clear();
+    ui->leftModified->clear();
+    ui->rightModified->clear();
+    ui->leftResolution->clear();
+    ui->rightResolution->clear();
+    ui->leftFrameRate->clear();
+    ui->rightFrameRate->clear();
+    ui->leftBitRate->clear();
+    ui->rightBitRate->clear();
+    ui->leftCodec->clear();
+    ui->rightCodec->clear();
+    ui->leftAudio->clear();
+    ui->rightAudio->clear();
+    ui->leftFileCreated->clear();
+    ui->rightFileCreated->clear();
+    ui->leftGpsCoordinates->clear();
+    ui->rightGpsCoordinates->clear();
+    ui->textEdit_leftMetadata->clear();
+    ui->textEdit_rightMetadata->clear();
+    ui->identicalBits->clear();
+}
+
+bool Comparison::hasActiveManualComparison() const
+{
+    return ui->leftDelete->isEnabled();
 }
 
 bool Comparison::navigateForwardFrom(int64_t currentPosition)
@@ -455,6 +751,10 @@ void Comparison::displayMatchedPair(const MatchedVideoPair& pair)
     showVideo(QStringLiteral("right"));
     highlightBetterProperties();
     updateUI();
+    _currentComparisonIsDirectMatch = true;
+    ui->ignoreDuplicatePairButton->setEnabled(true);
+    ui->ignoreDuplicatePairButton->setToolTip(
+        QStringLiteral("Mark this direct pair as not duplicates and save it to the cache."));
 }
 
 void Comparison::showVideo(const QString& side)
@@ -744,6 +1044,7 @@ void Comparison::highlightBetterProperties() const
 
 void Comparison::updateUI()
 {
+    setManualComparisonActionsEnabled(true);
     if (ui->leftPathName->text() == ui->rightPathName->text()) //gray out move button if both videos in same folder
     {
         ui->leftMove->setDisabled(true);
@@ -759,7 +1060,8 @@ void Comparison::updateUI()
     if (this->_prefs.comparisonMode() == Prefs::_SSIM)
         ui->identicalBits->setText(QString("%1 SSIM index").arg(QString::number(qMin(_ssimSimilarity, 1.0), 'f', 3)));
     _zoomLevel = 0;
-    ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
+    if (ui->tabWidget->currentWidget() != ui->tabManual)
+        ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
 }
 
 int64_t Comparison::comparisonsSoFar() const
@@ -856,21 +1158,29 @@ void Comparison::openFileManager(const QString& filename)
 
 void Comparison::on_leftFileName_clicked()
 {
+    if (!hasActiveManualComparison())
+        return;
     openFileManager(_videos[_leftVideo]->_filePathName);
 }
 
 void Comparison::on_rightFileName_clicked()
 {
+    if (!hasActiveManualComparison())
+        return;
     openFileManager(_videos[_rightVideo]->_filePathName);
 }
 
 void Comparison::on_leftImage_clicked()
 {
+    if (!hasActiveManualComparison())
+        return;
     openMedia(_videos[_leftVideo]->_filePathName);
 }
 
 void Comparison::on_rightImage_clicked()
 {
+    if (!hasActiveManualComparison())
+        return;
     openMedia(_videos[_rightVideo]->_filePathName);
 }
 
@@ -910,6 +1220,10 @@ void Comparison::deleteVideo(const int& side, const bool auto_trash_mode)
 
     if (_videos[side]->trashed || !QFileInfo::exists(filename)) //video was already manually deleted, skip to next
     {
+        if (!auto_trash_mode)
+            rebuildDuplicateSets();
+        if (!auto_trash_mode && ui->tabWidget->currentWidget() == ui->tabManual && _selectedDuplicateSet >= 0)
+            return;
         _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
         return;
     }
@@ -1006,8 +1320,11 @@ void Comparison::deleteVideo(const int& side, const bool auto_trash_mode)
 
                     Db(_prefs.cacheFilePathName())
                         .removeVideo(filename); // remove it from the cache as it is not needed anymore !
-                    if (!auto_trash_mode)       // in auto trash mode, the seeking is already handled
-                        _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
+                    if (!auto_trash_mode) {     // in auto trash mode, the seeking is already handled
+                        rebuildDuplicateSets();
+                        if (ui->tabWidget->currentWidget() != ui->tabManual)
+                            _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
+                    }
                     return;
                 }
             }
@@ -1099,19 +1416,38 @@ void Comparison::deleteVideo(const int& side, const bool auto_trash_mode)
 
             Db(_prefs.cacheFilePathName())
                 .removeVideo(filename); // remove it from the cache as it is not needed anymore !
-            if (!auto_trash_mode)       // in auto trash mode, the seeking is already handled
-                _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
+            if (!auto_trash_mode) {     // in auto trash mode, the seeking is already handled
+                rebuildDuplicateSets();
+                if (ui->tabWidget->currentWidget() != ui->tabManual)
+                    _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
+            }
         }
     }
 }
 
+void Comparison::on_leftDelete_clicked()
+{
+    if (hasActiveManualComparison())
+        deleteVideo(_leftVideo);
+}
+
+void Comparison::on_rightDelete_clicked()
+{
+    if (hasActiveManualComparison())
+        deleteVideo(_rightVideo);
+}
+
 void Comparison::on_leftMove_clicked()
 {
+    if (!hasActiveManualComparison())
+        return;
     moveVideo(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName);
 }
 
 void Comparison::on_rightMove_clicked()
 {
+    if (!hasActiveManualComparison())
+        return;
     moveVideo(_videos[_rightVideo]->_filePathName, _videos[_leftVideo]->_filePathName);
 }
 
@@ -1139,17 +1475,29 @@ void Comparison::moveVideo(const QString& from, const QString& to)
                                  .arg(QDir::toNativeSeparators(fromPath), QDir::toNativeSeparators(toPath));
     if (QMessageBox::question(this, "Move", question, QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
         QFile moveThisFile(from);
-        if (!moveThisFile.rename(QString("%1/%2").arg(toPath, from.right(from.length() - from.lastIndexOf("/") - 1))))
+        const QString destination = QString("%1/%2").arg(toPath, from.right(from.length() - from.lastIndexOf("/") - 1));
+        if (!moveThisFile.rename(destination))
             QMessageBox::information(this, "", "Could not move file. Check file permissions and available disk space.");
         else {
+            for (Video* video : _videos) {
+                if (video->_filePathName == from) {
+                    video->_filePathName = destination;
+                    break;
+                }
+            }
+            Db(_prefs.cacheFilePathName()).removeVideo(from);
             emit sendStatusMessage(QString("Moved %1 to %2").arg(QDir::toNativeSeparators(from), toPath));
-            _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
+            rebuildDuplicateSets();
+            if (ui->tabWidget->currentWidget() != ui->tabManual)
+                _seekForwards ? on_nextVideo_clicked() : on_prevVideo_clicked();
         }
     }
 }
 
-void Comparison::on_swapFilenames_clicked() const
+void Comparison::on_swapFilenames_clicked()
 {
+    if (!hasActiveManualComparison())
+        return;
     const QFileInfo leftVideoFile(_videos[_leftVideo]->_filePathName);
     const QString leftPathname = leftVideoFile.absolutePath();
     const QString oldLeftFilename = leftVideoFile.fileName();
@@ -1186,6 +1534,7 @@ void Comparison::on_swapFilenames_clicked() const
     Db cache(_prefs.cacheFilePathName()); // opening connexion to database
     cache.removeVideo(oldLeftFilename);
     cache.removeVideo(oldRightFilename);
+    rebuildDuplicateSets();
 }
 
 void Comparison::on_selectPhash_clicked(const bool& checked)
@@ -1437,6 +1786,11 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
 
+    // Automatic cleanup owns the pair indexes while it runs. Stop discovery so
+    // a queued set selection cannot replace those indexes between loop steps.
+    _backgroundDiscovery->stop();
+    clearDuplicateSets();
+
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
     _rightVideo = 0;
@@ -1540,6 +1894,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                                  .arg(readableFileSize(_spaceSaved - initialSpaceSaved)));
     if (_someWereMovedInApplePhotosLibrary)
         displayApplePhotosAlbumDeletionMessage();
+    restartBackgroundDiscovery();
     on_nextVideo_clicked();
 }
 
@@ -1558,6 +1913,11 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
     bool userWantsToStop = false;
     const bool keepBiggest = !ui->radioButton_onlySizeDiffers_keepSmallest->isChecked();
     const QString trashedSizeLabel = keepBiggest ? QStringLiteral("smaller") : QStringLiteral("bigger");
+
+    // Automatic cleanup owns the pair indexes while it runs. Stop discovery so
+    // a queued set selection cannot replace those indexes between loop steps.
+    _backgroundDiscovery->stop();
+    clearDuplicateSets();
 
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
@@ -1657,6 +2017,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 
     if (_someWereMovedInApplePhotosLibrary)
         displayApplePhotosAlbumDeletionMessage();
+    restartBackgroundDiscovery();
     on_nextVideo_clicked();
 }
 
@@ -1671,6 +2032,11 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
+
+    // Automatic cleanup owns the pair indexes while it runs. Stop discovery so
+    // a queued set selection cannot replace those indexes between loop steps.
+    _backgroundDiscovery->stop();
+    clearDuplicateSets();
 
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
@@ -1771,6 +2137,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
 
     if (_someWereMovedInApplePhotosLibrary)
         displayApplePhotosAlbumDeletionMessage();
+    restartBackgroundDiscovery();
     on_nextVideo_clicked();
 }
 
@@ -1928,11 +2295,14 @@ void Comparison::on_settingNamesInAnotherCheckbox_stateChanged(int arg1)
 
     ui->label_namesContainedInOneAnotherStatus_autoIdentFiles->setText(status);
     ui->label_namesContainedInOneAnotherStatus_autoOnlySizeDiff->setText(status);
+    rebuildDuplicateSets();
 }
 
 void Comparison::on_ignoreDuplicatePairButton_clicked()
 {
+    if (!hasActiveManualComparison() || !_currentComparisonIsDirectMatch)
+        return;
     Db cache(_prefs.cacheFilePathName()); // opening connexion to database
     cache.writePairToIgnore(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName);
-    on_nextVideo_clicked();
+    rebuildDuplicateSets();
 }

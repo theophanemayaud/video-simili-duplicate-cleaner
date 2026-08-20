@@ -8,6 +8,7 @@
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
 #include "../../app/comparison/internal/backgroundmatchdiscovery.h"
+#include "../../app/comparison/internal/duplicatesetbuilder.h"
 #include "../../app/comparison/internal/ssim.h"
 #include "../../app/comparison/internal/videopairmatcher.h"
 #include "../../app/comparison/internal/videopairspace.h"
@@ -46,6 +47,8 @@ class test_comparison : public QObject
     void test_ssimUsesEachBlockForMeans();
     void test_rotatedMatcherRequiresSsimSafeguard();
     void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
+    void test_duplicateSetBuilderConnectedComponents();
+    void test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixCompletes();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
 
   private:
@@ -357,6 +360,57 @@ void test_comparison::test_rotatedMatcherAppliesDurationModifierToSsimThreshold(
     QVERIFY(!VideoPairMatcher::match(left, right, config).matches);
 }
 
+void test_comparison::test_duplicateSetBuilderConnectedComponents()
+{
+    const auto pair = [](int left, int right, int64_t position) {
+        return MatchedVideoPair{left, right, position, 0, 0.0};
+    };
+
+    const QVector<DuplicateSet> pairSet = DuplicateSetBuilder::build(3, {pair(0, 1, 1)});
+    QCOMPARE(pairSet.size(), 1);
+    QCOMPARE(pairSet[0].members, QVector<int>({0, 1}));
+
+    const QVector<DuplicateSet> chainsAndDuplicates =
+        DuplicateSetBuilder::build(7, {pair(1, 2, 1), pair(2, 3, 2), pair(1, 3, 3), pair(1, 2, 4), pair(4, 6, 5)});
+    QCOMPARE(chainsAndDuplicates.size(), 2);
+    QCOMPARE(chainsAndDuplicates[0].members, QVector<int>({1, 2, 3}));
+    QCOMPARE(chainsAndDuplicates[1].members, QVector<int>({4, 6}));
+
+    // Input edge order does not affect either component or member order.
+    const QVector<DuplicateSet> reversed =
+        DuplicateSetBuilder::build(7, {pair(4, 6, 5), pair(1, 2, 4), pair(1, 3, 3), pair(2, 3, 2), pair(1, 2, 1)});
+    QCOMPARE(reversed[0].members, chainsAndDuplicates[0].members);
+    QCOMPARE(reversed[1].members, chainsAndDuplicates[1].members);
+}
+
+void test_comparison::test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixCompletes()
+{
+    const auto pair = [](int left, int right, int64_t position) {
+        return MatchedVideoPair{left, right, position, 0, 0.0};
+    };
+
+    BackgroundMatchDiscovery discovery(2, 1);
+    discovery._maxPosition = 6;
+    discovery._chunkSize = 2;
+    discovery._started = true;
+    discovery._completedChunks = QBitArray(3, false);
+
+    discovery.acceptCompletedChunk(0, 1, {pair(0, 3, 3)});
+    QCOMPARE(discovery.preScannedEnd(), 0);
+    QVERIFY(discovery.safeMatches().isEmpty());
+    QVERIFY(!discovery.isComplete());
+
+    discovery.acceptCompletedChunk(0, 0, {pair(0, 1, 1)});
+    QCOMPARE(discovery.preScannedEnd(), 4);
+    QCOMPARE(discovery.safeMatches().size(), 2);
+    QVERIFY(!discovery.isComplete());
+
+    discovery.acceptCompletedChunk(0, 2, {pair(1, 3, 5)});
+    QCOMPARE(discovery.preScannedEnd(), 6);
+    QCOMPARE(discovery.safeMatches().size(), 3);
+    QVERIFY(discovery.isComplete());
+}
+
 void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix()
 {
     Prefs prefs;
@@ -381,7 +435,12 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     discovery.start({&first, &second, &third, &fourth}, config);
 
     QTRY_COMPARE_WITH_TIMEOUT(discovery.preScannedEnd(), 6, 5000);
+    QVERIFY(discovery.isComplete());
     QCOMPARE(discovery.discoveredMatchCount(), 1);
+
+    const QVector<MatchedVideoPair> safeMatches = discovery.safeMatches();
+    QCOMPARE(safeMatches.size(), 1);
+    QCOMPARE(safeMatches.first().position, 3);
 
     const auto next = discovery.nextCandidateAfter(0);
     QVERIFY(next.has_value());

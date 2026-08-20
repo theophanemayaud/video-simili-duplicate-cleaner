@@ -17,6 +17,7 @@ set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/visualfingerprint.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/videopairmatcher.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/backgroundmatchdiscovery.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/duplicatesetbuilder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/db.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/comparison.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/discoveryprogressslider.cpp
