@@ -90,17 +90,17 @@ The self-contained `samples/videos/matching-ground-truth.csv` manifest covers 12
 
 The A/B matrix contains asymmetric base videos; physical 90/180/270 copies; letterbox and pillarbox copies; an A/B same-pillarbar negative; monochrome windows at 8% and 96% whose 10%/94% substitutes are informative; and a Display Matrix case. `test_repo_video_matching` covers pixel-level analysis guards, extraction, warm-cache/cache-only reuse, metadata normalization, rotation enabled/disabled, expected positive pairs, and the no-new-cross-group-pairs contract.
 
-### Optional local corpus
+### Optional external corpus
 
-The `/Dev` corpus adds eleven labeled feature derivatives under `Videos/Matching feature fixtures`, yielding 229 manifest rows and a 22-video focused subset. It provides realistic formats, natural dark-detail/bar-consensus guards, labeled physical rotations, and a 218-video legacy no-new-cross-group baseline. It is exercised by `test_local_video_matching`; it is not required for CI.
+The `~/Dev` corpus adds eleven labeled feature derivatives under `Videos/Matching feature fixtures`, yielding 229 manifest rows and a 22-video focused subset. It provides realistic formats, natural dark-detail/bar-consensus guards, labeled physical rotations, and a 218-video legacy no-new-cross-group baseline. It is exercised by `test_external_video_matching`, with extraction and whole-app coverage in `test_external_video_extraction_regression` and `test_external_whole_app_scan`; it is not required for CI.
 
-The separately mounted 100GB corpus is measured by `test_large_video_corpus` only. It is intentionally not part of normal development runs.
+The separately mounted 100GB corpus is measured by `test_external_large_video_corpus` only. It is intentionally not part of normal development runs.
 
 ### Recorded validation (2026-08-11)
 
 - The tracked matrix passed fresh, warm-cache, and cache-only scans with rotation both off and on. Tiny no-cache extraction was 12 ms off and 15 ms on.
-- The 22-video local feature subset passed every labeled pair. No-cache extraction was 1.096 s off and 1.122 s on after reducing tiles before rotation.
-- The 218-video local baseline took 20.895 s versus 20.828 s before implementation (+0.3%) and added no cross-content pair. The expanded whole-app corpus found 229 files, 226 valid videos, and 89 matched videos.
+- The 22-video external feature subset passed every labeled pair. No-cache extraction was 1.096 s off and 1.122 s on after reducing tiles before rotation.
+- The 218-video external baseline took 20.895 s versus 20.828 s before implementation (+0.3%) and added no cross-content pair. The expanded whole-app corpus found 229 files, 226 valid videos, and 89 matched videos.
 - The mounted corpus found 12,506 files, 12,352 valid videos, and 6,552 matches with rotation off; rotation on found 6,556 matches. The opt-in setting measured +6.6% extraction and +12.4% total scan time. Warm-cache assessment completed in 44.978 s, under its 50-second budget.
 
 ## Implementation map and invariants

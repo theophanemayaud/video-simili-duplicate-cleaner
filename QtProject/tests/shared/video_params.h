@@ -1,5 +1,5 @@
-#ifndef VIDEO_PARAM_HELPERS_H
-#define VIDEO_PARAM_HELPERS_H
+#ifndef VIDEO_PARAMS_H
+#define VIDEO_PARAMS_H
 
 #include <QByteArray>
 #include <QDateTime>
@@ -31,4 +31,4 @@ class VideoParam
     QByteArray thumbnail; // Optional: thumbnail image data
 };
 
-#endif // VIDEO_PARAM_HELPERS_H
+#endif // VIDEO_PARAMS_H
