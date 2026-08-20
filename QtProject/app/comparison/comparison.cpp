@@ -603,8 +603,14 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
             video->nameInApplePhotos.clear();
             return;
         }
+        if (cacheMode == Prefs::CACHE_ONLY) {
+            // Cache-only results may reuse Video objects that previously had
+            // a live name, but only a database entry is valid in this mode.
+            video->nameInApplePhotos.clear();
+            return;
+        }
     }
-    if (cacheMode == Prefs::CACHE_ONLY || !video->nameInApplePhotos.isEmpty())
+    if (!video->nameInApplePhotos.isEmpty())
         return;
 
     if (_applePhotosNameRequests.contains(filePathname))

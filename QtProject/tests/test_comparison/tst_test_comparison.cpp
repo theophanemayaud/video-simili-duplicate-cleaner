@@ -592,12 +592,29 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
         QCOMPARE(cache.readApplePhotosName(cancelledPath).state, Db::ApplePhotosNameCacheEntry::Unknown);
     }
 
-    prefs.useCacheOption(Prefs::CACHE_ONLY);
     Video cacheOnlyVideo(prefs, cacheOnlyPath);
     Video cacheOnlyOtherVideo(prefs, otherPath);
     cacheOnlyVideo.size = 2;
     cacheOnlyOtherVideo.size = 1;
     QVector<Video*> cacheOnlyVideos = {&cacheOnlyVideo, &cacheOnlyOtherVideo};
+    std::atomic_int noCacheSuccessLookupCalls = 0;
+    {
+        Comparison comparison(cacheOnlyVideos, prefs, QRect());
+        comparison._backgroundDiscovery->stop();
+        comparison._videos = cacheOnlyVideos;
+        comparison._applePhotosNameLookup = [&noCacheSuccessLookupCalls](const QString&) {
+            noCacheSuccessLookupCalls.fetch_add(1);
+            return QStringLiteral("Live no-cache name.mov");
+        };
+
+        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        QTRY_COMPARE_WITH_TIMEOUT(cacheOnlyVideo.nameInApplePhotos, QStringLiteral("Live no-cache name.mov"), 5000);
+    }
+    QCOMPARE(noCacheSuccessLookupCalls.load(), 1);
+
+    // CACHE_ONLY must use only its database entry, not the live name retained
+    // by reopening the same Video objects from the previous NO_CACHE result.
+    prefs.useCacheOption(Prefs::CACHE_ONLY);
     std::atomic_int cacheOnlyLookupCalls = 0;
     {
         Comparison comparison(cacheOnlyVideos, prefs, QRect());
