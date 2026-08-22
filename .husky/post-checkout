@@ -14,7 +14,14 @@ fi
 # Build dependencies are gitignored for their size, so a fresh worktree has none
 # and cannot configure or build. Link rather than copy: they are several GB and
 # identical for every checkout, and CMake resolves them through these paths.
-for dependency in node_modules QtProject/libraries/macos/qt/qt-install; do
+# One path per line, relative to the checkout root. Paths cannot contain spaces:
+# the loop below relies on word splitting to read this list.
+dependencies="
+node_modules
+QtProject/libraries/macos/qt/qt-install
+"
+
+for dependency in $dependencies; do
 	if [ -e "$mainWorktree/$dependency" ] && [ ! -e "$dependency" ]; then
 		mkdir -p "$(dirname "$dependency")"
 		ln -s "$mainWorktree/$dependency" "$dependency"
