@@ -1,5 +1,6 @@
 #import "obj-c.h"
 #import <Foundation/Foundation.h>
+#import <Photos/Photos.h>
 
 char* Obj_C::obj_C_addMediaToAlbum(char* albumName, char* mediaId)
 {
@@ -27,6 +28,49 @@ char* Obj_C::obj_C_addMediaToAlbum(char* albumName, char* mediaId)
     else {
         returnString = [NSString stringWithFormat:@"%@", errorDictionary];
         return (char*)[returnString UTF8String];
+    }
+}
+
+std::string Obj_C::obj_C_getMediaNameFromPhotoKit(const std::string& mediaId)
+{
+    @autoreleasepool {
+        __block PHAuthorizationStatus authorizationStatus =
+            [PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelReadWrite];
+        if (authorizationStatus == PHAuthorizationStatusNotDetermined) {
+            dispatch_semaphore_t authorizationFinished = dispatch_semaphore_create(0);
+            [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelReadWrite
+                                                       handler:^(PHAuthorizationStatus status) {
+                                                         authorizationStatus = status;
+                                                         dispatch_semaphore_signal(authorizationFinished);
+                                                       }];
+            dispatch_semaphore_wait(authorizationFinished, DISPATCH_TIME_FOREVER);
+        }
+
+        if (authorizationStatus != PHAuthorizationStatusAuthorized
+            && authorizationStatus != PHAuthorizationStatusLimited)
+            return OBJ_C_FAILURE_STRING;
+
+        NSString* mediaIdString = [NSString stringWithUTF8String:mediaId.c_str()];
+        if (mediaIdString == nil)
+            return OBJ_C_FAILURE_STRING;
+
+        // Files in a Photos library use the UUID portion of PhotoKit's opaque
+        // local identifier. L0/001 is the standard identifier for originals;
+        // retain the bare UUID as a candidate for libraries that expose it directly.
+        NSArray<NSString*>* identifiers = @[ mediaIdString, [mediaIdString stringByAppendingString:@"/L0/001"] ];
+        PHFetchResult<PHAsset*>* assets = [PHAsset fetchAssetsWithLocalIdentifiers:identifiers options:nil];
+        if (assets.count == 0)
+            return OBJ_C_FAILURE_STRING;
+
+        NSArray<PHAssetResource*>* resources = [PHAssetResource assetResourcesForAsset:assets.firstObject];
+        for (PHAssetResource* resource in resources) {
+            if (resource.type != PHAssetResourceTypeVideo && resource.type != PHAssetResourceTypeFullSizeVideo)
+                continue;
+
+            const char* filename = resource.originalFilename.UTF8String;
+            return filename == nullptr ? std::string() : std::string(filename);
+        }
+        return OBJ_C_FAILURE_STRING;
     }
 }
 

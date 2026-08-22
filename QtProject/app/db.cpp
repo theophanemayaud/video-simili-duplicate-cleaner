@@ -62,7 +62,6 @@ bool Db::emptyAllDb(const Prefs prefs)
         query.exec(QStringLiteral("DROP TABLE IF EXISTS metadata"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS capture"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS ignored_pairs"));
-        query.exec(QStringLiteral("DROP TABLE IF EXISTS apple_photos_names"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS version"));
 
         query.exec(QStringLiteral("VACUUM")); // restructure sqlite file to make it smaller on disk
@@ -149,13 +148,6 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
                               "FOREIGN KEY (pathName2) REFERENCES metadata(id), "
                               "UNIQUE (pathName1, pathName2) "
                               "PRIMARY KEY (pathName1, pathName2) "
-                              ");"));
-
-    query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS "
-                              "apple_photos_names ("
-                              "id TEXT PRIMARY KEY, "
-                              "name TEXT, "
-                              "found INTEGER NOT NULL CHECK(found IN (0, 1))"
                               ");"));
 
     // Now create a version table and entry, that could help us in the future to check if the database contains old records
@@ -274,51 +266,6 @@ void Db::writeMetadata(const Video& video) const
     }
 }
 
-Db::ApplePhotosNameCacheEntry Db::readApplePhotosName(const QString& filePathname) const
-{
-    ApplePhotosNameCacheEntry entry;
-    if (!_db.isOpen()) {
-        qDebug() << "Database not open, can't read Apple Photos name cache.";
-        return entry;
-    }
-
-    QSqlQuery query(_db);
-    query.prepare("SELECT name, found FROM apple_photos_names WHERE id = :id;");
-    query.bindValue(":id", filePathname);
-    if (!query.exec()) {
-        qDebug() << "Error with readApplePhotosName query for video=" << filePathname
-                 << " query=" << query.lastQuery();
-        qDebug() << query.lastError().text();
-        return entry;
-    }
-
-    if (!query.next())
-        return entry;
-
-    entry.state = query.value(1).toBool() ? ApplePhotosNameCacheEntry::Found : ApplePhotosNameCacheEntry::Failed;
-    entry.name = query.value(0).toString();
-    return entry;
-}
-
-void Db::writeApplePhotosName(const QString& filePathname, const QString& name, const bool found) const
-{
-    if (!_db.isOpen()) {
-        qDebug() << "Database not open, can't write Apple Photos name cache.";
-        return;
-    }
-
-    QSqlQuery query(_db);
-    query.prepare("INSERT OR REPLACE INTO apple_photos_names (id, name, found) VALUES(:id, :name, :found);");
-    query.bindValue(":id", filePathname);
-    query.bindValue(":name", found ? QVariant(name) : QVariant());
-    query.bindValue(":found", found);
-    if (!query.exec()) {
-        qDebug() << "Error with writeApplePhotosName query for video=" << filePathname
-                 << " query=" << query.lastQuery();
-        qDebug() << query.lastError().text();
-    }
-}
-
 QByteArray Db::readCapture(const QString& filePathname, const int& percent) const
 {
     if (!_db.isOpen()) {
@@ -386,26 +333,13 @@ bool Db::removeVideo(const QString& filePathname) const
     query.exec();
     while (query.next())
         idCached = true;
-
-    // This is a path-keyed cache just like metadata and captures. Keeping it in
-    // step with those tables prevents old lookups being reused after a move.
-    query.prepare("DELETE FROM apple_photos_names WHERE id = :id;");
-    query.bindValue(":id", filePathname);
-    query.exec();
-    QSqlError error = query.lastError();
-    if (error.isValid()) {
-        qDebug() << "Error with removeVideo Apple Photos name query for video=" << filePathname
-                 << " query=" << query.lastQuery();
-        qDebug() << error.text();
-    }
-
     if (!idCached)
         return false;
 
     query.prepare("DELETE FROM metadata WHERE id = :id;");
     query.bindValue(":id", filePathname);
     query.exec();
-    error = query.lastError();
+    QSqlError error = query.lastError();
     if (error.isValid()) {
         qDebug() << "Error with removeVideo query for video=" << filePathname << " query=" << query.lastQuery();
         qDebug() << error.text();

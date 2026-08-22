@@ -76,19 +76,11 @@ class Comparison : public QDialog
 
 #ifdef Q_OS_MACOS
     using ApplePhotosNameLookup = std::function<QString(const QString& mediaId)>;
-    struct ApplePhotosNameRequest {
-        std::atomic_bool cancelled = false;
-    };
 
+    // Indirection so tests can resolve names without a real Photos library.
     ApplePhotosNameLookup _applePhotosNameLookup;
-    QHash<QString, std::shared_ptr<ApplePhotosNameRequest>> _applePhotosNameRequests;
-    QPointer<QProgressDialog> _applePhotosNameWaitingDialog;
 
     void lookUpApplePhotosName(int videoIndex);
-    bool hasActiveApplePhotosNameLookups() const;
-    void showApplePhotosNameWaitingDialog();
-    void closeApplePhotosNameWaitingDialog();
-    void cancelApplePhotosNameLookups();
 #endif
 
     void seekFromSliderPosition(int position);

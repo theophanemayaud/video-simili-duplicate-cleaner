@@ -12,8 +12,8 @@
 
 #include "db.h"
 #include "prefs.h"
-#include "visualfingerprint.h"
 #include "videometadata.h"
+#include "visualfingerprint.h"
 #include <QtCore/qmutex.h>
 
 #include <array>
@@ -44,7 +44,7 @@ class Video : public QObject
 
     VideoMetadata meta;
     QString _filePathName;
-    QString nameInApplePhotos; // used externally only, as it is too slow to get at first
+    QString nameInApplePhotos; // resolved only when a Photos video is shown for comparison
     int64_t size = 0;          // in bytes
     QDateTime modified;
     QDateTime _fileCreateDate;
