@@ -599,13 +599,10 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
             video->nameInApplePhotos = cachedName.name;
             return;
         }
-        if (cachedName.state == Db::ApplePhotosNameCacheEntry::Failed) {
-            video->nameInApplePhotos.clear();
-            return;
-        }
-        if (cacheMode == Prefs::CACHE_ONLY) {
-            // Cache-only results may reuse Video objects that previously had
-            // a live name, but only a database entry is valid in this mode.
+        // Failed row, or cache-only with no usable row: never live-query.
+        // Cache-only may reuse Video objects that previously had a live name.
+        if (cachedName.state == Db::ApplePhotosNameCacheEntry::Failed
+            || cacheMode == Prefs::CACHE_ONLY) {
             video->nameInApplePhotos.clear();
             return;
         }
@@ -618,7 +615,6 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
 
     const auto request = std::make_shared<ApplePhotosNameRequest>();
     _applePhotosNameRequests.insert(filePathname, request);
-    _applePhotosNameLookupsInProgress.insert(filePathname);
     showApplePhotosNameWaitingDialog();
 
     auto* watcher = new QFutureWatcher<QString>(this);
@@ -630,18 +626,12 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
         const QString name = watcher->result();
         if (_applePhotosNameRequests.value(filePathname) == request)
             _applePhotosNameRequests.remove(filePathname);
-        _applePhotosNameLookupsInProgress.remove(filePathname);
         const bool cancelled = request->cancelled.load();
 
         const bool found = !name.isEmpty() && !name.contains(OBJ_C_FAILURE_STRING);
         if (!cancelled) {
-            if (_prefs.useCacheOption() == Prefs::WITH_CACHE) {
-                Db cache(_prefs.cacheFilePathName());
-                if (found)
-                    cache.writeApplePhotosName(filePathname, name);
-                else
-                    cache.writeApplePhotosNameFailure(filePathname);
-            }
+            if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
+                Db(_prefs.cacheFilePathName()).writeApplePhotosName(filePathname, name, found);
             if (!found)
                 emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
                                                "If you have multiple libraries this might be normal, "
@@ -664,7 +654,7 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
             }
         }
 
-        if (_applePhotosNameLookupsInProgress.isEmpty())
+        if (!hasActiveApplePhotosNameLookups())
             closeApplePhotosNameWaitingDialog();
         watcher->deleteLater();
     });
@@ -673,6 +663,15 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
             return QString();
         return lookup(mediaId);
     }));
+}
+
+bool Comparison::hasActiveApplePhotosNameLookups() const
+{
+    for (const auto& request : _applePhotosNameRequests) {
+        if (!request->cancelled.load())
+            return true;
+    }
+    return false;
 }
 
 void Comparison::showApplePhotosNameWaitingDialog()
@@ -718,9 +717,8 @@ void Comparison::cancelApplePhotosNameLookups()
     for (auto it = _applePhotosNameRequests.cbegin(); it != _applePhotosNameRequests.cend(); ++it) {
         it.value()->cancelled.store(true);
         if (writeToCache)
-            cache.writeApplePhotosNameFailure(it.key());
+            cache.writeApplePhotosName(it.key(), QString(), false);
     }
-    _applePhotosNameLookupsInProgress.clear();
     closeApplePhotosNameWaitingDialog();
 }
 

@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cmath>
 #include <memory>
+#include <utility>
 
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
@@ -94,6 +95,12 @@ class test_comparison : public QObject
     void test_rotatedMatcherRequiresSsimSafeguard();
     void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
+
+  private:
+#ifdef Q_OS_MACOS
+    std::unique_ptr<Comparison> makeApplePhotosComparison(const QVector<Video*>& videos, Prefs& prefs,
+                                                          std::function<QString(const QString&)> lookup);
+#endif
 };
 
 test_comparison::test_comparison() {}
@@ -103,6 +110,19 @@ test_comparison::~test_comparison() {}
 void test_comparison::initTestCase() {}
 
 void test_comparison::cleanupTestCase() {}
+
+#ifdef Q_OS_MACOS
+std::unique_ptr<Comparison>
+test_comparison::makeApplePhotosComparison(const QVector<Video*>& videos, Prefs& prefs,
+                                           std::function<QString(const QString&)> lookup)
+{
+    auto comparison = std::make_unique<Comparison>(videos, prefs, QRect());
+    comparison->_backgroundDiscovery->stop();
+    comparison->_videos = videos; // Keep indices deterministic despite the user's saved sort preference.
+    comparison->_applePhotosNameLookup = std::move(lookup);
+    return comparison;
+}
+#endif
 
 void test_comparison::test_videoToDelete_OnlyTimeDiffs()
 {
@@ -181,12 +201,12 @@ void test_comparison::test_applePhotosNameCacheTriState()
         Db cache(prefs.cacheFilePathName());
         QCOMPARE(cache.readApplePhotosName(successfulPath).state, Db::ApplePhotosNameCacheEntry::Unknown);
 
-        cache.writeApplePhotosName(successfulPath, QStringLiteral("Holiday clip.mov"));
+        cache.writeApplePhotosName(successfulPath, QStringLiteral("Holiday clip.mov"), true);
         const Db::ApplePhotosNameCacheEntry successful = cache.readApplePhotosName(successfulPath);
         QCOMPARE(successful.state, Db::ApplePhotosNameCacheEntry::Found);
         QCOMPARE(successful.name, QStringLiteral("Holiday clip.mov"));
 
-        cache.writeApplePhotosNameFailure(failedPath);
+        cache.writeApplePhotosName(failedPath, QString(), false);
         const Db::ApplePhotosNameCacheEntry failed = cache.readApplePhotosName(failedPath);
         QCOMPARE(failed.state, Db::ApplePhotosNameCacheEntry::Failed);
         QVERIFY(failed.name.isEmpty());
@@ -229,10 +249,7 @@ void test_comparison::test_applePhotosNameLookupCancelsAndCoalesces()
     const auto lookupState = std::make_shared<ApplePhotosLookupRaceTestState>();
     ReleaseApplePhotosLookupRaceOnExit releaseLookupsOnExit(lookupState);
     {
-        Comparison comparison(videos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = videos; // Keep the pair indices deterministic despite the user's saved sort preference.
-        comparison._applePhotosNameLookup = [lookupState](const QString& id) {
+        auto comparison = makeApplePhotosComparison(videos, prefs, [lookupState](const QString& id) {
             lookupState->lookupCalls.fetch_add(1);
             if (id == QStringLiteral("ABC123")) {
                 lookupState->firstLookupStarted.store(true);
@@ -247,21 +264,21 @@ void test_comparison::test_applePhotosNameLookupCancelsAndCoalesces()
             lookupState->freshLookupStarted.store(true);
             lookupState->finishFreshLookup.acquire();
             return QStringLiteral("Fresh name from Apple Photos.mov");
-        };
+        });
 
         // Both Photos entries queue behind the one serialized worker. Cancel
         // while the first is active: the second must become terminal before it
         // reaches the provider.
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QTRY_VERIFY_WITH_TIMEOUT(lookupState->firstLookupStarted.load(), 5000);
-        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameWaitingDialog
-                                     && comparison._applePhotosNameWaitingDialog->isVisible(),
+        QTRY_VERIFY_WITH_TIMEOUT(comparison->_applePhotosNameWaitingDialog
+                                     && comparison->_applePhotosNameWaitingDialog->isVisible(),
                                  5000);
 
-        auto* cancelButton = comparison._applePhotosNameWaitingDialog->findChild<QPushButton*>();
+        auto* cancelButton = comparison->_applePhotosNameWaitingDialog->findChild<QPushButton*>();
         QVERIFY(cancelButton != nullptr);
         cancelButton->click();
-        QTRY_VERIFY_WITH_TIMEOUT(!comparison._applePhotosNameWaitingDialog, 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!comparison->_applePhotosNameWaitingDialog, 5000);
         {
             Db cache(prefs.cacheFilePathName());
             QCOMPARE(cache.readApplePhotosName(photosPath).state, Db::ApplePhotosNameCacheEntry::Failed);
@@ -270,31 +287,31 @@ void test_comparison::test_applePhotosNameLookupCancelsAndCoalesces()
 
         // Queue a fresh request before cancelled A and B drain. Their finished
         // callbacks must not close C's new waiting dialog.
-        comparison.displayMatchedPair({2, 3, 2, 0, 0.0});
-        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameWaitingDialog
-                                     && comparison._applePhotosNameWaitingDialog->isVisible(),
+        comparison->displayMatchedPair({2, 3, 2, 0, 0.0});
+        QTRY_VERIFY_WITH_TIMEOUT(comparison->_applePhotosNameWaitingDialog
+                                     && comparison->_applePhotosNameWaitingDialog->isVisible(),
                                  5000);
         lookupState->finishFirstLookup.release();
         QTRY_VERIFY_WITH_TIMEOUT(lookupState->freshLookupStarted.load(), 5000);
-        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameRequests.size() == 1
-                                     && comparison._applePhotosNameRequests.contains(freshPhotosPath),
+        QTRY_VERIFY_WITH_TIMEOUT(comparison->_applePhotosNameRequests.size() == 1
+                                     && comparison->_applePhotosNameRequests.contains(freshPhotosPath),
                                  5000);
-        QVERIFY(comparison._applePhotosNameWaitingDialog && comparison._applePhotosNameWaitingDialog->isVisible());
+        QVERIFY(comparison->_applePhotosNameWaitingDialog && comparison->_applePhotosNameWaitingDialog->isVisible());
         QVERIFY(!lookupState->queuedLookupExecuted.load());
         QCOMPARE(lookupState->lookupCalls.load(), 2);
 
         // Repainting the fresh pending side must not launch another AppleScript.
-        comparison.showVideo(QStringLiteral("left"));
-        comparison.showVideo(QStringLiteral("left"));
+        comparison->showVideo(QStringLiteral("left"));
+        comparison->showVideo(QStringLiteral("left"));
         QCOMPARE(lookupState->lookupCalls.load(), 2);
 
         lookupState->finishFreshLookup.release();
         QTRY_COMPARE_WITH_TIMEOUT(freshPhotosVideo.nameInApplePhotos, QStringLiteral("Fresh name from Apple Photos.mov"),
                                   5000);
-        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameRequests.isEmpty(), 5000);
-        QCOMPARE(comparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+        QTRY_VERIFY_WITH_TIMEOUT(comparison->_applePhotosNameRequests.isEmpty(), 5000);
+        QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
                  QStringLiteral("Fresh name from Apple Photos.mov"));
-        QCOMPARE(comparison.findChild<ClickableLabel*>(QStringLiteral("rightFileName"))->text(), filesystemName);
+        QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("rightFileName"))->text(), filesystemName);
         QVERIFY(photosVideo.nameInApplePhotos.isEmpty());
         QVERIFY(failedPhotosVideo.nameInApplePhotos.isEmpty());
     }
@@ -319,21 +336,18 @@ void test_comparison::test_applePhotosNameLookupCancelsAndCoalesces()
     otherVideo.size = 1;
     QVector<Video*> cachedVideos = {&cachedPhotosVideo, &cachedFailureVideo, &otherVideo};
     {
-        Comparison cachedComparison(cachedVideos, prefs, QRect());
-        cachedComparison._backgroundDiscovery->stop();
-        cachedComparison._videos = cachedVideos;
         std::atomic_int unexpectedLookupCalls = 0;
-        cachedComparison._applePhotosNameLookup = [&unexpectedLookupCalls](const QString&) {
+        auto cachedComparison = makeApplePhotosComparison(cachedVideos, prefs, [&unexpectedLookupCalls](const QString&) {
             unexpectedLookupCalls.fetch_add(1);
             return QStringLiteral("Should not be queried");
-        };
+        });
 
-        cachedComparison.displayMatchedPair({0, 2, 1, 0, 0.0});
-        QCOMPARE(cachedComparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+        cachedComparison->displayMatchedPair({0, 2, 1, 0, 0.0});
+        QCOMPARE(cachedComparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
                  QStringLiteral("ABC123.mov"));
 
-        cachedComparison.displayMatchedPair({1, 2, 2, 0, 0.0});
-        QCOMPARE(cachedComparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+        cachedComparison->displayMatchedPair({1, 2, 2, 0, 0.0});
+        QCOMPARE(cachedComparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
                  QStringLiteral("DEF456.mov"));
         QCOMPARE(unexpectedLookupCalls.load(), 0);
     }
@@ -359,19 +373,16 @@ void test_comparison::test_applePhotosNameLookupSuccessCaches()
     QVector<Video*> videos = {&photosVideo, &otherVideo};
 
     {
-        Comparison comparison(videos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = videos;
-        comparison._applePhotosNameLookup = [](const QString&) {
+        auto comparison = makeApplePhotosComparison(videos, prefs, [](const QString&) {
             QThread::msleep(100);
             return QStringLiteral("Name from Apple Photos.mov");
-        };
+        });
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QTRY_COMPARE_WITH_TIMEOUT(photosVideo.nameInApplePhotos, QStringLiteral("Name from Apple Photos.mov"), 5000);
-        QCOMPARE(comparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+        QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
                  QStringLiteral("Name from Apple Photos.mov"));
-        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameRequests.isEmpty(), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(comparison->_applePhotosNameRequests.isEmpty(), 5000);
     }
 
     {
@@ -387,18 +398,15 @@ void test_comparison::test_applePhotosNameLookupSuccessCaches()
     cachedOtherVideo.size = 1;
     QVector<Video*> cachedVideos = {&cachedPhotosVideo, &cachedOtherVideo};
     {
-        Comparison cachedComparison(cachedVideos, prefs, QRect());
-        cachedComparison._backgroundDiscovery->stop();
-        cachedComparison._videos = cachedVideos;
         std::atomic_int providerCalls = 0;
-        cachedComparison._applePhotosNameLookup = [&providerCalls](const QString&) {
+        auto cachedComparison = makeApplePhotosComparison(cachedVideos, prefs, [&providerCalls](const QString&) {
             providerCalls.fetch_add(1);
             return QStringLiteral("Should not be queried");
-        };
+        });
 
-        cachedComparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        cachedComparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QCOMPARE(cachedPhotosVideo.nameInApplePhotos, QStringLiteral("Name from Apple Photos.mov"));
-        QCOMPARE(cachedComparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+        QCOMPARE(cachedComparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
                  QStringLiteral("Name from Apple Photos.mov"));
         QCOMPARE(providerCalls.load(), 0);
     }
@@ -425,16 +433,13 @@ void test_comparison::test_applePhotosNameLookupClosingComparisonFails()
     std::atomic_bool lookupStarted = false;
     QElapsedTimer closeTimer;
     {
-        Comparison comparison(videos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = videos;
-        comparison._applePhotosNameLookup = [&lookupStarted](const QString&) {
+        auto comparison = makeApplePhotosComparison(videos, prefs, [&lookupStarted](const QString&) {
             lookupStarted.store(true);
             QThread::msleep(750);
             return QStringLiteral("Late result must be ignored.mov");
-        };
+        });
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QTRY_VERIFY_WITH_TIMEOUT(lookupStarted.load(), 5000);
         closeTimer.start();
     }
@@ -472,22 +477,22 @@ void test_comparison::test_applePhotosNameLookupsAreSerialized()
     std::atomic_int activeLookups = 0;
     std::atomic_int maximumActiveLookups = 0;
     {
-        Comparison comparison(videos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = videos;
-        comparison._applePhotosNameLookup = [&lookupCalls, &activeLookups, &maximumActiveLookups](const QString& id) {
-            lookupCalls.fetch_add(1);
-            const int active = activeLookups.fetch_add(1) + 1;
-            int maximum = maximumActiveLookups.load();
-            while (maximum < active && !maximumActiveLookups.compare_exchange_weak(maximum, active)) {
-            }
-            QThread::msleep(100);
-            activeLookups.fetch_sub(1);
-            return QStringLiteral("Name %1.mov").arg(id);
-        };
+        auto comparison =
+            makeApplePhotosComparison(videos, prefs,
+                                      [&lookupCalls, &activeLookups, &maximumActiveLookups](const QString& id) {
+                                          lookupCalls.fetch_add(1);
+                                          const int active = activeLookups.fetch_add(1) + 1;
+                                          int maximum = maximumActiveLookups.load();
+                                          while (maximum < active
+                                                 && !maximumActiveLookups.compare_exchange_weak(maximum, active)) {
+                                          }
+                                          QThread::msleep(100);
+                                          activeLookups.fetch_sub(1);
+                                          return QStringLiteral("Name %1.mov").arg(id);
+                                      });
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
-        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameRequests.isEmpty(), 5000);
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
+        QTRY_VERIFY_WITH_TIMEOUT(comparison->_applePhotosNameRequests.isEmpty(), 5000);
         QCOMPARE(lookupCalls.load(), 2);
         QCOMPARE(maximumActiveLookups.load(), 1);
     }
@@ -512,7 +517,7 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
     const QString otherPath = QStringLiteral("/tmp/other.mp4");
     {
         Db cache(prefs.cacheFilePathName());
-        cache.writeApplePhotosName(cachedPath, QStringLiteral("Cached name.mov"));
+        cache.writeApplePhotosName(cachedPath, QStringLiteral("Cached name.mov"), true);
     }
 
     Video noCacheVideo(prefs, cachedPath);
@@ -522,15 +527,12 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
     QVector<Video*> noCacheVideos = {&noCacheVideo, &otherVideo};
     std::atomic_int withCacheLookupCalls = 0;
     {
-        Comparison comparison(noCacheVideos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = noCacheVideos;
-        comparison._applePhotosNameLookup = [&withCacheLookupCalls](const QString&) {
+        auto comparison = makeApplePhotosComparison(noCacheVideos, prefs, [&withCacheLookupCalls](const QString&) {
             withCacheLookupCalls.fetch_add(1);
             return QStringLiteral("Must not be called.mov");
-        };
+        });
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QCOMPARE(noCacheVideo.nameInApplePhotos, QStringLiteral("Cached name.mov"));
     }
     QCOMPARE(withCacheLookupCalls.load(), 0);
@@ -540,16 +542,13 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
     prefs.useCacheOption(Prefs::NO_CACHE);
     std::atomic_int noCacheLookupCalls = 0;
     {
-        Comparison comparison(noCacheVideos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = noCacheVideos;
-        QSignalSpy statusMessages(&comparison, &Comparison::sendStatusMessage);
-        comparison._applePhotosNameLookup = [&noCacheLookupCalls](const QString&) {
+        auto comparison = makeApplePhotosComparison(noCacheVideos, prefs, [&noCacheLookupCalls](const QString&) {
             noCacheLookupCalls.fetch_add(1);
             return QStringLiteral(OBJ_C_FAILURE_STRING);
-        };
+        });
+        QSignalSpy statusMessages(comparison.get(), &Comparison::sendStatusMessage);
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QTRY_COMPARE_WITH_TIMEOUT(statusMessages.count(), 1, 5000);
         QVERIFY(statusMessages.first().first().toString().contains(QStringLiteral("Unknown error getting name")));
         QCOMPARE(noCacheVideo.nameInApplePhotos, QString());
@@ -569,23 +568,22 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
     QSemaphore finishCancelledLookup;
     std::atomic_bool cancelledLookupStarted = false;
     {
-        Comparison comparison(cancelledVideos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = cancelledVideos;
-        comparison._applePhotosNameLookup = [&cancelledLookupStarted, &finishCancelledLookup](const QString&) {
-            cancelledLookupStarted.store(true);
-            finishCancelledLookup.acquire();
-            return QStringLiteral("Cancelled no-cache name.mov");
-        };
+        auto comparison =
+            makeApplePhotosComparison(cancelledVideos, prefs,
+                                      [&cancelledLookupStarted, &finishCancelledLookup](const QString&) {
+                                          cancelledLookupStarted.store(true);
+                                          finishCancelledLookup.acquire();
+                                          return QStringLiteral("Cancelled no-cache name.mov");
+                                      });
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QTRY_VERIFY_WITH_TIMEOUT(cancelledLookupStarted.load(), 5000);
-        auto* cancelButton = comparison._applePhotosNameWaitingDialog->findChild<QPushButton*>();
+        auto* cancelButton = comparison->_applePhotosNameWaitingDialog->findChild<QPushButton*>();
         QVERIFY(cancelButton != nullptr);
         cancelButton->click();
-        QTRY_VERIFY_WITH_TIMEOUT(!comparison._applePhotosNameWaitingDialog, 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!comparison->_applePhotosNameWaitingDialog, 5000);
         finishCancelledLookup.release();
-        QTRY_VERIFY_WITH_TIMEOUT(comparison._applePhotosNameRequests.isEmpty(), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(comparison->_applePhotosNameRequests.isEmpty(), 5000);
     }
     {
         Db cache(prefs.cacheFilePathName());
@@ -599,15 +597,12 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
     QVector<Video*> cacheOnlyVideos = {&cacheOnlyVideo, &cacheOnlyOtherVideo};
     std::atomic_int noCacheSuccessLookupCalls = 0;
     {
-        Comparison comparison(cacheOnlyVideos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = cacheOnlyVideos;
-        comparison._applePhotosNameLookup = [&noCacheSuccessLookupCalls](const QString&) {
+        auto comparison = makeApplePhotosComparison(cacheOnlyVideos, prefs, [&noCacheSuccessLookupCalls](const QString&) {
             noCacheSuccessLookupCalls.fetch_add(1);
             return QStringLiteral("Live no-cache name.mov");
-        };
+        });
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QTRY_COMPARE_WITH_TIMEOUT(cacheOnlyVideo.nameInApplePhotos, QStringLiteral("Live no-cache name.mov"), 5000);
     }
     QCOMPARE(noCacheSuccessLookupCalls.load(), 1);
@@ -617,18 +612,15 @@ void test_comparison::test_applePhotosNameLookupHonorsCacheModes()
     prefs.useCacheOption(Prefs::CACHE_ONLY);
     std::atomic_int cacheOnlyLookupCalls = 0;
     {
-        Comparison comparison(cacheOnlyVideos, prefs, QRect());
-        comparison._backgroundDiscovery->stop();
-        comparison._videos = cacheOnlyVideos;
-        comparison._applePhotosNameLookup = [&cacheOnlyLookupCalls](const QString&) {
+        auto comparison = makeApplePhotosComparison(cacheOnlyVideos, prefs, [&cacheOnlyLookupCalls](const QString&) {
             cacheOnlyLookupCalls.fetch_add(1);
             return QStringLiteral("Must not be called.mov");
-        };
+        });
 
-        comparison.displayMatchedPair({0, 1, 1, 0, 0.0});
+        comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
         QCoreApplication::processEvents();
         QCOMPARE(cacheOnlyVideo.nameInApplePhotos, QString());
-        QCOMPARE(comparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+        QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
                  QStringLiteral("CACHEONLY456.mov"));
     }
     QCOMPARE(cacheOnlyLookupCalls.load(), 0);

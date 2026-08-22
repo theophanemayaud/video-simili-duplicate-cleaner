@@ -63,8 +63,7 @@ class Db
     // Apple Photos lookups are deliberately cached independently from video metadata:
     // no row means never attempted, while a failed row prevents another slow query.
     ApplePhotosNameCacheEntry readApplePhotosName(const QString& filePathname) const;
-    void writeApplePhotosName(const QString& filePathname, const QString& name) const;
-    void writeApplePhotosNameFailure(const QString& filePathname) const;
+    void writeApplePhotosName(const QString& filePathname, const QString& name, bool found) const;
 
     //returns screen capture if it was cached, else return null ptr
     QByteArray readCapture(const QString& filePathname, const int& percent) const;

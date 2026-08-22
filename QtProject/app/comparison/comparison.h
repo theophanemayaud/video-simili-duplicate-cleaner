@@ -11,7 +11,6 @@
 #include <QPointer>
 #include <QShortcut>
 #include <QStandardPaths>
-#include <QSet>
 #include <QUrl>
 #include <QUuid>
 #include <QWheelEvent>
@@ -82,11 +81,11 @@ class Comparison : public QDialog
     };
 
     ApplePhotosNameLookup _applePhotosNameLookup;
-    QSet<QString> _applePhotosNameLookupsInProgress;
     QHash<QString, std::shared_ptr<ApplePhotosNameRequest>> _applePhotosNameRequests;
     QPointer<QProgressDialog> _applePhotosNameWaitingDialog;
 
     void lookUpApplePhotosName(int videoIndex);
+    bool hasActiveApplePhotosNameLookups() const;
     void showApplePhotosNameWaitingDialog();
     void closeApplePhotosNameWaitingDialog();
     void cancelApplePhotosNameLookups();

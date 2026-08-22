@@ -300,7 +300,7 @@ Db::ApplePhotosNameCacheEntry Db::readApplePhotosName(const QString& filePathnam
     return entry;
 }
 
-void Db::writeApplePhotosName(const QString& filePathname, const QString& name) const
+void Db::writeApplePhotosName(const QString& filePathname, const QString& name, const bool found) const
 {
     if (!_db.isOpen()) {
         qDebug() << "Database not open, can't write Apple Photos name cache.";
@@ -308,28 +308,12 @@ void Db::writeApplePhotosName(const QString& filePathname, const QString& name) 
     }
 
     QSqlQuery query(_db);
-    query.prepare("INSERT OR REPLACE INTO apple_photos_names (id, name, found) VALUES(:id, :name, 1);");
+    query.prepare("INSERT OR REPLACE INTO apple_photos_names (id, name, found) VALUES(:id, :name, :found);");
     query.bindValue(":id", filePathname);
-    query.bindValue(":name", name);
+    query.bindValue(":name", found ? QVariant(name) : QVariant());
+    query.bindValue(":found", found);
     if (!query.exec()) {
         qDebug() << "Error with writeApplePhotosName query for video=" << filePathname
-                 << " query=" << query.lastQuery();
-        qDebug() << query.lastError().text();
-    }
-}
-
-void Db::writeApplePhotosNameFailure(const QString& filePathname) const
-{
-    if (!_db.isOpen()) {
-        qDebug() << "Database not open, can't write Apple Photos name failure cache.";
-        return;
-    }
-
-    QSqlQuery query(_db);
-    query.prepare("INSERT OR REPLACE INTO apple_photos_names (id, name, found) VALUES(:id, NULL, 0);");
-    query.bindValue(":id", filePathname);
-    if (!query.exec()) {
-        qDebug() << "Error with writeApplePhotosNameFailure query for video=" << filePathname
                  << " query=" << query.lastQuery();
         qDebug() << query.lastError().text();
     }
