@@ -4,20 +4,22 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QFileDialog>
+#include <QHash>
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
+#include <QPointer>
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QUrl>
 #include <QUuid>
 #include <QWheelEvent>
 
+#include <atomic>
+#include <functional>
 #include <memory>
 
 #ifdef Q_OS_MACOS
-#include <QProcess> // for running apple scripts and opening file in explorer
-
 #include "obj-c.h"
 #endif
 
@@ -27,6 +29,7 @@ class Comparison;
 }
 
 class BackgroundMatchDiscovery;
+class QProgressDialog;
 struct MatchedVideoPair;
 class Prefs;
 class Video;
@@ -69,6 +72,24 @@ class Comparison : public QDialog
     int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath) const;
     bool _someWereMovedInApplePhotosLibrary = false;
     bool _firstScriptingAskPermission = true;
+    void updateFileNameLabel(const QString& side) const;
+
+#ifdef Q_OS_MACOS
+    using ApplePhotosNameLookup = std::function<QString(const QString& mediaId)>;
+    struct ApplePhotosNameRequest {
+        std::atomic_bool cancelled = false;
+    };
+
+    ApplePhotosNameLookup _applePhotosNameLookup;
+    QHash<QString, std::shared_ptr<ApplePhotosNameRequest>> _applePhotosNameRequests;
+    QPointer<QProgressDialog> _applePhotosNameWaitingDialog;
+
+    void lookUpApplePhotosName(int videoIndex);
+    bool hasActiveApplePhotosNameLookups() const;
+    void showApplePhotosNameWaitingDialog();
+    void closeApplePhotosNameWaitingDialog();
+    void cancelApplePhotosNameLookups();
+#endif
 
     void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();

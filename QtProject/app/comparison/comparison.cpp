@@ -2,9 +2,13 @@
 
 #include <QAbstractSlider>
 #include <QElapsedTimer>
+#include <QFutureWatcher>
 #include <QMimeData>
+#include <QProcess>
 #include <QProgressDialog>
 #include <QSlider>
+#include <QThreadPool>
+#include <QtConcurrent/QtConcurrent>
 
 #include "internal/backgroundmatchdiscovery.h"
 #include "internal/videopairmatcher.h"
@@ -28,12 +32,59 @@ const int BITRATE_DIFF_STILL_EQUAL_kbs = 5;
 // keeps navigation responsive without making its overhead depend on library size.
 constexpr qint64 PROGRESS_REFRESH_INTERVAL_MS = 100;
 
+#ifdef Q_OS_MACOS
+QThreadPool* applePhotosNameLookupThreadPool()
+{
+    // Keep one app-lifetime worker so Photos gets at most one script request at
+    // a time. It is intentionally never destroyed while the app is quitting:
+    // destroying a QThreadPool would wait for an uninterruptible AppleScript.
+    static QThreadPool* pool = [] {
+        auto* result = new QThreadPool;
+        result->setMaxThreadCount(1);
+        return result;
+    }();
+    return pool;
+}
+
+QString applePhotosNameFromOsaScript(const QString& mediaId)
+{
+    QProcess process;
+    process.setProgram(QStringLiteral("osascript"));
+    process.setArguments({QStringLiteral("-l"),
+                          QStringLiteral("AppleScript"),
+                          QStringLiteral("-e"),
+                          QStringLiteral("on run argv\n"
+                                         "    tell application \"Photos\"\n"
+                                         "        set selMedia to (get media items whose id contains (item 1 of argv))\n"
+                                         "        return filename of item 1 of selMedia\n"
+                                         "    end tell\n"
+                                         "end run"),
+                          QStringLiteral("--"),
+                          mediaId});
+    process.start();
+    if (!process.waitForStarted(-1) || !process.waitForFinished(-1) || process.exitStatus() != QProcess::NormalExit
+        || process.exitCode() != 0)
+        return QStringLiteral(OBJ_C_FAILURE_STRING);
+
+    QString name = QString::fromUtf8(process.readAllStandardOutput());
+    if (name.endsWith('\n'))
+        name.chop(1);
+    if (name.endsWith('\r'))
+        name.chop(1);
+    return name;
+}
+#endif
+
 Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, const QRect& mainWindowGeometry)
     : QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam),
       _maxComparisons(VideoPairSpace::comparisonCount(videosParam.size())),
       _backgroundDiscovery(std::make_unique<BackgroundMatchDiscovery>())
 {
     ui->setupUi(this);
+
+#ifdef Q_OS_MACOS
+    _applePhotosNameLookup = applePhotosNameFromOsaScript;
+#endif
 
     this->setGeometry(mainWindowGeometry);
 
@@ -184,6 +235,9 @@ void Comparison::applySortOrder()
 
 Comparison::~Comparison()
 {
+#ifdef Q_OS_MACOS
+    cancelApplePhotosNameLookups();
+#endif
     _backgroundDiscovery->stop();
     delete ui;
 }
@@ -457,32 +511,9 @@ void Comparison::showVideo(const QString& side)
     Image->setPixmap(QPixmap::fromImage(image).scaled(Image->width(), Image->height(), Qt::KeepAspectRatio));
 
 #ifdef Q_OS_MACOS
-    // Get video name from apple photos if applicable. Can't do in in video directly as it is very slow
-    if (_videos[thisVideo]->_filePathName.contains(".photoslibrary")) {
-        const QString fileNameNoExt = QFileInfo(_videos[thisVideo]->_filePathName).completeBaseName();
-        if (!fileNameNoExt.contains("_")) {
-            QString resultString =
-                QString::fromLocal8Bit(Obj_C::obj_C_getMediaName(fileNameNoExt.toLocal8Bit().data()));
-            if (!resultString.contains(OBJ_C_FAILURE_STRING)) {
-                _videos[thisVideo]->nameInApplePhotos = resultString;
-            }
-            else {
-                emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
-                                               "If you have multiple libraries this might be normal, "
-                                               "it will only work, only with the currently open library.")
-                                           .arg(_videos[thisVideo]->_filePathName));
-            }
-        }
-    }
+    lookUpApplePhotosName(thisVideo);
 #endif
-
-    auto* FileName = this->findChild<ClickableLabel*>(side + QStringLiteral("FileName"));
-    if (_videos[thisVideo]->nameInApplePhotos.isEmpty())
-        FileName->setText(QFileInfo(_videos[thisVideo]->_filePathName).fileName());
-    else
-        FileName->setText(_videos[thisVideo]->nameInApplePhotos);
-    FileName->setToolTip(
-        QStringLiteral("%1\nOpen in file manager").arg(QDir::toNativeSeparators(_videos[thisVideo]->_filePathName)));
+    updateFileNameLabel(side);
 
     QFileInfo videoFile(_videos[thisVideo]->_filePathName);
     auto* PathName = this->findChild<QLabel*>(side + QStringLiteral("PathName"));
@@ -539,6 +570,170 @@ void Comparison::showVideo(const QString& side)
              it != _videos[thisVideo]->meta.additionalMetadata.cend(); ++it)
             metadata->append(QStringLiteral("%1: %2").arg(it.key(), it.value()));
     }
+}
+
+#ifdef Q_OS_MACOS
+void Comparison::lookUpApplePhotosName(const int videoIndex)
+{
+    Video* video = _videos[videoIndex];
+    const QString filePathname = video->_filePathName;
+    if (!filePathname.contains(".photoslibrary"))
+        return;
+
+    const QString mediaId = QFileInfo(filePathname).completeBaseName();
+    if (mediaId.contains("_"))
+        return;
+
+    const Prefs::USE_CACHE_OPTION cacheMode = _prefs.useCacheOption();
+    if (cacheMode == Prefs::NO_CACHE) {
+        // Video objects survive reopening results, so discard a name obtained
+        // under a previous cache-enabled comparison before looking it up live.
+        video->nameInApplePhotos.clear();
+    }
+    else {
+        // A missing row means this is the first attempt, while a failed row
+        // avoids another potentially long query.
+        const Db::ApplePhotosNameCacheEntry cachedName =
+            Db(_prefs.cacheFilePathName()).readApplePhotosName(filePathname);
+        if (cachedName.state == Db::ApplePhotosNameCacheEntry::Found) {
+            video->nameInApplePhotos = cachedName.name;
+            return;
+        }
+        // Failed row, or cache-only with no usable row: never live-query.
+        // Cache-only may reuse Video objects that previously had a live name.
+        if (cachedName.state == Db::ApplePhotosNameCacheEntry::Failed
+            || cacheMode == Prefs::CACHE_ONLY) {
+            video->nameInApplePhotos.clear();
+            return;
+        }
+    }
+    if (!video->nameInApplePhotos.isEmpty())
+        return;
+
+    if (_applePhotosNameRequests.contains(filePathname))
+        return;
+
+    const auto request = std::make_shared<ApplePhotosNameRequest>();
+    _applePhotosNameRequests.insert(filePathname, request);
+    showApplePhotosNameWaitingDialog();
+
+    auto* watcher = new QFutureWatcher<QString>(this);
+    const ApplePhotosNameLookup lookup = _applePhotosNameLookup;
+
+    // osascript stays synchronous in its worker. The process boundary keeps
+    // main-thread-only NSAppleScript out of the GUI while Cancel remains responsive.
+    connect(watcher, &QFutureWatcher<QString>::finished, this, [this, watcher, filePathname, request] {
+        const QString name = watcher->result();
+        if (_applePhotosNameRequests.value(filePathname) == request)
+            _applePhotosNameRequests.remove(filePathname);
+        const bool cancelled = request->cancelled.load();
+
+        const bool found = !name.isEmpty() && !name.contains(OBJ_C_FAILURE_STRING);
+        if (!cancelled) {
+            if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
+                Db(_prefs.cacheFilePathName()).writeApplePhotosName(filePathname, name, found);
+            if (!found)
+                emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
+                                               "If you have multiple libraries this might be normal, "
+                                               "it will only work, only with the currently open library.")
+                                           .arg(filePathname));
+        }
+
+        // A lookup may complete after Cancel or after navigation. Update only
+        // the side that still displays this exact video, never a newer pair.
+        if (!cancelled) {
+            for (const auto& side : {QStringLiteral("left"), QStringLiteral("right")}) {
+                const int displayedVideo = side == "left" ? _leftVideo : _rightVideo;
+                if (_videos[displayedVideo]->_filePathName == filePathname) {
+                    if (found)
+                        _videos[displayedVideo]->nameInApplePhotos = name;
+                    else
+                        _videos[displayedVideo]->nameInApplePhotos.clear();
+                    updateFileNameLabel(side);
+                }
+            }
+        }
+
+        if (!hasActiveApplePhotosNameLookups())
+            closeApplePhotosNameWaitingDialog();
+        watcher->deleteLater();
+    });
+    watcher->setFuture(QtConcurrent::run(applePhotosNameLookupThreadPool(), [lookup, mediaId, request] {
+        if (request->cancelled.load())
+            return QString();
+        return lookup(mediaId);
+    }));
+}
+
+bool Comparison::hasActiveApplePhotosNameLookups() const
+{
+    for (const auto& request : _applePhotosNameRequests) {
+        if (!request->cancelled.load())
+            return true;
+    }
+    return false;
+}
+
+void Comparison::showApplePhotosNameWaitingDialog()
+{
+    if (_applePhotosNameWaitingDialog)
+        return;
+
+    auto* waitingDialog = new QProgressDialog(QStringLiteral("Waiting for video name from Apple Photos…"),
+                                               QStringLiteral("Cancel"), 0, 0, this);
+    waitingDialog->setObjectName(QStringLiteral("applePhotosNameWaitingDialog"));
+    waitingDialog->setWindowTitle(QStringLiteral("Apple Photos"));
+    waitingDialog->setWindowModality(Qt::WindowModal);
+    waitingDialog->setAutoClose(false);
+    waitingDialog->setAutoReset(false);
+    _applePhotosNameWaitingDialog = waitingDialog;
+    connect(waitingDialog, &QProgressDialog::canceled, this, &Comparison::cancelApplePhotosNameLookups);
+    waitingDialog->open();
+}
+
+void Comparison::closeApplePhotosNameWaitingDialog()
+{
+    if (_applePhotosNameWaitingDialog) {
+        QProgressDialog* waitingDialog = _applePhotosNameWaitingDialog;
+        _applePhotosNameWaitingDialog = nullptr;
+        // close() triggers QProgressDialog::canceled(), which is reserved for
+        // the user's terminal Cancel choice. Hiding avoids turning a completed
+        // lookup into a cached failure.
+        waitingDialog->hide();
+        waitingDialog->deleteLater();
+    }
+}
+
+void Comparison::cancelApplePhotosNameLookups()
+{
+    if (_applePhotosNameRequests.isEmpty())
+        return;
+
+    // Cancel cannot interrupt the current child process. Mark every queued or
+    // active request terminal first, then let the one worker finish or skip
+    // queued work without changing the UI or cache again.
+    const bool writeToCache = _prefs.useCacheOption() == Prefs::WITH_CACHE;
+    Db cache(_prefs.cacheFilePathName());
+    for (auto it = _applePhotosNameRequests.cbegin(); it != _applePhotosNameRequests.cend(); ++it) {
+        it.value()->cancelled.store(true);
+        if (writeToCache)
+            cache.writeApplePhotosName(it.key(), QString(), false);
+    }
+    closeApplePhotosNameWaitingDialog();
+}
+
+#endif
+
+void Comparison::updateFileNameLabel(const QString& side) const
+{
+    const int videoIndex = side == "right" ? _rightVideo : _leftVideo;
+    auto* fileName = this->findChild<ClickableLabel*>(side + QStringLiteral("FileName"));
+    if (_videos[videoIndex]->nameInApplePhotos.isEmpty())
+        fileName->setText(QFileInfo(_videos[videoIndex]->_filePathName).fileName());
+    else
+        fileName->setText(_videos[videoIndex]->nameInApplePhotos);
+    fileName->setToolTip(
+        QStringLiteral("%1\nOpen in file manager").arg(QDir::toNativeSeparators(_videos[videoIndex]->_filePathName)));
 }
 
 QString Comparison::readableDuration(const int64_t& milliseconds) const
