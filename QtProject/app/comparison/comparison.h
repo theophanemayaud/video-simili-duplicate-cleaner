@@ -13,6 +13,8 @@
 #include <QUuid>
 #include <QWheelEvent>
 
+#include "internal/duplicatesetbuilder.h"
+
 #include <memory>
 
 #ifdef Q_OS_MACOS
@@ -49,6 +51,11 @@ class Comparison : public QDialog
     Prefs& _prefs;
     const int64_t _maxComparisons;
     std::unique_ptr<BackgroundMatchDiscovery> _backgroundDiscovery;
+    QVector<DuplicateSet> _duplicateSets;
+    QVector<MatchedVideoPair> _eligibleSetMatches;
+    int _selectedDuplicateSet = -1;
+    int _selectedSetMember = -1;
+    bool _currentComparisonIsDirectMatch = false;
     int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
@@ -73,6 +80,14 @@ class Comparison : public QDialog
     void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();
     void updateDiscoveryProgress(int64_t preScannedEnd);
+    void clearDuplicateSets();
+    void rebuildDuplicateSets();
+    void selectDuplicateSet(int row, int preferredMember = 1);
+    void showSetMember(int member);
+    void setManualComparisonActionsEnabled(bool enabled);
+    void clearManualComparisonDisplay();
+    bool hasActiveManualComparison() const;
+    const MatchedVideoPair* directEligiblePair(int left, int right) const;
     bool navigateForwardFrom(int64_t currentPosition);
     bool navigateToNextMatch(int64_t fromPosition);
     bool navigateToPrevMatch(int64_t fromPosition, int64_t throughPosition);
@@ -150,14 +165,14 @@ class Comparison : public QDialog
     void on_rightFileName_clicked();
     void openFileManager(const QString& filename);
 
-    void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
-    void on_rightDelete_clicked() { deleteVideo(_rightVideo); }
+    void on_leftDelete_clicked();
+    void on_rightDelete_clicked();
     void deleteVideo(const int& side, const bool auto_trash_mode = false);
 
     void on_leftMove_clicked();
     void on_rightMove_clicked();
     void moveVideo(const QString& from, const QString& to);
-    void on_swapFilenames_clicked() const;
+    void on_swapFilenames_clicked();
 
     void on_thresholdSlider_valueChanged(const int& value);
     void resizeEvent(QResizeEvent* event);
@@ -186,6 +201,8 @@ class Comparison : public QDialog
     void on_settingNamesInAnotherCheckbox_stateChanged(int arg1);
 
     void on_ignoreDuplicatePairButton_clicked();
+    void on_duplicateSets_currentRowChanged(int row);
+    void on_duplicateSetMembers_currentRowChanged(int row);
 
     void initSortOrder();
     void onSortOrderChanged(int index);
