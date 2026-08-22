@@ -473,7 +473,14 @@ void Comparison::showVideo(const QString& side)
     if (_videos[thisVideo]->_filePathName.contains(".photoslibrary"))
         lookUpApplePhotosName(thisVideo);
 #endif
-    updateFileNameLabel(side);
+
+    auto* FileName = this->findChild<ClickableLabel*>(side + QStringLiteral("FileName"));
+    if (_videos[thisVideo]->nameInApplePhotos.isEmpty())
+        FileName->setText(QFileInfo(_videos[thisVideo]->_filePathName).fileName());
+    else
+        FileName->setText(_videos[thisVideo]->nameInApplePhotos);
+    FileName->setToolTip(
+        QStringLiteral("%1\nOpen in file manager").arg(QDir::toNativeSeparators(_videos[thisVideo]->_filePathName)));
 
     QFileInfo videoFile(_videos[thisVideo]->_filePathName);
     auto* PathName = this->findChild<QLabel*>(side + QStringLiteral("PathName"));
@@ -566,18 +573,6 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
 }
 
 #endif
-
-void Comparison::updateFileNameLabel(const QString& side) const
-{
-    const int videoIndex = side == "right" ? _rightVideo : _leftVideo;
-    auto* fileName = this->findChild<ClickableLabel*>(side + QStringLiteral("FileName"));
-    if (_videos[videoIndex]->nameInApplePhotos.isEmpty())
-        fileName->setText(QFileInfo(_videos[videoIndex]->_filePathName).fileName());
-    else
-        fileName->setText(_videos[videoIndex]->nameInApplePhotos);
-    fileName->setToolTip(
-        QStringLiteral("%1\nOpen in file manager").arg(QDir::toNativeSeparators(_videos[videoIndex]->_filePathName)));
-}
 
 QString Comparison::readableDuration(const int64_t& milliseconds) const
 {

@@ -44,7 +44,7 @@ class Video : public QObject
 
     VideoMetadata meta;
     QString _filePathName;
-    QString nameInApplePhotos; // resolved only when a Photos video is shown for comparison
+    QString nameInApplePhotos; // resolved only when an Apple Photos video is shown for comparison
     int64_t size = 0;          // in bytes
     QDateTime modified;
     QDateTime _fileCreateDate;

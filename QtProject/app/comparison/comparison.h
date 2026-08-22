@@ -68,7 +68,6 @@ class Comparison : public QDialog
     int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath) const;
     bool _someWereMovedInApplePhotosLibrary = false;
     bool _firstScriptingAskPermission = true;
-    void updateFileNameLabel(const QString& side) const;
 
 #ifdef Q_OS_MACOS
     using ApplePhotosNameLookup = std::function<QString(const QString& mediaId)>;
