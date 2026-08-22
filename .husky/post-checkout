@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+
+# `git worktree add` runs post-checkout with an all-zero previous HEAD, which is
+# how a brand new worktree is told apart from an ordinary branch checkout.
+if [ "$1" != "0000000000000000000000000000000000000000" ]; then
+	exit 0
+fi
+
+mainWorktree=$(cd -- "$(dirname -- "$(git rev-parse --git-common-dir)")" && pwd)
+if [ -z "$mainWorktree" ] || [ "$mainWorktree" = "$(pwd)" ]; then
+	exit 0
+fi
+
+# Build dependencies are gitignored for their size, so a fresh worktree has none
+# and cannot configure or build. Link rather than copy: they are several GB and
+# identical for every checkout, and CMake resolves them through these paths.
+# One path per line, relative to the checkout root. Paths cannot contain spaces:
+# the loop below relies on word splitting to read this list.
+dependencies="
+node_modules
+QtProject/libraries/macos/qt/qt-install
+"
+
+for dependency in $dependencies; do
+	if [ -e "$mainWorktree/$dependency" ] && [ ! -e "$dependency" ]; then
+		mkdir -p "$(dirname "$dependency")"
+		ln -s "$mainWorktree/$dependency" "$dependency"
+		echo "post-checkout: linked $dependency from $mainWorktree"
+	fi
+done
+
+exit 0
