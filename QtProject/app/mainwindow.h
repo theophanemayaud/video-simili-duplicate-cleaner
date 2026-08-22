@@ -105,6 +105,7 @@ class MainWindow : public QMainWindow
     void on_actionRestore_simple_skip_of_error_videos_triggered();
 
     void on_actionEmpty_cache_triggered();
+    void on_actionClear_failed_videos_from_cache_triggered();
     void on_actionSet_custom_cache_location_triggered();
     void on_actionRestore_default_cache_location_triggered();
 

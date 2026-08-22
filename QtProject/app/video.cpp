@@ -78,28 +78,64 @@ Video::ProcessingResult Video::process()
     result.success = false;
     result.video = this;
 
-    auto err = this->internalProcess();
-    if (!err.isEmpty())
-        result.errorMsg = err;
+    const QFileInfo before(_filePathName);
+    const bool fileExisted = before.exists();
+    const qint64 initialSize = before.size();
+    const qint64 initialModifiedMs = before.lastModified().toMSecsSinceEpoch();
+    if (fileExisted && _prefs.useCacheOption() != Prefs::NO_CACHE) {
+        Db cache(_prefs.cacheFilePathName());
+        const Db::FailedVideoCacheLookup failed =
+            cache.lookupFailedVideo(_filePathName, initialSize, initialModifiedMs, _prefs.thumbnailsMode());
+        if (failed.state == Db::FailedVideoCacheLookup::LookupError) {
+            result.errorMsg = QStringLiteral("could not look up failed video cache; will retry next scan");
+            return result;
+        }
+        else if (failed.state == Db::FailedVideoCacheLookup::Changed) {
+            // The path now identifies different file contents, so none of its path-keyed cache remains trustworthy.
+            if (!cache.invalidateChangedFailedVideo(_filePathName)) {
+                result.errorMsg = QStringLiteral("could not invalidate changed video cache; will retry next scan");
+                return result;
+            }
+        }
+        else if (failed.state == Db::FailedVideoCacheLookup::Unchanged) {
+            result.errorMsg = QStringLiteral("previously failed; skipped processing: %1").arg(failed.error);
+            return result;
+        }
+    }
+
+    const InternalProcessingOutcome outcome = this->internalProcess();
+    if (!outcome.error.isEmpty()) {
+        result.errorMsg = outcome.error;
+        if (outcome.cacheableFailure && fileExisted && _prefs.useCacheOption() == Prefs::WITH_CACHE) {
+            const QFileInfo after(_filePathName);
+            if (after.exists() && after.size() == initialSize
+                && after.lastModified().toMSecsSinceEpoch() == initialModifiedMs)
+            {
+                Db(_prefs.cacheFilePathName())
+                    .writeFailedVideo(_filePathName, initialSize, initialModifiedMs, _prefs.thumbnailsMode(),
+                                      outcome.error);
+            }
+        }
+    }
     else
         result.success = true;
     return result;
 }
 
-QString Video::internalProcess()
+Video::InternalProcessingOutcome Video::internalProcess()
 {
     if (this->_prefs.isVerbose())
         Message::Get()->add(QString("[%1] STARTING %2").arg(QTime::currentTime().toString(), this->_filePathName));
 
     if (!QFileInfo::exists(_filePathName))
-        return "file doesn't seem to exist";
+        return {QStringLiteral("file doesn't seem to exist")};
 #ifdef Q_OS_MACOS
     else if (_filePathName.contains(".photoslibrary")) {
         const QString fileNameNoExt = QFileInfo(_filePathName).completeBaseName();
         if (!_filePathName.contains(".photoslibrary/originals/"))
-            return "file is an Apple Photos derivative";
+            return {QStringLiteral("file is an Apple Photos derivative")};
         else if (fileNameNoExt.contains("_"))
-            return "video seems to be a live photo, so deal with it as a photo.";
+            return {QStringLiteral("video seems to be a live photo, so deal with it as a photo.")};
     }
 #endif
 
@@ -114,15 +150,15 @@ QString Video::internalProcess()
     else if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
         if (QFileInfo(_filePathName).size() == 0)
         { // check this before, as it's faster, but getMetadata also does this but stores the info
-            return "file size = 0 ";
+            return {QStringLiteral("file size = 0 ")};
         }
         auto err = getMetadata(_filePathName);
         if (!err.isEmpty()) { //as not cached, read metadata with ffmpeg
-            return QString("could not read metadata: %1").arg(err);
+            return {QStringLiteral("could not read metadata: %1").arg(err)};
         }
     }
     else {
-        return "video was not fully cached ";
+        return {QStringLiteral("video was not fully cached ")};
     }
     if (this->_prefs.useCacheOption()
         == Prefs::WITH_CACHE)       // TODO-REFACTOR could we move this into the case when we actually cache data ?
@@ -134,23 +170,24 @@ QString Video::internalProcess()
     if (width == 0
         || height == 0) // || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
-        return QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
+        return {QStringLiteral("height (%1) or width (%2) = 0 ").arg(height).arg(width), true};
     }
 
     auto err = takeScreenCaptures(cache);
     if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE && durationWasZero && duration != 0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if (!err.isEmpty()) {
-        return QString("capture failed: %1").arg(err);
+        // A capture error can be an unavailable source or temporary resource failure, so let the next scan retry it.
+        return {QStringLiteral("capture failed: %1").arg(err)};
     }
     else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
              || // only cutEnds separates fingerprints for captures; other modes treat the collage as one fingerprint
              (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
     { //all screen captures black
-        return "all screen captures black";
+        return {QStringLiteral("all screen captures black"), true};
     }
     else {
-        return "";
+        return {};
     }
 }
 
@@ -322,6 +359,8 @@ const QString Video::takeScreenCaptures(const Db& cache)
                         .arg(ofDuration);
             return err;
         }
+        if (resolved.substituteDecodeFailed)
+            return QStringLiteral("could not capture substitute frame at %1%").arg(percentages[capture]);
 
         QImage frame = std::move(resolved.frame);
 
@@ -382,8 +421,12 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
     const int substitutePercent = percentage < 50 ? percentage + _monochromeSubstituteOffset
                                                    : percentage - _monochromeSubstituteOffset;
     QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
+    if (substitute.isNull()) {
+        resolved.substituteDecodeFailed = true;
+        return resolved;
+    }
     const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);
-    if (!substitute.isNull() && substituteAnalysis.informative) {
+    if (substituteAnalysis.informative) {
         resolved.frame = std::move(substitute);
         resolved.analysis = substituteAnalysis;
         resolved.writeToCache = cacheEnabled;

@@ -170,7 +170,16 @@ void TestAutoDelete::test_matchingFeaturePairs()
     w.ui->detectRotatedCopiesCheckbox->setChecked(detectRotatedCopies);
     QDir videoDir(testVideosDir.path());
     w.findVideos(videoDir);
+
+    QAction* clearFailedVideos = w.findChild<QAction*>(QStringLiteral("actionClear_failed_videos_from_cache"));
+    QVERIFY(clearFailedVideos);
+    QVERIFY(clearFailedVideos->isEnabled());
+    bool clearActionWasDisabledDuringProcessing = false;
+    QTimer::singleShot(0, &w, [&] { clearActionWasDisabledDuringProcessing = !clearFailedVideos->isEnabled(); });
     w.processVideos();
+
+    QVERIFY(clearActionWasDisabledDuringProcessing);
+    QVERIFY(clearFailedVideos->isEnabled());
 
     QCOMPARE(w._everyVideo.count(), 2);
     QCOMPARE(w._videoList.count(), 2);

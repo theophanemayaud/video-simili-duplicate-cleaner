@@ -35,7 +35,8 @@ The main development platform is macOS; keep default agent commands on this path
 - Run focused auto-delete end-to-end tests after changing cleanup behavior or auto cleanup UI:
   `cmake --build QtProject/builds/build-debug-6.10.1-macos --target test_repo_auto_delete && ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R ^test_repo_auto_delete$`
 - Run the self-contained CTest baseline:
-  `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_repo_auto_delete|test_repo_video_matching)$"`
+  `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
+- Run `test_failed_video_cache` after changing video rejection, path-keyed cache invalidation, or cache-maintenance actions. It is self-contained and uses generated temporary files.
 - CTest labels make the safe lanes explicit: `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -L repo-fixtures` runs tracked fixtures, while `-L external-fixtures` runs the optional `~/Dev` suites. `test_external_large_video_corpus` is separately labeled `external-corpus` and `requires-mounted-100gb`; run only its named functions.
 - Green `test_external_whole_app_scan` function cases for regular external-corpus work: `emptyDb`, `test_whole_app_nocache`, `test_whole_app_cached`, `test_whole_app_cache_only`.
 - `test_repo_video_extraction_regression` compares platform-sensitive metadata/thumbnails for the Nice videos; run it on the macOS dev setup, not Linux CI, unless refreshing reference expectations.

@@ -21,6 +21,17 @@ class Db
 {
 
   public:
+    struct FailedVideoCacheLookup
+    {
+        enum State {
+            LookupError,
+            NotFound,
+            Unchanged,
+            Changed
+        } state = LookupError;
+        QString error;
+    };
+
     struct ApplePhotosNameCacheEntry
     {
         enum State {
@@ -70,6 +81,16 @@ class Db
 
     //save image in cache
     void writeCapture(const QString& filePathname, const int& percent, const QByteArray& image) const;
+
+    // Failed videos are keyed by path and sampling mode. A changed file invalidates all path-keyed cache data.
+    FailedVideoCacheLookup lookupFailedVideo(const QString& filePathname, qint64 size, qint64 modifiedMs,
+                                             int thumbnailMode) const;
+    bool writeFailedVideo(const QString& filePathname, qint64 size, qint64 modifiedMs, int thumbnailMode,
+                          const QString& error) const;
+    // A changed failed file must never reuse a partial old cache; false leaves every row untouched for a later retry.
+    bool invalidateChangedFailedVideo(const QString& filePathname);
+    // Returns the number of distinct videos prepared for retry, or -1 when the database operation fails.
+    int clearFailedVideos();
 
     //returns false was not cached or could not be removed
     bool removeVideo(const QString& filePathname) const;

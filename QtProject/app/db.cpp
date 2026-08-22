@@ -63,6 +63,7 @@ bool Db::emptyAllDb(const Prefs prefs)
         query.exec(QStringLiteral("DROP TABLE IF EXISTS capture"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS ignored_pairs"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS apple_photos_names"));
+        query.exec(QStringLiteral("DROP TABLE IF EXISTS failed_videos"));
         query.exec(QStringLiteral("DROP TABLE IF EXISTS version"));
 
         query.exec(QStringLiteral("VACUUM")); // restructure sqlite file to make it smaller on disk
@@ -156,6 +157,16 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
                               "id TEXT PRIMARY KEY, "
                               "name TEXT, "
                               "found INTEGER NOT NULL CHECK(found IN (0, 1))"
+                              ");"));
+
+    query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS "
+                              "failed_videos ("
+                              "path TEXT NOT NULL, "
+                              "size INTEGER NOT NULL, "
+                              "modified_ms INTEGER NOT NULL, "
+                              "thumbnail_mode INTEGER NOT NULL, "
+                              "error TEXT NOT NULL, "
+                              "PRIMARY KEY (path, thumbnail_mode)"
                               ");"));
 
     // Now create a version table and entry, that could help us in the future to check if the database contains old records
@@ -371,6 +382,148 @@ void Db::writeCapture(const QString& filePathname, const int& percent, const QBy
     }
 }
 
+Db::FailedVideoCacheLookup Db::lookupFailedVideo(const QString& filePathname, const qint64 size,
+                                                 const qint64 modifiedMs, const int thumbnailMode) const
+{
+    FailedVideoCacheLookup result;
+    if (!_db.isOpen()) {
+        qDebug() << "Database not open, can't read failed-video cache.";
+        return result;
+    }
+
+    QSqlQuery query(_db);
+    query.prepare("SELECT size, modified_ms, thumbnail_mode, error FROM failed_videos WHERE path = :path;");
+    query.bindValue(":path", filePathname);
+    if (!query.exec()) {
+        qDebug() << "Error with lookupFailedVideo query for video=" << filePathname << " query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        return result;
+    }
+
+    result.state = FailedVideoCacheLookup::NotFound;
+    while (query.next()) {
+        if (query.value(0).toLongLong() != size || query.value(1).toLongLong() != modifiedMs) {
+            result.state = FailedVideoCacheLookup::Changed;
+            result.error.clear();
+            return result;
+        }
+        if (query.value(2).toInt() == thumbnailMode) {
+            result.state = FailedVideoCacheLookup::Unchanged;
+            result.error = query.value(3).toString();
+        }
+    }
+    return result;
+}
+
+bool Db::writeFailedVideo(const QString& filePathname, const qint64 size, const qint64 modifiedMs,
+                          const int thumbnailMode, const QString& error) const
+{
+    if (!_db.isOpen()) {
+        qDebug() << "Database not open, can't write failed-video cache.";
+        return false;
+    }
+
+    QSqlQuery query(_db);
+    query.prepare("INSERT OR REPLACE INTO failed_videos "
+                  "(path, size, modified_ms, thumbnail_mode, error) "
+                  "VALUES(:path, :size, :modified_ms, :thumbnail_mode, :error);");
+    query.bindValue(":path", filePathname);
+    query.bindValue(":size", size);
+    query.bindValue(":modified_ms", modifiedMs);
+    query.bindValue(":thumbnail_mode", thumbnailMode);
+    query.bindValue(":error", error);
+    if (query.exec())
+        return true;
+
+    qDebug() << "Error with writeFailedVideo query for video=" << filePathname << " query=" << query.lastQuery();
+    qDebug() << query.lastError().text();
+    return false;
+}
+
+bool Db::invalidateChangedFailedVideo(const QString& filePathname)
+{
+    if (!_db.isOpen()) {
+        qDebug() << "Database not open, can't invalidate changed failed-video cache.";
+        return false;
+    }
+
+    if (!_db.transaction()) {
+        qDebug() << "Error starting changed failed-video cache invalidation:" << _db.lastError().text();
+        return false;
+    }
+
+    QSqlQuery query(_db);
+    const QStringList statements = {
+        QStringLiteral("DELETE FROM apple_photos_names WHERE id = :id;"),
+        QStringLiteral("DELETE FROM ignored_pairs WHERE pathName1 = :id OR pathName2 = :id;"),
+        QStringLiteral("DELETE FROM failed_videos WHERE path = :id;"),
+        QStringLiteral("DELETE FROM metadata WHERE id = :id;"),
+        QStringLiteral("DELETE FROM capture WHERE id = :id;")};
+    for (const QString& statement : statements) {
+        query.prepare(statement);
+        query.bindValue(":id", filePathname);
+        if (query.exec())
+            continue;
+        qDebug() << "Error invalidating changed failed-video cache for video=" << filePathname
+                 << " query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        _db.rollback();
+        return false;
+    }
+
+    if (_db.commit())
+        return true;
+
+    qDebug() << "Error committing changed failed-video cache invalidation:" << _db.lastError().text();
+    _db.rollback();
+    return false;
+}
+
+int Db::clearFailedVideos()
+{
+    if (!_db.isOpen()) {
+        qDebug() << "Database not open, can't clear failed-video cache.";
+        return -1;
+    }
+
+    if (!_db.transaction()) {
+        qDebug() << "Error starting clearFailedVideos transaction:" << _db.lastError().text();
+        return -1;
+    }
+
+    QSqlQuery query(_db);
+    if (!query.exec(QStringLiteral("SELECT COUNT(DISTINCT path) FROM failed_videos;")) || !query.next()) {
+        qDebug() << "Error with clearFailedVideos query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        _db.rollback();
+        return -1;
+    }
+    const int failedVideoCount = query.value(0).toInt();
+
+    // Clearing a failure is an explicit retry request, so discard cached extraction and ignore decisions for failed paths.
+    const QStringList statements = {
+        QStringLiteral("DELETE FROM capture WHERE id IN (SELECT path FROM failed_videos);"),
+        QStringLiteral("DELETE FROM metadata WHERE id IN (SELECT path FROM failed_videos);"),
+        QStringLiteral("DELETE FROM ignored_pairs WHERE pathName1 IN (SELECT path FROM failed_videos) "
+                       "OR pathName2 IN (SELECT path FROM failed_videos);"),
+        QStringLiteral("DELETE FROM failed_videos;")};
+    for (const QString& statement : statements) {
+        if (query.exec(statement))
+            continue;
+        qDebug() << "Error with clearFailedVideos query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        _db.rollback();
+        return -1;
+    }
+
+    if (!_db.commit()) {
+        qDebug() << "Error committing clearFailedVideos transaction:" << _db.lastError().text();
+        _db.rollback();
+        return -1;
+    }
+    return failedVideoCount;
+}
+
 bool Db::removeVideo(const QString& filePathname) const
 {
     if (!_db.isOpen()) {
@@ -399,8 +552,27 @@ bool Db::removeVideo(const QString& filePathname) const
         qDebug() << error.text();
     }
 
-    if (!idCached)
-        return false;
+    // Ignore decisions describe the old content too, so a replacement at this path must be compared again.
+    query.prepare("DELETE FROM ignored_pairs WHERE pathName1 = :id OR pathName2 = :id;");
+    query.bindValue(":id", filePathname);
+    query.exec();
+    error = query.lastError();
+    if (error.isValid()) {
+        qDebug() << "Error with removeVideo ignored-pair query for video=" << filePathname
+                 << " query=" << query.lastQuery();
+        qDebug() << error.text();
+    }
+
+    // Failure markers may exist without metadata when FFmpeg rejected the file before metadata could be cached.
+    query.prepare("DELETE FROM failed_videos WHERE path = :id;");
+    query.bindValue(":id", filePathname);
+    query.exec();
+    error = query.lastError();
+    if (error.isValid()) {
+        qDebug() << "Error with removeVideo failed-video query for video=" << filePathname
+                 << " query=" << query.lastQuery();
+        qDebug() << error.text();
+    }
 
     query.prepare("DELETE FROM metadata WHERE id = :id;");
     query.bindValue(":id", filePathname);
@@ -431,7 +603,7 @@ bool Db::removeVideo(const QString& filePathname) const
 
     while (query.next())
         return false;
-    return true;
+    return idCached;
 }
 
 QSet<QString> Db::getCachedVideoPathnamesInFolders(QStringList directoriesPaths) const
