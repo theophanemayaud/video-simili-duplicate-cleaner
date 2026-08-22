@@ -9,7 +9,7 @@ class VideoMetadata
 {
   public:
     QString filename;
-    QString nameInApplePhotos; // used externally only, as it is too slow to get at first
+    QString nameInApplePhotos; // resolved only when an Apple Photos video is shown for comparison
     int64_t size = 0;          // in bytes
     QDateTime _fileCreateDate;
     QDateTime modified;

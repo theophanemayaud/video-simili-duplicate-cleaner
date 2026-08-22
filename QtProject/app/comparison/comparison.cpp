@@ -3,6 +3,7 @@
 #include <QAbstractSlider>
 #include <QElapsedTimer>
 #include <QMimeData>
+#include <QProcess> // for opening a file in the platform file manager
 #include <QProgressDialog>
 #include <QSlider>
 
@@ -28,12 +29,24 @@ const int BITRATE_DIFF_STILL_EQUAL_kbs = 5;
 // keeps navigation responsive without making its overhead depend on library size.
 constexpr qint64 PROGRESS_REFRESH_INTERVAL_MS = 100;
 
+#ifdef Q_OS_MACOS
+QString applePhotosNameFromPhotoKit(const QString& mediaId)
+{
+    const std::string name = Obj_C::obj_C_getMediaNameFromPhotoKit(mediaId.toStdString());
+    return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
+}
+#endif
+
 Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, const QRect& mainWindowGeometry)
     : QDialog(prefsParam._mainwPtr, Qt::Window), ui(new Ui::Comparison), _videos(videosParam), _prefs(prefsParam),
       _maxComparisons(VideoPairSpace::comparisonCount(videosParam.size())),
       _backgroundDiscovery(std::make_unique<BackgroundMatchDiscovery>())
 {
     ui->setupUi(this);
+
+#ifdef Q_OS_MACOS
+    _applePhotosNameLookup = applePhotosNameFromPhotoKit;
+#endif
 
     this->setGeometry(mainWindowGeometry);
 
@@ -457,23 +470,8 @@ void Comparison::showVideo(const QString& side)
     Image->setPixmap(QPixmap::fromImage(image).scaled(Image->width(), Image->height(), Qt::KeepAspectRatio));
 
 #ifdef Q_OS_MACOS
-    // Get video name from apple photos if applicable. Can't do in in video directly as it is very slow
-    if (_videos[thisVideo]->_filePathName.contains(".photoslibrary")) {
-        const QString fileNameNoExt = QFileInfo(_videos[thisVideo]->_filePathName).completeBaseName();
-        if (!fileNameNoExt.contains("_")) {
-            QString resultString =
-                QString::fromLocal8Bit(Obj_C::obj_C_getMediaName(fileNameNoExt.toLocal8Bit().data()));
-            if (!resultString.contains(OBJ_C_FAILURE_STRING)) {
-                _videos[thisVideo]->nameInApplePhotos = resultString;
-            }
-            else {
-                emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
-                                               "If you have multiple libraries this might be normal, "
-                                               "it will only work, only with the currently open library.")
-                                           .arg(_videos[thisVideo]->_filePathName));
-            }
-        }
-    }
+    if (_videos[thisVideo]->_filePathName.contains(".photoslibrary"))
+        lookUpApplePhotosName(thisVideo);
 #endif
 
     auto* FileName = this->findChild<ClickableLabel*>(side + QStringLiteral("FileName"));
@@ -540,6 +538,41 @@ void Comparison::showVideo(const QString& side)
             metadata->append(QStringLiteral("%1: %2").arg(it.key(), it.value()));
     }
 }
+
+#ifdef Q_OS_MACOS
+void Comparison::lookUpApplePhotosName(const int videoIndex)
+{
+    Video* video = _videos[videoIndex];
+    const QString filePathname = video->_filePathName;
+    const QString mediaId = QFileInfo(filePathname).completeBaseName();
+    // Photos names an original after its asset UUID, except for the video part of
+    // a Live Photo which gets an underscore suffix. Those have no asset of their
+    // own to look up, and the delete path refuses them as not being real videos,
+    // so skip quietly rather than reporting a lookup failure to the user.
+    if (mediaId.contains("_"))
+        return;
+
+    if (!video->nameInApplePhotos.isEmpty())
+        return;
+
+    // A PhotoKit lookup of a single asset takes a few milliseconds, so it runs
+    // inline: the caller displays the name right after, with no interim state.
+    const QString name = _applePhotosNameLookup(mediaId);
+    const bool found = !name.isEmpty() && !name.contains(OBJ_C_FAILURE_STRING);
+
+    if (found) {
+        video->nameInApplePhotos = name;
+        return;
+    }
+
+    video->nameInApplePhotos.clear();
+    emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
+                                   "If you have multiple libraries this might be normal, "
+                                   "it will only work, only with the currently open library.")
+                               .arg(filePathname));
+}
+
+#endif
 
 QString Comparison::readableDuration(const int64_t& milliseconds) const
 {

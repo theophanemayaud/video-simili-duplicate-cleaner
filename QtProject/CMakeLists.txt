@@ -67,6 +67,12 @@ function(target_link_video_processing_dependencies TARGET_NAME)
         target_link_libraries(${TARGET_NAME} PRIVATE
             aom
         )
+
+        # Apple Photos: we use PhotoKit (PHAsset/PHAssetResource) which lives in Photos.framework
+        # to get the name of the video in the user's library.
+        target_link_libraries(${TARGET_NAME} PRIVATE
+            "-framework Photos"
+        )
     elseif(WIN32)
         message(STATUS "Windows: adding libraries expecting management by vcpkg")
 
