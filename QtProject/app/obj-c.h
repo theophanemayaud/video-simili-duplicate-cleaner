@@ -7,6 +7,8 @@
 class Obj_C
 {
   public:
+    // from QT C++, convert char * with QString::fromLocal8Bit(char * stringHere)
+
     /* *
          * function:
          * return : string OBJ_C_SUCCESS_STRING if success, or the error if error
