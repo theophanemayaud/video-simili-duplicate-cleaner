@@ -3,6 +3,7 @@
 #include <QAbstractSlider>
 #include <QElapsedTimer>
 #include <QMimeData>
+#include <QProcess> // for opening a file in the platform file manager
 #include <QProgressDialog>
 #include <QSlider>
 

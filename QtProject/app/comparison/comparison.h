@@ -4,18 +4,15 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QFileDialog>
-#include <QHash>
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPointer>
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QUrl>
 #include <QUuid>
 #include <QWheelEvent>
 
-#include <atomic>
 #include <functional>
 #include <memory>
 
@@ -29,7 +26,6 @@ class Comparison;
 }
 
 class BackgroundMatchDiscovery;
-class QProgressDialog;
 struct MatchedVideoPair;
 class Prefs;
 class Video;
