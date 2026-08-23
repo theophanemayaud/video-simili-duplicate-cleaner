@@ -153,8 +153,8 @@ QString Video::internalProcess()
     else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
              || // only cutEnds separates fingerprints for captures; other modes treat the collage as one fingerprint
              (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
-    { //all screen captures black
-        const QString error = "all screen captures black";
+    { //every extracted frame have almost no features/fully flat (e.g. all black)
+        const QString error = "all extracted frames were blank";
         if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE) {
             cachedFailure = error;
             cache.writeMetadata(*this);

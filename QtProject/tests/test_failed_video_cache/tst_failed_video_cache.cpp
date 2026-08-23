@@ -33,7 +33,7 @@ QString processError(const QString& path, const QString& cachePath, Prefs::USE_C
 // The message Video reports when the cached failure made it skip processing, so tests assert on one wording.
 QString skippedMessage(const QString& failure)
 {
-    return QString("skipped, cache indicated it had failed in a previous scan: %1").arg(failure);
+    return QString("skipped, cache indicated it had failed in a previous scan with: %1").arg(failure);
 }
 
 bool writeInvalidVideo(const QString& path, const QByteArray& contents, QIODevice::OpenMode mode = QIODevice::WriteOnly)
@@ -224,19 +224,19 @@ void TestFailedVideoCache::test_failureSkipsUntilCacheBypassedOrEmptied()
     {
         Db cache(cachePath);
         writePlausibleMetadata(cache, prefs, videoPath, QFileInfo(videoPath).size(),
-                               QStringLiteral("all screen captures black"));
+                               QStringLiteral("all extracted frames were blank"));
     }
 
-    QCOMPARE(cachedFailure(cachePath, videoPath), QStringLiteral("all screen captures black"));
+    QCOMPARE(cachedFailure(cachePath, videoPath), QStringLiteral("all extracted frames were blank"));
     QCOMPARE(processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds),
-             skippedMessage(QStringLiteral("all screen captures black")));
+             skippedMessage(QStringLiteral("all extracted frames were blank")));
     QCOMPARE(processError(videoPath, cachePath, Prefs::WITH_CACHE, thumb1),
-             skippedMessage(QStringLiteral("all screen captures black")));
+             skippedMessage(QStringLiteral("all extracted frames were blank")));
 
     // Scanning without the cache must reach FFmpeg again, and must not record a new failure.
     const QString bypassedError = processError(videoPath, cachePath, Prefs::NO_CACHE, cutEnds);
     QVERIFY(bypassedError.contains(QStringLiteral("could not read metadata")));
-    QCOMPARE(cachedFailure(cachePath, videoPath), QStringLiteral("all screen captures black"));
+    QCOMPARE(cachedFailure(cachePath, videoPath), QStringLiteral("all extracted frames were blank"));
 
     QVERIFY(Db::emptyAllDb(prefs));
     QVERIFY(cachedFailure(cachePath, videoPath).isEmpty());
