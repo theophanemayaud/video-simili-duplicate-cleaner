@@ -1,7 +1,10 @@
 version = 1
 name = "Video Similarity Duplicate Cleaner"
 
-# Codex sets CODEX_WORKTREE_PATH to the worktree it just created, so the setup
-# script is addressed explicitly rather than through the working directory.
+# Codex sets $CODEX_WORKTREE_PATH to the worktree it just created, and
+# $CODEX_SOURCE_TREE_PATH to the original checkout path. The script is
+# addressed through the former rather than through the working directory,
+# which Codex does not guarantee. The latter is unused: the script finds the
+# original checkout through git, so it also works outside Codex.
 [setup]
 script = '"$CODEX_WORKTREE_PATH"/scripts/link-build-deps.sh'
