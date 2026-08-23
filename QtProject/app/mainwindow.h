@@ -30,6 +30,7 @@ class MainWindow : public QMainWindow
 
     friend class VideoCorpusTestHelpers;
     friend class TestAutoDelete;
+    friend class TestMainWindow;
 
   public:
     MainWindow();

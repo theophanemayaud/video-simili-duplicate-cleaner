@@ -5,6 +5,9 @@
 
 #include <memory>
 
+#include "../../app/mainwindow.h"
+#include "../../app/prefs.h"
+#include "../../app/ui_mainwindow.h"
 #include "../../app/videodiscovery.h"
 
 // Discovery only looks at file names, so empty placeholder files describe a Photos library layout faithfully
@@ -18,6 +21,9 @@ class TestMainWindow : public QObject
     void test_photosLibraryInsideScannedFolderOnlyYieldsOriginals();
     void test_photosLibrarySelectedDirectlyOnlyYieldsOriginals();
     void test_discoveryCanBeCancelled();
+    void test_discoveryCanBeCancelledWhileSkippingNonVideos();
+    void test_videoExtensionsMatchRegardlessOfCase();
+    void test_emptyFolderScanLeavesNoSearchingMessage();
 
   private:
     std::unique_ptr<QTemporaryDir> _scanRoot;
@@ -97,6 +103,62 @@ void TestMainWindow::test_discoveryCanBeCancelled()
 
     QVERIFY(result.cancelled);
     QVERIFY(result.videos.isEmpty());
+}
+
+// A folder can hold far more non-video files than videos, and skipping those must not delay a Stop request: name
+// filters handed to QDirIterator would be applied inside hasNext(), hiding the whole enumeration behind one call.
+void TestMainWindow::test_discoveryCanBeCancelledWhileSkippingNonVideos()
+{
+    QVERIFY(!createFile(QStringLiteral("Movies/first.mp4")).isEmpty());
+    for (int index = 0; index < 50; index++)
+        QVERIFY(!createFile(QStringLiteral("Movies/note%1.txt").arg(index)).isEmpty());
+
+    int reportedEntries = 0;
+    const VideoDiscoveryResult result =
+        discoverVideos({_scanRoot->path()}, {QStringLiteral("*.mp4")}, [&reportedEntries](int, const QString&) {
+            reportedEntries++;
+            // Cancel partway through the folder, once enumeration is under way but well before the last entry.
+            return reportedEntries < 10;
+        });
+
+    QVERIFY(result.cancelled);
+    QCOMPARE(reportedEntries, 10);
+}
+
+void TestMainWindow::test_videoExtensionsMatchRegardlessOfCase()
+{
+    const QString shouting = createFile(QStringLiteral("Movies/HOLIDAY.MP4"));
+    const QString mixed = createFile(QStringLiteral("Movies/Trip.Mov"));
+    QVERIFY(!shouting.isEmpty());
+    QVERIFY(!mixed.isEmpty());
+    QVERIFY(!createFile(QStringLiteral("Movies/notes.TXT")).isEmpty());
+
+    QCOMPARE(discoveredVideosIn(_scanRoot->path()), QSet<QString>({shouting, mixed}));
+}
+
+// Discovery runs on a worker thread, so the window has to settle back to an idle state on its own. A folder with no
+// videos is the path that skips processing entirely, which is exactly where a leftover progress message would show up.
+void TestMainWindow::test_emptyFolderScanLeavesNoSearchingMessage()
+{
+    QVERIFY(!createFile(QStringLiteral("Documents/notes.txt")).isEmpty());
+
+    MainWindow window;
+    window.show();
+    window._prefs.useCacheOption(Prefs::NO_CACHE);
+    window.ui->directoryBox->setText(QDir(_scanRoot->path()).filePath(QStringLiteral("Documents")));
+
+    QSignalSpy discoveryFinished(&window._videoDiscoveryWatcher, &QFutureWatcherBase::finished);
+    window.on_findDuplicates_clicked();
+    QVERIFY(discoveryFinished.wait(30000));
+    QCoreApplication::processEvents();
+
+    QVERIFY(window._everyVideo.isEmpty());
+    QCOMPARE(window.ui->statusBar->currentMessage(), QString());
+    QCOMPARE(window.ui->findDuplicates->text(), QStringLiteral("Find duplicates"));
+    QVERIFY(window.ui->directoryBox->isEnabled());
+
+    window.close();
+    QCoreApplication::processEvents();
 }
 
 QTEST_MAIN(TestMainWindow)

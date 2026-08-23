@@ -21,9 +21,27 @@ QStringList directoriesToScanFor(const QDir& dir)
         return {};
     return {originals};
 }
+
+// extensions.ini holds plain extension globs that MainWindow::loadExtensions normalizes to "*.ext", so a suffix set
+// carries the same meaning as handing those globs to QDirIterator. Matching them here instead is what lets the walk
+// observe cancellation on every entry: QDirIterator applies name filters inside hasNext(), so a folder holding many
+// non-video files would otherwise be skipped past inside one call that no Stop request can interrupt. It also replaces
+// one wildcard match per filter per file, over forty of them, with a single hash lookup, and makes matching
+// case-insensitive everywhere rather than only where the filesystem happens to be.
+QSet<QString> videoSuffixesFrom(const QStringList& extensionFilters)
+{
+    QSet<QString> suffixes;
+    for (const QString& filter : extensionFilters) {
+        const QString suffix = filter.mid(filter.lastIndexOf(u'.') + 1).toLower();
+        // An empty suffix would match every extensionless file, so a malformed filter drops out instead.
+        if (!suffix.isEmpty())
+            suffixes.insert(suffix);
+    }
+    return suffixes;
+}
 } // namespace
 
-VideoDiscoveryResult discoverVideos(const QStringList& directories, const QStringList& nameFilters,
+VideoDiscoveryResult discoverVideos(const QStringList& directories, const QStringList& extensionFilters,
                                     const VideoDiscoveryProgress& reportProgress)
 {
     VideoDiscoveryResult result;
@@ -41,34 +59,36 @@ VideoDiscoveryResult discoverVideos(const QStringList& directories, const QStrin
         remainingDirectories.append(directoriesToScanFor(directory));
     }
 
-    QDir directory;
-    directory.setNameFilters(nameFilters);
-    // Sorting each folder would only cost time: results go into a set and processVideos sorts the final list.
-    directory.setSorting(QDir::Unsorted);
-    // AllDirs lets video globs still see every folder; Files keeps the globs on video names.
-    directory.setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot);
+    const QSet<QString> videoSuffixes = videoSuffixesFrom(extensionFilters);
 
     while (!remainingDirectories.isEmpty()) {
-        directory.setPath(remainingDirectories.takeLast());
-        if (reportProgress && !reportProgress(result.videos.size(), directory.path())) {
+        const QString folder = remainingDirectories.takeLast();
+        // Reported before the folder is opened so an empty or unreadable folder still answers a Stop request.
+        if (reportProgress && !reportProgress(result.videos.size(), folder)) {
             result.cancelled = true;
             return result;
         }
 
         // One pass per folder. Subdirectories is omitted so a .photoslibrary can be replaced by originals/ instead
         // of walking resources/. Symlinked folders are left alone, which also prevents recursion cycles.
-        QDirIterator iter(directory);
+        // Hidden entries stay excluded, as they were when QDir applied the filters.
+        QDirIterator iter(folder, QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
         while (iter.hasNext()) {
             const QFileInfo entry = iter.nextFileInfo();
-            if (entry.isDir()) {
-                if (!entry.isSymLink())
-                    remainingDirectories.append(directoriesToScanFor(QDir(entry.filePath())));
-                continue;
-            }
+            const bool isDirectory = entry.isDir();
+            const bool isVideo = !isDirectory && videoSuffixes.contains(entry.suffix().toLower());
 
-            const QString filePathName = entry.canonicalFilePath();
-            result.videos.insert(filePathName);
-            if (reportProgress && !reportProgress(result.videos.size(), filePathName)) {
+            QString reportedPath = folder;
+            if (isVideo) {
+                reportedPath = entry.canonicalFilePath();
+                result.videos.insert(reportedPath);
+            }
+            else if (isDirectory && !entry.isSymLink())
+                remainingDirectories.append(directoriesToScanFor(QDir(entry.filePath())));
+
+            // Every entry is reported, videos and skipped files alike, so a folder full of non-video files cannot
+            // hold off a Stop request until its enumeration ends.
+            if (reportProgress && !reportProgress(result.videos.size(), reportedPath)) {
                 result.cancelled = true;
                 return result;
             }

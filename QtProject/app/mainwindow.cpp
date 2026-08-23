@@ -348,8 +348,15 @@ void MainWindow::processVideos()
         ui->progressBar->setMaximum(_prefs._numberOfVideos);
         ui->statusBox->verticalScrollBar()->triggerAction(QScrollBar::SliderToMaximum);
     }
-    else
+    else {
+        // Nothing to process, so "Searching for videos..." has to go: leaving it up makes an idle window look like it
+        // is still scanning. A missing-folder warning is the one message worth keeping on screen.
+        if (ui->statusBar->currentMessage().indexOf(QStringLiteral("Cannot find folder")) == -1) {
+            ui->statusBar->clearMessage();
+            ui->statusBar->setVisible(false);
+        }
         return;
+    }
 
     // Process videos using QtConcurrent
     // for reproduceability and easier user experience, we want to process videos in alphabetical order

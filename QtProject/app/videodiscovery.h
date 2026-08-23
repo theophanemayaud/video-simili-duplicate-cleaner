@@ -14,7 +14,9 @@ struct VideoDiscoveryResult {
 
 using VideoDiscoveryProgress = std::function<bool(int videoCount, const QString& path)>;
 
-VideoDiscoveryResult discoverVideos(const QStringList& directories, const QStringList& nameFilters,
+// extensionFilters holds the "*.ext" globs from extensions.ini; only the extension part is significant and it is
+// matched case-insensitively. reportProgress is called for every entry seen and stops the walk when it returns false.
+VideoDiscoveryResult discoverVideos(const QStringList& directories, const QStringList& extensionFilters,
                                     const VideoDiscoveryProgress& reportProgress = {});
 
 #endif // VIDEODISCOVERY_H
