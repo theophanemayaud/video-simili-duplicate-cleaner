@@ -268,26 +268,64 @@ void MainWindow::on_findDuplicates_clicked()
     this->shouldScan = false; //set to false, as we are done scanning
 }
 
+namespace
+{
+// Photos keeps a derivative and a thumbnail for every asset, so a real library holds hundreds of thousands of files
+// under resources/ while only originals/ can hold a video worth reviewing: Video::internalProcess rejects anything
+// outside originals/ as a derivative. Enumerating the rest froze the UI for around 25s on a 440k entry library and
+// every one of those entries was then discarded, so the whole library is replaced by its originals/ folder.
+// A library without originals/ holds nothing we would accept, hence an empty result rather than a full walk.
+QStringList directoriesToScanFor(const QDir& dir)
+{
+    if (!dir.dirName().endsWith(QStringLiteral(".photoslibrary")))
+        return {dir.path()};
+
+    const QString originals = dir.filePath(QStringLiteral("originals"));
+    if (!QFileInfo(originals).isDir())
+        return {};
+    return {originals};
+}
+} // namespace
+
 void MainWindow::findVideos(QDir& dir)
 {
     dir.setNameFilters(_extensionList);
-    QDirIterator iter(dir, QDirIterator::Subdirectories);
-    while (iter.hasNext()) {
-        QApplication::processEvents();
-        if (_userPressedStop) {
-            _userPressedStop =
-                false; //user needs to press 2x to stop the find videos process, then process videos process.
-            return;
+    // Sorting each folder would only cost time: results go into a set and processVideos sorts the final list.
+    dir.setSorting(QDir::Unsorted);
+
+    QStringList remainingDirectories = directoriesToScanFor(dir);
+    while (!remainingDirectories.isEmpty()) {
+        QDir currentDir = dir; // carries the extension filters and sorting over to each visited folder
+        currentDir.setPath(remainingDirectories.takeLast());
+
+        // Recursing by hand rather than with QDirIterator's Subdirectories flag is what makes pruning possible.
+        // QDir::AllDirs keeps the extension filters from being applied to folder names, and symlinked folders are
+        // left alone as QDirIterator did, which also rules out walking in circles.
+        const QFileInfoList subDirectories =
+            currentDir.entryInfoList(QDir::Dirs | QDir::AllDirs | QDir::NoDotAndDotDot);
+        for (const QFileInfo& subDirectory : subDirectories)
+            if (!subDirectory.isSymLink())
+                remainingDirectories.append(directoriesToScanFor(QDir(subDirectory.filePath())));
+
+        const QFileInfoList videoFiles = currentDir.entryInfoList(QDir::Files);
+        for (const QFileInfo& videoFile : videoFiles) {
+            QApplication::processEvents();
+            if (_userPressedStop) {
+                _userPressedStop =
+                    false; //user needs to press 2x to stop the find videos process, then process videos process.
+                return;
+            }
+            const QString filePathName = videoFile.canonicalFilePath();
+
+            if (_everyVideo.contains(filePathName)) //don't want duplicates of same file
+                continue;
+            _everyVideo.insert(filePathName);
+
+            ui->statusBar->showMessage(QStringLiteral("Found %1 videos | %2")
+                                           .arg(_everyVideo.size())
+                                           .arg(QDir::toNativeSeparators(filePathName)),
+                                       10);
         }
-        const QString filePathName = iter.nextFileInfo().canonicalFilePath();
-
-        if (_everyVideo.contains(filePathName)) //don't want duplicates of same file
-            continue;
-        _everyVideo.insert(filePathName);
-
-        ui->statusBar->showMessage(
-            QStringLiteral("Found %1 videos | %2").arg(_everyVideo.size()).arg(QDir::toNativeSeparators(filePathName)),
-            10);
     }
 }
 
