@@ -393,7 +393,9 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
         percentage < 50 ? percentage + _monochromeSubstituteOffset : percentage - _monochromeSubstituteOffset;
     QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
     if (substitute.isNull()) {
-        resolved.error = QString("could not capture substitute frame at %1%").arg(percentage);
+        resolved.error = QString("frame at %1% was blank and an attempted replacement at %2% could not be extracted")
+                             .arg(percentage)
+                             .arg(substitutePercent);
         return resolved;
     }
     const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);

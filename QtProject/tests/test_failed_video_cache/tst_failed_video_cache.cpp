@@ -164,10 +164,10 @@ void TestFailedVideoCache::test_processingCachePolicy()
     }
     // A substitute decode can fail temporarily even though the cached primary frame is black.
     const QString substituteError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
-    QVERIFY(substituteError.contains(QStringLiteral("could not capture substitute frame")));
+    QVERIFY(substituteError.contains(QStringLiteral("was blank and an attempted replacement")));
     QVERIFY(cachedFailure(cachePath, terminalPath).isEmpty());
     const QString retrySubstituteError = processError(terminalPath, cachePath, Prefs::WITH_CACHE, cutEnds);
-    QVERIFY(retrySubstituteError.contains(QStringLiteral("could not capture substitute frame")));
+    QVERIFY(retrySubstituteError.contains(QStringLiteral("was blank and an attempted replacement")));
     QVERIFY(!retrySubstituteError.startsWith(QStringLiteral("skipped, cache indicated")));
 
     const QString missingPath = temporary.filePath(QStringLiteral("missing.mp4"));
