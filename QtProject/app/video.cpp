@@ -295,6 +295,8 @@ const QString Video::takeScreenCaptures(const Db& cache)
 {
     Thumbnail thumb(this->_prefs.thumbnailsMode());
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
+    if (thumbnail.isNull())
+        return "could not allocate thumbnail image";
     const QVector<int> percentages = thumb.percentages(); // percent from 1 to 100
     std::vector<FrameAnalysis> frameAnalyses(static_cast<size_t>(percentages.count()));
     int capture = percentages.count();
