@@ -2,6 +2,7 @@
 
 #include <QAbstractSlider>
 #include <QElapsedTimer>
+#include <QHash>
 #include <QMimeData>
 #include <QProcess> // for opening a file in the platform file manager
 #include <QProgressDialog>
@@ -426,7 +427,6 @@ void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
 void Comparison::clearDuplicateSets()
 {
     _duplicateSets.clear();
-    _eligibleSetMatches.clear();
     _selectedDuplicateSet = -1;
     _selectedSetMember = -1;
     if (!ui)
@@ -446,9 +446,9 @@ void Comparison::clearDuplicateSets()
     setManualComparisonActionsEnabled(false);
 }
 
-const MatchedVideoPair* Comparison::directEligiblePair(int left, int right) const
+const MatchedVideoPair* Comparison::directEligiblePair(const DuplicateSet& set, int left, int right) const
 {
-    for (const MatchedVideoPair& pair : _eligibleSetMatches)
+    for (const MatchedVideoPair& pair : set.edges)
         if ((pair.left == left && pair.right == right) || (pair.left == right && pair.right == left))
             return &pair;
     return nullptr;
@@ -479,14 +479,14 @@ void Comparison::rebuildDuplicateSets()
     for (const auto& ignoredPair : cache.ignoredPairs())
         ignoredPairKeys.insert(ignoredPairKey(ignoredPair.first, ignoredPair.second));
 
-    _eligibleSetMatches.clear();
+    QVector<MatchedVideoPair> eligibleMatches;
     for (const MatchedVideoPair& pair : _backgroundDiscovery->safeMatches()) {
         const QString& leftPath = _videos[pair.left]->_filePathName;
         const QString& rightPath = _videos[pair.right]->_filePathName;
         if (pairPassesNonCacheFilters(pair) && !ignoredPairKeys.contains(ignoredPairKey(leftPath, rightPath)))
-            _eligibleSetMatches.append(pair);
+            eligibleMatches.append(pair);
     }
-    _duplicateSets = DuplicateSetBuilder::build(_videos.size(), _eligibleSetMatches);
+    _duplicateSets = DuplicateSetBuilder::build(_videos.size(), eligibleMatches);
 
     int selectedSet = -1;
     int selectedMember = 1;
@@ -625,7 +625,7 @@ void Comparison::showSetMember(int member)
 
     const int reference = set.members.first();
     const int candidate = set.members[member];
-    if (const MatchedVideoPair* direct = directEligiblePair(reference, candidate)) {
+    if (const MatchedVideoPair* direct = directEligiblePair(set, reference, candidate)) {
         MatchedVideoPair orientedPair = *direct;
         orientedPair.left = reference;
         orientedPair.right = candidate;
@@ -650,37 +650,40 @@ void Comparison::showSetMember(int member)
 
 bool Comparison::duplicateSetStillDisplayable(const DuplicateSet& set) const
 {
-    QSet<int> memberIndexes;
-    for (int member : set.members) {
+#ifdef VID_SIMILI_IN_TESTS
+    _lastDuplicateSetValidationEdgeCount = 0;
+#endif
+    QHash<int, int> localIndexByVideo;
+    for (int localIndex = 0; localIndex < set.members.size(); ++localIndex) {
+        const int member = set.members[localIndex];
         if (member < 0 || member >= _videos.size() || !QFileInfo::exists(_videos[member]->_filePathName)
             || _videos[member]->trashed)
             return false;
-        memberIndexes.insert(member);
+        localIndexByVideo.insert(member, localIndex);
     }
 
-    QSet<QString> ignoredPairKeys;
     const Db cache(_prefs.cacheFilePathName());
-    for (const auto& ignoredPair : cache.ignoredPairs())
-        ignoredPairKeys.insert(ignoredPairKey(ignoredPair.first, ignoredPair.second));
-
-    QVector<MatchedVideoPair> componentEdges;
-    for (const MatchedVideoPair& pair : _eligibleSetMatches) {
-        if (!memberIndexes.contains(pair.left) || !memberIndexes.contains(pair.right))
-            continue;
+    QVector<MatchedVideoPair> validLocalEdges;
+    validLocalEdges.reserve(set.edges.size());
+    for (const MatchedVideoPair& pair : set.edges) {
+#ifdef VID_SIMILI_IN_TESTS
+        ++_lastDuplicateSetValidationEdgeCount;
+#endif
+        if (!localIndexByVideo.contains(pair.left) || !localIndexByVideo.contains(pair.right))
+            return false;
         const QString& leftPath = _videos[pair.left]->_filePathName;
         const QString& rightPath = _videos[pair.right]->_filePathName;
-        if (!pairPassesNonCacheFilters(pair) || ignoredPairKeys.contains(ignoredPairKey(leftPath, rightPath)))
+        if (!pairPassesNonCacheFilters(pair) || cache.isPairToIgnore(leftPath, rightPath))
             return false;
-        componentEdges.append(pair);
+
+        MatchedVideoPair localPair = pair;
+        localPair.left = localIndexByVideo.value(pair.left);
+        localPair.right = localIndexByVideo.value(pair.right);
+        validLocalEdges.append(localPair);
     }
 
-    const QVector<DuplicateSet> components = DuplicateSetBuilder::build(_videos.size(), componentEdges);
-    if (components.size() != 1 || components.first().members.size() != memberIndexes.size())
-        return false;
-    for (int member : memberIndexes)
-        if (!components.first().members.contains(member))
-            return false;
-    return true;
+    const QVector<DuplicateSet> components = DuplicateSetBuilder::build(set.members.size(), validLocalEdges);
+    return components.size() == 1 && components.first().members.size() == set.members.size();
 }
 
 void Comparison::invalidateActiveDuplicateSet()

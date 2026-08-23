@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <utility>
 
 namespace
 {
@@ -53,14 +54,23 @@ QVector<DuplicateSet> DuplicateSetBuilder::build(int videoCount, const QVector<M
         sets.unite(match.left, match.right);
     }
 
-    QVector<QVector<int>> membersByRoot(videoCount);
+    QVector<DuplicateSet> setsByRoot(videoCount);
     for (int video = 0; video < videoCount; ++video)
-        membersByRoot[sets.find(video)].append(video);
+        setsByRoot[sets.find(video)].members.append(video);
+
+    // Union-find has reached its final roots, so every accepted input edge can
+    // now be assigned exactly once to the component that owns its evidence.
+    for (const MatchedVideoPair& match : matches) {
+        if (match.left < 0 || match.right < 0 || match.left >= videoCount || match.right >= videoCount
+            || match.left == match.right)
+            continue;
+        setsByRoot[sets.find(match.left)].edges.append(match);
+    }
 
     QVector<DuplicateSet> result;
-    for (const QVector<int>& members : membersByRoot)
-        if (members.size() > 1)
-            result.append({members});
+    for (DuplicateSet& set : setsByRoot)
+        if (set.members.size() > 1)
+            result.append(std::move(set));
     std::sort(result.begin(), result.end(), [](const DuplicateSet& left, const DuplicateSet& right) {
         return left.members.first() < right.members.first();
     });

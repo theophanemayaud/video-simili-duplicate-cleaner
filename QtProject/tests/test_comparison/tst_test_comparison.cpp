@@ -79,6 +79,7 @@ class test_comparison : public QObject
     void test_discoveryProgressRemainsAuthoritativeOnAutoTab();
     void test_selectedMemberCanBecomeReferenceForDirectEdge();
     void test_selectedReferencePersistsAcrossProgressRebuild();
+    void test_activeSetValidationExaminesOnlyOwnedEdges();
     void test_autoCleanupOwnsPairIndexes();
     void test_cleanupRestartQueuesSetRebuildAfterGuard();
     void test_cleanupCompletionDoesNotNavigateForeground();
@@ -448,8 +449,7 @@ void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
     comparison.show();
     QCoreApplication::processEvents();
 
-    comparison._duplicateSets = {{QVector<int>{0, 1, 2}}};
-    comparison._eligibleSetMatches = {{0, 1, 1, 64, 1.0}, {0, 2, 2, 64, 1.0}};
+    comparison._duplicateSets = DuplicateSetBuilder::build(3, {{0, 1, 1, 64, 1.0}, {0, 2, 2, 64, 1.0}});
     comparison.selectDuplicateSet(0, 1);
     QCoreApplication::processEvents();
 
@@ -583,11 +583,11 @@ void test_comparison::test_rebuildDuplicateSetsExcludesIgnoredEdge()
 
     comparison.rebuildDuplicateSets();
 
-    QCOMPARE(comparison._eligibleSetMatches.size(), 1);
-    QCOMPARE(comparison._eligibleSetMatches.first().left, 1);
-    QCOMPARE(comparison._eligibleSetMatches.first().right, 2);
     QCOMPARE(comparison._duplicateSets.size(), 1);
     QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({1, 2}));
+    QCOMPARE(comparison._duplicateSets.first().edges.size(), 1);
+    QCOMPARE(comparison._duplicateSets.first().edges.first().left, 1);
+    QCOMPARE(comparison._duplicateSets.first().edges.first().right, 2);
 }
 
 void test_comparison::test_missingSetMemberDisablesActionsAndQueuesRebuild()
@@ -608,8 +608,7 @@ void test_comparison::test_missingSetMemberDisablesActionsAndQueuesRebuild()
     Comparison comparison({&reference, &candidate}, prefs, QRect(0, 0, 1120, 720));
     comparison._backgroundDiscovery->stop();
     comparison._videos = {&reference, &candidate};
-    comparison._duplicateSets = {{QVector<int>{0, 1}}};
-    comparison._eligibleSetMatches = {{0, 1, 1, 64, 1.0}};
+    comparison._duplicateSets = DuplicateSetBuilder::build(2, {{0, 1, 1, 64, 1.0}});
     comparison.selectDuplicateSet(0, 1);
     QVERIFY(comparison.findChild<QWidget*>(QStringLiteral("leftDelete"))->isEnabled());
 
@@ -740,11 +739,7 @@ void test_comparison::test_selectedMemberCanBecomeReferenceForDirectEdge()
     QVERIFY(ignore);
     QVERIFY(!useAsReference->isEnabled());
 
-    comparison._duplicateSets = {{QVector<int>{0, 1, 2}}};
-    comparison._eligibleSetMatches = {
-        {0, 1, 1, 64, 1.0},
-        {1, 2, 2, 64, 1.0},
-    };
+    comparison._duplicateSets = DuplicateSetBuilder::build(3, {{0, 1, 1, 64, 1.0}, {1, 2, 2, 64, 1.0}});
     comparison.selectDuplicateSet(0, 1);
     QVERIFY(useAsReference->isEnabled());
 
@@ -816,6 +811,50 @@ void test_comparison::test_selectedReferencePersistsAcrossProgressRebuild()
     QCOMPARE(comparison.findChild<QLabel*>(QStringLiteral("duplicateSetEvidence"))->text(),
              QStringLiteral("Direct discovered match"));
     QVERIFY(ignore->isEnabled());
+}
+
+void test_comparison::test_activeSetValidationExaminesOnlyOwnedEdges()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (int index = 0; index < 8; ++index) {
+        const QString path = fixture.filePath(QStringLiteral("video-%1.mp4").arg(index));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    QVector<MatchedVideoPair> matches{{0, 1, 1, 64, 1.0}};
+    int64_t position = 2;
+    for (int left = 2; left < videos.size(); ++left)
+        for (int right = left + 1; right < videos.size(); ++right)
+            matches.append({left, right, position++, 64, 1.0});
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._duplicateSets = DuplicateSetBuilder::build(videos.size(), matches);
+    QCOMPARE(comparison._duplicateSets.size(), 2);
+    QCOMPARE(comparison._duplicateSets[0].members, QVector<int>({0, 1}));
+    QCOMPARE(comparison._duplicateSets[0].edges.size(), 1);
+    QCOMPARE(comparison._duplicateSets[1].edges.size(), 15);
+
+    // Validation must be isolated from unrelated discovery evidence, even if
+    // another component has since become stale.
+    videos.last()->trashed = true;
+    comparison.selectDuplicateSet(0, 1);
+
+    QCOMPARE(comparison._lastDuplicateSetValidationEdgeCount, 1);
+    QVERIFY(comparison.findChild<QWidget*>(QStringLiteral("leftDelete"))->isEnabled());
+    QVERIFY(comparison.findChild<QWidget*>(QStringLiteral("rightDelete"))->isEnabled());
 }
 
 void test_comparison::test_autoCleanupOwnsPairIndexes()
@@ -954,18 +993,24 @@ void test_comparison::test_duplicateSetBuilderConnectedComponents()
     const QVector<DuplicateSet> pairSet = DuplicateSetBuilder::build(3, {pair(0, 1, 1)});
     QCOMPARE(pairSet.size(), 1);
     QCOMPARE(pairSet[0].members, QVector<int>({0, 1}));
+    QCOMPARE(pairSet[0].edges.size(), 1);
+    QCOMPARE(pairSet[0].edges[0].position, 1);
 
     const QVector<DuplicateSet> chainsAndDuplicates =
         DuplicateSetBuilder::build(7, {pair(1, 2, 1), pair(2, 3, 2), pair(1, 3, 3), pair(1, 2, 4), pair(4, 6, 5)});
     QCOMPARE(chainsAndDuplicates.size(), 2);
     QCOMPARE(chainsAndDuplicates[0].members, QVector<int>({1, 2, 3}));
     QCOMPARE(chainsAndDuplicates[1].members, QVector<int>({4, 6}));
+    QCOMPARE(chainsAndDuplicates[0].edges.size(), 4);
+    QCOMPARE(chainsAndDuplicates[1].edges.size(), 1);
 
     // Input edge order does not affect either component or member order.
     const QVector<DuplicateSet> reversed =
         DuplicateSetBuilder::build(7, {pair(4, 6, 5), pair(1, 2, 4), pair(1, 3, 3), pair(2, 3, 2), pair(1, 2, 1)});
     QCOMPARE(reversed[0].members, chainsAndDuplicates[0].members);
     QCOMPARE(reversed[1].members, chainsAndDuplicates[1].members);
+    QCOMPARE(reversed[0].edges.size(), chainsAndDuplicates[0].edges.size());
+    QCOMPARE(reversed[1].edges.size(), chainsAndDuplicates[1].edges.size());
 }
 
 void test_comparison::test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixCompletes()

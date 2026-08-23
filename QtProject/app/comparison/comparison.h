@@ -51,12 +51,14 @@ class Comparison : public QDialog
     const int64_t _maxComparisons;
     std::unique_ptr<BackgroundMatchDiscovery> _backgroundDiscovery;
     QVector<DuplicateSet> _duplicateSets;
-    QVector<MatchedVideoPair> _eligibleSetMatches;
     int _selectedDuplicateSet = -1;
     int _selectedSetMember = -1;
     bool _currentComparisonIsDirectMatch = false;
     bool _automaticCleanupActive = false;
     bool _duplicateSetRebuildQueued = false;
+#ifdef VID_SIMILI_IN_TESTS
+    mutable int _lastDuplicateSetValidationEdgeCount = 0;
+#endif
     int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
@@ -105,7 +107,7 @@ class Comparison : public QDialog
     void setManualComparisonActionsEnabled(bool enabled);
     void clearManualComparisonDisplay();
     bool hasActiveManualComparison() const;
-    const MatchedVideoPair* directEligiblePair(int left, int right) const;
+    const MatchedVideoPair* directEligiblePair(const DuplicateSet& set, int left, int right) const;
     bool navigateForwardFrom(int64_t currentPosition);
     bool navigateToNextMatch(int64_t fromPosition);
     bool navigateToPrevMatch(int64_t fromPosition, int64_t throughPosition);

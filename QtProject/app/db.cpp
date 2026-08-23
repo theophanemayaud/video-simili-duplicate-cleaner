@@ -452,6 +452,9 @@ void Db::writePairToIgnore(const QString filePathName1, const QString filePathNa
 
 bool Db::isPairToIgnore(const QString filePathName1, const QString filePathName2) const
 {
+    if (!_db.isOpen())
+        return false;
+
     QSqlQuery query(_db);
     query.prepare("SELECT * "
                   "FROM ignored_pairs "
