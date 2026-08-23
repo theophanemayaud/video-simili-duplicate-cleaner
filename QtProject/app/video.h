@@ -12,8 +12,8 @@
 
 #include "db.h"
 #include "prefs.h"
-#include "visualfingerprint.h"
 #include "videometadata.h"
+#include "visualfingerprint.h"
 #include <QtCore/qmutex.h>
 
 #include <array>
@@ -44,8 +44,9 @@ class Video : public QObject
 
     VideoMetadata meta;
     QString _filePathName;
-    QString nameInApplePhotos; // used externally only, as it is too slow to get at first
-    int64_t size = 0;          // in bytes
+    // filled at comparison time; TODO: consider scan-time extraction now that PhotoKit is fast
+    QString nameInApplePhotos;
+    int64_t size = 0; // in bytes
     QDateTime modified;
     QDateTime _fileCreateDate;
     int64_t duration = 0; // in miliseconds

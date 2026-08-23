@@ -13,11 +13,10 @@
 #include <QUuid>
 #include <QWheelEvent>
 
+#include <functional>
 #include <memory>
 
 #ifdef Q_OS_MACOS
-#include <QProcess> // for running apple scripts and opening file in explorer
-
 #include "obj-c.h"
 #endif
 
@@ -69,6 +68,15 @@ class Comparison : public QDialog
     int whichFilenameContainsTheOther(QString leftFileNamepath, QString rightFileNamepath) const;
     bool _someWereMovedInApplePhotosLibrary = false;
     bool _firstScriptingAskPermission = true;
+
+#ifdef Q_OS_MACOS
+    using ApplePhotosNameLookup = std::function<QString(const QString& mediaId)>;
+
+    // Indirection so tests can resolve names without a real Photos library.
+    ApplePhotosNameLookup _applePhotosNameLookup;
+
+    void lookUpApplePhotosName(int videoIndex);
+#endif
 
     void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();

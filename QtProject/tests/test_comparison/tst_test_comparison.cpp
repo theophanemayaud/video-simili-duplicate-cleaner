@@ -2,6 +2,8 @@
 #include <QtTest>
 
 #include <cmath>
+#include <memory>
+#include <utility>
 
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
@@ -10,6 +12,17 @@
 #include "../../app/comparison/internal/videopairmatcher.h"
 #include "../../app/comparison/internal/videopairspace.h"
 #include "../../app/videometadata.h"
+
+class CacheModeRestore
+{
+  public:
+    explicit CacheModeRestore(Prefs& prefs) : _prefs(prefs), _originalMode(prefs.useCacheOption()) {}
+    ~CacheModeRestore() { _prefs.useCacheOption(_originalMode); }
+
+  private:
+    Prefs& _prefs;
+    const Prefs::USE_CACHE_OPTION _originalMode;
+};
 
 class test_comparison : public QObject
 {
@@ -24,12 +37,22 @@ class test_comparison : public QObject
     void cleanupTestCase();
 
     void test_videoToDelete_OnlyTimeDiffs();
+#ifdef Q_OS_MACOS
+    void test_applePhotosNameLookupIsSynchronousAndSessionOnly();
+    void test_applePhotosNameLookupReportsRefusedAccess();
+#endif
     void test_videoPairSpaceRoundTrip();
     void test_videoPairMatcherUsesConfigSnapshot();
     void test_ssimUsesEachBlockForMeans();
     void test_rotatedMatcherRequiresSsimSafeguard();
     void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
+
+  private:
+#ifdef Q_OS_MACOS
+    std::unique_ptr<Comparison> makeApplePhotosComparison(const QVector<Video*>& videos, Prefs& prefs,
+                                                          std::function<QString(const QString&)> lookup);
+#endif
 };
 
 test_comparison::test_comparison() {}
@@ -39,6 +62,18 @@ test_comparison::~test_comparison() {}
 void test_comparison::initTestCase() {}
 
 void test_comparison::cleanupTestCase() {}
+
+#ifdef Q_OS_MACOS
+std::unique_ptr<Comparison> test_comparison::makeApplePhotosComparison(const QVector<Video*>& videos, Prefs& prefs,
+                                                                       std::function<QString(const QString&)> lookup)
+{
+    auto comparison = std::make_unique<Comparison>(videos, prefs, QRect());
+    comparison->_backgroundDiscovery->stop();
+    comparison->_videos = videos; // Keep indices deterministic despite the user's saved sort preference.
+    comparison->_applePhotosNameLookup = std::move(lookup);
+    return comparison;
+}
+#endif
 
 void test_comparison::test_videoToDelete_OnlyTimeDiffs()
 {
@@ -100,6 +135,85 @@ void test_comparison::test_videoToDelete_OnlyTimeDiffs()
 
     // TODO could add more interesting tests with small differences, and check more specifically the outcomes
 }
+
+#ifdef Q_OS_MACOS
+void test_comparison::test_applePhotosNameLookupIsSynchronousAndSessionOnly()
+{
+    Prefs prefs;
+    CacheModeRestore restoreCacheMode(prefs);
+    // Apple Photos names are lightweight display metadata, so even cache-only
+    // scans resolve them live when a comparison is shown.
+    prefs.useCacheOption(Prefs::CACHE_ONLY);
+
+    const QString foundPhotosPath = QStringLiteral("/Library.photoslibrary/originals/A/ABC123.mov");
+    const QString missingPhotosPath = QStringLiteral("/Library.photoslibrary/originals/B/DEF456.mov");
+    const QString filesystemName = QStringLiteral("filesystem.mp4");
+
+    Video foundPhotosVideo(prefs, foundPhotosPath);
+    Video missingPhotosVideo(prefs, missingPhotosPath);
+    Video filesystemVideo(prefs, QStringLiteral("/tmp/") + filesystemName);
+    foundPhotosVideo.size = 3;
+    missingPhotosVideo.size = 2;
+    filesystemVideo.size = 1;
+    QVector<Video*> videos = {&foundPhotosVideo, &missingPhotosVideo, &filesystemVideo};
+
+    QStringList lookedUpIds;
+    auto comparison = makeApplePhotosComparison(videos, prefs, [&lookedUpIds](const QString& id) {
+        lookedUpIds.append(id);
+        if (id == QStringLiteral("ABC123"))
+            return QStringLiteral("Name from Apple Photos.mov");
+        return QStringLiteral(OBJ_C_FAILURE_STRING);
+    });
+    QSignalSpy statusMessages(comparison.get(), &Comparison::sendStatusMessage);
+
+    // The lookup resolves inline before the filename label is painted. The
+    // regular filesystem video does not trigger PhotoKit.
+    comparison->displayMatchedPair({0, 2, 1, 0, 0.0});
+    QCOMPARE(lookedUpIds, QStringList({QStringLiteral("ABC123")}));
+    QCOMPARE(foundPhotosVideo.nameInApplePhotos, QStringLiteral("Name from Apple Photos.mov"));
+    QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+             QStringLiteral("Name from Apple Photos.mov"));
+    QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("rightFileName"))->text(), filesystemName);
+
+    // The Video object retains a successful name for this comparison session.
+    comparison->showVideo(QStringLiteral("left"));
+    QCOMPARE(lookedUpIds.size(), 1);
+
+    // A missing asset immediately falls back to the on-disk UUID filename.
+    comparison->displayMatchedPair({1, 2, 2, 0, 0.0});
+    QCOMPARE(lookedUpIds, QStringList({QStringLiteral("ABC123"), QStringLiteral("DEF456")}));
+    QCOMPARE(statusMessages.count(), 1);
+    QVERIFY(missingPhotosVideo.nameInApplePhotos.isEmpty());
+    QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+             QStringLiteral("DEF456.mov"));
+    QVERIFY(statusMessages.takeFirst().first().toString().contains(QStringLiteral("System Photo Library")));
+}
+
+void test_comparison::test_applePhotosNameLookupReportsRefusedAccess()
+{
+    Prefs prefs;
+    Video photosVideo(prefs, QStringLiteral("/Library.photoslibrary/originals/A/ABC123.mov"));
+    Video filesystemVideo(prefs, QStringLiteral("/tmp/filesystem.mp4"));
+    photosVideo.size = 2;
+    filesystemVideo.size = 1;
+    QVector<Video*> videos = {&photosVideo, &filesystemVideo};
+
+    auto comparison = makeApplePhotosComparison(
+        videos, prefs, [](const QString&) { return QStringLiteral(OBJ_C_NO_PHOTOS_ACCESS_STRING); });
+    QSignalSpy statusMessages(comparison.get(), &Comparison::sendStatusMessage);
+
+    // Refused access is reported as actionable, not as an unknown lookup error.
+    comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
+    QVERIFY(photosVideo.nameInApplePhotos.isEmpty());
+    QCOMPARE(statusMessages.count(), 1);
+    const QString message = statusMessages.takeFirst().first().toString();
+    QVERIFY(message.contains(QStringLiteral("access to the library was refused")));
+    QVERIFY(message.contains(QStringLiteral("Privacy & Security")));
+    QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+             QStringLiteral("ABC123.mov"));
+}
+
+#endif
 
 void test_comparison::test_videoPairSpaceRoundTrip()
 {
