@@ -5,19 +5,20 @@
 # fresh worktree cannot configure or build until they are provided. They are
 # several GB and identical for every checkout, so link them instead of copying.
 #
-# Safe to run repeatedly and from any directory inside the repository. The
-# worktree creation script, the git post-checkout hook, and the Codex local
-# environment all delegate here.
+# Safe to run repeatedly. The target worktree comes from this script's own
+# location rather than the working directory, because callers disagree on what
+# they run it from. The worktree creation script, the git post-checkout hook,
+# and the Codex local environment all delegate here.
 set -e
 
+worktree=$(cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$worktree"
+
 mainWorktree=$(dirname -- "$(git rev-parse --path-format=absolute --git-common-dir)")
-worktree=$(git rev-parse --show-toplevel)
 
 if [ "$mainWorktree" = "$worktree" ]; then
 	exit 0
 fi
-
-cd "$worktree"
 
 linkedCount=0
 

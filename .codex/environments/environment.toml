@@ -1,7 +1,7 @@
 version = 1
 name = "Video Similarity Duplicate Cleaner"
 
-# Codex runs this in each managed worktree after checkout. Keep the setup logic
-# in the tracked script so Git, Cursor, Codex, and VS Code all behave alike.
+# Codex sets CODEX_WORKTREE_PATH to the worktree it just created, so the setup
+# script is addressed explicitly rather than through the working directory.
 [setup]
-script = "scripts/link-build-deps.sh"
+script = '"$CODEX_WORKTREE_PATH"/scripts/link-build-deps.sh'
