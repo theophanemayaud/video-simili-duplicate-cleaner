@@ -16,6 +16,17 @@ set(CMAKE_AUTORCC ON)
 # Debug paths
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
+# A worktree without its linked build dependencies has no vendored Qt, and
+# find_package would silently fall back to a system Qt that this app is not
+# meant to ship against.
+foreach(prefix_path IN LISTS CMAKE_PREFIX_PATH)
+    if(NOT EXISTS "${prefix_path}")
+        message(FATAL_ERROR
+            "CMAKE_PREFIX_PATH entry does not exist: ${prefix_path}\n"
+            "In a fresh worktree, run `npm run link-build-deps` to link the vendored dependencies.")
+    endif()
+endforeach()
+
 find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Widgets Sql Concurrent)
 
 # Debug found Qt paths
@@ -28,8 +39,26 @@ message(STATUS "Qt6Concurrent_DIR: ${Qt6Concurrent_DIR}")
 
 function(target_link_video_processing_dependencies TARGET_NAME)
     if(APPLE)
-        # OpenCV
         set(OPENCV_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/opencv-arm/opencv-install")
+        set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
+        set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/libaom-universalized")
+
+        # These archives are gitignored while their headers are tracked, so a
+        # worktree without its linked build dependencies configures fine and
+        # only fails much later with an opaque Ninja "missing" error.
+        foreach(required_archive
+            "${OPENCV_ROOT}/lib/libopencv_imgproc.a"
+            "${FFMPEG_ROOT}/lib/libavformat.a"
+            "${AOM_ROOT}/lib/libaom.a")
+            if(NOT EXISTS "${required_archive}")
+                message(FATAL_ERROR
+                    "Missing vendored macOS dependency: ${required_archive}\n"
+                    "In a fresh worktree, run `npm run link-build-deps`; otherwise rebuild the "
+                    "vendored libraries as described in DEPENDENCIES.md.")
+            endif()
+        endforeach()
+
+        # OpenCV
         target_include_directories(${TARGET_NAME} PRIVATE ${OPENCV_ROOT}/include/opencv4)
         target_link_libraries(${TARGET_NAME} PRIVATE
             ${OPENCV_ROOT}/lib/libopencv_imgproc.a
@@ -41,7 +70,6 @@ function(target_link_video_processing_dependencies TARGET_NAME)
         )
 
         # FFMPEG
-        set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/ffmpeg-universalized-libs")
         target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
             ${FFMPEG_ROOT}/include
         )
@@ -59,7 +87,6 @@ function(target_link_video_processing_dependencies TARGET_NAME)
         )
 
         # AOM
-        set(AOM_ROOT "${CMAKE_SOURCE_DIR}/libraries/macos/ffmpeg/libaom-universalized")
         target_include_directories(${TARGET_NAME} PRIVATE ${AOM_ROOT}/include)
         target_link_directories(${TARGET_NAME} PRIVATE
             ${AOM_ROOT}/lib

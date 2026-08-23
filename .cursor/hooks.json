@@ -1,6 +1,13 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [
+      {
+        "command": "scripts/link-build-deps.sh; echo '{}'",
+        "timeout": 15,
+        "failClosed": false
+      }
+    ],
     "stop": [
       {
         "command": ".cursor/hooks/format-changed-cpp.sh",
