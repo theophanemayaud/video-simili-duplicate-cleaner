@@ -120,8 +120,11 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
                               "audio TEXT, "
                               "width INTEGER, "
                               "height INTEGER, "
-                              "additional_metadata TEXT"
+                              "additional_metadata TEXT, "
+                              "failure TEXT"
                               ");"));
+    // Existing caches created before failure lived on this row; duplicate-column errors are ignored.
+    query.exec(QStringLiteral("ALTER TABLE metadata ADD COLUMN failure TEXT"));
 
     query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS "
                               "capture ("
@@ -225,6 +228,7 @@ bool Db::readMetadata(Video& video) const
         }
         video.meta.additionalMetadata = map;
         video.meta.setRelevantValuesFromAdditionalMetadata();
+        video.cachedFailure = query.value(QStringLiteral("failure")).toString();
         return true;
     } // TODO : should proooobably delete others if there are multiple results !!! Or produce error !
     return false;
@@ -239,8 +243,8 @@ void Db::writeMetadata(const Video& video) const
 
     QSqlQuery query(_db);
     query.prepare("INSERT OR REPLACE INTO metadata "
-                  "(id, size, duration, bitrate, framerate, codec, audio, width, height, additional_metadata) "
-                  "VALUES(:id,:size,:duration,:bitrate,:framerate,:codec,:audio,:width,:height,:additional_metadata);");
+                  "(id, size, duration, bitrate, framerate, codec, audio, width, height, additional_metadata, failure) "
+                  "VALUES(:id,:size,:duration,:bitrate,:framerate,:codec,:audio,:width,:height,:additional_metadata,:failure);");
     query.bindValue(":id", video._filePathName);
     query.bindValue(":size", QVariant::fromValue(static_cast<qlonglong>(video.size)));
     query.bindValue(":duration", QVariant::fromValue(static_cast<qlonglong>(video.duration)));
@@ -256,6 +260,7 @@ void Db::writeMetadata(const Video& video) const
         vmap.insert(it.key(), it.value());
     QString jsonString = QJsonDocument(QJsonObject::fromVariantMap(vmap)).toJson(QJsonDocument::Compact);
     query.bindValue(":additional_metadata", jsonString);
+    query.bindValue(":failure", video.cachedFailure);
     query.exec();
 
     QSqlError error = query.lastError();

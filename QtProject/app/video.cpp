@@ -78,7 +78,7 @@ Video::ProcessingResult Video::process()
     result.success = false;
     result.video = this;
 
-    auto err = this->internalProcess();
+    const auto err = this->internalProcess();
     if (!err.isEmpty())
         result.errorMsg = err;
     else
@@ -107,6 +107,8 @@ QString Video::internalProcess()
     Db cache(_prefs.cacheFilePathName()); // we open the db here, but we'll only store things if needed
     if (this->_prefs.useCacheOption() != Prefs::NO_CACHE && cache.readMetadata(*this))
     {                                                       //check first if video properties are cached
+        if (!cachedFailure.isEmpty())
+            return QString("skipped, cache indicated it had failed in a previous scan: %1").arg(cachedFailure);
         modified = QFileInfo(_filePathName).lastModified(); // Db doesn't cache the modified date
         if (QFileInfo(_filePathName).birthTime().isValid())
             _fileCreateDate = QFileInfo(_filePathName).birthTime();
@@ -134,20 +136,31 @@ QString Video::internalProcess()
     if (width == 0
         || height == 0) // || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
-        return QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
+        const QString error = QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
+        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE) {
+            cachedFailure = error;
+            cache.writeMetadata(*this);
+        }
+        return error;
     }
 
     auto err = takeScreenCaptures(cache);
     if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE && durationWasZero && duration != 0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if (!err.isEmpty()) {
+        // A capture error can be an unavailable source or temporary resource failure, so let the next scan retry it.
         return QString("capture failed: %1").arg(err);
     }
     else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
              || // only cutEnds separates fingerprints for captures; other modes treat the collage as one fingerprint
              (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
     { //all screen captures black
-        return "all screen captures black";
+        const QString error = "all screen captures black";
+        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE) {
+            cachedFailure = error;
+            cache.writeMetadata(*this);
+        }
+        return error;
     }
     else {
         return "";
@@ -300,6 +313,8 @@ const QString Video::takeScreenCaptures(const Db& cache)
         locker.unlock();
 
         ResolvedCapture resolved = resolveCaptureSlot(cache, percentages[capture], ofDuration);
+        if (!resolved.error.isEmpty())
+            return resolved.error;
 
         if (resolved.frame.isNull()) //taking screen capture may fail if video is broken
         {
@@ -382,8 +397,12 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
     const int substitutePercent = percentage < 50 ? percentage + _monochromeSubstituteOffset
                                                    : percentage - _monochromeSubstituteOffset;
     QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
+    if (substitute.isNull()) {
+        resolved.error = QString("could not capture substitute frame at %1%").arg(percentage);
+        return resolved;
+    }
     const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);
-    if (!substitute.isNull() && substituteAnalysis.informative) {
+    if (substituteAnalysis.informative) {
         resolved.frame = std::move(substitute);
         resolved.analysis = substituteAnalysis;
         resolved.writeToCache = cacheEnabled;

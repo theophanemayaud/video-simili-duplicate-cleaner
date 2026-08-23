@@ -5,7 +5,9 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 set(TEST_COMPILE_DEFINITIONS
     VID_SIMILI_IN_TESTS
     QT_DISABLE_DEPRECATED_BEFORE=0x060000
-    APP_NAME="Video simili duplicate cleaner"
+    # APP_NAME scopes QSettings, so tests must not share the shipped app's name: they reset preferences between cases
+    # and would otherwise wipe the settings of a developer's installed copy.
+    APP_NAME="Video simili duplicate cleaner tests"
     APP_COPYRIGHT="Copyright © 2020-2025 Théophane Mayaud, 2018-2019 Kristian Koskimäki"
 )
 
@@ -87,23 +89,29 @@ function(add_qt_test TEST_NAME)
     )
 endfunction()
 
-# Test 1: test_comparison
+# test_comparison
 add_qt_test(test_comparison
     SOURCES test_comparison/tst_test_comparison.cpp
 )
 
-# Test 2: test_mainwindow (currently empty but structure is there)
+# test_mainwindow (currently empty but structure is there)
 add_qt_test(test_mainwindow
     SOURCES test_mainwindow/tst_mainwindow.cpp
 )
 
-# Test 3: checked-in fixture cleanup flow
+# failed-video negative cache uses generated temporary files and no fixture corpus
+add_qt_test(test_failed_video_cache
+    SOURCES test_failed_video_cache/tst_failed_video_cache.cpp
+)
+set_tests_properties(test_failed_video_cache PROPERTIES RUN_SERIAL TRUE)
+
+# checked-in fixture cleanup flow
 add_qt_test(test_repo_auto_delete
     SOURCES repo/auto_delete/tst_auto_delete.cpp
 )
 set_tests_properties(test_repo_auto_delete PROPERTIES LABELS "repo-fixtures")
 
-# Test 4: optional ~/Dev extraction and reference regression
+# optional ~/Dev extraction and reference regression
 add_qt_test(test_external_video_extraction_regression
     SOURCES
         external/video_extraction_regression/tst_video_extraction_regression.cpp
@@ -111,7 +119,7 @@ add_qt_test(test_external_video_extraction_regression
         shared/video_extraction_test_helpers.cpp
 )
 
-# Test 5: optional ~/Dev end-to-end whole-app scans
+# optional ~/Dev end-to-end whole-app scans
 add_qt_test(test_external_whole_app_scan
     SOURCES
         external/whole_app_scan/tst_whole_app_scan.cpp
@@ -122,7 +130,7 @@ set_tests_properties(test_external_video_extraction_regression test_external_who
     PROPERTIES LABELS "external-fixtures" RUN_SERIAL TRUE
 )
 
-# Test 6: separately mounted large corpus. Its functions can take 30+ minutes.
+# separately mounted large corpus. Its functions can take 30+ minutes.
 add_qt_test(test_external_large_video_corpus
     SOURCES
         external/large_video_corpus/tst_large_video_corpus.cpp
@@ -135,7 +143,7 @@ set_tests_properties(test_external_large_video_corpus PROPERTIES
     RUN_SERIAL TRUE
 )
 
-# Test 7: checked-in metadata and thumbnail extraction snapshots
+# checked-in metadata and thumbnail extraction snapshots
 add_qt_test(test_repo_video_extraction_regression
     SOURCES
         repo/video_extraction_regression/tst_video_extraction_regression.cpp
@@ -143,7 +151,7 @@ add_qt_test(test_repo_video_extraction_regression
 )
 set_tests_properties(test_repo_video_extraction_regression PROPERTIES LABELS "repo-fixtures")
 
-# Test 8: checked-in matching contract.
+# checked-in matching contract.
 add_qt_test(test_repo_video_matching
     SOURCES
         repo/video_matching/tst_video_matching.cpp
@@ -152,7 +160,7 @@ add_qt_test(test_repo_video_matching
 )
 set_tests_properties(test_repo_video_matching PROPERTIES LABELS "repo-fixtures")
 
-# Test 9: optional ~/Dev matching contract.
+# optional ~/Dev matching contract.
 add_qt_test(test_external_video_matching
     SOURCES
         external/video_matching/tst_video_matching.cpp
