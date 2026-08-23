@@ -5,6 +5,8 @@
 #include <QMimeData>
 #include <QProcess> // for opening a file in the platform file manager
 #include <QProgressDialog>
+#include <QScopedValueRollback>
+#include <QSet>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QTimer>
@@ -30,6 +32,15 @@ const int BITRATE_DIFF_STILL_EQUAL_kbs = 5;
 // Modal progress updates process UI events and are expensive. Throttling by time
 // keeps navigation responsive without making its overhead depend on library size.
 constexpr qint64 PROGRESS_REFRESH_INTERVAL_MS = 100;
+
+QString ignoredPairKey(QString first, QString second)
+{
+    if (second < first)
+        qSwap(first, second);
+    first.append(QChar(u'\0'));
+    first.append(second);
+    return first;
+}
 
 #ifdef Q_OS_MACOS
 QString applePhotosNameFromPhotoKit(const QString& mediaId)
@@ -64,9 +75,6 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
     ui->progressBar->setEnabled(false);
     connect(_backgroundDiscovery.get(), &BackgroundMatchDiscovery::preScannedEndChanged, this,
             &Comparison::updateDiscoveryProgress);
-    connect(ui->duplicateSets, &QListWidget::currentRowChanged, this, &Comparison::on_duplicateSets_currentRowChanged);
-    connect(ui->duplicateSetMembers, &QListWidget::currentRowChanged, this,
-            &Comparison::on_duplicateSetMembers_currentRowChanged);
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, [this]() {
         if (ui->tabWidget->currentWidget() != ui->tabManual)
             return;
@@ -385,6 +393,14 @@ void Comparison::restartBackgroundDiscovery()
     _backgroundDiscovery->start(_videos, VideoPairMatcher::configFromPrefs(_prefs));
 }
 
+void Comparison::queueDuplicateSetRebuildAfterAutomaticCleanup()
+{
+    // start() emits its initial progress synchronously while automatic cleanup
+    // still owns the pair indexes. Rebuild once the entry point returns and its
+    // guard has released ownership, even if discovery has no later progress.
+    QTimer::singleShot(0, this, &Comparison::rebuildDuplicateSets);
+}
+
 void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
 {
     ui->progressBar->setDiscoveredValue(progressBarValue(preScannedEnd));
@@ -433,14 +449,25 @@ const MatchedVideoPair* Comparison::directEligiblePair(int left, int right) cons
 
 void Comparison::rebuildDuplicateSets()
 {
+    if (_automaticCleanupActive)
+        return;
+
     const int previouslySelectedVideo =
         _selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size() && _selectedSetMember >= 0
             ? _duplicateSets[_selectedDuplicateSet].members[_selectedSetMember]
             : -1;
+    QSet<QString> ignoredPairKeys;
+    const Db cache(_prefs.cacheFilePathName());
+    for (const auto& ignoredPair : cache.ignoredPairs())
+        ignoredPairKeys.insert(ignoredPairKey(ignoredPair.first, ignoredPair.second));
+
     _eligibleSetMatches.clear();
-    for (const MatchedVideoPair& pair : _backgroundDiscovery->safeMatches())
-        if (isPairStillDisplayable(pair))
+    for (const MatchedVideoPair& pair : _backgroundDiscovery->safeMatches()) {
+        const QString& leftPath = _videos[pair.left]->_filePathName;
+        const QString& rightPath = _videos[pair.right]->_filePathName;
+        if (pairPassesNonCacheFilters(pair) && !ignoredPairKeys.contains(ignoredPairKey(leftPath, rightPath)))
             _eligibleSetMatches.append(pair);
+    }
     _duplicateSets = DuplicateSetBuilder::build(_videos.size(), _eligibleSetMatches);
 
     const QSignalBlocker blockSetSelection(ui->duplicateSets);
@@ -506,6 +533,8 @@ void Comparison::rebuildDuplicateSets()
 
 void Comparison::selectDuplicateSet(int row, int preferredMember)
 {
+    if (_automaticCleanupActive)
+        return;
     if (row < 0 || row >= _duplicateSets.size())
         return;
     _selectedDuplicateSet = row;
@@ -529,6 +558,8 @@ void Comparison::selectDuplicateSet(int row, int preferredMember)
 
 void Comparison::showSetMember(int member)
 {
+    if (_automaticCleanupActive)
+        return;
     if (_selectedDuplicateSet < 0 || _selectedDuplicateSet >= _duplicateSets.size())
         return;
     const DuplicateSet& set = _duplicateSets[_selectedDuplicateSet];
@@ -560,6 +591,16 @@ void Comparison::showSetMember(int member)
 
     const int reference = set.members.first();
     const int candidate = set.members[member];
+    if (!QFileInfo::exists(_videos[reference]->_filePathName) || _videos[reference]->trashed
+        || !QFileInfo::exists(_videos[candidate]->_filePathName) || _videos[candidate]->trashed)
+    {
+        _currentComparisonIsDirectMatch = false;
+        clearManualComparisonDisplay();
+        setManualComparisonActionsEnabled(false);
+        ui->duplicateSetEvidence->setText(QStringLiteral("A file is no longer available — refreshing sets…"));
+        QTimer::singleShot(0, this, &Comparison::rebuildDuplicateSets);
+        return;
+    }
     if (const MatchedVideoPair* direct = directEligiblePair(reference, candidate)) {
         displayMatchedPair(*direct);
         _currentComparisonIsDirectMatch = true;
@@ -738,11 +779,7 @@ bool Comparison::navigateToPrevMatch(int64_t fromPosition, int64_t throughPositi
     return false;
 }
 
-// Discovery records visual matches only. Apply these cheaper, mutable filters
-// when a sparse candidate is about to be shown: files can be removed and pairs
-// ignored while discovery is running, and changing the name filter should not
-// require rescanning the full pair space.
-bool Comparison::isPairStillDisplayable(const MatchedVideoPair& pair) const
+bool Comparison::pairPassesNonCacheFilters(const MatchedVideoPair& pair) const
 {
     const auto* left = _videos[pair.left];
     const auto* right = _videos[pair.right];
@@ -750,12 +787,23 @@ bool Comparison::isPairStillDisplayable(const MatchedVideoPair& pair) const
         return false;
     if (!QFileInfo::exists(right->_filePathName) || right->trashed)
         return false;
-    if (Db(_prefs.cacheFilePathName()).isPairToIgnore(left->_filePathName, right->_filePathName))
-        return false;
     if (ui->settingNamesInAnotherCheckbox->isChecked()
         && whichFilenameContainsTheOther(left->_filePathName, right->_filePathName) == NOT_CONTAINED)
         return false;
     return true;
+}
+
+// Discovery records visual matches only. Apply these cheaper, mutable filters
+// when a sparse candidate is about to be shown: files can be removed and pairs
+// ignored while discovery is running, and changing the name filter should not
+// require rescanning the full pair space.
+bool Comparison::isPairStillDisplayable(const MatchedVideoPair& pair) const
+{
+    if (!pairPassesNonCacheFilters(pair))
+        return false;
+    const auto* left = _videos[pair.left];
+    const auto* right = _videos[pair.right];
+    return !Db(_prefs.cacheFilePathName()).isPairToIgnore(left->_filePathName, right->_filePathName);
 }
 
 void Comparison::displayMatchedPair(const MatchedVideoPair& pair)
@@ -1809,6 +1857,7 @@ void Comparison::clearLockedFolderList()
 // Compatible regardless of sort order since it's based on identical files and kinda random choice between the two anyway
 void Comparison::on_identicalFilesAutoTrash_clicked()
 {
+    const QScopedValueRollback automaticCleanupGuard(_automaticCleanupActive, true);
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
@@ -1923,6 +1972,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
         displayApplePhotosAlbumDeletionMessage();
     restartBackgroundDiscovery();
     on_nextVideo_clicked();
+    queueDuplicateSetRebuildAfterAutomaticCleanup();
 }
 
 // Loop through all files
@@ -1935,6 +1985,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
 // Compatible regardless of sort order since it specifically chooses by file size regardless of left/right.
 void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 {
+    const QScopedValueRollback automaticCleanupGuard(_automaticCleanupActive, true);
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
@@ -2046,6 +2097,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
         displayApplePhotosAlbumDeletionMessage();
     restartBackgroundDiscovery();
     on_nextVideo_clicked();
+    queueDuplicateSetRebuildAfterAutomaticCleanup();
 }
 
 // For now only used for auto delete AUTO_DELETE_ONLY_TIMES_DIFF
@@ -2053,6 +2105,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 // AUTO_DELETE_ONLY_TIMES_DIFF Compatible regardless of sort order since it keeps the earliest/latest one as selected by user
 void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
 {
+    const QScopedValueRollback automaticCleanupGuard(_automaticCleanupActive, true);
     // loop through all files
     // and maybe trash one each time depending on config
 
@@ -2166,6 +2219,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
         displayApplePhotosAlbumDeletionMessage();
     restartBackgroundDiscovery();
     on_nextVideo_clicked();
+    queueDuplicateSetRebuildAfterAutomaticCleanup();
 }
 
 const VideoMetadata* Comparison::AutoDeleteConfig::videoToDelete(const VideoMetadata* meta1, const VideoMetadata* meta2,

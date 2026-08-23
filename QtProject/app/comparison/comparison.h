@@ -55,6 +55,7 @@ class Comparison : public QDialog
     int _selectedDuplicateSet = -1;
     int _selectedSetMember = -1;
     bool _currentComparisonIsDirectMatch = false;
+    bool _automaticCleanupActive = false;
     int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
@@ -87,6 +88,7 @@ class Comparison : public QDialog
 
     void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();
+    void queueDuplicateSetRebuildAfterAutomaticCleanup();
     void updateDiscoveryProgress(int64_t preScannedEnd);
     void clearDuplicateSets();
     void rebuildDuplicateSets();
@@ -102,6 +104,7 @@ class Comparison : public QDialog
     bool navigateForwardFrom(int64_t currentPosition);
     bool navigateToNextMatch(int64_t fromPosition);
     bool navigateToPrevMatch(int64_t fromPosition, int64_t throughPosition);
+    bool pairPassesNonCacheFilters(const MatchedVideoPair& pair) const;
     bool isPairStillDisplayable(const MatchedVideoPair& pair) const;
     void displayMatchedPair(const MatchedVideoPair& pair);
 

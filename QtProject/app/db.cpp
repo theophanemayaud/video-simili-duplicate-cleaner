@@ -474,3 +474,22 @@ bool Db::isPairToIgnore(const QString filePathName1, const QString filePathName2
     else
         return false;
 }
+
+QVector<QPair<QString, QString>> Db::ignoredPairs() const
+{
+    QVector<QPair<QString, QString>> pairs;
+    QSqlQuery query(_db);
+    if (!query.exec(QStringLiteral("SELECT pathName1, pathName2 FROM ignored_pairs;"))) {
+        qDebug() << "Error with ignoredPairs query=" << query.lastQuery();
+        qDebug() << query.lastError().text();
+        return pairs;
+    }
+    while (query.next()) {
+        QString first = query.value(0).toString();
+        QString second = query.value(1).toString();
+        if (second < first)
+            qSwap(first, second);
+        pairs.append({first, second});
+    }
+    return pairs;
+}
