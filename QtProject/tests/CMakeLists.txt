@@ -23,6 +23,7 @@ set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/ssim.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/mainwindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/prefs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/videodiscovery.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/files.qrc
 )
 

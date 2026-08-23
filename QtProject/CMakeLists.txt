@@ -113,6 +113,8 @@ set(PROJECT_SOURCES
     app/mainwindow.cpp
     app/mainwindow.h
     app/mainwindow.ui
+    app/videodiscovery.cpp
+    app/videodiscovery.h
     app/video.cpp
     app/video.h
     app/visualfingerprint.cpp

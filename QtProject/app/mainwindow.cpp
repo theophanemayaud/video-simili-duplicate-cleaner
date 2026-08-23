@@ -1,7 +1,10 @@
 #include "mainwindow.h"
 #include "prefs.h"
-#include <QDirIterator>
+#include <QElapsedTimer>
+#include <QPromise>
 #include <QProgressDialog>
+
+#include <limits>
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
 {
@@ -9,6 +12,9 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     _prefs._mainwPtr = this;
 
     connect(Message::Get(), &Message::statusMessage, this, &MainWindow::addStatusMessage);
+    connect(&_videoDiscoveryWatcher, &QFutureWatcher<void>::progressTextChanged, this,
+            [this](const QString& message) { ui->statusBar->showMessage(message); });
+    connect(&_videoDiscoveryWatcher, &QFutureWatcher<void>::finished, this, &MainWindow::videoDiscoveryFinished);
 
     QFile file(":/version.txt");
     if (file.open(QIODevice::ReadOnly))
@@ -182,6 +188,7 @@ void MainWindow::on_findDuplicates_clicked()
     if (ui->findDuplicates->text() == "Stop") //pressing "find duplicates" button will morph into a
     {                                         //stop button. a lengthy search can thus be stopped and
         _userPressedStop = true;              //those videos already processed are compared w/each other
+        _videoDiscoveryWatcher.cancel();
         return;
     }
     else {
@@ -213,6 +220,7 @@ void MainWindow::on_findDuplicates_clicked()
 
     if (this->shouldScan) {
         addStatusMessage(QStringLiteral("\n\rSearching for videos..."));
+        ui->statusBar->showMessage(QStringLiteral("Searching for videos..."));
         ui->statusBar->setVisible(true);
 
         for (const auto& video : _videoList) //new search: delete videos from previous search
@@ -225,23 +233,8 @@ void MainWindow::on_findDuplicates_clicked()
         this->_prefs.scanLocations(directories);
         Message::Get()->add(QStringLiteral("Re scanning: %1").arg(directories.join(", ")));
         if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
-            QString notFound;
-            for (auto directory : directories) //add all video files from entered paths to list
-            {
-                QApplication::processEvents();
-                if (directory.isEmpty())
-                    continue;
-                QDir dir = directory.remove(QStringLiteral("\""));
-                if (dir.exists())
-                    findVideos(dir);
-                else {
-                    addStatusMessage(
-                        QStringLiteral("Cannot find folder: %1").arg(QDir::toNativeSeparators(dir.path())));
-                    notFound += QStringLiteral("%1 ").arg(QDir::toNativeSeparators(dir.path()));
-                }
-            }
-            if (!notFound.isEmpty())
-                ui->statusBar->showMessage(QStringLiteral("Cannot find folder: %1").arg(notFound));
+            startVideoDiscovery(directories);
+            return;
         }
         else
             _everyVideo = Db(_prefs.cacheFilePathName()).getCachedVideoPathnamesInFolders(directories);
@@ -249,6 +242,11 @@ void MainWindow::on_findDuplicates_clicked()
         processVideos();
     }
 
+    finishFindDuplicates();
+}
+
+void MainWindow::finishFindDuplicates()
+{
     if (_videoList.count() > 1) {
         this->_comparison = new Comparison(this->_videoList, this->_prefs, this->geometry());
         this->_comparison->hide();
@@ -266,70 +264,66 @@ void MainWindow::on_findDuplicates_clicked()
 
     ui->findDuplicates->setText(QStringLiteral("Find duplicates"));
     ui->findDuplicates->setDisabled(false);
+    ui->directoryBox->setDisabled(false);
+    ui->browseFolders->setDisabled(false);
+    ui->browseApplePhotos->setDisabled(false);
     this->shouldScan = false; //set to false, as we are done scanning
 }
 
-namespace
+void MainWindow::startVideoDiscovery(const QStringList& directories)
 {
-// Photos keeps a derivative and a thumbnail for every asset, so a real library holds hundreds of thousands of files
-// under resources/ while only originals/ can hold a video worth reviewing: Video::internalProcess rejects anything
-// outside originals/ as a derivative. Enumerating the rest froze the UI for around 25s on a 440k entry library and
-// every one of those entries was then discarded, so the whole library is replaced by its originals/ folder.
-// A library without originals/ holds nothing we would accept, hence an empty result rather than a full walk.
-QStringList directoriesToScanFor(const QDir& dir)
-{
-    if (!dir.dirName().endsWith(QStringLiteral(".photoslibrary")))
-        return {dir.path()};
+    ui->directoryBox->setDisabled(true);
+    ui->browseFolders->setDisabled(true);
+    ui->browseApplePhotos->setDisabled(true);
 
-    const QString originals = dir.filePath(QStringLiteral("originals"));
-    if (!QFileInfo(originals).isDir())
-        return {};
-    return {originals};
+    _videoDiscoveryResult = std::make_shared<VideoDiscoveryResult>();
+    const auto result = _videoDiscoveryResult;
+    const QStringList nameFilters = _extensionList;
+
+    _videoDiscoveryWatcher.setFuture(
+        QtConcurrent::run([directories, nameFilters, result](QPromise<void>& promise) {
+            promise.setProgressRange(0, std::numeric_limits<int>::max());
+            QElapsedTimer progressTimer;
+            progressTimer.start();
+            int progressSequence = 0;
+
+            *result = discoverVideos(directories, nameFilters, [&](int videoCount, const QString& path) {
+                if (promise.isCanceled())
+                    return false;
+
+                // Human-readable progress does not benefit from repainting at display refresh rate. Ten updates per
+                // second stay responsive while avoiding timer churn and event processing for every discovered video.
+                if (progressTimer.elapsed() >= 100) {
+                    promise.setProgressValueAndText(
+                        ++progressSequence, QStringLiteral("Found %1 videos | %2")
+                                                .arg(videoCount)
+                                                .arg(QDir::toNativeSeparators(path)));
+                    progressTimer.restart();
+                }
+                return true;
+            });
+        }));
 }
-} // namespace
 
-void MainWindow::findVideos(QDir& dir)
+void MainWindow::videoDiscoveryFinished()
 {
-    dir.setNameFilters(_extensionList);
-    // Sorting each folder would only cost time: results go into a set and processVideos sorts the final list.
-    dir.setSorting(QDir::Unsorted);
-    // AllDirs so video globs still let us see every folder; Files keeps the globs on video names.
-    dir.setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot);
+    if (_windowClosing || !_videoDiscoveryResult)
+        return;
 
-    QStringList remainingDirectories = directoriesToScanFor(dir);
-    while (!remainingDirectories.isEmpty()) {
-        QDir currentDir = dir; // carries the extension filters, sorting, and entry filter over to each visited folder
-        currentDir.setPath(remainingDirectories.takeLast());
+    _everyVideo = std::move(_videoDiscoveryResult->videos);
+    const QStringList missingDirectories = std::move(_videoDiscoveryResult->missingDirectories);
+    _videoDiscoveryResult.reset();
 
-        // One pass per folder, same as the old QDirIterator. Subdirectories is omitted so a .photoslibrary can
-        // be replaced by originals/ instead of walking resources/. Symlinked folders are left alone as before.
-        QDirIterator iter(currentDir);
-        while (iter.hasNext()) {
-            const QFileInfo entry = iter.nextFileInfo();
-            if (entry.isDir()) {
-                if (!entry.isSymLink())
-                    remainingDirectories.append(directoriesToScanFor(QDir(entry.filePath())));
-                continue;
-            }
+    for (const QString& missingDirectory : missingDirectories)
+        addStatusMessage(QStringLiteral("Cannot find folder: %1").arg(missingDirectory));
+    if (!missingDirectories.isEmpty())
+        ui->statusBar->showMessage(
+            QStringLiteral("Cannot find folder: %1").arg(missingDirectories.join(QStringLiteral(" "))));
 
-            QApplication::processEvents();
-            if (_userPressedStop) {
-                _userPressedStop =
-                    false; //user needs to press 2x to stop the find videos process, then process videos process.
-                return;
-            }
-            const QString filePathName = entry.canonicalFilePath();
-
-            if (_everyVideo.contains(filePathName)) //don't want duplicates of same file
-                continue;
-            _everyVideo.insert(filePathName);
-
-            ui->statusBar->showMessage(QStringLiteral("Found %1 videos | %2")
-                                           .arg(_everyVideo.size())
-                                           .arg(QDir::toNativeSeparators(filePathName)),
-                                       10);
-        }
-    }
+    // Preserve the existing Stop behavior: process and compare videos found before directory discovery stopped.
+    _userPressedStop = false;
+    processVideos();
+    finishFindDuplicates();
 }
 
 void MainWindow::processVideos()

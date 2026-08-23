@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include "../../app/mainwindow.h"
+#include "../../app/videodiscovery.h"
 
 // Discovery only looks at file names, so empty placeholder files describe a Photos library layout faithfully
 // enough here and keep the fixture out of the repository.
@@ -17,6 +17,7 @@ class TestMainWindow : public QObject
     void init();
     void test_photosLibraryInsideScannedFolderOnlyYieldsOriginals();
     void test_photosLibrarySelectedDirectlyOnlyYieldsOriginals();
+    void test_discoveryCanBeCancelled();
 
   private:
     std::unique_ptr<QTemporaryDir> _scanRoot;
@@ -53,12 +54,7 @@ QString TestMainWindow::createFile(const QString& relativePath) const
 
 QSet<QString> TestMainWindow::discoveredVideosIn(const QString& directoryPath) const
 {
-    MainWindow window;
-    window.loadExtensions();
-    QDir directory(directoryPath);
-    window.findVideos(directory);
-    window.close();
-    return window._everyVideo;
+    return discoverVideos({directoryPath}, {QStringLiteral("*.mp4"), QStringLiteral("*.mov")}).videos;
 }
 
 void TestMainWindow::test_photosLibraryInsideScannedFolderOnlyYieldsOriginals()
@@ -85,6 +81,22 @@ void TestMainWindow::test_photosLibrarySelectedDirectlyOnlyYieldsOriginals()
     QVERIFY(!createFile(QStringLiteral("Photos Library.photoslibrary/resources/renders/kept_rendered.mp4")).isEmpty());
 
     QCOMPARE(discoveredVideosIn(libraryPath()), QSet<QString>({originalVideo}));
+}
+
+void TestMainWindow::test_discoveryCanBeCancelled()
+{
+    const QString firstVideo = createFile(QStringLiteral("Movies/first.mp4"));
+    QVERIFY(!firstVideo.isEmpty());
+    QVERIFY(!createFile(QStringLiteral("Movies/second.mp4")).isEmpty());
+
+    const VideoDiscoveryResult result =
+        discoverVideos({_scanRoot->path()}, {QStringLiteral("*.mp4")},
+                       [](int, const QString&) {
+                           return false;
+                       });
+
+    QVERIFY(result.cancelled);
+    QVERIFY(result.videos.isEmpty());
 }
 
 QTEST_MAIN(TestMainWindow)

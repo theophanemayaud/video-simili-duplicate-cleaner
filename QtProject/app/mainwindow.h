@@ -4,9 +4,12 @@
 #include <QDesktopServices>
 #include <QDragEnterEvent>
 #include <QFileDialog>
+#include <QFutureWatcher>
 #include <QMimeData>
 #include <QScrollBar>
 #include <QtConcurrent/QtConcurrent>
+
+#include <memory>
 
 #include "ui_mainwindow.h"
 
@@ -14,6 +17,7 @@
 #include "db.h"
 #include "prefs.h"
 #include "video.h"
+#include "videodiscovery.h"
 
 namespace Ui
 {
@@ -26,7 +30,6 @@ class MainWindow : public QMainWindow
 
     friend class VideoCorpusTestHelpers;
     friend class TestAutoDelete;
-    friend class TestMainWindow;
 
   public:
     MainWindow();
@@ -44,17 +47,22 @@ class MainWindow : public QMainWindow
     QSet<QString> _everyVideo; // set as we need to avoid duplicates
     QStringList _rejectedVideos;
     QStringList _extensionList;
+    QFutureWatcher<void> _videoDiscoveryWatcher;
+    std::shared_ptr<VideoDiscoveryResult> _videoDiscoveryResult;
 
     Prefs _prefs;
     bool _userPressedStop = false;
     bool shouldScan = true;
+    bool _windowClosing = false;
 
   private slots:
     void deleteTemporaryFiles() const;
     void closeEvent(QCloseEvent* event)
     {
         Q_UNUSED(event)
+        _windowClosing = true;
         _userPressedStop = true;
+        _videoDiscoveryWatcher.cancel();
     }
     void dragEnterEvent(QDragEnterEvent* event)
     {
@@ -80,7 +88,9 @@ class MainWindow : public QMainWindow
     void on_browseApplePhotos_clicked();
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
-    void findVideos(QDir& dir);
+    void startVideoDiscovery(const QStringList& directories);
+    void videoDiscoveryFinished();
+    void finishFindDuplicates();
     void processVideos();
     void videoSummary();
 
