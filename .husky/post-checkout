@@ -11,9 +11,20 @@ if [ -z "$mainWorktree" ] || [ "$mainWorktree" = "$(pwd)" ]; then
 	exit 0
 fi
 
+link_from_main() {
+	rel=$1
+	if [ -e "$mainWorktree/$rel" ] && [ ! -e "$rel" ]; then
+		mkdir -p "$(dirname "$rel")"
+		ln -s "$mainWorktree/$rel" "$rel"
+		echo "post-checkout: linked $rel from $mainWorktree"
+	fi
+}
+
 # Build dependencies are gitignored for their size, so a fresh worktree has none
 # and cannot configure or build. Link rather than copy: they are several GB and
 # identical for every checkout, and CMake resolves them through these paths.
+# Entire gitignored trees first. Qt is ignored as a whole; OpenCV/FFmpeg headers
+# stay tracked, so those trees cannot be replaced with a directory symlink.
 # One path per line, relative to the checkout root. Paths cannot contain spaces:
 # the loop below relies on word splitting to read this list.
 dependencies="
@@ -22,11 +33,17 @@ QtProject/libraries/macos/qt/qt-install
 "
 
 for dependency in $dependencies; do
-	if [ -e "$mainWorktree/$dependency" ] && [ ! -e "$dependency" ]; then
-		mkdir -p "$(dirname "$dependency")"
-		ln -s "$mainWorktree/$dependency" "$dependency"
-		echo "post-checkout: linked $dependency from $mainWorktree"
-	fi
+	link_from_main "$dependency"
 done
+
+# Static archives are gitignored (`**/*.a`) but live inside tracked trees, so a
+# fresh worktree already has the directories and headers without the libraries
+# CMake links. Link each missing archive from the main checkout.
+macosLibs="$mainWorktree/QtProject/libraries/macos"
+if [ -d "$macosLibs" ]; then
+	find "$macosLibs" -name '*.a' \( -type f -o -type l \) | while IFS= read -r archive; do
+		link_from_main "${archive#"$mainWorktree/"}"
+	done
+fi
 
 exit 0
