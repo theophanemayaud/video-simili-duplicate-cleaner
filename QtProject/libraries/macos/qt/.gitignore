@@ -1,3 +1,4 @@
 qt-source/
 qt-build/
-qt-install/
+# No trailing slash: worktrees link this in rather than holding a real directory.
+qt-install
