@@ -2,6 +2,18 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"type": "shell",
+			"label": "Create new worktree",
+			"command": "${workspaceFolder}/scripts/create-worktree.sh",
+			"args": [
+				"${input:worktreeBranchName}"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": []
+		},
+		{
 			"type": "npm",
 			"script": "binaries",
 			"problemMatcher": [],
@@ -13,6 +25,13 @@
 			"command": "git fetch origin master:master",
 			"label": "git: fetch origin master:master",
 			"problemMatcher": []
+		}
+	],
+	"inputs": [
+		{
+			"id": "worktreeBranchName",
+			"type": "promptString",
+			"description": "Branch name for ~/Dev/video-simili-{branch}"
 		}
 	]
 }

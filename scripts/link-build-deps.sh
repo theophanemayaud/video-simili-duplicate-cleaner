@@ -5,10 +5,9 @@
 # fresh worktree cannot configure or build until they are provided. They are
 # several GB and identical for every checkout, so link them instead of copying.
 #
-# Safe to run repeatedly and from any directory inside the repository. Runs
-# automatically from the git post-checkout hook and the Cursor sessionStart
-# hook, but worktrees created by tools that skip hooks (Cursor's git worktree
-# action among them) need `npm run link-build-deps`.
+# Safe to run repeatedly and from any directory inside the repository. The
+# worktree creation script, the git post-checkout hook, and the Codex local
+# environment all delegate here.
 set -e
 
 mainWorktree=$(dirname -- "$(git rev-parse --path-format=absolute --git-common-dir)")

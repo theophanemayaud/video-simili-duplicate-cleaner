@@ -34,7 +34,6 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "link-build-deps": "./scripts/link-build-deps.sh",
     "release": "commit-and-tag-version -a",
     "release:patch": "commit-and-tag-version --release-as patch -a && npm run notif-push",
     "release:minor": "commit-and-tag-version --release-as minor -a && npm run notif-push",
