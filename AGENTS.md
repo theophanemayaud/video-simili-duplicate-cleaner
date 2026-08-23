@@ -30,6 +30,7 @@ This is a C++ desktop app built with CMake and relying on static libraries like 
 
 The main development platform is macOS; keep default agent commands on this path.
 
+- Link a fresh worktree's gitignored build dependencies to the main checkout: `npm run link-build-deps`. Git and Cursor session hooks run it automatically, but worktrees created by tools that skip hooks (Cursor's git worktree action among them) need it once before configuring.
 - Configure: `cmake -S QtProject --preset debug-6.10.1-macos`
 - Build: `cmake --build QtProject/builds/build-debug-6.10.1-macos`
 - Run focused auto-delete end-to-end tests after changing cleanup behavior or auto cleanup UI:
