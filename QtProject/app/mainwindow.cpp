@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "prefs.h"
+#include <QDirIterator>
 #include <QProgressDialog>
 
 MainWindow::MainWindow() : ui(new Ui::MainWindow)
@@ -292,30 +293,32 @@ void MainWindow::findVideos(QDir& dir)
     dir.setNameFilters(_extensionList);
     // Sorting each folder would only cost time: results go into a set and processVideos sorts the final list.
     dir.setSorting(QDir::Unsorted);
+    // AllDirs so video globs still let us see every folder; Files keeps the globs on video names.
+    dir.setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot);
 
     QStringList remainingDirectories = directoriesToScanFor(dir);
     while (!remainingDirectories.isEmpty()) {
-        QDir currentDir = dir; // carries the extension filters and sorting over to each visited folder
+        QDir currentDir = dir; // carries the extension filters, sorting, and entry filter over to each visited folder
         currentDir.setPath(remainingDirectories.takeLast());
 
-        // Recursing by hand rather than with QDirIterator's Subdirectories flag is what makes pruning possible.
-        // QDir::AllDirs keeps the extension filters from being applied to folder names, and symlinked folders are
-        // left alone as QDirIterator did, which also rules out walking in circles.
-        const QFileInfoList subDirectories =
-            currentDir.entryInfoList(QDir::Dirs | QDir::AllDirs | QDir::NoDotAndDotDot);
-        for (const QFileInfo& subDirectory : subDirectories)
-            if (!subDirectory.isSymLink())
-                remainingDirectories.append(directoriesToScanFor(QDir(subDirectory.filePath())));
+        // One pass per folder, same as the old QDirIterator. Subdirectories is omitted so a .photoslibrary can
+        // be replaced by originals/ instead of walking resources/. Symlinked folders are left alone as before.
+        QDirIterator iter(currentDir);
+        while (iter.hasNext()) {
+            const QFileInfo entry = iter.nextFileInfo();
+            if (entry.isDir()) {
+                if (!entry.isSymLink())
+                    remainingDirectories.append(directoriesToScanFor(QDir(entry.filePath())));
+                continue;
+            }
 
-        const QFileInfoList videoFiles = currentDir.entryInfoList(QDir::Files);
-        for (const QFileInfo& videoFile : videoFiles) {
             QApplication::processEvents();
             if (_userPressedStop) {
                 _userPressedStop =
                     false; //user needs to press 2x to stop the find videos process, then process videos process.
                 return;
             }
-            const QString filePathName = videoFile.canonicalFilePath();
+            const QString filePathName = entry.canonicalFilePath();
 
             if (_everyVideo.contains(filePathName)) //don't want duplicates of same file
                 continue;
