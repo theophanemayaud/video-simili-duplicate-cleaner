@@ -39,6 +39,7 @@ class test_comparison : public QObject
     void test_videoToDelete_OnlyTimeDiffs();
 #ifdef Q_OS_MACOS
     void test_applePhotosNameLookupIsSynchronousAndSessionOnly();
+    void test_applePhotosNameLookupReportsRefusedAccess();
 #endif
     void test_videoPairSpaceRoundTrip();
     void test_videoPairMatcherUsesConfigSnapshot();
@@ -185,6 +186,31 @@ void test_comparison::test_applePhotosNameLookupIsSynchronousAndSessionOnly()
     QVERIFY(missingPhotosVideo.nameInApplePhotos.isEmpty());
     QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
              QStringLiteral("DEF456.mov"));
+    QVERIFY(statusMessages.takeFirst().first().toString().contains(QStringLiteral("Unknown error")));
+}
+
+void test_comparison::test_applePhotosNameLookupReportsRefusedAccess()
+{
+    Prefs prefs;
+    Video photosVideo(prefs, QStringLiteral("/Library.photoslibrary/originals/A/ABC123.mov"));
+    Video filesystemVideo(prefs, QStringLiteral("/tmp/filesystem.mp4"));
+    photosVideo.size = 2;
+    filesystemVideo.size = 1;
+    QVector<Video*> videos = {&photosVideo, &filesystemVideo};
+
+    auto comparison = makeApplePhotosComparison(
+        videos, prefs, [](const QString&) { return QStringLiteral(OBJ_C_NO_PHOTOS_ACCESS_STRING); });
+    QSignalSpy statusMessages(comparison.get(), &Comparison::sendStatusMessage);
+
+    // Refused access is reported as actionable, not as an unknown lookup error.
+    comparison->displayMatchedPair({0, 1, 1, 0, 0.0});
+    QVERIFY(photosVideo.nameInApplePhotos.isEmpty());
+    QCOMPARE(statusMessages.count(), 1);
+    const QString message = statusMessages.takeFirst().first().toString();
+    QVERIFY(message.contains(QStringLiteral("access to the library was refused")));
+    QVERIFY(message.contains(QStringLiteral("Privacy & Security")));
+    QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
+             QStringLiteral("ABC123.mov"));
 }
 
 #endif

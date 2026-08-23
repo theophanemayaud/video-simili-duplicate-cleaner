@@ -5,6 +5,8 @@
 
 #define OBJ_C_SUCCESS_STRING "VidSimiliSuccess" // Arbitrary success string that must be checked by caller
 #define OBJ_C_FAILURE_STRING "VidSimiliFailure" // Arbitrary failure string that must be checked by caller
+// Distinct from a plain failure because it is worth telling the user how to fix it
+#define OBJ_C_NO_PHOTOS_ACCESS_STRING "VidSimiliNoPhotosAccess"
 
 class Obj_C
 {

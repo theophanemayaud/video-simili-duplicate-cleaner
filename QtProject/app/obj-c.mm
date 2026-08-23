@@ -48,7 +48,7 @@ std::string Obj_C::obj_C_getMediaNameFromPhotoKit(const std::string& mediaId)
 
         if (authorizationStatus != PHAuthorizationStatusAuthorized
             && authorizationStatus != PHAuthorizationStatusLimited)
-            return OBJ_C_FAILURE_STRING;
+            return OBJ_C_NO_PHOTOS_ACCESS_STRING;
 
         NSString* mediaIdString = [NSString stringWithUTF8String:mediaId.c_str()];
         if (mediaIdString == nil)

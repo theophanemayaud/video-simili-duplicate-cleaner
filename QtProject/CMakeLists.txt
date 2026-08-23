@@ -172,20 +172,60 @@ target_link_libraries(video-simili-duplicate-cleaner PRIVATE
 target_include_directories(video-simili-duplicate-cleaner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app)
 
 if(APPLE)
-    # We actually overwrite the Info.plist file with the one in the release-build/macos folder
-    # But at some point we should stop doing that and rely on cmake generated Info.plist file from below properties
+    set(SHIPPED_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/release-build/macos/Info.plist")
+
+    # The bundle takes the shipped Info.plist as is, rather than one generated from
+    # MACOSX_BUNDLE_* properties, so every build carries the keys the released app needs
+    # Without the privacy usage strings PhotoKit and NSAppleScript kill the
+    # process when they request authorization.
+    # Versions in that file are maintained by `npm run update-build-version`.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${SHIPPED_INFO_PLIST}")
+    # OUTPUT_NAME is not bundle metadata: it names the executable, and so the .app
+    # directory. The plist's CFBundleExecutable only points at that file, and the
+    # app cannot launch if the two disagree.
     set_target_properties(video-simili-duplicate-cleaner PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER "video-simili-duplicate-cleaner.theophanemayaud.github.io"
-        MACOSX_BUNDLE_BUNDLE_NAME "Video simili duplicate cleaner"
-        MACOSX_BUNDLE_BUNDLE_VERSION "0.1"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
-        MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
-        MACOSX_BUNDLE_ICON_FILE AppIcon.icns
-        MACOSX_BUNDLE_INFO_STRING "Video simili duplicate cleaner"
+        MACOSX_BUNDLE_INFO_PLIST "${SHIPPED_INFO_PLIST}"
         OUTPUT_NAME "Video simili duplicate cleaner"
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "video-simili-duplicate-cleaner.theophanemayaud.github.io"
     )
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        # Debug builds must not claim the released app's identity: macOS stores
+        # privacy decisions per identifier together with the code requirement they
+        # were granted to, and a local build cannot match the one recorded for the
+        # released app, so reusing it gets Photos access refused without a prompt.
+        # Only the identifier changes, so the usage strings cannot drift.
+        set(RELEASE_BUNDLE_IDENTIFIER "video-simili-duplicate-cleaner.theophanemayaud.github.io")
+        file(READ "${SHIPPED_INFO_PLIST}" SHIPPED_INFO_PLIST_CONTENT)
+        string(REPLACE "<string>${RELEASE_BUNDLE_IDENTIFIER}</string>"
+                       "<string>${RELEASE_BUNDLE_IDENTIFIER}.debug</string>"
+                       DEBUG_INFO_PLIST_CONTENT "${SHIPPED_INFO_PLIST_CONTENT}")
+        if(DEBUG_INFO_PLIST_CONTENT STREQUAL SHIPPED_INFO_PLIST_CONTENT)
+            message(FATAL_ERROR "Could not find ${RELEASE_BUNDLE_IDENTIFIER} in ${SHIPPED_INFO_PLIST}")
+        endif()
+
+        # Write through configure_file so the result is only touched when it really
+        # changes, which keeps the relink below from firing on every reconfigure.
+        set(DEBUG_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/DebugInfo.plist")
+        file(WRITE "${DEBUG_INFO_PLIST}.in" "${DEBUG_INFO_PLIST_CONTENT}")
+        configure_file("${DEBUG_INFO_PLIST}.in" "${DEBUG_INFO_PLIST}" COPYONLY)
+
+        set_target_properties(video-simili-duplicate-cleaner PROPERTIES
+            MACOSX_BUNDLE_INFO_PLIST "${DEBUG_INFO_PLIST}"
+        )
+
+        # The linker alone ad-hoc signs just the executable, leaving the bundle with
+        # no sealed signature. macOS cannot then derive a designated requirement for
+        # the app and denies privacy requests outright, without ever prompting.
+        # Signing seals Info.plist, so a plist change has to relink and re-sign:
+        # otherwise the bundle looks tampered with and access is refused again.
+        set_property(TARGET video-simili-duplicate-cleaner APPEND PROPERTY LINK_DEPENDS "${DEBUG_INFO_PLIST}")
+        add_custom_command(TARGET video-simili-duplicate-cleaner POST_BUILD
+            COMMAND codesign --force --sign - "$<TARGET_BUNDLE_DIR:video-simili-duplicate-cleaner>"
+            COMMENT "Ad-hoc signing the app bundle so macOS can prompt for Photos access"
+            VERBATIM
+        )
+    endif()
 endif()
 
 target_compile_definitions(video-simili-duplicate-cleaner PRIVATE

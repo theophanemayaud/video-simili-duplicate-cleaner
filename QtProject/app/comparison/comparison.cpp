@@ -540,6 +540,9 @@ void Comparison::showVideo(const QString& side)
 }
 
 #ifdef Q_OS_MACOS
+// AppleScript was too slow to run during scanning, so names are still resolved
+// only when a Photos video is shown. PhotoKit is milliseconds; if this stays
+// reliable in use, move the lookup into Video's initial metadata extraction.
 void Comparison::lookUpApplePhotosName(const int videoIndex)
 {
     Video* video = _videos[videoIndex];
@@ -558,18 +561,24 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
     // A PhotoKit lookup of a single asset takes a few milliseconds, so it runs
     // inline: the caller displays the name right after, with no interim state.
     const QString name = _applePhotosNameLookup(mediaId);
-    const bool found = !name.isEmpty() && !name.contains(OBJ_C_FAILURE_STRING);
+    video->nameInApplePhotos.clear();
 
-    if (found) {
-        video->nameInApplePhotos = name;
+    if (name.contains(OBJ_C_NO_PHOTOS_ACCESS_STRING)) {
+        emit sendStatusMessage(QString("Cannot read Apple Photos names: access to the library was refused. "
+                                       "Grant it in System Settings > Privacy & Security > Photos, "
+                                       "otherwise videos keep the internal name Photos gave them."));
         return;
     }
 
-    video->nameInApplePhotos.clear();
-    emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
-                                   "If you have multiple libraries this might be normal, "
-                                   "it will only work, only with the currently open library.")
-                               .arg(filePathname));
+    if (name.isEmpty() || name.contains(OBJ_C_FAILURE_STRING)) {
+        emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
+                                       "If you have multiple libraries this might be normal, "
+                                       "it will only work, only with the currently open library.")
+                                   .arg(filePathname));
+        return;
+    }
+
+    video->nameInApplePhotos = name;
 }
 
 #endif

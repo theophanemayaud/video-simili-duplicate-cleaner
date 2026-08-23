@@ -44,8 +44,9 @@ class Video : public QObject
 
     VideoMetadata meta;
     QString _filePathName;
-    QString nameInApplePhotos; // resolved only when an Apple Photos video is shown for comparison
-    int64_t size = 0;          // in bytes
+    // filled at comparison time; TODO: consider scan-time extraction now that PhotoKit is fast
+    QString nameInApplePhotos;
+    int64_t size = 0; // in bytes
     QDateTime modified;
     QDateTime _fileCreateDate;
     int64_t duration = 0; // in miliseconds

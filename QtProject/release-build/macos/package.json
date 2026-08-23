@@ -6,7 +6,7 @@
         "copy-app-from-cmake": "rm -rf 'Video simili duplicate cleaner.app' && cp -R './build/Video simili duplicate cleaner.app' 'Video simili duplicate cleaner.app'",
         "build-cmake": "npm run cmake-configure && npm run cmake-build && npm run copy-app-from-cmake && npm run macdeploy",
         "build-binaries-cmake": "npm run build-cmake && npm run sign-and-package",
-        "sign-and-package": "cp Info.plist 'Video simili duplicate cleaner.app/Contents/Info.plist' && npm run sign-app && npm run package-app",
+        "sign-and-package": "npm run sign-app && npm run package-app",
         "sign-app": "codesign --deep --force --sign 'Apple Distribution: THEOPHANE MAYAUD (XZ4FY5SXW7)' --entitlements parent.plist --options=runtime --timestamp 'Video simili duplicate cleaner.app'",
         "package-app": "productbuild --component 'Video simili duplicate cleaner.app' /Applications --sign '3rd Party Mac Developer Installer: THEOPHANE MAYAUD (XZ4FY5SXW7)' --timestamp 'Video simili duplicate cleaner.pkg'",
         "cmake-clean": "cmake --build ./build --config Release --target clean || exit 0",
