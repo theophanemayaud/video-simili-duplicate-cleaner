@@ -413,16 +413,14 @@ void Comparison::queueDuplicateSetRebuildAfterAutomaticCleanup()
 void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
 {
     ui->progressBar->setDiscoveredValue(progressBarValue(preScannedEnd));
-    // Manual review navigates sets and their members, so the old pair position
-    // is no longer meaningful here. Keep the read-only footer aligned with the
-    // background scan instead of moving it whenever another member is shown.
-    if (ui->tabWidget->currentWidget() == ui->tabManual)
-        ui->progressBar->setValue(progressBarValue(preScannedEnd));
     const int percent = _maxComparisons > 0 ? int(100 * preScannedEnd / _maxComparisons) : 100;
     ui->progressBar->setToolTip(QStringLiteral("Background matching: %1% checked, %2 candidate pair(s) found")
                                     .arg(percent)
                                     .arg(_backgroundDiscovery->discoveredMatchCount()));
     rebuildDuplicateSets();
+    // Set selection may display an early match and update the old foreground
+    // pair position. Discovery is authoritative while it runs on either tab.
+    ui->progressBar->setValue(progressBarValue(preScannedEnd));
 }
 
 void Comparison::clearDuplicateSets()
@@ -606,20 +604,18 @@ void Comparison::showSetMember(int member)
         item->setFont(font);
     }
 
-    const int reference = set.members.first();
-    const int candidate = set.members[member];
-    if (!QFileInfo::exists(_videos[reference]->_filePathName) || _videos[reference]->trashed
-        || !QFileInfo::exists(_videos[candidate]->_filePathName) || _videos[candidate]->trashed)
-    {
-        _currentComparisonIsDirectMatch = false;
-        clearManualComparisonDisplay();
-        setManualComparisonActionsEnabled(false);
-        ui->duplicateSetEvidence->setText(QStringLiteral("A file is no longer available — refreshing sets…"));
-        QTimer::singleShot(0, this, &Comparison::rebuildDuplicateSets);
+    if (!duplicateSetStillDisplayable(set)) {
+        invalidateActiveDuplicateSet();
         return;
     }
+
+    const int reference = set.members.first();
+    const int candidate = set.members[member];
     if (const MatchedVideoPair* direct = directEligiblePair(reference, candidate)) {
-        displayMatchedPair(*direct);
+        MatchedVideoPair orientedPair = *direct;
+        orientedPair.left = reference;
+        orientedPair.right = candidate;
+        displayMatchedPair(orientedPair);
         _currentComparisonIsDirectMatch = true;
         ui->ignoreDuplicatePairButton->setEnabled(true);
         ui->ignoreDuplicatePairButton->setToolTip(
@@ -636,6 +632,62 @@ void Comparison::showSetMember(int member)
             "This is a linked-only comparison; these videos have no direct discovered match to ignore."));
         ui->duplicateSetEvidence->setText(QStringLiteral("Linked through other members — not a direct match"));
     }
+}
+
+bool Comparison::duplicateSetStillDisplayable(const DuplicateSet& set) const
+{
+    QSet<int> memberIndexes;
+    for (int member : set.members) {
+        if (member < 0 || member >= _videos.size() || !QFileInfo::exists(_videos[member]->_filePathName)
+            || _videos[member]->trashed)
+            return false;
+        memberIndexes.insert(member);
+    }
+
+    QSet<QString> ignoredPairKeys;
+    const Db cache(_prefs.cacheFilePathName());
+    for (const auto& ignoredPair : cache.ignoredPairs())
+        ignoredPairKeys.insert(ignoredPairKey(ignoredPair.first, ignoredPair.second));
+
+    QVector<MatchedVideoPair> componentEdges;
+    for (const MatchedVideoPair& pair : _eligibleSetMatches) {
+        if (!memberIndexes.contains(pair.left) || !memberIndexes.contains(pair.right))
+            continue;
+        const QString& leftPath = _videos[pair.left]->_filePathName;
+        const QString& rightPath = _videos[pair.right]->_filePathName;
+        if (!pairPassesNonCacheFilters(pair) || ignoredPairKeys.contains(ignoredPairKey(leftPath, rightPath)))
+            return false;
+        componentEdges.append(pair);
+    }
+
+    const QVector<DuplicateSet> components = DuplicateSetBuilder::build(_videos.size(), componentEdges);
+    if (components.size() != 1 || components.first().members.size() != memberIndexes.size())
+        return false;
+    for (int member : memberIndexes)
+        if (!components.first().members.contains(member))
+            return false;
+    return true;
+}
+
+void Comparison::invalidateActiveDuplicateSet()
+{
+    _currentComparisonIsDirectMatch = false;
+    clearManualComparisonDisplay();
+    setManualComparisonActionsEnabled(false);
+    ui->duplicateSetEvidence->setText(
+        QStringLiteral("A duplicate-set member or match is no longer available — refreshing sets…"));
+    queueDuplicateSetRebuild();
+}
+
+void Comparison::queueDuplicateSetRebuild()
+{
+    if (_duplicateSetRebuildQueued)
+        return;
+    _duplicateSetRebuildQueued = true;
+    QTimer::singleShot(0, this, [this]() {
+        _duplicateSetRebuildQueued = false;
+        rebuildDuplicateSets();
+    });
 }
 
 void Comparison::on_duplicateSets_currentRowChanged(int row)
@@ -662,6 +714,7 @@ void Comparison::setManualComparisonActionsEnabled(bool enabled)
     ui->prevVideo->setEnabled(enabled);
     ui->nextVideo->setEnabled(enabled);
     ui->ignoreDuplicatePairButton->setEnabled(enabled && _currentComparisonIsDirectMatch);
+    ui->useSelectedAsReferenceButton->setEnabled(enabled && _selectedDuplicateSet >= 0 && _selectedSetMember > 0);
 }
 
 void Comparison::clearManualComparisonDisplay()
@@ -2397,4 +2450,21 @@ void Comparison::on_ignoreDuplicatePairButton_clicked()
     Db cache(_prefs.cacheFilePathName()); // opening connexion to database
     cache.writePairToIgnore(_videos[_leftVideo]->_filePathName, _videos[_rightVideo]->_filePathName);
     rebuildDuplicateSets();
+}
+
+void Comparison::on_useSelectedAsReferenceButton_clicked()
+{
+    if (_automaticCleanupActive || _selectedDuplicateSet < 0 || _selectedDuplicateSet >= _duplicateSets.size())
+        return;
+    DuplicateSet& set = _duplicateSets[_selectedDuplicateSet];
+    if (_selectedSetMember <= 0 || _selectedSetMember >= set.members.size())
+        return;
+    if (!duplicateSetStillDisplayable(set)) {
+        invalidateActiveDuplicateSet();
+        return;
+    }
+
+    const int selectedVideo = set.members.takeAt(_selectedSetMember);
+    set.members.prepend(selectedVideo);
+    selectDuplicateSet(_selectedDuplicateSet, 1);
 }

@@ -1265,11 +1265,44 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
             <number>2</number>
            </property>
            <item>
-            <widget class="QLabel" name="duplicateSetMembersTitle">
-             <property name="text">
-              <string>Members</string>
+            <layout class="QHBoxLayout" name="duplicateSetMembersHeaderLayout">
+             <property name="spacing">
+              <number>6</number>
              </property>
-            </widget>
+             <item>
+              <widget class="QLabel" name="duplicateSetMembersTitle">
+               <property name="text">
+                <string>Members</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="duplicateSetMembersHeaderSpacer">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="useSelectedAsReferenceButton">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="toolTip">
+                <string>Compare the other members against the currently selected video.</string>
+               </property>
+               <property name="text">
+                <string>Use selected as reference</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item>
             <widget class="QListWidget" name="duplicateSetMembers">

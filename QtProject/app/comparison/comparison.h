@@ -56,6 +56,7 @@ class Comparison : public QDialog
     int _selectedSetMember = -1;
     bool _currentComparisonIsDirectMatch = false;
     bool _automaticCleanupActive = false;
+    bool _duplicateSetRebuildQueued = false;
     int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
@@ -95,6 +96,9 @@ class Comparison : public QDialog
     void rebuildDuplicateSets();
     void selectDuplicateSet(int row, int preferredMember = 1);
     void showSetMember(int member);
+    bool duplicateSetStillDisplayable(const DuplicateSet& set) const;
+    void invalidateActiveDuplicateSet();
+    void queueDuplicateSetRebuild();
     void refreshPreviewImage(QLabel* preview, int videoIndex) const;
     void refreshPreviewImages();
     void queuePreviewRefresh();
@@ -216,6 +220,7 @@ class Comparison : public QDialog
     void on_settingNamesInAnotherCheckbox_stateChanged(int arg1);
 
     void on_ignoreDuplicatePairButton_clicked();
+    void on_useSelectedAsReferenceButton_clicked();
     void on_duplicateSets_currentRowChanged(int row);
     void on_duplicateSetMembers_currentRowChanged(int row);
 
