@@ -271,6 +271,26 @@ void Db::writeMetadata(const Video& video) const
     }
 }
 
+void Db::writeFailure(const QString& filePathname, const QString& failure) const
+{
+    if (!_db.isOpen()) {
+        qDebug() << "Database not open, can't write Video failure.";
+        return;
+    }
+
+    QSqlQuery query(_db);
+    query.prepare("UPDATE metadata SET failure = :failure WHERE id = :id;");
+    query.bindValue(":failure", failure);
+    query.bindValue(":id", filePathname);
+    query.exec();
+
+    QSqlError error = query.lastError();
+    if (error.isValid()) {
+        qDebug() << "Error with writeFailure query for video=" << filePathname << " query=" << query.lastQuery();
+        qDebug() << error.text();
+    }
+}
+
 QByteArray Db::readCapture(const QString& filePathname, const int& percent) const
 {
     if (!_db.isOpen()) {

@@ -136,10 +136,8 @@ QString Video::internalProcess()
         || height == 0) // || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
         const QString error = QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
-        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE) {
-            cachedFailure = error;
-            cache.writeMetadata(*this);
-        }
+        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE)
+            cache.writeFailure(_filePathName, error);
         return error;
     }
 
@@ -155,10 +153,8 @@ QString Video::internalProcess()
              (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
     { //every extracted frame have almost no features/fully flat (e.g. all black)
         const QString error = "all extracted frames were blank";
-        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE) {
-            cachedFailure = error;
-            cache.writeMetadata(*this);
-        }
+        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE)
+            cache.writeFailure(_filePathName, error);
         return error;
     }
     else {

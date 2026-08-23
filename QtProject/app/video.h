@@ -47,9 +47,9 @@ class Video : public QObject
     // filled at comparison time; TODO: consider scan-time extraction now that PhotoKit is fast
     QString nameInApplePhotos;
     int64_t size = 0; // in bytes
-    // Empty when the cached metadata is usable. A non-empty value means this path already failed processing, so the
-    // next scan can skip FFmpeg from the same readMetadata() call. Thumbnail mode is ignored: retrying is emptying
-    // the cache, or scanning without it.
+    // Filled by readMetadata: empty when the cached metadata is usable, otherwise this path already failed processing
+    // and the scan can skip FFmpeg from that same query. Failures are recorded with Db::writeFailure. Thumbnail mode is
+    // ignored: retrying is emptying the cache, or scanning without it.
     QString cachedFailure;
     QDateTime modified;
     QDateTime _fileCreateDate;

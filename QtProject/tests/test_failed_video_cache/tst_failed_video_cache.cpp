@@ -45,7 +45,7 @@ bool writeInvalidVideo(const QString& path, const QByteArray& contents, QIODevic
 }
 
 void writePlausibleMetadata(const Db& cache, const Prefs& prefs, const QString& path, qint64 size,
-                            const QString& failure = {})
+                            const QString& failure = {}, short width = 16, short height = 16)
 {
     Video metadata(prefs, path);
     metadata.size = size;
@@ -53,8 +53,8 @@ void writePlausibleMetadata(const Db& cache, const Prefs& prefs, const QString& 
     metadata.bitrate = 100;
     metadata.framerate = 25;
     metadata.codec = QStringLiteral("test");
-    metadata.width = 16;
-    metadata.height = 16;
+    metadata.width = width;
+    metadata.height = height;
     metadata.cachedFailure = failure;
     cache.writeMetadata(metadata);
 }
@@ -179,6 +179,28 @@ void TestFailedVideoCache::test_processingCachePolicy()
     QVERIFY(writeInvalidVideo(emptyPath, {}));
     QVERIFY(processError(emptyPath, cachePath, Prefs::WITH_CACHE, cutEnds).contains(QStringLiteral("file size = 0")));
     QVERIFY(cachedFailure(cachePath, emptyPath).isEmpty());
+
+    // Zero dimensions cannot become valid on a later scan, so the scan itself must record the failure, and it must do
+    // so without disturbing the metadata already cached for that path.
+    const QString zeroDimensionsPath = temporary.filePath(QStringLiteral("zero-dimensions.mp4"));
+    QVERIFY(writeInvalidVideo(zeroDimensionsPath, QByteArrayLiteral("not a video")));
+    {
+        Db cache(cachePath);
+        writePlausibleMetadata(cache, prefs, zeroDimensionsPath, QFileInfo(zeroDimensionsPath).size(), {}, 0, 0);
+    }
+    const QString zeroDimensionsError = processError(zeroDimensionsPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(zeroDimensionsError.contains(QStringLiteral("= 0")));
+    QCOMPARE(cachedFailure(cachePath, zeroDimensionsPath), zeroDimensionsError);
+    {
+        Video cached(cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds), zeroDimensionsPath);
+        QVERIFY(Db(cachePath).readMetadata(cached));
+        QCOMPARE(cached.size, QFileInfo(zeroDimensionsPath).size());
+        QCOMPARE(cached.duration, 1000);
+        QCOMPARE(cached.bitrate, 100);
+        QCOMPARE(cached.codec, QStringLiteral("test"));
+    }
+    QCOMPARE(processError(zeroDimensionsPath, cachePath, Prefs::WITH_CACHE, cutEnds),
+             skippedMessage(zeroDimensionsError));
 }
 
 void TestFailedVideoCache::test_databaseClearingAndRemoval()
