@@ -92,6 +92,9 @@ class Comparison : public QDialog
     void rebuildDuplicateSets();
     void selectDuplicateSet(int row, int preferredMember = 1);
     void showSetMember(int member);
+    void refreshPreviewImage(QLabel* preview, int videoIndex) const;
+    void refreshPreviewImages();
+    void queuePreviewRefresh();
     void setManualComparisonActionsEnabled(bool enabled);
     void clearManualComparisonDisplay();
     bool hasActiveManualComparison() const;

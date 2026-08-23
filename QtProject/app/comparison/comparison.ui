@@ -13,7 +13,7 @@
   <property name="minimumSize">
    <size>
     <width>1120</width>
-    <height>650</height>
+    <height>720</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -220,11 +220,20 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
        </property>
        <item>
         <layout class="QVBoxLayout" name="duplicateSetsLayout">
+         <property name="sizeConstraint">
+          <enum>QLayout::SizeConstraint::SetMaximumSize</enum>
+         </property>
          <property name="spacing">
           <number>4</number>
          </property>
          <item>
           <widget class="QLabel" name="duplicateSetsTitle">
+           <property name="maximumSize">
+            <size>
+             <width>280</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="text">
             <string>Duplicate sets</string>
            </property>
@@ -234,8 +243,14 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
           <widget class="QListWidget" name="duplicateSets">
            <property name="minimumSize">
             <size>
-             <width>210</width>
+             <width>240</width>
              <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>280</width>
+             <height>16777215</height>
             </size>
            </property>
            <property name="alternatingRowColors">
@@ -251,6 +266,12 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
          </item>
          <item>
           <widget class="QLabel" name="duplicateSetsStatus">
+           <property name="maximumSize">
+            <size>
+             <width>280</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="wordWrap">
             <bool>true</bool>
            </property>
@@ -280,9 +301,21 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
               <number>0</number>
              </property>
              <item>
+              <widget class="QLabel" name="leftPaneTitle">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Reference</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="ClickableLabel" name="leftImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -290,7 +323,13 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <property name="minimumSize">
                 <size>
                  <width>400</width>
-                 <height>100</height>
+                 <height>120</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>120</height>
                 </size>
                </property>
                <property name="toolTip">
@@ -714,7 +753,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <item>
                 <widget class="QTextEdit" name="textEdit_leftMetadata">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
@@ -722,13 +761,13 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>70</height>
+                   <height>64</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>60</height>
+                   <height>64</height>
                   </size>
                  </property>
                  <property name="readOnly">
@@ -746,9 +785,21 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
               <number>0</number>
              </property>
              <item>
+              <widget class="QLabel" name="rightPaneTitle">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Selected member</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="ClickableLabel" name="rightImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -756,7 +807,13 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <property name="minimumSize">
                 <size>
                  <width>400</width>
-                 <height>100</height>
+                 <height>120</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>120</height>
                 </size>
                </property>
                <property name="toolTip">
@@ -1174,7 +1231,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <item>
                 <widget class="QTextEdit" name="textEdit_rightMetadata">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
@@ -1182,13 +1239,13 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>70</height>
+                   <height>64</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>60</height>
+                   <height>64</height>
                   </size>
                  </property>
                  <property name="readOnly">
@@ -1222,6 +1279,9 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
              <property name="wrapping">
               <bool>false</bool>
              </property>
+             <property name="wordWrap">
+              <bool>false</bool>
+             </property>
              <property name="resizeMode">
               <enum>QListView::ResizeMode::Adjust</enum>
              </property>
@@ -1232,6 +1292,12 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
               <size>
                <width>76</width>
                <height>54</height>
+              </size>
+             </property>
+             <property name="gridSize">
+              <size>
+               <width>190</width>
+               <height>82</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -1472,6 +1538,22 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
             </spacer>
            </item>
           </layout>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_manualContent">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Policy::Expanding</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </item>

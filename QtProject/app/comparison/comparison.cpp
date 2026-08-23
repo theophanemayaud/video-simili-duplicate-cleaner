@@ -7,6 +7,7 @@
 #include <QProgressDialog>
 #include <QSignalBlocker>
 #include <QSlider>
+#include <QTimer>
 
 #include "internal/backgroundmatchdiscovery.h"
 #include "internal/videopairmatcher.h"
@@ -517,9 +518,10 @@ void Comparison::selectDuplicateSet(int row, int preferredMember)
         const Video* video = _videos[set.members[member]];
         auto* item = new QListWidgetItem(
             QIcon(QPixmap::fromImage(QImage::fromData(video->thumbnail, "JPG"))),
-            member == 0 ? QStringLiteral("Reference\n%1").arg(QFileInfo(video->_filePathName).fileName())
+            member == 0 ? QStringLiteral("Reference: %1").arg(QFileInfo(video->_filePathName).fileName())
                         : QFileInfo(video->_filePathName).fileName());
         item->setData(Qt::UserRole, member);
+        item->setTextAlignment(Qt::AlignHCenter);
         ui->duplicateSetMembers->addItem(item);
     }
     showSetMember(qBound(1, preferredMember, set.members.size() - 1));
@@ -539,6 +541,21 @@ void Comparison::showSetMember(int member)
     {
         const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
         ui->duplicateSetMembers->setCurrentRow(member);
+    }
+
+    // The platform selection color can be subtle in an icon gallery. State the
+    // active role in the selected item's native text as well, so the member
+    // currently shown in the right pane is obvious without a custom delegate.
+    for (int itemIndex = 0; itemIndex < ui->duplicateSetMembers->count(); ++itemIndex) {
+        QListWidgetItem* item = ui->duplicateSetMembers->item(itemIndex);
+        const QString fileName = QFileInfo(_videos[set.members[itemIndex]]->_filePathName).fileName();
+        item->setText(itemIndex == 0        ? QStringLiteral("Reference: %1").arg(fileName)
+                      : itemIndex == member ? QStringLiteral("Selected: %1").arg(fileName)
+                                            : fileName);
+        item->setToolTip(item->text());
+        QFont font = item->font();
+        font.setBold(itemIndex == member);
+        item->setFont(font);
     }
 
     const int reference = set.members.first();
@@ -757,6 +774,27 @@ void Comparison::displayMatchedPair(const MatchedVideoPair& pair)
         QStringLiteral("Mark this direct pair as not duplicates and save it to the cache."));
 }
 
+void Comparison::refreshPreviewImage(QLabel* preview, int videoIndex) const
+{
+    const QPixmap source = QPixmap::fromImage(QImage::fromData(_videos[videoIndex]->thumbnail, "JPG"));
+    preview->setPixmap(source.scaled(preview->contentsRect().size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+}
+
+void Comparison::refreshPreviewImages()
+{
+    if (_leftVideo < 0 || _rightVideo < 0 || _leftVideo >= _videos.size() || _rightVideo >= _videos.size())
+        return;
+    refreshPreviewImage(ui->leftImage, _leftVideo);
+    refreshPreviewImage(ui->rightImage, _rightVideo);
+}
+
+void Comparison::queuePreviewRefresh()
+{
+    // A dialog resize is delivered before child layouts settle. Rescale on the
+    // next event-loop turn so the pixmap always uses the final label bounds.
+    QTimer::singleShot(0, this, &Comparison::refreshPreviewImages);
+}
+
 void Comparison::showVideo(const QString& side)
 {
     int thisVideo = _leftVideo;
@@ -764,10 +802,8 @@ void Comparison::showVideo(const QString& side)
         thisVideo = _rightVideo;
 
     auto* Image = this->findChild<ClickableLabel*>(side + QStringLiteral("Image"));
-    QBuffer pixels(&_videos[thisVideo]->thumbnail);
-    QImage image;
-    image.load(&pixels, QByteArrayLiteral("JPG"));
-    Image->setPixmap(QPixmap::fromImage(image).scaled(Image->width(), Image->height(), Qt::KeepAspectRatio));
+    refreshPreviewImage(Image, thisVideo);
+    queuePreviewRefresh();
 
 #ifdef Q_OS_MACOS
     if (_videos[thisVideo]->_filePathName.contains(".photoslibrary"))
@@ -1583,21 +1619,12 @@ void Comparison::on_thresholdSlider_valueChanged(const int& value)
 
 void Comparison::resizeEvent(QResizeEvent* event)
 {
-    Q_UNUSED(event)
+    QDialog::resizeEvent(event);
 
-    if (ui->leftFileName->text().isEmpty() || _leftVideo >= _prefs._numberOfVideos
-        || _rightVideo >= _prefs._numberOfVideos)
+    if (ui->leftFileName->text().isEmpty() || _leftVideo >= _videos.size() || _rightVideo >= _videos.size())
         return; //automatic initial resize event can happen before closing when values went over limit
 
-    QImage image;
-    QBuffer leftPixels(&_videos[_leftVideo]->thumbnail);
-    image.load(&leftPixels, QByteArrayLiteral("JPG"));
-    ui->leftImage->setPixmap(
-        QPixmap::fromImage(image).scaled(ui->leftImage->width(), ui->leftImage->height(), Qt::KeepAspectRatio));
-    QBuffer rightPixels(&_videos[_rightVideo]->thumbnail);
-    image.load(&rightPixels, QByteArrayLiteral("JPG"));
-    ui->rightImage->setPixmap(
-        QPixmap::fromImage(image).scaled(ui->rightImage->width(), ui->rightImage->height(), Qt::KeepAspectRatio));
+    queuePreviewRefresh();
 }
 
 void Comparison::wheelEvent(QWheelEvent* event)

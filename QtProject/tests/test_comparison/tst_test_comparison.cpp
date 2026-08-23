@@ -1,4 +1,8 @@
+#include <QBuffer>
 #include <QCoreApplication>
+#include <QImage>
+#include <QListWidget>
+#include <QPixmap>
 #include <QtTest>
 
 #include <cmath>
@@ -47,6 +51,7 @@ class test_comparison : public QObject
     void test_ssimUsesEachBlockForMeans();
     void test_rotatedMatcherRequiresSsimSafeguard();
     void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
+    void test_manualSetBrowserGeometryAtMinimumSize();
     void test_duplicateSetBuilderConnectedComponents();
     void test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixCompletes();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
@@ -358,6 +363,122 @@ void test_comparison::test_rotatedMatcherAppliesDurationModifierToSsimThreshold(
     config.differentDurationModifier = 4;
     config.thresholdSSIM = rawSsim - 2.0 / 64.0;
     QVERIFY(!VideoPairMatcher::match(left, right, config).matches);
+}
+
+void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
+{
+    Prefs prefs;
+    prefs._numberOfVideos = 3;
+    Video reference(prefs, QStringLiteral("/private/tmp/pr205-ux-fixture/A-reference.mp4"));
+    Video selected(prefs, QStringLiteral("/private/tmp/pr205-ux-fixture/A-copy-3.mp4"));
+    Video other(prefs, QStringLiteral("/private/tmp/pr205-ux-fixture/A-copy-2.mp4"));
+    reference.size = 30 * 1024;
+    selected.size = 20 * 1024;
+    other.size = 10 * 1024;
+
+    const QDateTime timestamp(QDate(2026, 8, 23), QTime(10, 41, 38));
+    for (Video* video : QVector<Video*>{&reference, &selected, &other}) {
+        video->duration = 10 * 1000;
+        video->width = 40;
+        video->height = 160;
+        video->framerate = 10;
+        video->bitrate = 8;
+        video->codec = QStringLiteral("h264");
+        video->modified = video->_fileCreateDate = timestamp;
+        video->meta.additionalMetadata = {
+            {QStringLiteral("compatible_brands"), QStringLiteral("isomiso2avc1mp41")},
+            {QStringLiteral("encoder"), QStringLiteral("Lavf62.3.100")},
+            {QStringLiteral("major_brand"), QStringLiteral("isom")},
+            {QStringLiteral("minor_version"), QStringLiteral("512")},
+        };
+    }
+
+    QImage portraitPreview(40, 160, QImage::Format_RGB32);
+    portraitPreview.fill(Qt::blue);
+    QByteArray thumbnail;
+    QBuffer thumbnailBuffer(&thumbnail);
+    thumbnailBuffer.open(QIODevice::WriteOnly);
+    QVERIFY(portraitPreview.save(&thumbnailBuffer, "JPG"));
+    reference.thumbnail = selected.thumbnail = other.thumbnail = thumbnail;
+
+    Comparison comparison({&reference, &selected, &other}, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = {&reference, &selected, &other};
+    comparison.resize(1120, 720);
+    comparison.show();
+    QCoreApplication::processEvents();
+
+    comparison._duplicateSets = {{QVector<int>{0, 1, 2}}};
+    comparison._eligibleSetMatches = {{0, 1, 1, 64, 1.0}, {0, 2, 2, 64, 1.0}};
+    comparison.selectDuplicateSet(0, 1);
+    QCoreApplication::processEvents();
+
+    auto* sets = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"));
+    auto* leftImage = comparison.findChild<ClickableLabel*>(QStringLiteral("leftImage"));
+    auto* rightImage = comparison.findChild<ClickableLabel*>(QStringLiteral("rightImage"));
+    auto* leftFileName = comparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"));
+    auto* rightFileName = comparison.findChild<ClickableLabel*>(QStringLiteral("rightFileName"));
+    auto* leftPaneTitle = comparison.findChild<QLabel*>(QStringLiteral("leftPaneTitle"));
+    auto* rightPaneTitle = comparison.findChild<QLabel*>(QStringLiteral("rightPaneTitle"));
+
+    QVERIFY(sets);
+    QVERIFY(leftImage);
+    QVERIFY(rightImage);
+    QVERIFY(leftFileName);
+    QVERIFY(rightFileName);
+    QVERIFY(leftPaneTitle);
+    QVERIFY(rightPaneTitle);
+    QCOMPARE(comparison.minimumHeight(), 720);
+    QCOMPARE(comparison.height(), 720);
+    QVERIFY(sets->width() >= 240);
+    QVERIFY(sets->width() <= 280);
+    QCOMPARE(leftPaneTitle->text(), QStringLiteral("Reference"));
+    QCOMPARE(rightPaneTitle->text(), QStringLiteral("Selected member"));
+
+    QVERIFY(leftImage->height() <= 120);
+    QVERIFY(rightImage->height() <= 120);
+    QVERIFY2(leftImage->mapTo(&comparison, QPoint(0, leftImage->height())).y()
+                 <= leftFileName->mapTo(&comparison, QPoint()).y(),
+             "The reference preview must end before its file-name row starts.");
+    QVERIFY2(rightImage->mapTo(&comparison, QPoint(0, rightImage->height())).y()
+                 <= rightFileName->mapTo(&comparison, QPoint()).y(),
+             "The selected-member preview must end before its file-name row starts.");
+
+    const auto previewsFitLabels = [leftImage, rightImage]() {
+        return leftImage->pixmap().width() <= leftImage->contentsRect().width()
+               && leftImage->pixmap().height() <= leftImage->contentsRect().height()
+               && rightImage->pixmap().width() <= rightImage->contentsRect().width()
+               && rightImage->pixmap().height() <= rightImage->contentsRect().height();
+    };
+    QVERIFY2(previewsFitLabels(), "Displayed preview pixmaps must fit their labels at minimum size.");
+
+    auto* members = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSetMembers"));
+    QVERIFY(members);
+    QCOMPARE(members->gridSize(), QSize(190, 82));
+    QCOMPARE(members->item(0)->text(), QStringLiteral("Reference: A-reference.mp4"));
+    QCOMPARE(members->item(1)->text(), QStringLiteral("Selected: A-copy-3.mp4"));
+    QVERIFY(!members->item(0)->text().contains('\n'));
+    QVERIFY(!members->item(1)->text().contains('\n'));
+    const QRect referenceCard = members->visualItemRect(members->item(0));
+    const QRect selectedCard = members->visualItemRect(members->item(1));
+    QVERIFY2(referenceCard.right() < selectedCard.left(), "Member cards must not overlap horizontally.");
+
+    comparison.resize(1228, 768);
+    QCoreApplication::processEvents();
+    QVERIFY2(previewsFitLabels(), "Displayed preview pixmaps must fit their labels after resizing.");
+
+    auto* metadata = comparison.findChild<QWidget*>(QStringLiteral("textEdit_leftMetadata"));
+    auto* membersTitle = comparison.findChild<QWidget*>(QStringLiteral("duplicateSetMembersTitle"));
+    auto* evidence = comparison.findChild<QWidget*>(QStringLiteral("duplicateSetEvidence"));
+    auto* previous = comparison.findChild<QWidget*>(QStringLiteral("prevVideo"));
+    auto* swap = comparison.findChild<QWidget*>(QStringLiteral("swapFilenames"));
+    auto* manualTab = comparison.findChild<QWidget*>(QStringLiteral("tabManual"));
+    const auto top = [&comparison](QWidget* widget) { return widget->mapTo(&comparison, QPoint()).y(); };
+    const auto bottom = [&top](QWidget* widget) { return top(widget) + widget->height(); };
+    QVERIFY(top(membersTitle) - bottom(metadata) <= 16);
+    QVERIFY(top(evidence) - bottom(members) <= 16);
+    QVERIFY(top(previous) - bottom(evidence) <= 16);
+    QVERIFY(bottom(manualTab) - bottom(swap) >= 20);
 }
 
 void test_comparison::test_duplicateSetBuilderConnectedComponents()
