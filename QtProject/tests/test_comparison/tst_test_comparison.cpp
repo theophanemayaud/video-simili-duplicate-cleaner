@@ -186,7 +186,7 @@ void test_comparison::test_applePhotosNameLookupIsSynchronousAndSessionOnly()
     QVERIFY(missingPhotosVideo.nameInApplePhotos.isEmpty());
     QCOMPARE(comparison->findChild<ClickableLabel*>(QStringLiteral("leftFileName"))->text(),
              QStringLiteral("DEF456.mov"));
-    QVERIFY(statusMessages.takeFirst().first().toString().contains(QStringLiteral("Unknown error")));
+    QVERIFY(statusMessages.takeFirst().first().toString().contains(QStringLiteral("System Photo Library")));
 }
 
 void test_comparison::test_applePhotosNameLookupReportsRefusedAccess()

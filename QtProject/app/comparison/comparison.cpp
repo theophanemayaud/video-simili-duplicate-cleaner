@@ -571,9 +571,9 @@ void Comparison::lookUpApplePhotosName(const int videoIndex)
     }
 
     if (name.isEmpty() || name.contains(OBJ_C_FAILURE_STRING)) {
-        emit sendStatusMessage(QString("Unknown error getting name of %1 from Apple Photos Library. "
-                                       "If you have multiple libraries this might be normal, "
-                                       "it will only work, only with the currently open library.")
+        emit sendStatusMessage(QString("Could not get the name of %1 from Apple Photos. "
+                                       "Names can only be read from the System Photo Library, "
+                                       "so this is expected for videos kept in another library.")
                                    .arg(filePathname));
         return;
     }

@@ -54,6 +54,12 @@ std::string Obj_C::obj_C_getMediaNameFromPhotoKit(const std::string& mediaId)
         if (mediaIdString == nil)
             return OBJ_C_FAILURE_STRING;
 
+        // Only the System Photo Library can be reached: PhotoKit exposes no public
+        // way to open an arbitrary .photoslibrary, so videos scanned from another
+        // library find no asset and keep their on-disk UUID name. AppleScript could
+        // query whichever library Photos had open, but it is far slower and needs
+        // Apple Events permission, which is not worth regaining that one case.
+        //
         // Files in a Photos library use the UUID portion of PhotoKit's opaque
         // local identifier. L0/001 is the standard identifier for originals;
         // retain the bare UUID as a candidate for libraries that expose it directly.
