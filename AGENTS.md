@@ -12,7 +12,7 @@ The goal of this project is to help users find duplicate or similar videos by co
 ## Pull Requests
 
 - Use Conventional Commit-style PR titles, such as `fix(comparison): restore slider after cancelled navigation`.
-- Squash-merge pull requests into `main` and use the PR title as the resulting commit title.
+- Squash-merge pull requests into `master` and use the PR title as the resulting commit title.
 
 ## Project Shape
 

@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+# `git worktree add` runs post-checkout with an all-zero previous HEAD, which is
+# how a brand new worktree is told apart from an ordinary branch checkout.
+if [ "$1" != "0000000000000000000000000000000000000000" ]; then
+	exit 0
+fi
+
+exec "$(git rev-parse --show-toplevel)/scripts/link-build-deps.sh"
