@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QListWidget>
 #include <QPixmap>
+#include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QtTest>
@@ -74,6 +75,8 @@ class test_comparison : public QObject
     void test_missingSetMemberDisablesActionsAndQueuesRebuild();
     void test_autoCleanupOwnsPairIndexes();
     void test_cleanupRestartQueuesSetRebuildAfterGuard();
+    void test_cleanupCompletionDoesNotNavigateForeground();
+    void test_rebuildKeepsActiveSetWhenSelectedMemberDisappears();
     void test_duplicateSetBuilderConnectedComponents();
     void test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixCompletes();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
@@ -662,6 +665,74 @@ void test_comparison::test_cleanupRestartQueuesSetRebuildAfterGuard()
 
     QCOMPARE(comparison._duplicateSets.size(), 1);
     QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({0, 1}));
+}
+
+void test_comparison::test_cleanupCompletionDoesNotNavigateForeground()
+{
+    Prefs prefs;
+    prefs._numberOfVideos = 0;
+    Comparison comparison({}, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._seekForwards = false;
+    comparison._automaticCleanupActive = true;
+    QTabWidget* tabs = comparison.findChild<QTabWidget*>(QStringLiteral("tabWidget"));
+    QVERIFY(tabs);
+    tabs->setCurrentIndex(1);
+
+    comparison.finishAutomaticCleanupRefresh();
+
+    // on_nextVideo_clicked always flips this flag before it can scan or show
+    // confirmToExit, so preserving it proves cleanup only restarted discovery.
+    QVERIFY(!comparison._seekForwards);
+    QVERIFY(comparison._backgroundDiscovery->hasStarted());
+    QCOMPARE(tabs->currentIndex(), 1);
+    QCOMPARE(comparison.findChild<QLabel*>(QStringLiteral("duplicateSetsStatus"))->text(),
+             QStringLiteral("Scanning duplicate sets…"));
+    comparison._automaticCleanupActive = false;
+    QCoreApplication::processEvents();
+}
+
+void test_comparison::test_rebuildKeepsActiveSetWhenSelectedMemberDisappears()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (int index = 0; index < 5; ++index) {
+        const QString path = fixture.filePath(QStringLiteral("video-%1.mp4").arg(index));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {2, MatchedVideoPair{2, 3, 2, 64, 1.0}},
+        {3, MatchedVideoPair{2, 4, 3, 64, 1.0}},
+    };
+    comparison._backgroundDiscovery->_lastContiguousScannedPairPosition = 3;
+    comparison.rebuildDuplicateSets();
+    QCOMPARE(comparison._duplicateSets.size(), 2);
+    comparison.selectDuplicateSet(1, 2);
+    QCOMPARE(comparison._selectedSetMember, 2);
+
+    videos[4]->trashed = true;
+    comparison.rebuildDuplicateSets();
+
+    QCOMPARE(comparison._duplicateSets.size(), 2);
+    QCOMPARE(comparison._selectedDuplicateSet, 1);
+    QCOMPARE(comparison._duplicateSets[1].members, QVector<int>({2, 3}));
+    QCOMPARE(comparison._leftVideo, 2);
+    QCOMPARE(comparison._rightVideo, 3);
 }
 
 void test_comparison::test_duplicateSetBuilderConnectedComponents()

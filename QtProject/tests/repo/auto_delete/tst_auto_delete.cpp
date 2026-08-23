@@ -228,7 +228,9 @@ void TestAutoDelete::test_keepBiggestMovesLetterboxedCopy()
     comp.ui->disableDeleteConfirmationCheckbox->setChecked(true);
     comp.ui->autoOnlySizeDontCheckResFpsCheckbox->setChecked(true);
     QVERIFY(comp.ui->radioButton_onlySizeDiffers_keepBiggest->isChecked());
-    acceptMessageBoxesDuring(2, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
+    // Cleanup now ends after its own completion dialog. Set discovery resumes
+    // in the background without opening the foreground end-of-results dialog.
+    acceptMessageBoxesDuring(1, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
 
     QVERIFY2(!QFileInfo::exists(originalPath), qPrintable(QStringLiteral("Expected moved video: %1").arg(originalPath)));
     QVERIFY2(QFileInfo::exists(letterboxPath),
@@ -292,7 +294,9 @@ void TestAutoDelete::runAutoDeleteBySize(const bool keepBiggest) const
     if (!keepBiggest)
         comp.ui->radioButton_onlySizeDiffers_keepSmallest->setChecked(true);
 
-    acceptMessageBoxesDuring(2, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
+    // Cleanup now ends after its own completion dialog. Set discovery resumes
+    // in the background without opening the foreground end-of-results dialog.
+    acceptMessageBoxesDuring(1, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
 
     const QString keptVideoPath = keepBiggest ? testBiggerVideoPath : testSmallerVideoPath;
     const QString movedVideoPath = keepBiggest ? testSmallerVideoPath : testBiggerVideoPath;

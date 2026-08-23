@@ -88,6 +88,7 @@ class Comparison : public QDialog
 
     void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();
+    void finishAutomaticCleanupRefresh();
     void queueDuplicateSetRebuildAfterAutomaticCleanup();
     void updateDiscoveryProgress(int64_t preScannedEnd);
     void clearDuplicateSets();

@@ -393,6 +393,15 @@ void Comparison::restartBackgroundDiscovery()
     _backgroundDiscovery->start(_videos, VideoPairMatcher::configFromPrefs(_prefs));
 }
 
+void Comparison::finishAutomaticCleanupRefresh()
+{
+    // Cleanup has already visited every pair. Restart the asynchronous set
+    // discovery without asking foreground navigation to scan the same space or
+    // opening its end-of-results confirmation.
+    restartBackgroundDiscovery();
+    queueDuplicateSetRebuildAfterAutomaticCleanup();
+}
+
 void Comparison::queueDuplicateSetRebuildAfterAutomaticCleanup()
 {
     // start() emits its initial progress synchronously while automatic cleanup
@@ -452,10 +461,15 @@ void Comparison::rebuildDuplicateSets()
     if (_automaticCleanupActive)
         return;
 
-    const int previouslySelectedVideo =
-        _selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size() && _selectedSetMember >= 0
-            ? _duplicateSets[_selectedDuplicateSet].members[_selectedSetMember]
-            : -1;
+    QVector<int> selectionAnchors;
+    if (_selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size()) {
+        const QVector<int>& selectedMembers = _duplicateSets[_selectedDuplicateSet].members;
+        if (_selectedSetMember >= 0 && _selectedSetMember < selectedMembers.size())
+            selectionAnchors.append(selectedMembers[_selectedSetMember]);
+        for (int member : selectedMembers)
+            if (!selectionAnchors.contains(member))
+                selectionAnchors.append(member);
+    }
     QSet<QString> ignoredPairKeys;
     const Db cache(_prefs.cacheFilePathName());
     for (const auto& ignoredPair : cache.ignoredPairs())
@@ -505,14 +519,17 @@ void Comparison::rebuildDuplicateSets()
 
     int selectedSet = -1;
     int selectedMember = 1;
-    if (previouslySelectedVideo >= 0) {
-        for (int setIndex = 0; setIndex < _duplicateSets.size() && selectedSet < 0; ++setIndex) {
-            const int member = _duplicateSets[setIndex].members.indexOf(previouslySelectedVideo);
+    for (int anchor : selectionAnchors) {
+        for (int setIndex = 0; setIndex < _duplicateSets.size(); ++setIndex) {
+            const int member = _duplicateSets[setIndex].members.indexOf(anchor);
             if (member >= 0) {
                 selectedSet = setIndex;
                 selectedMember = member;
+                break;
             }
         }
+        if (selectedSet >= 0)
+            break;
     }
     if (selectedSet < 0 && !_duplicateSets.isEmpty())
         selectedSet = 0;
@@ -1970,9 +1987,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                                  .arg(readableFileSize(_spaceSaved - initialSpaceSaved)));
     if (_someWereMovedInApplePhotosLibrary)
         displayApplePhotosAlbumDeletionMessage();
-    restartBackgroundDiscovery();
-    on_nextVideo_clicked();
-    queueDuplicateSetRebuildAfterAutomaticCleanup();
+    finishAutomaticCleanupRefresh();
 }
 
 // Loop through all files
@@ -2095,9 +2110,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 
     if (_someWereMovedInApplePhotosLibrary)
         displayApplePhotosAlbumDeletionMessage();
-    restartBackgroundDiscovery();
-    on_nextVideo_clicked();
-    queueDuplicateSetRebuildAfterAutomaticCleanup();
+    finishAutomaticCleanupRefresh();
 }
 
 // For now only used for auto delete AUTO_DELETE_ONLY_TIMES_DIFF
@@ -2217,9 +2230,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
 
     if (_someWereMovedInApplePhotosLibrary)
         displayApplePhotosAlbumDeletionMessage();
-    restartBackgroundDiscovery();
-    on_nextVideo_clicked();
-    queueDuplicateSetRebuildAfterAutomaticCleanup();
+    finishAutomaticCleanupRefresh();
 }
 
 const VideoMetadata* Comparison::AutoDeleteConfig::videoToDelete(const VideoMetadata* meta1, const VideoMetadata* meta2,
