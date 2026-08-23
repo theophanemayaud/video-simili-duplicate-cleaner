@@ -77,19 +77,32 @@ Video::ProcessingResult Video::process()
     result.success = false;
     result.video = this;
 
-    const auto err = this->internalProcess();
-    if (!err.isEmpty())
-        result.errorMsg = err;
+    if (this->_prefs.isVerbose())
+        Message::Get()->add(QString("[%1] STARTING %2").arg(QTime::currentTime().toString(), this->_filePathName));
+
+    const QString validationError = validateInput();
+    if (!validationError.isEmpty()) {
+        result.errorMsg = validationError;
+        return result;
+    }
+
+    Db cache(_prefs.cacheFilePathName());
+    ProcessingStepResult step = processMetadata(cache);
+    if (step.error.isEmpty())
+        step = processFrames(cache);
+
+    if (!step.error.isEmpty()) {
+        result.errorMsg = step.error;
+        if (step.cacheFailure && _prefs.useCacheOption() == Prefs::WITH_CACHE)
+            cache.writeFailure(_filePathName, step.error);
+    }
     else
         result.success = true;
     return result;
 }
 
-QString Video::internalProcess()
+QString Video::validateInput() const
 {
-    if (this->_prefs.isVerbose())
-        Message::Get()->add(QString("[%1] STARTING %2").arg(QTime::currentTime().toString(), this->_filePathName));
-
     if (!QFileInfo::exists(_filePathName))
         return "file doesn't seem to exist";
 #ifdef Q_OS_MACOS
@@ -101,65 +114,61 @@ QString Video::internalProcess()
             return "video seems to be a live photo, so deal with it as a photo.";
     }
 #endif
+    return "";
+}
 
-    // THEODEBUG : probably should re-implement things not to cache randomly !
-    Db cache(_prefs.cacheFilePathName()); // we open the db here, but we'll only store things if needed
-    if (this->_prefs.useCacheOption() != Prefs::NO_CACHE && cache.readMetadata(*this))
+Video::ProcessingStepResult Video::processMetadata(const Db& cache)
+{
+    if (_prefs.useCacheOption() != Prefs::NO_CACHE && cache.readMetadata(*this))
     { //check first if video properties are cached
         if (!cachedFailure.isEmpty())
-            return QString("skipped, cache indicated it had failed in a previous scan with: %1").arg(cachedFailure);
+            return {QString("skipped, cache indicated it had failed in a previous scan with: %1").arg(cachedFailure)};
         modified = QFileInfo(_filePathName).lastModified(); // Db doesn't cache the modified date
         if (QFileInfo(_filePathName).birthTime().isValid())
             _fileCreateDate = QFileInfo(_filePathName).birthTime();
     }
-    else if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
+    else if (_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
         if (QFileInfo(_filePathName).size() == 0)
         { // check this before, as it's faster, but getMetadata also does this but stores the info
-            return "file size = 0 ";
+            return {"file size = 0 "};
         }
-        auto err = getMetadata(_filePathName);
+        const auto err = getMetadata(_filePathName);
         if (!err.isEmpty()) { //as not cached, read metadata with ffmpeg
-            return QString("could not read metadata: %1").arg(err);
+            return {QString("could not read metadata: %1").arg(err)};
         }
+        if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
+            cache.writeMetadata(*this);
     }
     else {
-        return "video was not fully cached ";
+        return {"video was not fully cached "};
     }
-    if (this->_prefs.useCacheOption()
-        == Prefs::WITH_CACHE)       // TODO-REFACTOR could we move this into the case when we actually cache data ?
-        cache.writeMetadata(*this); // cache so next run will be faster
-    bool durationWasZero = false;   // we'll update cache again later if duration was 0
-    if (duration == 0)
-        durationWasZero = true;
 
     if (width == 0
         || height == 0) // || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
         const QString error = QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
-        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE)
-            cache.writeFailure(_filePathName, error);
-        return error;
+        return {error, true};
     }
+    return {};
+}
 
-    auto err = takeScreenCaptures(cache);
-    if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE && durationWasZero && duration != 0)
+Video::ProcessingStepResult Video::processFrames(const Db& cache)
+{
+    const bool durationWasZero = duration == 0;
+    const auto err = takeScreenCaptures(cache);
+    if (_prefs.useCacheOption() == Prefs::WITH_CACHE && durationWasZero && duration != 0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if (!err.isEmpty()) {
         // A capture error can be an unavailable source or temporary resource failure, so let the next scan retry it.
-        return QString("capture failed: %1").arg(err);
+        return {QString("capture failed: %1").arg(err)};
     }
-    else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
+    else if ((_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
              || // only cutEnds separates fingerprints for captures; other modes treat the collage as one fingerprint
-             (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
+             (_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
     { //every extracted frame have almost no features/fully flat (e.g. all black)
-        const QString error = "all extracted frames were blank";
-        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE)
-            cache.writeFailure(_filePathName, error);
-        return error;
+        return {"all extracted frames were blank", true};
     }
-    else {
-        return "";
-    }
+    return {};
 }
 
 const QString Video::getMetadata(const QString& filename)
