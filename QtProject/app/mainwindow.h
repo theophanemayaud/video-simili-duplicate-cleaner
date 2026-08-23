@@ -88,6 +88,7 @@ class MainWindow : public QMainWindow
     void on_browseApplePhotos_clicked();
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
+    void findVideos(QDir& dir);
     void startVideoDiscovery(const QStringList& directories);
     void videoDiscoveryFinished();
     void finishFindDuplicates();

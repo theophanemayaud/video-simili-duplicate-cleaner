@@ -270,6 +270,11 @@ void MainWindow::finishFindDuplicates()
     this->shouldScan = false; //set to false, as we are done scanning
 }
 
+void MainWindow::findVideos(QDir& dir)
+{
+    _everyVideo.unite(discoverVideos({dir.path()}, _extensionList).videos);
+}
+
 void MainWindow::startVideoDiscovery(const QStringList& directories)
 {
     ui->directoryBox->setDisabled(true);
