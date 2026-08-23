@@ -44,11 +44,16 @@ class Db
     //constructor creates a database file if there is none already
     void createTables() const;
 
-    //return true and updates member variables if the video metadata was cached
+    // True when this path has a metadata row. video.cachedFailure is filled from that same row: empty means the
+    // cached properties are usable, otherwise processing already failed and can be skipped without another query.
     bool readMetadata(Video& video) const;
 
-    //save video properties in cache
+    //save video properties in cache, including any cachedFailure from a previous processing attempt
     void writeMetadata(const Video& video) const;
+
+    // Marks an already cached video as failed, leaving its metadata untouched. Does nothing when the video has no
+    // metadata row yet, which only leaves the failure unrecorded so the next scan processes the video again.
+    void writeFailure(const QString& filePathname, const QString& failure) const;
 
     //returns screen capture if it was cached, else return null ptr
     QByteArray readCapture(const QString& filePathname, const int& percent) const;

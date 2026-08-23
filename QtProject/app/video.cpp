@@ -28,9 +28,8 @@ int normalizedRightAngle(int angle)
 // Both describe the same presentation transform, so they must never be applied cumulatively.
 int presentationRotation(const ffmpeg::AVStream* stream)
 {
-    const ffmpeg::AVPacketSideData* sideData =
-        ffmpeg::av_packet_side_data_get(stream->codecpar->coded_side_data, stream->codecpar->nb_coded_side_data,
-                                        ffmpeg::AV_PKT_DATA_DISPLAYMATRIX);
+    const ffmpeg::AVPacketSideData* sideData = ffmpeg::av_packet_side_data_get(
+        stream->codecpar->coded_side_data, stream->codecpar->nb_coded_side_data, ffmpeg::AV_PKT_DATA_DISPLAYMATRIX);
     if (sideData != nullptr && sideData->size >= 9 * sizeof(int32_t)) {
         const double angle = ffmpeg::av_display_rotation_get(reinterpret_cast<const int32_t*>(sideData->data));
         if (!std::isnan(angle))
@@ -78,7 +77,7 @@ Video::ProcessingResult Video::process()
     result.success = false;
     result.video = this;
 
-    auto err = this->internalProcess();
+    const auto err = this->internalProcess();
     if (!err.isEmpty())
         result.errorMsg = err;
     else
@@ -106,7 +105,9 @@ QString Video::internalProcess()
     // THEODEBUG : probably should re-implement things not to cache randomly !
     Db cache(_prefs.cacheFilePathName()); // we open the db here, but we'll only store things if needed
     if (this->_prefs.useCacheOption() != Prefs::NO_CACHE && cache.readMetadata(*this))
-    {                                                       //check first if video properties are cached
+    { //check first if video properties are cached
+        if (!cachedFailure.isEmpty())
+            return QString("skipped, cache indicated it had failed in a previous scan with: %1").arg(cachedFailure);
         modified = QFileInfo(_filePathName).lastModified(); // Db doesn't cache the modified date
         if (QFileInfo(_filePathName).birthTime().isValid())
             _fileCreateDate = QFileInfo(_filePathName).birthTime();
@@ -134,20 +135,27 @@ QString Video::internalProcess()
     if (width == 0
         || height == 0) // || duration == 0) // no duration check as we can infer duration when decoding frames,
     {
-        return QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
+        const QString error = QString("height (%1) or width (%2) = 0 ").arg(height).arg(width);
+        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE)
+            cache.writeFailure(_filePathName, error);
+        return error;
     }
 
     auto err = takeScreenCaptures(cache);
     if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE && durationWasZero && duration != 0)
         cache.writeMetadata(*this); // update cache as takeScreenCaptures can estimate duration, when it was 0
     if (!err.isEmpty()) {
+        // A capture error can be an unavailable source or temporary resource failure, so let the next scan retry it.
         return QString("capture failed: %1").arg(err);
     }
     else if ((this->_prefs.thumbnailsMode() != cutEnds && !fingerprint(0).usable)
              || // only cutEnds separates fingerprints for captures; other modes treat the collage as one fingerprint
              (this->_prefs.thumbnailsMode() == cutEnds && !fingerprint(0).usable && !fingerprint(1).usable))
-    { //all screen captures black
-        return "all screen captures black";
+    { //every extracted frame have almost no features/fully flat (e.g. all black)
+        const QString error = "all extracted frames were blank";
+        if (this->_prefs.useCacheOption() == Prefs::WITH_CACHE)
+            cache.writeFailure(_filePathName, error);
+        return error;
     }
     else {
         return "";
@@ -287,6 +295,8 @@ const QString Video::takeScreenCaptures(const Db& cache)
 {
     Thumbnail thumb(this->_prefs.thumbnailsMode());
     QImage thumbnail(thumb.cols() * width, thumb.rows() * height, QImage::Format_RGB888);
+    if (thumbnail.isNull())
+        return "could not allocate thumbnail image";
     const QVector<int> percentages = thumb.percentages(); // percent from 1 to 100
     std::vector<FrameAnalysis> frameAnalyses(static_cast<size_t>(percentages.count()));
     int capture = percentages.count();
@@ -300,6 +310,8 @@ const QString Video::takeScreenCaptures(const Db& cache)
         locker.unlock();
 
         ResolvedCapture resolved = resolveCaptureSlot(cache, percentages[capture], ofDuration);
+        if (!resolved.error.isEmpty())
+            return resolved.error;
 
         if (resolved.frame.isNull()) //taking screen capture may fail if video is broken
         {
@@ -379,11 +391,17 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
     if (resolved.analysis.informative || !decodeAllowed)
         return resolved;
 
-    const int substitutePercent = percentage < 50 ? percentage + _monochromeSubstituteOffset
-                                                   : percentage - _monochromeSubstituteOffset;
+    const int substitutePercent =
+        percentage < 50 ? percentage + _monochromeSubstituteOffset : percentage - _monochromeSubstituteOffset;
     QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
+    if (substitute.isNull()) {
+        resolved.error = QString("frame at %1% was blank and an attempted replacement at %2% could not be extracted")
+                             .arg(percentage)
+                             .arg(substitutePercent);
+        return resolved;
+    }
     const FrameAnalysis substituteAnalysis = VisualFingerprintBuilder::analyzeFrame(substitute);
-    if (!substitute.isNull() && substituteAnalysis.informative) {
+    if (substituteAnalysis.informative) {
         resolved.frame = std::move(substitute);
         resolved.analysis = substituteAnalysis;
         resolved.writeToCache = cacheEnabled;
@@ -420,7 +438,7 @@ void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const st
                 continue;
             }
             const QImage matchingImage = buildTransformedMatchingImage(thumbnail, thumb, width, height, firstCapture,
-                                                                        captureCount, columns, rows, crop, rotation);
+                                                                       captureCount, columns, rows, crop, rotation);
             fingerprints[segment][static_cast<int>(rotation)] =
                 VisualFingerprintBuilder::build(matchingImage, segmentUsable);
         }

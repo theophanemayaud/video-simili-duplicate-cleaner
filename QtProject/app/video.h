@@ -47,6 +47,10 @@ class Video : public QObject
     // filled at comparison time; TODO: consider scan-time extraction now that PhotoKit is fast
     QString nameInApplePhotos;
     int64_t size = 0; // in bytes
+    // Filled by readMetadata: empty when the cached metadata is usable, otherwise this path already failed processing
+    // and the scan can skip FFmpeg from that same query. Failures are recorded with Db::writeFailure. Thumbnail mode is
+    // ignored: retrying is emptying the cache, or scanning without it.
+    QString cachedFailure;
     QDateTime modified;
     QDateTime _fileCreateDate;
     int64_t duration = 0; // in miliseconds
@@ -80,6 +84,9 @@ class Video : public QObject
         QImage frame;
         FrameAnalysis analysis;
         bool writeToCache = false;
+        // Set when a decode failed while looking for a better frame: the slot holds a usable frame, but the failure
+        // is transient, so the caller must abort instead of judging the video on the frame it happens to have.
+        QString error;
     };
 
     const QString getMetadata(const QString& filename); // returns error message or empty string if success
