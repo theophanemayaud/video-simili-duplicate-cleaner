@@ -459,11 +459,17 @@ void Comparison::rebuildDuplicateSets()
     if (_automaticCleanupActive)
         return;
 
+    int previousReference = -1;
+    int previousSelectedVideo = -1;
     QVector<int> selectionAnchors;
     if (_selectedDuplicateSet >= 0 && _selectedDuplicateSet < _duplicateSets.size()) {
         const QVector<int>& selectedMembers = _duplicateSets[_selectedDuplicateSet].members;
-        if (_selectedSetMember >= 0 && _selectedSetMember < selectedMembers.size())
-            selectionAnchors.append(selectedMembers[_selectedSetMember]);
+        if (!selectedMembers.isEmpty())
+            previousReference = selectedMembers.first();
+        if (_selectedSetMember >= 0 && _selectedSetMember < selectedMembers.size()) {
+            previousSelectedVideo = selectedMembers[_selectedSetMember];
+            selectionAnchors.append(previousSelectedVideo);
+        }
         for (int member : selectedMembers)
             if (!selectionAnchors.contains(member))
                 selectionAnchors.append(member);
@@ -481,6 +487,30 @@ void Comparison::rebuildDuplicateSets()
             _eligibleSetMatches.append(pair);
     }
     _duplicateSets = DuplicateSetBuilder::build(_videos.size(), _eligibleSetMatches);
+
+    int selectedSet = -1;
+    int selectedMember = 1;
+    for (int anchor : selectionAnchors) {
+        for (int setIndex = 0; setIndex < _duplicateSets.size(); ++setIndex) {
+            if (_duplicateSets[setIndex].members.contains(anchor)) {
+                selectedSet = setIndex;
+                break;
+            }
+        }
+        if (selectedSet >= 0)
+            break;
+    }
+    if (selectedSet < 0 && !_duplicateSets.isEmpty())
+        selectedSet = 0;
+    if (selectedSet >= 0) {
+        QVector<int>& selectedMembers = _duplicateSets[selectedSet].members;
+        const int referenceIndex = selectedMembers.indexOf(previousReference);
+        if (referenceIndex > 0)
+            selectedMembers.prepend(selectedMembers.takeAt(referenceIndex));
+        const int selectedIndex = selectedMembers.indexOf(previousSelectedVideo);
+        if (selectedIndex > 0)
+            selectedMember = selectedIndex;
+    }
 
     const QSignalBlocker blockSetSelection(ui->duplicateSets);
     ui->duplicateSets->clear();
@@ -515,22 +545,6 @@ void Comparison::rebuildDuplicateSets()
             QStringLiteral("%1 sets · %2 videos — collecting results…").arg(_duplicateSets.size()).arg(videoCount));
     }
 
-    int selectedSet = -1;
-    int selectedMember = 1;
-    for (int anchor : selectionAnchors) {
-        for (int setIndex = 0; setIndex < _duplicateSets.size(); ++setIndex) {
-            const int member = _duplicateSets[setIndex].members.indexOf(anchor);
-            if (member >= 0) {
-                selectedSet = setIndex;
-                selectedMember = member;
-                break;
-            }
-        }
-        if (selectedSet >= 0)
-            break;
-    }
-    if (selectedSet < 0 && !_duplicateSets.isEmpty())
-        selectedSet = 0;
     _selectedDuplicateSet = -1;
     _selectedSetMember = -1;
     if (selectedSet >= 0)

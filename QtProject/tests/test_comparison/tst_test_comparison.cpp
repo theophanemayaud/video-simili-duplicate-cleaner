@@ -78,6 +78,7 @@ class test_comparison : public QObject
     void test_missingBridgeDisablesWholeSetAndQueuesOneRebuild();
     void test_discoveryProgressRemainsAuthoritativeOnAutoTab();
     void test_selectedMemberCanBecomeReferenceForDirectEdge();
+    void test_selectedReferencePersistsAcrossProgressRebuild();
     void test_autoCleanupOwnsPairIndexes();
     void test_cleanupRestartQueuesSetRebuildAfterGuard();
     void test_cleanupCompletionDoesNotNavigateForeground();
@@ -762,6 +763,59 @@ void test_comparison::test_selectedMemberCanBecomeReferenceForDirectEdge()
 
     comparison.clearDuplicateSets();
     QVERIFY(!useAsReference->isEnabled());
+}
+
+void test_comparison::test_selectedReferencePersistsAcrossProgressRebuild()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (const QString& name : {QStringLiteral("A.mp4"), QStringLiteral("B.mp4"), QStringLiteral("C.mp4")}) {
+        const QString path = fixture.filePath(name);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {3, MatchedVideoPair{1, 2, 3, 64, 1.0}},
+    };
+    comparison._backgroundDiscovery->_lastContiguousScannedPairPosition = 3;
+    comparison._backgroundDiscovery->_maxPosition = 3;
+    comparison._backgroundDiscovery->_started = true;
+    comparison.rebuildDuplicateSets();
+
+    auto* useAsReference = comparison.findChild<QPushButton*>(QStringLiteral("useSelectedAsReferenceButton"));
+    auto* members = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSetMembers"));
+    auto* ignore = comparison.findChild<QPushButton*>(QStringLiteral("ignoreDuplicatePairButton"));
+    QVERIFY(useAsReference);
+    QVERIFY(members);
+    QVERIFY(ignore);
+    useAsReference->click();
+    QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({1, 0, 2}));
+
+    comparison.updateDiscoveryProgress(3);
+
+    QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({1, 0, 2}));
+    QCOMPARE(comparison._leftVideo, 1);
+    QCOMPARE(comparison._rightVideo, 0);
+    members->setCurrentRow(2);
+    QCOMPARE(comparison._leftVideo, 1);
+    QCOMPARE(comparison._rightVideo, 2);
+    QCOMPARE(comparison.findChild<QLabel*>(QStringLiteral("duplicateSetEvidence"))->text(),
+             QStringLiteral("Direct discovered match"));
+    QVERIFY(ignore->isEnabled());
 }
 
 void test_comparison::test_autoCleanupOwnsPairIndexes()
