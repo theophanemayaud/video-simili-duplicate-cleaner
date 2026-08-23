@@ -28,9 +28,8 @@ int normalizedRightAngle(int angle)
 // Both describe the same presentation transform, so they must never be applied cumulatively.
 int presentationRotation(const ffmpeg::AVStream* stream)
 {
-    const ffmpeg::AVPacketSideData* sideData =
-        ffmpeg::av_packet_side_data_get(stream->codecpar->coded_side_data, stream->codecpar->nb_coded_side_data,
-                                        ffmpeg::AV_PKT_DATA_DISPLAYMATRIX);
+    const ffmpeg::AVPacketSideData* sideData = ffmpeg::av_packet_side_data_get(
+        stream->codecpar->coded_side_data, stream->codecpar->nb_coded_side_data, ffmpeg::AV_PKT_DATA_DISPLAYMATRIX);
     if (sideData != nullptr && sideData->size >= 9 * sizeof(int32_t)) {
         const double angle = ffmpeg::av_display_rotation_get(reinterpret_cast<const int32_t*>(sideData->data));
         if (!std::isnan(angle))
@@ -106,9 +105,9 @@ QString Video::internalProcess()
     // THEODEBUG : probably should re-implement things not to cache randomly !
     Db cache(_prefs.cacheFilePathName()); // we open the db here, but we'll only store things if needed
     if (this->_prefs.useCacheOption() != Prefs::NO_CACHE && cache.readMetadata(*this))
-    {                                                       //check first if video properties are cached
+    { //check first if video properties are cached
         if (!cachedFailure.isEmpty())
-            return QString("skipped, cache indicated it had failed in a previous scan: %1").arg(cachedFailure);
+            return QString("skipped, cache indicated it had failed in a previous scan with: %1").arg(cachedFailure);
         modified = QFileInfo(_filePathName).lastModified(); // Db doesn't cache the modified date
         if (QFileInfo(_filePathName).birthTime().isValid())
             _fileCreateDate = QFileInfo(_filePathName).birthTime();
@@ -394,8 +393,8 @@ Video::ResolvedCapture Video::resolveCaptureSlot(const Db& cache, const int perc
     if (resolved.analysis.informative || !decodeAllowed)
         return resolved;
 
-    const int substitutePercent = percentage < 50 ? percentage + _monochromeSubstituteOffset
-                                                   : percentage - _monochromeSubstituteOffset;
+    const int substitutePercent =
+        percentage < 50 ? percentage + _monochromeSubstituteOffset : percentage - _monochromeSubstituteOffset;
     QImage substitute = ffmpegLib_captureAt(substitutePercent, ofDuration);
     if (substitute.isNull()) {
         resolved.error = QString("could not capture substitute frame at %1%").arg(percentage);
@@ -439,7 +438,7 @@ void Video::processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const st
                 continue;
             }
             const QImage matchingImage = buildTransformedMatchingImage(thumbnail, thumb, width, height, firstCapture,
-                                                                        captureCount, columns, rows, crop, rotation);
+                                                                       captureCount, columns, rows, crop, rotation);
             fingerprints[segment][static_cast<int>(rotation)] =
                 VisualFingerprintBuilder::build(matchingImage, segmentUsable);
         }
