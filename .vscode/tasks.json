@@ -31,7 +31,7 @@
 		{
 			"id": "worktreeBranchName",
 			"type": "promptString",
-			"description": "Branch name for ~/Dev/video-simili-{branch}"
+			"description": "Branch name for ~/Dev/video-simili-worktree-{branch}"
 		}
 	]
 }

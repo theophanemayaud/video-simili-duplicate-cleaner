@@ -12,5 +12,5 @@ scripts/create-worktree.sh <branch-name>
 ```
 
 Do not call `git worktree add` directly. The script creates
-`~/Dev/video-simili-<branch-name>` (replacing `/` with `-` in the directory
-name) and runs `scripts/link-build-deps.sh` in the new worktree.
+`~/Dev/video-simili-worktree-<branch-name>` (replacing `/` with `-` in the
+directory name) and runs `scripts/link-build-deps.sh` in the new worktree.

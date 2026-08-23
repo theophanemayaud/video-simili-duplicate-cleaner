@@ -12,7 +12,7 @@ git check-ref-format --branch "$branch" >/dev/null
 
 repoRoot=$(git rev-parse --show-toplevel)
 worktreeName=$(printf '%s' "$branch" | tr '/' '-')
-worktreePath="$HOME/Dev/video-simili-$worktreeName"
+worktreePath="$HOME/Dev/video-simili-worktree-$worktreeName"
 
 if [ -e "$worktreePath" ]; then
 	echo "create-worktree: destination already exists: $worktreePath" >&2
