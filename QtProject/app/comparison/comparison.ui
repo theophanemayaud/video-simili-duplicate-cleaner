@@ -1357,9 +1357,6 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
            </property>
            <item>
             <widget class="QPushButton" name="prevVideo">
-             <property name="toolTip">
-              <string>Shortcut: Up arrow</string>
-             </property>
              <property name="text">
               <string>Prev</string>
              </property>
@@ -1415,9 +1412,6 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
-             <property name="toolTip">
-              <string>Shortcut: Left arrow</string>
-             </property>
              <property name="text">
               <string>Trash</string>
              </property>
@@ -1441,9 +1435,6 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
            </item>
            <item>
             <widget class="QPushButton" name="rightDelete">
-             <property name="toolTip">
-              <string>Shortcut: Right arrow</string>
-             </property>
              <property name="text">
               <string>Trash</string>
              </property>
@@ -1487,9 +1478,6 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
            </item>
            <item>
             <widget class="QPushButton" name="nextVideo">
-             <property name="toolTip">
-              <string>Shortcut: Down arrow</string>
-             </property>
              <property name="text">
               <string>Next</string>
              </property>

@@ -2,11 +2,9 @@
 
 #include <QAbstractSlider>
 #include <QElapsedTimer>
-#include <QHash>
 #include <QMimeData>
 #include <QProcess> // for opening a file in the platform file manager
 #include <QProgressDialog>
-#include <QScopedValueRollback>
 #include <QSet>
 #include <QSignalBlocker>
 #include <QSlider>
@@ -127,48 +125,6 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
     connect(importantFoldersShortcut, SIGNAL(activated()), this, SLOT(eraseImportantFolderItem()));
     QShortcut* lockedFoldersShortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->importantFoldersListWidget);
     connect(lockedFoldersShortcut, SIGNAL(activated()), this, SLOT(eraseLockedFolderItem()));
-
-    //delete right, left, and go right, left shortcuts
-    QShortcut* rightDelShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToNextChar), ui->tabManual);
-    connect(rightDelShortcut, &QShortcut::activated, this, [this]() {
-        // Arrow keys must remain safe, ordinary navigation while either of the
-        // new galleries has focus. Outside the galleries, preserve the existing
-        // review shortcuts.
-        if (ui->duplicateSetMembers->hasFocus()) {
-            const int lastMember = ui->duplicateSetMembers->count() - 1;
-            ui->duplicateSetMembers->setCurrentRow(qMin(ui->duplicateSetMembers->currentRow() + 1, lastMember));
-            return;
-        }
-        if (!ui->duplicateSets->hasFocus())
-            on_rightDelete_clicked();
-    });
-    QShortcut* leftDelShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousChar), ui->tabManual);
-    connect(leftDelShortcut, &QShortcut::activated, this, [this]() {
-        if (ui->duplicateSetMembers->hasFocus()) {
-            ui->duplicateSetMembers->setCurrentRow(qMax(ui->duplicateSetMembers->currentRow() - 1, 1));
-            return;
-        }
-        if (!ui->duplicateSets->hasFocus())
-            on_leftDelete_clicked();
-    });
-
-    QShortcut* downShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToNextLine), ui->tabManual);
-    connect(downShortcut, &QShortcut::activated, this, [this]() {
-        if (ui->duplicateSets->hasFocus()) {
-            const int lastSet = ui->duplicateSets->count() - 1;
-            ui->duplicateSets->setCurrentRow(qMin(ui->duplicateSets->currentRow() + 1, lastSet));
-            return;
-        }
-        on_nextVideo_clicked();
-    });
-    QShortcut* upShortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousLine), ui->tabManual);
-    connect(upShortcut, &QShortcut::activated, this, [this]() {
-        if (ui->duplicateSets->hasFocus()) {
-            ui->duplicateSets->setCurrentRow(qMax(ui->duplicateSets->currentRow() - 1, 0));
-            return;
-        }
-        on_prevVideo_clicked();
-    });
 
     // we only show gps info if at least one of the files has it
     ui->labelLeftGps->setVisible(false);
@@ -396,19 +352,9 @@ void Comparison::restartBackgroundDiscovery()
 
 void Comparison::finishAutomaticCleanupRefresh()
 {
-    // Cleanup has already visited every pair. Restart the asynchronous set
-    // discovery without asking foreground navigation to scan the same space or
-    // opening its end-of-results confirmation.
+    // Cleanup has already visited every pair. Restart discovery without asking
+    // foreground navigation to scan the same space again.
     restartBackgroundDiscovery();
-    queueDuplicateSetRebuildAfterAutomaticCleanup();
-}
-
-void Comparison::queueDuplicateSetRebuildAfterAutomaticCleanup()
-{
-    // start() emits its initial progress synchronously while automatic cleanup
-    // still owns the pair indexes. Rebuild once the entry point returns and its
-    // guard has released ownership, even if discovery has no later progress.
-    QTimer::singleShot(0, this, &Comparison::rebuildDuplicateSets);
 }
 
 void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
@@ -418,9 +364,10 @@ void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
     ui->progressBar->setToolTip(QStringLiteral("Background matching: %1% checked, %2 candidate pair(s) found")
                                     .arg(percent)
                                     .arg(_backgroundDiscovery->discoveredMatchCount()));
-    rebuildDuplicateSets();
-    // Set selection may display an early match and update the old foreground
-    // pair position. Discovery is authoritative while it runs on either tab.
+    // Partial components can merge as scanning advances. Publish only the final
+    // result so the family a user is reviewing never changes underneath them.
+    if (_backgroundDiscovery->isComplete())
+        rebuildDuplicateSets();
     ui->progressBar->setValue(progressBarValue(preScannedEnd));
 }
 
@@ -435,6 +382,8 @@ void Comparison::clearDuplicateSets()
     const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
     ui->duplicateSets->clear();
     ui->duplicateSetMembers->clear();
+    ui->duplicateSets->setEnabled(false);
+    ui->duplicateSetMembers->setEnabled(false);
     ui->duplicateSetsStatus->setText(QStringLiteral("Scanning duplicate sets…"));
     ui->duplicateSetEvidence->clear();
     _currentComparisonIsDirectMatch = false;
@@ -456,7 +405,7 @@ const MatchedVideoPair* Comparison::directEligiblePair(const DuplicateSet& set, 
 
 void Comparison::rebuildDuplicateSets()
 {
-    if (_automaticCleanupActive)
+    if (!_backgroundDiscovery->isComplete())
         return;
 
     int previousReference = -1;
@@ -470,9 +419,8 @@ void Comparison::rebuildDuplicateSets()
             previousSelectedVideo = selectedMembers[_selectedSetMember];
             selectionAnchors.append(previousSelectedVideo);
         }
-        for (int member : selectedMembers)
-            if (!selectionAnchors.contains(member))
-                selectionAnchors.append(member);
+        if (previousReference >= 0 && previousReference != previousSelectedVideo)
+            selectionAnchors.append(previousReference);
     }
     QSet<QString> ignoredPairKeys;
     const Db cache(_prefs.cacheFilePathName());
@@ -527,31 +475,22 @@ void Comparison::rebuildDuplicateSets()
                 .arg(setIndex + 1)
                 .arg(set.members.size())
                 .arg(readableFileSize(size)));
-        item->setData(Qt::UserRole, setIndex);
         ui->duplicateSets->addItem(item);
     }
 
-    if (_backgroundDiscovery->isComplete()) {
-        ui->duplicateSetsStatus->setText(
-            _duplicateSets.isEmpty()
-                ? QStringLiteral("No duplicate sets found.")
-                : QStringLiteral("%1 sets · %2 videos").arg(_duplicateSets.size()).arg(videoCount));
-    }
-    else if (_duplicateSets.isEmpty()) {
-        ui->duplicateSetsStatus->setText(QStringLiteral("Scanning duplicate sets…"));
-    }
-    else {
-        ui->duplicateSetsStatus->setText(
-            QStringLiteral("%1 sets · %2 videos — collecting results…").arg(_duplicateSets.size()).arg(videoCount));
-    }
+    ui->duplicateSetsStatus->setText(
+        _duplicateSets.isEmpty() ? QStringLiteral("No duplicate sets found.")
+                                 : QStringLiteral("%1 sets · %2 videos").arg(_duplicateSets.size()).arg(videoCount));
 
     _selectedDuplicateSet = -1;
     _selectedSetMember = -1;
+    ui->duplicateSets->setEnabled(!_duplicateSets.isEmpty());
     if (selectedSet >= 0)
         selectDuplicateSet(selectedSet, selectedMember);
     else {
         const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
         ui->duplicateSetMembers->clear();
+        ui->duplicateSetMembers->setEnabled(false);
         ui->duplicateSetEvidence->clear();
         _currentComparisonIsDirectMatch = false;
         if (ui->tabWidget->currentWidget() == ui->tabManual)
@@ -562,8 +501,6 @@ void Comparison::rebuildDuplicateSets()
 
 void Comparison::selectDuplicateSet(int row, int preferredMember)
 {
-    if (_automaticCleanupActive)
-        return;
     if (row < 0 || row >= _duplicateSets.size())
         return;
     _selectedDuplicateSet = row;
@@ -572,13 +509,13 @@ void Comparison::selectDuplicateSet(int row, int preferredMember)
     const QSignalBlocker blockMemberSelection(ui->duplicateSetMembers);
     ui->duplicateSets->setCurrentRow(row);
     ui->duplicateSetMembers->clear();
+    ui->duplicateSetMembers->setEnabled(true);
     for (int member = 0; member < set.members.size(); ++member) {
         const Video* video = _videos[set.members[member]];
         auto* item = new QListWidgetItem(
             QIcon(QPixmap::fromImage(QImage::fromData(video->thumbnail, "JPG"))),
             member == 0 ? QStringLiteral("Reference: %1").arg(QFileInfo(video->_filePathName).fileName())
                         : QFileInfo(video->_filePathName).fileName());
-        item->setData(Qt::UserRole, member);
         item->setTextAlignment(Qt::AlignHCenter);
         ui->duplicateSetMembers->addItem(item);
     }
@@ -587,8 +524,6 @@ void Comparison::selectDuplicateSet(int row, int preferredMember)
 
 void Comparison::showSetMember(int member)
 {
-    if (_automaticCleanupActive)
-        return;
     if (_selectedDuplicateSet < 0 || _selectedDuplicateSet >= _duplicateSets.size())
         return;
     const DuplicateSet& set = _duplicateSets[_selectedDuplicateSet];
@@ -618,8 +553,8 @@ void Comparison::showSetMember(int member)
         item->setFont(font);
     }
 
-    if (!duplicateSetStillDisplayable(set)) {
-        invalidateActiveDuplicateSet();
+    if (!duplicateSetMembersStillAvailable(set)) {
+        rebuildDuplicateSets();
         return;
     }
 
@@ -648,63 +583,13 @@ void Comparison::showSetMember(int member)
     }
 }
 
-bool Comparison::duplicateSetStillDisplayable(const DuplicateSet& set) const
+bool Comparison::duplicateSetMembersStillAvailable(const DuplicateSet& set) const
 {
-#ifdef VID_SIMILI_IN_TESTS
-    _lastDuplicateSetValidationEdgeCount = 0;
-#endif
-    QHash<int, int> localIndexByVideo;
-    for (int localIndex = 0; localIndex < set.members.size(); ++localIndex) {
-        const int member = set.members[localIndex];
+    for (const int member : set.members)
         if (member < 0 || member >= _videos.size() || !QFileInfo::exists(_videos[member]->_filePathName)
             || _videos[member]->trashed)
             return false;
-        localIndexByVideo.insert(member, localIndex);
-    }
-
-    const Db cache(_prefs.cacheFilePathName());
-    QVector<MatchedVideoPair> validLocalEdges;
-    validLocalEdges.reserve(set.edges.size());
-    for (const MatchedVideoPair& pair : set.edges) {
-#ifdef VID_SIMILI_IN_TESTS
-        ++_lastDuplicateSetValidationEdgeCount;
-#endif
-        if (!localIndexByVideo.contains(pair.left) || !localIndexByVideo.contains(pair.right))
-            return false;
-        const QString& leftPath = _videos[pair.left]->_filePathName;
-        const QString& rightPath = _videos[pair.right]->_filePathName;
-        if (!pairPassesNonCacheFilters(pair) || cache.isPairToIgnore(leftPath, rightPath))
-            return false;
-
-        MatchedVideoPair localPair = pair;
-        localPair.left = localIndexByVideo.value(pair.left);
-        localPair.right = localIndexByVideo.value(pair.right);
-        validLocalEdges.append(localPair);
-    }
-
-    const QVector<DuplicateSet> components = DuplicateSetBuilder::build(set.members.size(), validLocalEdges);
-    return components.size() == 1 && components.first().members.size() == set.members.size();
-}
-
-void Comparison::invalidateActiveDuplicateSet()
-{
-    _currentComparisonIsDirectMatch = false;
-    clearManualComparisonDisplay();
-    setManualComparisonActionsEnabled(false);
-    ui->duplicateSetEvidence->setText(
-        QStringLiteral("A duplicate-set member or match is no longer available — refreshing sets…"));
-    queueDuplicateSetRebuild();
-}
-
-void Comparison::queueDuplicateSetRebuild()
-{
-    if (_duplicateSetRebuildQueued)
-        return;
-    _duplicateSetRebuildQueued = true;
-    QTimer::singleShot(0, this, [this]() {
-        _duplicateSetRebuildQueued = false;
-        rebuildDuplicateSets();
-    });
+    return true;
 }
 
 void Comparison::on_duplicateSets_currentRowChanged(int row)
@@ -938,7 +823,6 @@ void Comparison::showVideo(const QString& side)
 
     auto* Image = this->findChild<ClickableLabel*>(side + QStringLiteral("Image"));
     refreshPreviewImage(Image, thisVideo);
-    queuePreviewRefresh();
 
 #ifdef Q_OS_MACOS
     if (_videos[thisVideo]->_filePathName.contains(".photoslibrary"))
@@ -1215,6 +1099,7 @@ void Comparison::highlightBetterProperties() const
 
 void Comparison::updateUI()
 {
+    queuePreviewRefresh();
     setManualComparisonActionsEnabled(true);
     if (ui->leftPathName->text() == ui->rightPathName->text()) //gray out move button if both videos in same folder
     {
@@ -1944,13 +1829,11 @@ void Comparison::clearLockedFolderList()
 // Compatible regardless of sort order since it's based on identical files and kinda random choice between the two anyway
 void Comparison::on_identicalFilesAutoTrash_clicked()
 {
-    const QScopedValueRollback automaticCleanupGuard(_automaticCleanupActive, true);
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
 
-    // Automatic cleanup owns the pair indexes while it runs. Stop discovery so
-    // a queued set selection cannot replace those indexes between loop steps.
+    // Stop discovery and clear the set UI so automatic cleanup alone owns the pair indexes.
     _backgroundDiscovery->stop();
     clearDuplicateSets();
 
@@ -2070,15 +1953,13 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
 // Compatible regardless of sort order since it specifically chooses by file size regardless of left/right.
 void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 {
-    const QScopedValueRollback automaticCleanupGuard(_automaticCleanupActive, true);
     int initialDeletedNumber = _videosDeleted;
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
     const bool keepBiggest = !ui->radioButton_onlySizeDiffers_keepSmallest->isChecked();
     const QString trashedSizeLabel = keepBiggest ? QStringLiteral("smaller") : QStringLiteral("bigger");
 
-    // Automatic cleanup owns the pair indexes while it runs. Stop discovery so
-    // a queued set selection cannot replace those indexes between loop steps.
+    // Stop discovery and clear the set UI so automatic cleanup alone owns the pair indexes.
     _backgroundDiscovery->stop();
     clearDuplicateSets();
 
@@ -2188,7 +2069,6 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
 // AUTO_DELETE_ONLY_TIMES_DIFF Compatible regardless of sort order since it keeps the earliest/latest one as selected by user
 void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
 {
-    const QScopedValueRollback automaticCleanupGuard(_automaticCleanupActive, true);
     // loop through all files
     // and maybe trash one each time depending on config
 
@@ -2196,8 +2076,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
     int64_t initialSpaceSaved = _spaceSaved;
     bool userWantsToStop = false;
 
-    // Automatic cleanup owns the pair indexes while it runs. Stop discovery so
-    // a queued set selection cannot replace those indexes between loop steps.
+    // Stop discovery and clear the set UI so automatic cleanup alone owns the pair indexes.
     _backgroundDiscovery->stop();
     clearDuplicateSets();
 
@@ -2471,13 +2350,13 @@ void Comparison::on_ignoreDuplicatePairButton_clicked()
 
 void Comparison::on_useSelectedAsReferenceButton_clicked()
 {
-    if (_automaticCleanupActive || _selectedDuplicateSet < 0 || _selectedDuplicateSet >= _duplicateSets.size())
+    if (_selectedDuplicateSet < 0 || _selectedDuplicateSet >= _duplicateSets.size())
         return;
     DuplicateSet& set = _duplicateSets[_selectedDuplicateSet];
     if (_selectedSetMember <= 0 || _selectedSetMember >= set.members.size())
         return;
-    if (!duplicateSetStillDisplayable(set)) {
-        invalidateActiveDuplicateSet();
+    if (!duplicateSetMembersStillAvailable(set)) {
+        rebuildDuplicateSets();
         return;
     }
 

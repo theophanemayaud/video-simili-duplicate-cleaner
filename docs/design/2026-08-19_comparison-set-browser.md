@@ -67,12 +67,12 @@ Sets are derived from the current scan and rebuilt when matching settings, sort 
 The Manual tab becomes a three-level review surface:
 
 1. A persistent **Duplicate sets** sidebar lists each connected component with a representative thumbnail, member count, and combined size.
-2. Selecting a set populates a compact **member gallery**. The first member in the current sort order is the stable reference, and selecting item 2 through N replaces the right-hand comparison video.
+2. Selecting a set populates a compact **member gallery**. The first member in the current sort order is the default reference, selecting item 2 through N replaces the right-hand comparison video, and the user can promote a selected member to become the reference.
 3. The existing side-by-side previews and metadata remain the detailed comparison surface. Previous and Next cycle through members of the selected set rather than through the global pair stream.
 
-The sidebar updates from the contiguous, completed prefix of background discovery. While scanning, its status states that results are still being collected. When discovery finishes, it shows the final set and video counts. A library with no matches gets an explicit empty state.
+While background discovery is running, the sidebar remains in a disabled **Scanning** state and progress continues to update. Sets appear only after discovery completes, so a family cannot merge, move, or change while the user is reviewing it. A completed library with no matches gets an explicit empty state.
 
-The reference is deliberately based on the user's current sort order rather than a hidden quality heuristic. Sorting by largest file, filename, or creation date therefore makes the corresponding first member the reference. This is predictable and leaves a future Auto Mark policy explicit.
+The default reference is deliberately based on the user's current sort order rather than a hidden quality heuristic. Sorting by largest file, filename, or creation date therefore chooses the initial reference predictably. A user may promote another member when they want to inspect direct evidence between two non-default members.
 
 When the reference and selected member were not a direct matching edge, the UI may still compare their previews and metadata because both belong to the same linked component. It must not describe that relationship as a direct match. Pair-specific Ignore is only meaningful for an actual discovered edge.
 
@@ -92,6 +92,7 @@ When the reference and selected member were not a direct matching edge, the UI m
 ```
 
 The application remains visually native to Qt/macOS. The first version should favor clear selection states, readable thumbnails, and compact labels over custom decoration.
+The set and member lists use their native arrow-key navigation. Destructive actions remain explicit buttons rather than overloading global arrow shortcuts.
 
 ## Architecture
 
@@ -105,16 +106,17 @@ A small UI-independent helper consumes the video count and discovered `MatchedVi
 
 ### Comparison dialog
 
-`Comparison` owns only derived set/member indexes for the current discovery generation. It rebuilds the sidebar from the safe match snapshot, preserves the selected set when possible, and sends an explicit selected pair to the existing display method. Existing file safety checks remain in `deleteVideo`; this PR does not create a second deletion path.
+`Comparison` owns only derived set/member indexes for the current discovery generation. Once discovery completes, it builds the sidebar from the safe match snapshot, preserves the selected set when explicit mutations rebuild the result, and sends an explicit selected pair to the existing display method. Existing file safety checks remain in `deleteVideo`; this PR does not create a second deletion path.
 
 ## Safety and edge cases
 
 - Deleted, missing, protected, or ignored videos/pairs must not silently bypass existing safeguards.
 - Ignoring an edge can split a connected component, so sets are rebuilt from eligible edges rather than mutated in place.
 - Deleting a video removes it from the next rebuild; a component that falls to one member disappears.
+- Before displaying or promoting a member, the dialog checks that every member in the active set still exists and is not trashed. If the set is stale, it rebuilds synchronously from the completed discovery result.
 - Sort and matching-setting changes restart discovery and clear derived set state before accepting new results.
 - A low-confidence bridge can create a larger transitive component. The UI calls these linked sets and retains pair-specific evidence instead of implying clique semantics.
-- Large libraries should not perform database reads for every paint. Set rebuilding is tied to discovery progress or explicit state changes, not widget rendering.
+- Large libraries should not perform database reads for every paint or member click. Set building occurs once when discovery completes and after explicit state changes.
 
 ## Validation
 
@@ -133,7 +135,7 @@ Manual acceptance:
 5. Ignore a direct pair and confirm the affected set updates or splits.
 6. Trash a member and confirm it disappears while the existing trash destination and confirmations are respected.
 7. Change sort order, threshold, and pHash/SSIM mode; stale sets must clear and the new scan must repopulate them.
-8. Verify useful loading and empty states while discovery is running and when no matches exist.
+8. Confirm the set browser stays in its loading state until discovery completes, then verify the final populated or empty state.
 
 ## Follow-up direction: staged cleanup
 

@@ -54,11 +54,6 @@ class Comparison : public QDialog
     int _selectedDuplicateSet = -1;
     int _selectedSetMember = -1;
     bool _currentComparisonIsDirectMatch = false;
-    bool _automaticCleanupActive = false;
-    bool _duplicateSetRebuildQueued = false;
-#ifdef VID_SIMILI_IN_TESTS
-    mutable int _lastDuplicateSetValidationEdgeCount = 0;
-#endif
     int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
@@ -92,15 +87,12 @@ class Comparison : public QDialog
     void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();
     void finishAutomaticCleanupRefresh();
-    void queueDuplicateSetRebuildAfterAutomaticCleanup();
     void updateDiscoveryProgress(int64_t preScannedEnd);
     void clearDuplicateSets();
     void rebuildDuplicateSets();
     void selectDuplicateSet(int row, int preferredMember = 1);
     void showSetMember(int member);
-    bool duplicateSetStillDisplayable(const DuplicateSet& set) const;
-    void invalidateActiveDuplicateSet();
-    void queueDuplicateSetRebuild();
+    bool duplicateSetMembersStillAvailable(const DuplicateSet& set) const;
     void refreshPreviewImage(QLabel* preview, int videoIndex) const;
     void refreshPreviewImages();
     void queuePreviewRefresh();
