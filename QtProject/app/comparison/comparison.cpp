@@ -1,13 +1,12 @@
 #include "comparison.h"
 
-#include <QAbstractSlider>
 #include <QElapsedTimer>
 #include <QMimeData>
 #include <QProcess> // for opening a file in the platform file manager
+#include <QProgressBar>
 #include <QProgressDialog>
 #include <QSet>
 #include <QSignalBlocker>
-#include <QSlider>
 #include <QTimer>
 
 #include "internal/backgroundmatchdiscovery.h"
@@ -66,12 +65,6 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
     connect(this, SIGNAL(switchComparisonMode(const int&)), _prefs._mainwPtr, SLOT(setComparisonMode(const int&)));
     connect(this, SIGNAL(adjustThresholdSlider(const int&)), _prefs._mainwPtr,
             SLOT(on_thresholdSlider_valueChanged(const int&)));
-    connect(ui->progressBar, &QSlider::valueChanged,
-            [this](int value) { ui->currentVideo->setText(QString::number(value)); });
-    // The pair-space slider is retained as a read-only progress indicator for
-    // automatic cleanup and background discovery. Manual review is set-driven;
-    // allowing seeks here would desynchronise the selected set and displayed pair.
-    ui->progressBar->setEnabled(false);
     connect(_backgroundDiscovery.get(), &BackgroundMatchDiscovery::preScannedEndChanged, this,
             &Comparison::updateDiscoveryProgress);
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, [this]() {
@@ -91,13 +84,9 @@ Comparison::Comparison(const QVector<Video*>& videosParam, Prefs& prefsParam, co
         ui->selectSSIM->setChecked(true);
     on_thresholdSlider_valueChanged(this->_prefs.matchSimilarityThreshold());
 
-    ui->progressBar->setMinimum(1);
-    ui->progressBar->setMaximum(progressBarValue(_maxComparisons));
-    ui->currentVideo->setNum(ui->progressBar->value());
+    ui->progressBar->setRange(0, qMax(1, progressBarValue(_maxComparisons)));
 
-    ui->trashedFiles->setVisible(false);                        // hide until at least one file is deleted
-    ui->totalVideos->setText(QString::number(_maxComparisons)); // all possible combinations
-
+    ui->trashedFiles->setVisible(false); // hide until at least one file is deleted
     // hide as not implemented yet
     // Auto trash based on folder settings
     ui->label_folderSettingsChoice->setVisible(false);
@@ -275,11 +264,6 @@ void Comparison::confirmToExit()
         QKeyEvent* closeEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
         QApplication::postEvent(this, closeEvent); //"pressing" ESC closes dialog
     }
-    else {
-        // A slider drag moves the handle before navigation confirms a pair.
-        // Restore the position of the last pair when closing is cancelled.
-        ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
-    }
 }
 
 void Comparison::on_prevVideo_clicked()
@@ -347,6 +331,7 @@ bool Comparison::bothVideosMatch(const Video* left, const Video* right)
 void Comparison::restartBackgroundDiscovery()
 {
     clearDuplicateSets();
+    setPairProgress(0, QStringLiteral("Pair scan"));
     _backgroundDiscovery->start(_videos, VideoPairMatcher::configFromPrefs(_prefs));
 }
 
@@ -359,7 +344,7 @@ void Comparison::finishAutomaticCleanupRefresh()
 
 void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
 {
-    ui->progressBar->setDiscoveredValue(progressBarValue(preScannedEnd));
+    setPairProgress(preScannedEnd, QStringLiteral("Pair scan"));
     const int percent = _maxComparisons > 0 ? int(100 * preScannedEnd / _maxComparisons) : 100;
     ui->progressBar->setToolTip(QStringLiteral("Background matching: %1% checked, %2 candidate pair(s) found")
                                     .arg(percent)
@@ -368,7 +353,6 @@ void Comparison::updateDiscoveryProgress(int64_t preScannedEnd)
     // result so the family a user is reviewing never changes underneath them.
     if (_backgroundDiscovery->isComplete())
         rebuildDuplicateSets();
-    ui->progressBar->setValue(progressBarValue(preScannedEnd));
 }
 
 void Comparison::clearDuplicateSets()
@@ -1116,8 +1100,6 @@ void Comparison::updateUI()
     if (this->_prefs.comparisonMode() == Prefs::_SSIM)
         ui->identicalBits->setText(QString("%1 SSIM index").arg(QString::number(qMin(_ssimSimilarity, 1.0), 'f', 3)));
     _zoomLevel = 0;
-    if (ui->tabWidget->currentWidget() != ui->tabManual)
-        ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
 }
 
 int64_t Comparison::comparisonsSoFar() const
@@ -1150,38 +1132,18 @@ int Comparison::progressBarValue(int64_t comparisons) const
     return int((double(INT_MAX) / _maxComparisons) * comparisons);
 }
 
-void Comparison::seekFromSliderPosition(int sliderValue)
+void Comparison::setPairProgress(int64_t comparisons, const QString& activity)
 {
-    // we want to resume from the theoretical pair at "position",
-    // video 1: compared to video 2, 3, 4, 5
-    // video 2: compared to video 3, 4, 5
-    // video 3: compared to video 4, 5
-    // video 4: compared to video 5
-    // Overal 5 videos means 5*(5-1)/2 = 5*4/2 = 10 possible pairs
+    const int64_t boundedComparisons = qBound<int64_t>(0, comparisons, _maxComparisons);
+    const bool isComplete = boundedComparisons == _maxComparisons;
+    const QString text = QStringLiteral("%1%2: %3 of %4 pair comparisons")
+                             .arg(activity, isComplete ? QStringLiteral(" complete") : QString())
+                             .arg(boundedComparisons)
+                             .arg(_maxComparisons);
 
-    // total comparisons n * (n-1) / 2
-    // remaining comparisons at vid a: a * (a-1) / 2, with other video being from 1 to total - a - 1
-    // want to find a such that x within the range of [a * (a-1) / 2 to (a+1) * (a+1-1) / 2 [
-    // can do with binary search
-    if (_prefs._numberOfVideos < 2 || _videos.size() < 2)
-        return;
-
-    // Convert slider value back to actual target if we had to scale down
-    int64_t target;
-    if (_maxComparisons <= INT_MAX)
-        target = sliderValue;
-    else // Reverse the scaling
-        target = (double(_maxComparisons) / INT_MAX) * sliderValue;
-
-    target = qBound<int64_t>(1, target, _maxComparisons);
-    _seekForwards = true;
-    if (!navigateForwardFrom(target - 1))
-        confirmToExit();
-}
-
-void Comparison::onProgressSliderReleased()
-{
-    seekFromSliderPosition(ui->progressBar->sliderPosition());
+    ui->progressBar->setValue(_maxComparisons == 0 ? ui->progressBar->maximum() : progressBarValue(boundedComparisons));
+    ui->progressBar->setFormat(text);
+    ui->progressBar->setToolTip(text);
 }
 
 void Comparison::openFileManager(const QString& filename)
@@ -1840,6 +1802,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
     _rightVideo = 0;
+    setPairProgress(0, QStringLiteral("Automatic cleanup"));
 
     ui->tabWidget->setCurrentIndex(
         0); // switch to manual tab so that user can see progress and details if confirmation is still on
@@ -1921,7 +1884,7 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                 }
             }
         }
-        ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
+        setPairProgress(comparisonsSoFar(), QStringLiteral("Automatic cleanup"));
         _rightVideo = _leftVideo + 1;
         if (userWantsToStop)
             break;
@@ -1966,6 +1929,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
     _rightVideo = 0;
+    setPairProgress(0, QStringLiteral("Automatic cleanup"));
 
     ui->tabWidget->setCurrentIndex(
         0); // switch to manual tab so that user can see progress and details if confirmation is on
@@ -1978,7 +1942,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                 && !(*left)->trashed // check trashed in case it is from Apple Photos
                 && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed)
             {
-                ui->progressBar->setValue(progressBarValue(comparisonsSoFar())); //update visible progress for user
+                setPairProgress(comparisonsSoFar(), QStringLiteral("Automatic cleanup"));
 
                 // Check if params are as required and perform deletion, then go to next
                 if (qAbs(_videos[_leftVideo]->duration - _videos[_rightVideo]->duration)
@@ -2041,7 +2005,7 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                     break;
             }
         }
-        ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
+        setPairProgress(comparisonsSoFar(), QStringLiteral("Automatic cleanup"));
         _rightVideo = _leftVideo + 1;
         if (userWantsToStop)
             break;
@@ -2083,6 +2047,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
     // Go over all videos from begin to end
     _leftVideo = 0; // reset to first video
     _rightVideo = 0;
+    setPairProgress(0, QStringLiteral("Automatic cleanup"));
 
     ui->tabWidget->setCurrentIndex(
         0); // switch to manual tab so that user can see progress and details if confirmation is on
@@ -2095,7 +2060,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
                 && !(*left)->trashed // check trashed in case it is from Apple Photos
                 && QFileInfo::exists((*right)->_filePathName) && !(*right)->trashed)
             {
-                ui->progressBar->setValue(progressBarValue(comparisonsSoFar())); //update visible progress for user
+                setPairProgress(comparisonsSoFar(), QStringLiteral("Automatic cleanup"));
                 QCoreApplication::processEvents();
 
                 // Check if params are as required or go to next
@@ -2159,7 +2124,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
                     break;
             }
         }
-        ui->progressBar->setValue(progressBarValue(comparisonsSoFar()));
+        setPairProgress(comparisonsSoFar(), QStringLiteral("Automatic cleanup"));
         _rightVideo = _leftVideo + 1;
         if (userWantsToStop)
             break;

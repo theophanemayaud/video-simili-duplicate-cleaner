@@ -124,8 +124,6 @@ set(PROJECT_SOURCES
     app/comparison/internal/backgroundmatchdiscovery.h
     app/comparison/internal/duplicatesetbuilder.cpp
     app/comparison/internal/duplicatesetbuilder.h
-    app/comparison/internal/discoveryprogressslider.cpp
-    app/comparison/internal/discoveryprogressslider.h
     app/comparison/internal/ssim.cpp
     app/comparison/internal/ssim.h
     app/comparison/internal/videopairmatcher.cpp

@@ -84,7 +84,6 @@ class Comparison : public QDialog
     void lookUpApplePhotosName(int videoIndex);
 #endif
 
-    void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();
     void finishAutomaticCleanupRefresh();
     void updateDiscoveryProgress(int64_t preScannedEnd);
@@ -165,7 +164,7 @@ class Comparison : public QDialog
     void updateUI();
     int64_t comparisonsSoFar() const;
     int progressBarValue(int64_t comparisons) const;
-    void onProgressSliderReleased();
+    void setPairProgress(int64_t comparisons, const QString& activity);
 
     void on_selectPhash_clicked(const bool& checked);
     void on_selectSSIM_clicked(const bool& checked);

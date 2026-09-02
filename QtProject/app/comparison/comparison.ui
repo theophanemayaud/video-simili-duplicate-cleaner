@@ -2367,39 +2367,21 @@ In each scenario where only one of the two files is either in a protected folder
       </widget>
      </item>
      <item>
-      <widget class="DiscoveryProgressSlider" name="progressBar">
-       <property name="minimum">
-        <number>1</number>
-       </property>
-       <property name="value">
-        <number>1</number>
-       </property>
-       <property name="maximum">
+      <widget class="QProgressBar" name="progressBar">
+        <property name="minimum">
+        <number>0</number>
+        </property>
+        <property name="value">
+        <number>0</number>
+        </property>
+        <property name="maximum">
         <number>100</number>
+        </property>
+       <property name="format">
+        <string>Pair scan: 0 of 0 pair comparisons</string>
        </property>
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="currentVideo">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label_9">
-       <property name="text">
-        <string>/</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="totalVideos">
-       <property name="text">
-        <string>totalVideos</string>
+       <property name="textVisible">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -2418,11 +2400,6 @@ In each scenario where only one of the two files is either in a protected folder
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>DiscoveryProgressSlider</class>
-   <extends>QSlider</extends>
-   <header>comparison/internal/discoveryprogressslider.h</header>
-  </customwidget>
   <customwidget>
    <class>ClickableLabel</class>
   </customwidget>

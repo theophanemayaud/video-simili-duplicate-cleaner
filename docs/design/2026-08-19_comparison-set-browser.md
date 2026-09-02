@@ -6,14 +6,14 @@ Proposed and implemented as a first manual-review slice in this pull request.
 
 ## Problem
 
-The comparison window currently exposes matches as a sequence of pairs. The user can move to the previous or next pair, or seek through the theoretical pair space with a slider. This works for two copies, but it makes a family of three or more related videos appear as repeated, disconnected decisions. It is difficult to answer basic questions such as:
+The comparison window previously exposed matches as a sequence of pairs. The user could move to the previous or next pair, or seek through the theoretical pair space with a slider. This works for two copies, but it makes a family of three or more related videos appear as repeated, disconnected decisions. It is difficult to answer basic questions such as:
 
 - How many duplicate families were found?
 - Which videos belong to the same family?
 - Have all members of a family been reviewed?
 - Which copy is the most useful reference to keep?
 
-The pair-space slider also represents comparisons performed rather than the user's review progress, so it is a poor primary navigation control.
+Pair-scan progress represents comparisons performed rather than the user's review progress, so it is a poor primary navigation control. It remains useful feedback while the asynchronous scan or automatic cleanup runs, but must be a progress bar, not a disabled-looking slider.
 
 ## PhotoSweeper research
 
@@ -70,7 +70,7 @@ The Manual tab becomes a three-level review surface:
 2. Selecting a set populates a compact **member gallery**. The first member in the current sort order is the default reference, selecting item 2 through N replaces the right-hand comparison video, and the user can promote a selected member to become the reference.
 3. The existing side-by-side previews and metadata remain the detailed comparison surface. Previous and Next cycle through members of the selected set rather than through the global pair stream.
 
-While background discovery is running, the sidebar remains in a disabled **Scanning** state and progress continues to update. Sets appear only after discovery completes, so a family cannot merge, move, or change while the user is reviewing it. A completed library with no matches gets an explicit empty state.
+While background discovery is running, the sidebar remains in a disabled **Scanning** state and a read-only progress bar shows the completed and total pair comparisons. It updates from the asynchronous discovery safe prefix and changes to **Pair scan complete** when finished. Automatic cleanup uses the same bar with an **Automatic cleanup** label. Sets appear only after discovery completes, so a family cannot merge, move, or change while the user is reviewing it. A completed library with no matches gets an explicit empty state.
 
 The default reference is deliberately based on the user's current sort order rather than a hidden quality heuristic. Sorting by largest file, filename, or creation date therefore chooses the initial reference predictably. A user may promote another member when they want to inspect direct evidence between two non-default members.
 
@@ -135,7 +135,7 @@ Manual acceptance:
 5. Ignore a direct pair and confirm the affected set updates or splits.
 6. Trash a member and confirm it disappears while the existing trash destination and confirmations are respected.
 7. Change sort order, threshold, and pHash/SSIM mode; stale sets must clear and the new scan must repopulate them.
-8. Confirm the set browser stays in its loading state until discovery completes, then verify the final populated or empty state.
+8. Confirm the set browser stays in its loading state until discovery completes, the progress bar counts pair comparisons and reads **Pair scan complete**, then verify the final populated or empty state.
 
 ## Follow-up direction: staged cleanup
 

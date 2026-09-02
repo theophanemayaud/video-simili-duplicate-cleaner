@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QListWidget>
 #include <QPixmap>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QTabWidget>
 #include <QTemporaryDir>
@@ -19,7 +20,6 @@
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
 #include "../../app/comparison/internal/backgroundmatchdiscovery.h"
-#include "../../app/comparison/internal/discoveryprogressslider.h"
 #include "../../app/comparison/internal/duplicatesetbuilder.h"
 #include "../../app/comparison/internal/ssim.h"
 #include "../../app/comparison/internal/videopairmatcher.h"
@@ -709,7 +709,7 @@ void test_comparison::test_discoveryPublishesSetsOnlyWhenComplete()
 
     auto* sets = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"));
     auto* status = comparison.findChild<QLabel*>(QStringLiteral("duplicateSetsStatus"));
-    auto* progress = comparison.findChild<DiscoveryProgressSlider*>(QStringLiteral("progressBar"));
+    auto* progress = comparison.findChild<QProgressBar*>(QStringLiteral("progressBar"));
     QVERIFY(sets);
     QVERIFY(status);
     QVERIFY(progress);
@@ -719,6 +719,7 @@ void test_comparison::test_discoveryPublishesSetsOnlyWhenComplete()
     QCOMPARE(comparison._leftVideo, 0);
     QCOMPARE(comparison._rightVideo, 0);
     QCOMPARE(progress->value(), comparison.progressBarValue(1));
+    QCOMPARE(progress->format(), QStringLiteral("Pair scan: 1 of 3 pair comparisons"));
 
     comparison._backgroundDiscovery->_lastContiguousScannedPairPosition = 3;
     comparison.updateDiscoveryProgress(3);
@@ -727,8 +728,8 @@ void test_comparison::test_discoveryPublishesSetsOnlyWhenComplete()
     QVERIFY(sets->isEnabled());
     QCOMPARE(comparison._leftVideo, 0);
     QCOMPARE(comparison._rightVideo, 1);
-    QCOMPARE(progress->discoveredValue(), comparison.progressBarValue(3));
     QCOMPARE(progress->value(), comparison.progressBarValue(3));
+    QCOMPARE(progress->format(), QStringLiteral("Pair scan complete: 3 of 3 pair comparisons"));
 }
 
 void test_comparison::test_selectedMemberCanBecomeReferenceForDirectEdge()
@@ -924,6 +925,9 @@ void test_comparison::test_cleanupCompletionDoesNotNavigateForeground()
         QVERIFY(comparison._backgroundDiscovery->hasStarted());
         QVERIFY(comparison._backgroundDiscovery->isComplete());
         QCOMPARE(tabs->currentIndex(), 1);
+        auto* progress = comparison.findChild<QProgressBar*>(QStringLiteral("progressBar"));
+        QVERIFY(progress);
+        QCOMPARE(progress->format(), QStringLiteral("Pair scan complete: 0 of 0 pair comparisons"));
         QCOMPARE(comparison.findChild<QLabel*>(QStringLiteral("duplicateSetsStatus"))->text(),
                  QStringLiteral("No duplicate sets found."));
         QVERIFY(!comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"))->isEnabled());

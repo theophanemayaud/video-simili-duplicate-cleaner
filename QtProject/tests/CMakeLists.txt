@@ -20,7 +20,6 @@ set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/duplicatesetbuilder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/db.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/comparison.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/discoveryprogressslider.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/ssim.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/mainwindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/prefs.cpp
