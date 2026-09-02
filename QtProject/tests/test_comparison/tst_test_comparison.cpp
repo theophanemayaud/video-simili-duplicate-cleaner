@@ -1,16 +1,30 @@
+#include <QBuffer>
+#include <QCheckBox>
 #include <QCoreApplication>
+#include <QFile>
+#include <QImage>
+#include <QListWidget>
+#include <QPixmap>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QTabWidget>
+#include <QTemporaryDir>
+#include <QTimer>
 #include <QtTest>
 
 #include <cmath>
 #include <memory>
 #include <utility>
+#include <vector>
 
 // add necessary includes here
 #include "../../app/comparison/comparison.h"
 #include "../../app/comparison/internal/backgroundmatchdiscovery.h"
+#include "../../app/comparison/internal/duplicatesetbuilder.h"
 #include "../../app/comparison/internal/ssim.h"
 #include "../../app/comparison/internal/videopairmatcher.h"
 #include "../../app/comparison/internal/videopairspace.h"
+#include "../../app/db.h"
 #include "../../app/videometadata.h"
 
 class CacheModeRestore
@@ -22,6 +36,17 @@ class CacheModeRestore
   private:
     Prefs& _prefs;
     const Prefs::USE_CACHE_OPTION _originalMode;
+};
+
+class CachePathRestore
+{
+  public:
+    explicit CachePathRestore(Prefs& prefs) : _prefs(prefs), _originalPath(prefs.cacheFilePathName()) {}
+    ~CachePathRestore() { _prefs.cacheFilePathName(_originalPath); }
+
+  private:
+    Prefs& _prefs;
+    const QString _originalPath;
 };
 
 class test_comparison : public QObject
@@ -46,9 +71,24 @@ class test_comparison : public QObject
     void test_ssimUsesEachBlockForMeans();
     void test_rotatedMatcherRequiresSsimSafeguard();
     void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
+    void test_manualSetBrowserGeometryAtMinimumSize();
+    void test_ignoredPairsLoadNormalized();
+    void test_rebuildDuplicateSetsExcludesIgnoredEdge();
+    void test_missingSetMemberRebuildsSynchronously();
+    void test_missingBridgeRebuildsSynchronously();
+    void test_discoveryPublishesSetsOnlyWhenComplete();
+    void test_selectedMemberCanBecomeReferenceForDirectEdge();
+    void test_selectedReferencePersistsAcrossExplicitRebuild();
+    void test_activeSetRemainsActionableWhenAnotherSetIsStale();
+    void test_stoppedDiscoveryCannotReplaceCleanupPairIndexes();
+    void test_cleanupCompletionDoesNotNavigateForeground();
+    void test_rebuildKeepsActiveSetWhenSelectedMemberDisappears();
+    void test_duplicateSetBuilderConnectedComponents();
+    void test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixCompletes();
     void test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix();
 
   private:
+    void markDiscoveryComplete(Comparison& comparison, int64_t maxPosition);
 #ifdef Q_OS_MACOS
     std::unique_ptr<Comparison> makeApplePhotosComparison(const QVector<Video*>& videos, Prefs& prefs,
                                                           std::function<QString(const QString&)> lookup);
@@ -62,6 +102,13 @@ test_comparison::~test_comparison() {}
 void test_comparison::initTestCase() {}
 
 void test_comparison::cleanupTestCase() {}
+
+void test_comparison::markDiscoveryComplete(Comparison& comparison, int64_t maxPosition)
+{
+    comparison._backgroundDiscovery->_maxPosition = maxPosition;
+    comparison._backgroundDiscovery->_lastContiguousScannedPairPosition = maxPosition;
+    comparison._backgroundDiscovery->_started = true;
+}
 
 #ifdef Q_OS_MACOS
 std::unique_ptr<Comparison> test_comparison::makeApplePhotosComparison(const QVector<Video*>& videos, Prefs& prefs,
@@ -357,6 +404,649 @@ void test_comparison::test_rotatedMatcherAppliesDurationModifierToSsimThreshold(
     QVERIFY(!VideoPairMatcher::match(left, right, config).matches);
 }
 
+void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
+{
+    Prefs prefs;
+    prefs._numberOfVideos = 3;
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    const QString referencePath = fixture.filePath(QStringLiteral("A-reference.mp4"));
+    const QString selectedPath = fixture.filePath(QStringLiteral("A-copy-3.mp4"));
+    const QString otherPath = fixture.filePath(QStringLiteral("A-copy-2.mp4"));
+    for (const QString& path : {referencePath, selectedPath, otherPath}) {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+    }
+    Video reference(prefs, referencePath);
+    Video selected(prefs, selectedPath);
+    Video other(prefs, otherPath);
+    reference.size = 30 * 1024;
+    selected.size = 20 * 1024;
+    other.size = 10 * 1024;
+
+    const QDateTime timestamp(QDate(2026, 8, 23), QTime(10, 41, 38));
+    for (Video* video : QVector<Video*>{&reference, &selected, &other}) {
+        video->duration = 10 * 1000;
+        video->width = 40;
+        video->height = 160;
+        video->framerate = 10;
+        video->bitrate = 8;
+        video->codec = QStringLiteral("h264");
+        video->modified = video->_fileCreateDate = timestamp;
+        video->meta.additionalMetadata = {
+            {QStringLiteral("compatible_brands"), QStringLiteral("isomiso2avc1mp41")},
+            {QStringLiteral("encoder"), QStringLiteral("Lavf62.3.100")},
+            {QStringLiteral("major_brand"), QStringLiteral("isom")},
+            {QStringLiteral("minor_version"), QStringLiteral("512")},
+        };
+    }
+
+    QImage thumbnailPreview(448, 336, QImage::Format_RGB32);
+    thumbnailPreview.fill(Qt::blue);
+    QByteArray thumbnail;
+    QBuffer thumbnailBuffer(&thumbnail);
+    thumbnailBuffer.open(QIODevice::WriteOnly);
+    QVERIFY(thumbnailPreview.save(&thumbnailBuffer, "JPG"));
+    reference.thumbnail = selected.thumbnail = other.thumbnail = thumbnail;
+
+    Comparison comparison({&reference, &selected, &other}, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = {&reference, &selected, &other};
+    comparison.resize(1120, 720);
+    comparison.show();
+    QCoreApplication::processEvents();
+
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {2, MatchedVideoPair{0, 2, 2, 64, 1.0}},
+    };
+    markDiscoveryComplete(comparison, 2);
+    comparison.rebuildDuplicateSets();
+    QCoreApplication::processEvents();
+
+    auto* sets = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"));
+    auto* leftImage = comparison.findChild<ClickableLabel*>(QStringLiteral("leftImage"));
+    auto* rightImage = comparison.findChild<ClickableLabel*>(QStringLiteral("rightImage"));
+    auto* leftFileName = comparison.findChild<ClickableLabel*>(QStringLiteral("leftFileName"));
+    auto* rightFileName = comparison.findChild<ClickableLabel*>(QStringLiteral("rightFileName"));
+    auto* leftPaneTitle = comparison.findChild<QLabel*>(QStringLiteral("leftPaneTitle"));
+    auto* rightPaneTitle = comparison.findChild<QLabel*>(QStringLiteral("rightPaneTitle"));
+    auto* membersTitle = comparison.findChild<QWidget*>(QStringLiteral("duplicateSetMembersTitle"));
+    auto* useAsReference = comparison.findChild<QPushButton*>(QStringLiteral("useSelectedAsReferenceButton"));
+    auto* previous = comparison.findChild<QPushButton*>(QStringLiteral("prevVideo"));
+    auto* leftDelete = comparison.findChild<QPushButton*>(QStringLiteral("leftDelete"));
+    auto* rightDelete = comparison.findChild<QPushButton*>(QStringLiteral("rightDelete"));
+    auto* next = comparison.findChild<QPushButton*>(QStringLiteral("nextVideo"));
+
+    QVERIFY(sets);
+    QVERIFY(leftImage);
+    QVERIFY(rightImage);
+    QVERIFY(leftFileName);
+    QVERIFY(rightFileName);
+    QVERIFY(leftPaneTitle);
+    QVERIFY(rightPaneTitle);
+    QVERIFY(membersTitle);
+    QVERIFY(useAsReference);
+    QVERIFY(previous);
+    QVERIFY(leftDelete);
+    QVERIFY(rightDelete);
+    QVERIFY(next);
+    QCOMPARE(comparison.minimumHeight(), 720);
+    QCOMPARE(comparison.height(), 720);
+    QCOMPARE(leftPaneTitle->text(), QStringLiteral("Reference"));
+    QCOMPARE(rightPaneTitle->text(), QStringLiteral("Selected member"));
+    QVERIFY(useAsReference->isEnabled());
+    QVERIFY(previous->toolTip().isEmpty());
+    QVERIFY(leftDelete->toolTip().isEmpty());
+    QVERIFY(rightDelete->toolTip().isEmpty());
+    QVERIFY(next->toolTip().isEmpty());
+
+    QVERIFY2(leftImage->mapTo(&comparison, QPoint(0, leftImage->height())).y()
+                 <= leftFileName->mapTo(&comparison, QPoint()).y(),
+             "The reference preview must end before its file-name row starts.");
+    QVERIFY2(rightImage->mapTo(&comparison, QPoint(0, rightImage->height())).y()
+                 <= rightFileName->mapTo(&comparison, QPoint()).y(),
+             "The selected-member preview must end before its file-name row starts.");
+
+    const auto previewsFitLabels = [leftImage, rightImage]() {
+        return leftImage->pixmap().width() <= leftImage->contentsRect().width()
+               && leftImage->pixmap().height() <= leftImage->contentsRect().height()
+               && rightImage->pixmap().width() <= rightImage->contentsRect().width()
+               && rightImage->pixmap().height() <= rightImage->contentsRect().height();
+    };
+    QVERIFY2(previewsFitLabels(), "Displayed preview pixmaps must fit their labels at minimum size.");
+
+    auto* members = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSetMembers"));
+    QVERIFY(members);
+    const QSize sourceThumbnailSize(448, 336);
+    QCOMPARE(sets->item(0)->icon().availableSizes(),
+             QList<QSize>{sourceThumbnailSize.scaled(sets->iconSize(), Qt::KeepAspectRatio)});
+    QCOMPARE(members->item(0)->icon().availableSizes(),
+             QList<QSize>{sourceThumbnailSize.scaled(members->iconSize(), Qt::KeepAspectRatio)});
+    QCOMPARE(members->item(0)->text(), QStringLiteral("Reference: A-reference.mp4"));
+    QCOMPARE(members->item(1)->text(), QStringLiteral("Selected: A-copy-3.mp4"));
+    QVERIFY(!members->item(0)->text().contains('\n'));
+    QVERIFY(!members->item(1)->text().contains('\n'));
+    const QRect referenceCard = members->visualItemRect(members->item(0));
+    const QRect selectedCard = members->visualItemRect(members->item(1));
+    QVERIFY2(referenceCard.right() < selectedCard.left(), "Member cards must not overlap horizontally.");
+    const auto left = [&comparison](QWidget* widget) { return widget->mapTo(&comparison, QPoint()).x(); };
+    const auto right = [&left](QWidget* widget) { return left(widget) + widget->width(); };
+    const auto topAtMinimum = [&comparison](QWidget* widget) { return widget->mapTo(&comparison, QPoint()).y(); };
+    const auto bottomAtMinimum = [&topAtMinimum](QWidget* widget) { return topAtMinimum(widget) + widget->height(); };
+    QVERIFY2(right(membersTitle) <= left(useAsReference), "The reference control must not overlap the Members title.");
+    QVERIFY2(bottomAtMinimum(useAsReference) <= topAtMinimum(members),
+             "The reference control must stay above the member cards at minimum size.");
+
+    comparison.resize(1228, 768);
+    QCoreApplication::processEvents();
+    QVERIFY2(previewsFitLabels(), "Displayed preview pixmaps must fit their labels after resizing.");
+
+    auto* metadata = comparison.findChild<QWidget*>(QStringLiteral("textEdit_leftMetadata"));
+    auto* evidence = comparison.findChild<QWidget*>(QStringLiteral("duplicateSetEvidence"));
+    auto* swap = comparison.findChild<QWidget*>(QStringLiteral("swapFilenames"));
+    auto* manualTab = comparison.findChild<QWidget*>(QStringLiteral("tabManual"));
+    const auto top = [&comparison](QWidget* widget) { return widget->mapTo(&comparison, QPoint()).y(); };
+    const auto bottom = [&top](QWidget* widget) { return top(widget) + widget->height(); };
+    QVERIFY2(bottom(metadata) <= top(membersTitle), "Metadata must not overlap the member controls.");
+    QVERIFY2(bottom(members) <= top(evidence), "Member cards must not overlap their evidence label.");
+    QVERIFY2(bottom(evidence) <= top(previous), "Evidence must not overlap the review actions.");
+    QVERIFY2(bottom(swap) < bottom(manualTab), "Review actions must remain inside the manual tab.");
+}
+
+void test_comparison::test_ignoredPairsLoadNormalized()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    Db cache(prefs.cacheFilePathName());
+    cache.writePairToIgnore(QStringLiteral("z-video.mp4"), QStringLiteral("a-video.mp4"));
+    cache.writePairToIgnore(QStringLiteral("b-video.mp4"), QStringLiteral("c-video.mp4"));
+    const QVector<QPair<QString, QString>> ignored = cache.ignoredPairs();
+
+    QCOMPARE(ignored.size(), 2);
+    QVERIFY(ignored.contains({QStringLiteral("a-video.mp4"), QStringLiteral("z-video.mp4")}));
+    QVERIFY(ignored.contains({QStringLiteral("b-video.mp4"), QStringLiteral("c-video.mp4")}));
+}
+
+void test_comparison::test_rebuildDuplicateSetsExcludesIgnoredEdge()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (const QString& name : {QStringLiteral("first.mp4"), QStringLiteral("second.mp4"), QStringLiteral("third.mp4")})
+    {
+        const QString path = fixture.filePath(name);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+    Db(prefs.cacheFilePathName()).writePairToIgnore(videos[0]->_filePathName, videos[1]->_filePathName);
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {2, MatchedVideoPair{1, 2, 2, 64, 1.0}},
+    };
+    markDiscoveryComplete(comparison, 2);
+
+    comparison.rebuildDuplicateSets();
+
+    QCOMPARE(comparison._duplicateSets.size(), 1);
+    QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({1, 2}));
+    QCOMPARE(comparison._duplicateSets.first().edges.size(), 1);
+    QCOMPARE(comparison._duplicateSets.first().edges.first().left, 1);
+    QCOMPARE(comparison._duplicateSets.first().edges.first().right, 2);
+}
+
+void test_comparison::test_missingSetMemberRebuildsSynchronously()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    const QString referencePath = fixture.filePath(QStringLiteral("reference.mp4"));
+    const QString candidatePath = fixture.filePath(QStringLiteral("candidate.mp4"));
+    for (const QString& path : {referencePath, candidatePath}) {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+    }
+
+    Prefs prefs;
+    prefs._numberOfVideos = 2;
+    Video reference(prefs, referencePath);
+    Video candidate(prefs, candidatePath);
+    Comparison comparison({&reference, &candidate}, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = {&reference, &candidate};
+    comparison._backgroundDiscovery->_matches = {{1, MatchedVideoPair{0, 1, 1, 64, 1.0}}};
+    markDiscoveryComplete(comparison, 1);
+    comparison.rebuildDuplicateSets();
+    QVERIFY(comparison.findChild<QWidget*>(QStringLiteral("leftDelete"))->isEnabled());
+
+    QVERIFY(QFile::remove(candidatePath));
+    comparison.showSetMember(1);
+    QVERIFY(!comparison.findChild<QWidget*>(QStringLiteral("leftDelete"))->isEnabled());
+    QVERIFY(!comparison.findChild<QWidget*>(QStringLiteral("rightDelete"))->isEnabled());
+    QVERIFY(comparison._duplicateSets.isEmpty());
+    QVERIFY(!comparison.hasActiveManualComparison());
+}
+
+void test_comparison::test_missingBridgeRebuildsSynchronously()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (const QString& name : {QStringLiteral("A.mp4"), QStringLiteral("B.mp4"), QStringLiteral("C.mp4")}) {
+        const QString path = fixture.filePath(name);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {2, MatchedVideoPair{1, 2, 2, 64, 1.0}},
+    };
+    markDiscoveryComplete(comparison, 2);
+    comparison.rebuildDuplicateSets();
+    QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({0, 1, 2}));
+    QVERIFY(comparison.findChild<QWidget*>(QStringLiteral("leftDelete"))->isEnabled());
+
+    QVERIFY(QFile::remove(videos[1]->_filePathName));
+    comparison.showSetMember(2);
+    comparison.showSetMember(2);
+
+    QVERIFY(!comparison.findChild<QWidget*>(QStringLiteral("leftDelete"))->isEnabled());
+    QVERIFY(!comparison.findChild<QWidget*>(QStringLiteral("rightDelete"))->isEnabled());
+    QVERIFY(!comparison.findChild<QWidget*>(QStringLiteral("ignoreDuplicatePairButton"))->isEnabled());
+    QVERIFY(!comparison.findChild<QWidget*>(QStringLiteral("useSelectedAsReferenceButton"))->isEnabled());
+    QVERIFY(comparison._duplicateSets.isEmpty());
+    QVERIFY(!comparison.hasActiveManualComparison());
+}
+
+void test_comparison::test_discoveryPublishesSetsOnlyWhenComplete()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (int index = 0; index < 3; ++index) {
+        const QString path = fixture.filePath(QStringLiteral("video-%1.mp4").arg(index));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison.findChild<QTabWidget*>(QStringLiteral("tabWidget"))->setCurrentIndex(1);
+    comparison._backgroundDiscovery->_matches = {{1, MatchedVideoPair{0, 1, 1, 64, 1.0}}};
+    comparison._backgroundDiscovery->_lastContiguousScannedPairPosition = 1;
+    comparison._backgroundDiscovery->_maxPosition = 3;
+    comparison._backgroundDiscovery->_started = true;
+
+    comparison.updateDiscoveryProgress(1);
+
+    auto* sets = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"));
+    auto* status = comparison.findChild<QLabel*>(QStringLiteral("duplicateSetsStatus"));
+    auto* progress = comparison.findChild<QProgressBar*>(QStringLiteral("progressBar"));
+    QVERIFY(sets);
+    QVERIFY(status);
+    QVERIFY(progress);
+    QVERIFY(comparison._duplicateSets.isEmpty());
+    QVERIFY(!sets->isEnabled());
+    QCOMPARE(status->text(), QStringLiteral("Scanning duplicate sets…"));
+    QCOMPARE(comparison._leftVideo, 0);
+    QCOMPARE(comparison._rightVideo, 0);
+    QCOMPARE(progress->value(), comparison.progressBarValue(1));
+    QCOMPARE(progress->format(), QStringLiteral("Pair scan: 1 of 3 pair comparisons"));
+
+    comparison._backgroundDiscovery->_lastContiguousScannedPairPosition = 3;
+    comparison.updateDiscoveryProgress(3);
+
+    QCOMPARE(comparison._duplicateSets.size(), 1);
+    QVERIFY(sets->isEnabled());
+    QCOMPARE(comparison._leftVideo, 0);
+    QCOMPARE(comparison._rightVideo, 1);
+    QCOMPARE(progress->value(), comparison.progressBarValue(3));
+    QCOMPARE(progress->format(), QStringLiteral("Pair scan complete: 3 of 3 pair comparisons"));
+}
+
+void test_comparison::test_selectedMemberCanBecomeReferenceForDirectEdge()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (const QString& name : {QStringLiteral("A.mp4"), QStringLiteral("B.mp4"), QStringLiteral("C.mp4")}) {
+        const QString path = fixture.filePath(name);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    auto* useAsReference = comparison.findChild<QPushButton*>(QStringLiteral("useSelectedAsReferenceButton"));
+    auto* members = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSetMembers"));
+    auto* ignore = comparison.findChild<QPushButton*>(QStringLiteral("ignoreDuplicatePairButton"));
+    QVERIFY(useAsReference);
+    QVERIFY(members);
+    QVERIFY(ignore);
+    QVERIFY(!useAsReference->isEnabled());
+
+    comparison._duplicateSets = DuplicateSetBuilder::build(3, {{0, 1, 1, 64, 1.0}, {1, 2, 2, 64, 1.0}});
+    comparison.selectDuplicateSet(0, 1);
+    QVERIFY(useAsReference->isEnabled());
+
+    useAsReference->click();
+    QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({1, 0, 2}));
+    QCOMPARE(comparison._leftVideo, 1);
+    QCOMPARE(comparison._rightVideo, 0);
+
+    members->setCurrentRow(2);
+    QCOMPARE(comparison._leftVideo, 1);
+    QCOMPARE(comparison._rightVideo, 2);
+    QCOMPARE(comparison.findChild<QLabel*>(QStringLiteral("duplicateSetEvidence"))->text(),
+             QStringLiteral("Direct discovered match"));
+    QVERIFY(ignore->isEnabled());
+    QVERIFY(useAsReference->isEnabled());
+
+    comparison.clearDuplicateSets();
+    QVERIFY(!useAsReference->isEnabled());
+}
+
+void test_comparison::test_selectedReferencePersistsAcrossExplicitRebuild()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (const QString& name : {QStringLiteral("A.mp4"), QStringLiteral("B.mp4"), QStringLiteral("C.mp4")}) {
+        const QString path = fixture.filePath(name);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {3, MatchedVideoPair{1, 2, 3, 64, 1.0}},
+    };
+    markDiscoveryComplete(comparison, 3);
+    comparison.rebuildDuplicateSets();
+
+    auto* useAsReference = comparison.findChild<QPushButton*>(QStringLiteral("useSelectedAsReferenceButton"));
+    auto* members = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSetMembers"));
+    auto* ignore = comparison.findChild<QPushButton*>(QStringLiteral("ignoreDuplicatePairButton"));
+    QVERIFY(useAsReference);
+    QVERIFY(members);
+    QVERIFY(ignore);
+    useAsReference->click();
+    QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({1, 0, 2}));
+
+    comparison.rebuildDuplicateSets();
+
+    QCOMPARE(comparison._duplicateSets.first().members, QVector<int>({1, 0, 2}));
+    QCOMPARE(comparison._leftVideo, 1);
+    QCOMPARE(comparison._rightVideo, 0);
+    members->setCurrentRow(2);
+    QCOMPARE(comparison._leftVideo, 1);
+    QCOMPARE(comparison._rightVideo, 2);
+    QCOMPARE(comparison.findChild<QLabel*>(QStringLiteral("duplicateSetEvidence"))->text(),
+             QStringLiteral("Direct discovered match"));
+    QVERIFY(ignore->isEnabled());
+}
+
+void test_comparison::test_activeSetRemainsActionableWhenAnotherSetIsStale()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (int index = 0; index < 8; ++index) {
+        const QString path = fixture.filePath(QStringLiteral("video-%1.mp4").arg(index));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    QVector<MatchedVideoPair> matches{{0, 1, 1, 64, 1.0}};
+    int64_t position = 2;
+    for (int left = 2; left < videos.size(); ++left)
+        for (int right = left + 1; right < videos.size(); ++right)
+            matches.append({left, right, position++, 64, 1.0});
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._duplicateSets = DuplicateSetBuilder::build(videos.size(), std::move(matches));
+    QCOMPARE(comparison._duplicateSets.size(), 2);
+    QCOMPARE(comparison._duplicateSets[0].members, QVector<int>({0, 1}));
+    QCOMPARE(comparison._duplicateSets[0].edges.size(), 1);
+    QCOMPARE(comparison._duplicateSets[1].edges.size(), 15);
+
+    // A stale, unrelated family must not disable review of the active family.
+    videos.last()->trashed = true;
+    comparison.selectDuplicateSet(0, 1);
+
+    QVERIFY(comparison.findChild<QWidget*>(QStringLiteral("leftDelete"))->isEnabled());
+    QVERIFY(comparison.findChild<QWidget*>(QStringLiteral("rightDelete"))->isEnabled());
+}
+
+void test_comparison::test_stoppedDiscoveryCannotReplaceCleanupPairIndexes()
+{
+    Prefs prefs;
+    prefs._numberOfVideos = 2;
+    Video first(prefs, QStringLiteral("first.mp4"));
+    Video second(prefs, QStringLiteral("second.mp4"));
+    Comparison comparison({&first, &second}, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = {&first, &second};
+    comparison.clearDuplicateSets();
+    comparison._leftVideo = 1;
+    comparison._rightVideo = 0;
+
+    QCheckBox* namesFilter = comparison.findChild<QCheckBox*>(QStringLiteral("settingNamesInAnotherCheckbox"));
+    QVERIFY(namesFilter);
+    QTimer::singleShot(0, namesFilter, [namesFilter]() { namesFilter->setChecked(!namesFilter->isChecked()); });
+    QCoreApplication::processEvents();
+
+    QCOMPARE(comparison._leftVideo, 1);
+    QCOMPARE(comparison._rightVideo, 0);
+    QCOMPARE(comparison._selectedDuplicateSet, -1);
+}
+
+void test_comparison::test_cleanupCompletionDoesNotNavigateForeground()
+{
+    for (const int videoCount : {0, 1}) {
+        Prefs prefs;
+        prefs._numberOfVideos = videoCount;
+        std::unique_ptr<Video> onlyVideo;
+        QVector<Video*> videos;
+        if (videoCount == 1) {
+            onlyVideo = std::make_unique<Video>(prefs, QStringLiteral("only.mp4"));
+            videos.append(onlyVideo.get());
+        }
+        Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+        comparison._backgroundDiscovery->stop();
+        comparison._seekForwards = false;
+        QTabWidget* tabs = comparison.findChild<QTabWidget*>(QStringLiteral("tabWidget"));
+        QVERIFY(tabs);
+        tabs->setCurrentIndex(1);
+
+        comparison.finishAutomaticCleanupRefresh();
+
+        // on_nextVideo_clicked always flips this flag before it can scan or show
+        // confirmToExit, so preserving it proves cleanup only restarted discovery.
+        QVERIFY(!comparison._seekForwards);
+        QVERIFY(comparison._backgroundDiscovery->hasStarted());
+        QVERIFY(comparison._backgroundDiscovery->isComplete());
+        QCOMPARE(tabs->currentIndex(), 1);
+        auto* progress = comparison.findChild<QProgressBar*>(QStringLiteral("progressBar"));
+        QVERIFY(progress);
+        QCOMPARE(progress->format(), QStringLiteral("Pair scan complete: 0 of 0 pair comparisons"));
+        QCOMPARE(comparison.findChild<QLabel*>(QStringLiteral("duplicateSetsStatus"))->text(),
+                 QStringLiteral("No duplicate sets found."));
+        QVERIFY(!comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"))->isEnabled());
+    }
+}
+
+void test_comparison::test_rebuildKeepsActiveSetWhenSelectedMemberDisappears()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (int index = 0; index < 5; ++index) {
+        const QString path = fixture.filePath(QStringLiteral("video-%1.mp4").arg(index));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {2, MatchedVideoPair{2, 3, 2, 64, 1.0}},
+        {3, MatchedVideoPair{2, 4, 3, 64, 1.0}},
+    };
+    markDiscoveryComplete(comparison, 3);
+    comparison.rebuildDuplicateSets();
+    QCOMPARE(comparison._duplicateSets.size(), 2);
+    comparison.selectDuplicateSet(1, 2);
+    QCOMPARE(comparison._selectedSetMember, 2);
+
+    videos[4]->trashed = true;
+    comparison.rebuildDuplicateSets();
+
+    QCOMPARE(comparison._duplicateSets.size(), 2);
+    QCOMPARE(comparison._selectedDuplicateSet, 1);
+    QCOMPARE(comparison._duplicateSets[1].members, QVector<int>({2, 3}));
+    QCOMPARE(comparison._leftVideo, 2);
+    QCOMPARE(comparison._rightVideo, 3);
+}
+
+void test_comparison::test_duplicateSetBuilderConnectedComponents()
+{
+    const auto pair = [](int left, int right, int64_t position) {
+        return MatchedVideoPair{left, right, position, 0, 0.0};
+    };
+
+    const QVector<DuplicateSet> pairSet = DuplicateSetBuilder::build(3, {pair(0, 1, 1)});
+    QCOMPARE(pairSet.size(), 1);
+    QCOMPARE(pairSet[0].members, QVector<int>({0, 1}));
+    QCOMPARE(pairSet[0].edges.size(), 1);
+    QCOMPARE(pairSet[0].edges[0].position, 1);
+
+    const QVector<DuplicateSet> chainsAndDuplicates =
+        DuplicateSetBuilder::build(7, {pair(1, 2, 1), pair(2, 3, 2), pair(1, 3, 3), pair(1, 2, 4), pair(4, 6, 5)});
+    QCOMPARE(chainsAndDuplicates.size(), 2);
+    QCOMPARE(chainsAndDuplicates[0].members, QVector<int>({1, 2, 3}));
+    QCOMPARE(chainsAndDuplicates[1].members, QVector<int>({4, 6}));
+    QCOMPARE(chainsAndDuplicates[0].edges.size(), 4);
+    QCOMPARE(chainsAndDuplicates[1].edges.size(), 1);
+
+    // Input edge order does not affect either component or member order.
+    const QVector<DuplicateSet> reversed =
+        DuplicateSetBuilder::build(7, {pair(4, 6, 5), pair(1, 2, 4), pair(1, 3, 3), pair(2, 3, 2), pair(1, 2, 1)});
+    QCOMPARE(reversed[0].members, chainsAndDuplicates[0].members);
+    QCOMPARE(reversed[1].members, chainsAndDuplicates[1].members);
+}
+
+void test_comparison::test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixCompletes()
+{
+    const auto pair = [](int left, int right, int64_t position) {
+        return MatchedVideoPair{left, right, position, 0, 0.0};
+    };
+
+    BackgroundMatchDiscovery discovery(2, 1);
+    discovery._maxPosition = 6;
+    discovery._chunkSize = 2;
+    discovery._started = true;
+    discovery._completedChunks = QBitArray(3, false);
+
+    discovery.acceptCompletedChunk(0, 1, {pair(0, 3, 3)});
+    QCOMPARE(discovery.preScannedEnd(), 0);
+    int safeMatchCount = 0;
+    discovery.forEachSafeMatch([&safeMatchCount](const MatchedVideoPair&) { ++safeMatchCount; });
+    QCOMPARE(safeMatchCount, 0);
+    QVERIFY(!discovery.isComplete());
+
+    discovery.acceptCompletedChunk(0, 0, {pair(0, 1, 1)});
+    QCOMPARE(discovery.preScannedEnd(), 4);
+    safeMatchCount = 0;
+    discovery.forEachSafeMatch([&safeMatchCount](const MatchedVideoPair&) { ++safeMatchCount; });
+    QCOMPARE(safeMatchCount, 2);
+    QVERIFY(!discovery.isComplete());
+
+    discovery.acceptCompletedChunk(0, 2, {pair(1, 3, 5)});
+    QCOMPARE(discovery.preScannedEnd(), 6);
+    safeMatchCount = 0;
+    discovery.forEachSafeMatch([&safeMatchCount](const MatchedVideoPair&) { ++safeMatchCount; });
+    QCOMPARE(safeMatchCount, 3);
+    QVERIFY(discovery.isComplete());
+}
+
 void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix()
 {
     Prefs prefs;
@@ -381,7 +1071,17 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     discovery.start({&first, &second, &third, &fourth}, config);
 
     QTRY_COMPARE_WITH_TIMEOUT(discovery.preScannedEnd(), 6, 5000);
+    QVERIFY(discovery.isComplete());
     QCOMPARE(discovery.discoveredMatchCount(), 1);
+
+    int safeMatchCount = 0;
+    int64_t safeMatchPosition = 0;
+    discovery.forEachSafeMatch([&safeMatchCount, &safeMatchPosition](const MatchedVideoPair& match) {
+        ++safeMatchCount;
+        safeMatchPosition = match.position;
+    });
+    QCOMPARE(safeMatchCount, 1);
+    QCOMPARE(safeMatchPosition, 3);
 
     const auto next = discovery.nextCandidateAfter(0);
     QVERIFY(next.has_value());

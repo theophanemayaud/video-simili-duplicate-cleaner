@@ -13,6 +13,8 @@
 #include <QUuid>
 #include <QWheelEvent>
 
+#include "internal/duplicatesetbuilder.h"
+
 #include <functional>
 #include <memory>
 
@@ -48,6 +50,10 @@ class Comparison : public QDialog
     Prefs& _prefs;
     const int64_t _maxComparisons;
     std::unique_ptr<BackgroundMatchDiscovery> _backgroundDiscovery;
+    QVector<DuplicateSet> _duplicateSets;
+    int _selectedDuplicateSet = -1;
+    int _selectedSetMember = -1;
+    bool _currentComparisonIsDirectMatch = false;
     int _leftVideo = 0;  // index in the video list, of the currently displayed left video
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
@@ -78,12 +84,25 @@ class Comparison : public QDialog
     void lookUpApplePhotosName(int videoIndex);
 #endif
 
-    void seekFromSliderPosition(int position);
     void restartBackgroundDiscovery();
+    void finishAutomaticCleanupRefresh();
     void updateDiscoveryProgress(int64_t preScannedEnd);
+    void clearDuplicateSets();
+    void rebuildDuplicateSets();
+    void selectDuplicateSet(int row, int preferredMember = 1);
+    void showSetMember(int member);
+    bool duplicateSetMembersStillAvailable(const DuplicateSet& set) const;
+    void refreshPreviewImage(QLabel* preview, int videoIndex) const;
+    void refreshPreviewImages();
+    void queuePreviewRefresh();
+    void setManualComparisonActionsEnabled(bool enabled);
+    void clearManualComparisonDisplay();
+    bool hasActiveManualComparison() const;
+    const MatchedVideoPair* directEligiblePair(const DuplicateSet& set, int left, int right) const;
     bool navigateForwardFrom(int64_t currentPosition);
     bool navigateToNextMatch(int64_t fromPosition);
     bool navigateToPrevMatch(int64_t fromPosition, int64_t throughPosition);
+    bool pairPassesNonCacheFilters(const MatchedVideoPair& pair) const;
     bool isPairStillDisplayable(const MatchedVideoPair& pair) const;
     void displayMatchedPair(const MatchedVideoPair& pair);
 
@@ -145,7 +164,7 @@ class Comparison : public QDialog
     void updateUI();
     int64_t comparisonsSoFar() const;
     int progressBarValue(int64_t comparisons) const;
-    void onProgressSliderReleased();
+    void setPairProgress(int64_t comparisons, const QString& activity);
 
     void on_selectPhash_clicked(const bool& checked);
     void on_selectSSIM_clicked(const bool& checked);
@@ -158,14 +177,14 @@ class Comparison : public QDialog
     void on_rightFileName_clicked();
     void openFileManager(const QString& filename);
 
-    void on_leftDelete_clicked() { deleteVideo(_leftVideo); }
-    void on_rightDelete_clicked() { deleteVideo(_rightVideo); }
+    void on_leftDelete_clicked();
+    void on_rightDelete_clicked();
     void deleteVideo(const int& side, const bool auto_trash_mode = false);
 
     void on_leftMove_clicked();
     void on_rightMove_clicked();
     void moveVideo(const QString& from, const QString& to);
-    void on_swapFilenames_clicked() const;
+    void on_swapFilenames_clicked();
 
     void on_thresholdSlider_valueChanged(const int& value);
     void resizeEvent(QResizeEvent* event);
@@ -194,6 +213,9 @@ class Comparison : public QDialog
     void on_settingNamesInAnotherCheckbox_stateChanged(int arg1);
 
     void on_ignoreDuplicatePairButton_clicked();
+    void on_useSelectedAsReferenceButton_clicked();
+    void on_duplicateSets_currentRowChanged(int row);
+    void on_duplicateSetMembers_currentRowChanged(int row);
 
     void initSortOrder();
     void onSortOrderChanged(int index);

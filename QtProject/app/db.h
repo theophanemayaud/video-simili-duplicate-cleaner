@@ -6,11 +6,13 @@
 #include <QDateTime>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QPair>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QUuid>
+#include <QVector>
 
 #include "prefs.h"
 #include "video.h"
@@ -72,6 +74,9 @@ class Db
 
     // when wanting to check if a pair was previous saved to be ignored in cache
     bool isPairToIgnore(const QString filePathName1, const QString filePathName2) const;
+
+    // Load ignored pairs once for callers that filter many candidate edges.
+    QVector<QPair<QString, QString>> ignoredPairs() const;
 };
 
 #endif // DB_H

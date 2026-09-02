@@ -110,6 +110,12 @@ void BackgroundMatchDiscovery::stop()
     _started = false;
 }
 
+void BackgroundMatchDiscovery::forEachSafeMatch(const std::function<void(const MatchedVideoPair&)>& visitor) const
+{
+    for (auto it = _matches.cbegin(); it != _matches.cend() && it.key() <= _lastContiguousScannedPairPosition; ++it)
+        visitor(it.value());
+}
+
 std::optional<MatchedVideoPair> BackgroundMatchDiscovery::nextCandidateAfter(int64_t position) const
 {
     const auto candidate = _matches.upperBound(position);
