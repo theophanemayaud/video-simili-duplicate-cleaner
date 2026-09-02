@@ -95,7 +95,7 @@ add_qt_test(test_comparison
     SOURCES test_comparison/tst_test_comparison.cpp
 )
 
-# test_mainwindow (currently empty but structure is there)
+# Test 2: directory discovery and MainWindow async integration
 add_qt_test(test_mainwindow
     SOURCES test_mainwindow/tst_mainwindow.cpp
 )

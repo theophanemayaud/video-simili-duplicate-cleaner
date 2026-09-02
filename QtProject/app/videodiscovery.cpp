@@ -2,7 +2,10 @@
 
 #include <QDir>
 #include <QDirIterator>
+#include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
+#include <QTextStream>
 
 namespace
 {
@@ -40,6 +43,24 @@ QSet<QString> videoSuffixesFrom(const QStringList& extensionFilters)
     return suffixes;
 }
 } // namespace
+
+QStringList loadVideoExtensionFilters()
+{
+    QFile file(QStringLiteral(":/extensions.ini"));
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+
+    QStringList filters;
+    QTextStream text(&file);
+    while (!text.atEnd()) {
+        QString line = text.readLine();
+        if (line.startsWith(u';') || line.isEmpty())
+            continue;
+        filters.append(line.replace(QRegularExpression(QStringLiteral("\\*?\\.")), QStringLiteral("*."))
+                           .split(u' ', Qt::SkipEmptyParts));
+    }
+    return filters;
+}
 
 VideoDiscoveryResult discoverVideos(const QStringList& directories, const QStringList& extensionFilters,
                                     const VideoDiscoveryProgress& reportProgress)

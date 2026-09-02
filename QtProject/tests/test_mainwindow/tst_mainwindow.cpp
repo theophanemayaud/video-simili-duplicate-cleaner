@@ -1,13 +1,15 @@
 #include <QDir>
 #include <QFile>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QStatusBar>
 #include <QTemporaryDir>
 #include <QtTest>
 
 #include <memory>
 
 #include "../../app/mainwindow.h"
-#include "../../app/prefs.h"
-#include "../../app/ui_mainwindow.h"
 #include "../../app/videodiscovery.h"
 
 // Discovery only looks at file names, so empty placeholder files describe a Photos library layout faithfully
@@ -23,6 +25,7 @@ class TestMainWindow : public QObject
     void test_discoveryCanBeCancelled();
     void test_discoveryCanBeCancelledWhileSkippingNonVideos();
     void test_videoExtensionsMatchRegardlessOfCase();
+    void test_loadVideoExtensionFilters();
     void test_emptyFolderScanLeavesNoSearchingMessage();
 
   private:
@@ -96,10 +99,7 @@ void TestMainWindow::test_discoveryCanBeCancelled()
     QVERIFY(!createFile(QStringLiteral("Movies/second.mp4")).isEmpty());
 
     const VideoDiscoveryResult result =
-        discoverVideos({_scanRoot->path()}, {QStringLiteral("*.mp4")},
-                       [](int, const QString&) {
-                           return false;
-                       });
+        discoverVideos({_scanRoot->path()}, {QStringLiteral("*.mp4")}, [](int, const QString&) { return false; });
 
     QVERIFY(result.cancelled);
     QVERIFY(result.videos.isEmpty());
@@ -136,6 +136,14 @@ void TestMainWindow::test_videoExtensionsMatchRegardlessOfCase()
     QCOMPARE(discoveredVideosIn(_scanRoot->path()), QSet<QString>({shouting, mixed}));
 }
 
+void TestMainWindow::test_loadVideoExtensionFilters()
+{
+    const QStringList filters = loadVideoExtensionFilters();
+    QVERIFY(filters.contains(QStringLiteral("*.mp4")));
+    QVERIFY(filters.contains(QStringLiteral("*.mov")));
+    QVERIFY(!filters.contains(QString()));
+}
+
 // Discovery runs on a worker thread, so the window has to settle back to an idle state on its own. A folder with no
 // videos is the path that skips processing entirely, which is exactly where a leftover progress message would show up.
 void TestMainWindow::test_emptyFolderScanLeavesNoSearchingMessage()
@@ -144,18 +152,22 @@ void TestMainWindow::test_emptyFolderScanLeavesNoSearchingMessage()
 
     MainWindow window;
     window.show();
-    window._prefs.useCacheOption(Prefs::NO_CACHE);
-    window.ui->directoryBox->setText(QDir(_scanRoot->path()).filePath(QStringLiteral("Documents")));
+    auto* noCache = window.findChild<QRadioButton*>(QStringLiteral("radio_UseCacheNo"));
+    auto* directoryBox = window.findChild<QLineEdit*>(QStringLiteral("directoryBox"));
+    auto* findDuplicates = window.findChild<QPushButton*>(QStringLiteral("findDuplicates"));
+    auto* statusBar = window.findChild<QStatusBar*>(QStringLiteral("statusBar"));
+    QVERIFY(noCache);
+    QVERIFY(directoryBox);
+    QVERIFY(findDuplicates);
+    QVERIFY(statusBar);
 
-    QSignalSpy discoveryFinished(&window._videoDiscoveryWatcher, &QFutureWatcherBase::finished);
-    window.on_findDuplicates_clicked();
-    QVERIFY(discoveryFinished.wait(30000));
-    QCoreApplication::processEvents();
+    noCache->click();
+    directoryBox->setText(QDir(_scanRoot->path()).filePath(QStringLiteral("Documents")));
+    findDuplicates->click();
+    QTRY_COMPARE_WITH_TIMEOUT(findDuplicates->text(), QStringLiteral("Find duplicates"), 30000);
 
-    QVERIFY(window._everyVideo.isEmpty());
-    QCOMPARE(window.ui->statusBar->currentMessage(), QString());
-    QCOMPARE(window.ui->findDuplicates->text(), QStringLiteral("Find duplicates"));
-    QVERIFY(window.ui->directoryBox->isEnabled());
+    QCOMPARE(statusBar->currentMessage(), QString());
+    QVERIFY(directoryBox->isEnabled());
 
     window.close();
     QCoreApplication::processEvents();

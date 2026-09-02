@@ -9,7 +9,7 @@
 #include <QScrollBar>
 #include <QtConcurrent/QtConcurrent>
 
-#include <memory>
+#include <atomic>
 
 #include "ui_mainwindow.h"
 
@@ -30,15 +30,10 @@ class MainWindow : public QMainWindow
 
     friend class VideoCorpusTestHelpers;
     friend class TestAutoDelete;
-    friend class TestMainWindow;
 
   public:
     MainWindow();
-    ~MainWindow()
-    {
-        deleteTemporaryFiles();
-        delete ui;
-    }
+    ~MainWindow() override;
 
   private:
     Ui::MainWindow* ui;
@@ -48,29 +43,23 @@ class MainWindow : public QMainWindow
     QSet<QString> _everyVideo; // set as we need to avoid duplicates
     QStringList _rejectedVideos;
     QStringList _extensionList;
-    QFutureWatcher<void> _videoDiscoveryWatcher;
-    std::shared_ptr<VideoDiscoveryResult> _videoDiscoveryResult;
+    QFutureWatcher<VideoDiscoveryResult> _videoDiscoveryWatcher;
+    std::atomic_bool _cancelVideoDiscovery = false;
 
     Prefs _prefs;
-    bool _userPressedStop = false;
+    bool _stopVideoProcessing = false;
     bool shouldScan = true;
     bool _windowClosing = false;
 
   private slots:
     void deleteTemporaryFiles() const;
-    void closeEvent(QCloseEvent* event)
-    {
-        Q_UNUSED(event)
-        _windowClosing = true;
-        _userPressedStop = true;
-        _videoDiscoveryWatcher.cancel();
-    }
-    void dragEnterEvent(QDragEnterEvent* event)
+    void closeEvent(QCloseEvent* event) override;
+    void dragEnterEvent(QDragEnterEvent* event) override
     {
         if (event->mimeData()->hasUrls())
             event->acceptProposedAction();
     }
-    void dropEvent(QDropEvent* event);
+    void dropEvent(QDropEvent* event) override;
     void loadExtensions();
 
     void setComparisonMode(const int& mode);

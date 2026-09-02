@@ -1,8 +1,8 @@
 #include "mainwindow.h"
 #include "prefs.h"
 #include <QElapsedTimer>
-#include <QPromise>
 #include <QProgressDialog>
+#include <QPromise>
 
 #include <limits>
 
@@ -12,9 +12,10 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     _prefs._mainwPtr = this;
 
     connect(Message::Get(), &Message::statusMessage, this, &MainWindow::addStatusMessage);
-    connect(&_videoDiscoveryWatcher, &QFutureWatcher<void>::progressTextChanged, this,
+    connect(&_videoDiscoveryWatcher, &QFutureWatcher<VideoDiscoveryResult>::progressTextChanged, this,
             [this](const QString& message) { ui->statusBar->showMessage(message); });
-    connect(&_videoDiscoveryWatcher, &QFutureWatcher<void>::finished, this, &MainWindow::videoDiscoveryFinished);
+    connect(&_videoDiscoveryWatcher, &QFutureWatcher<VideoDiscoveryResult>::finished, this,
+            &MainWindow::videoDiscoveryFinished);
 
     QFile file(":/version.txt");
     if (file.open(QIODevice::ReadOnly))
@@ -95,6 +96,24 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     connect(new QShortcut(QKeySequence::Close, this), &QShortcut::activated, this, &QApplication::quit);
 }
 
+MainWindow::~MainWindow()
+{
+    // The discovery callback reads _cancelVideoDiscovery, so keep this object alive until the worker has observed
+    // cancellation and returned its partial result.
+    _cancelVideoDiscovery = true;
+    _videoDiscoveryWatcher.waitForFinished();
+    deleteTemporaryFiles();
+    delete ui;
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    _windowClosing = true;
+    _stopVideoProcessing = true;
+    _cancelVideoDiscovery = true;
+    QMainWindow::closeEvent(event);
+}
+
 void MainWindow::deleteTemporaryFiles() const
 {
     QDir tempDir = QDir::tempPath(); //QTemporaryDir remains if program force quit
@@ -109,25 +128,17 @@ void MainWindow::deleteTemporaryFiles() const
 
 void MainWindow::loadExtensions()
 {
-    //DEBUGTHEO for windows QFile file(QStringLiteral("%1/extensions.ini").arg(QApplication::applicationDirPath()));
-    //But for mac here it is
-    //Working on mac : QFile file(QStringLiteral("%1/../Frameworks/extensions.ini").arg(QApplication::applicationDirPath()));
-    //Test witth qrc file with extensions.ini at / :
-    QFile file(QStringLiteral(":/extensions.ini")); //using qrc ressource path ! This works on mac at least !
-    if (!file.open(QIODevice::ReadOnly)) {
+    _extensionList = loadVideoExtensionFilters();
+    if (_extensionList.isEmpty()) {
         addStatusMessage(QStringLiteral("Error: extensions.ini not found. No video file will be searched."));
         return;
     }
+
     addStatusMessage(QStringLiteral("Currently supported file extensions:"));
-    QTextStream text(&file);
-    while (!text.atEnd()) {
-        QString line = text.readLine();
-        if (line.startsWith(QStringLiteral(";")) || line.isEmpty())
-            continue;
-        _extensionList << line.replace(QRegularExpression("\\*?\\."), "*.").split(QStringLiteral(" "));
-        addStatusMessage(line.remove(QStringLiteral("*")));
-    }
-    file.close();
+    QStringList displayExtensions = _extensionList;
+    for (QString& extension : displayExtensions)
+        extension.remove(u'*');
+    addStatusMessage(displayExtensions.join(u' '));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -186,20 +197,20 @@ void MainWindow::on_directoryBox_textChanged(const QString& arg1)
 void MainWindow::on_findDuplicates_clicked()
 {
     if (ui->findDuplicates->text() == "Stop") //pressing "find duplicates" button will morph into a
-    {                                         //stop button. a lengthy search can thus be stopped and
-        _userPressedStop = true;              //those videos already processed are compared w/each other
-        _videoDiscoveryWatcher.cancel();
+    {                                         //stop button. a lengthy search can thus be stopped.
+        if (_videoDiscoveryWatcher.isRunning())
+            _cancelVideoDiscovery = true;
+        else
+            _stopVideoProcessing = true;
         return;
-    }
-    else {
-        ui->findDuplicates->setText(QStringLiteral("Stop"));
-        _userPressedStop = false;
     }
     if (_extensionList.isEmpty()) {
         addStatusMessage(
             QStringLiteral("Error: No extensions found in extensions.ini. No video file will be searched."));
         return;
     }
+    ui->findDuplicates->setText(QStringLiteral("Stop"));
+    _stopVideoProcessing = false;
 
     if (_videoList.count() == 0)
         this->shouldScan = true;
@@ -276,43 +287,43 @@ void MainWindow::startVideoDiscovery(const QStringList& directories)
     ui->browseFolders->setDisabled(true);
     ui->browseApplePhotos->setDisabled(true);
 
-    _videoDiscoveryResult = std::make_shared<VideoDiscoveryResult>();
-    const auto result = _videoDiscoveryResult;
-    const QStringList nameFilters = _extensionList;
+    _cancelVideoDiscovery = false;
+    const QStringList extensionFilters = _extensionList;
 
-    _videoDiscoveryWatcher.setFuture(
-        QtConcurrent::run([directories, nameFilters, result](QPromise<void>& promise) {
-            promise.setProgressRange(0, std::numeric_limits<int>::max());
-            QElapsedTimer progressTimer;
-            progressTimer.start();
-            int progressSequence = 0;
+    _videoDiscoveryWatcher.setFuture(QtConcurrent::run([this, directories,
+                                                        extensionFilters](QPromise<VideoDiscoveryResult>& promise) {
+        promise.setProgressRange(0, std::numeric_limits<int>::max());
+        QElapsedTimer progressTimer;
+        progressTimer.start();
+        int progressSequence = 0;
 
-            *result = discoverVideos(directories, nameFilters, [&](int videoCount, const QString& path) {
-                if (promise.isCanceled())
+        VideoDiscoveryResult result =
+            discoverVideos(directories, extensionFilters, [&](int videoCount, const QString& path) {
+                if (_cancelVideoDiscovery)
                     return false;
 
                 // Human-readable progress does not benefit from repainting at display refresh rate. Ten updates per
                 // second stay responsive while avoiding timer churn and event processing for every discovered video.
                 if (progressTimer.elapsed() >= 100) {
                     promise.setProgressValueAndText(
-                        ++progressSequence, QStringLiteral("Found %1 videos | %2")
-                                                .arg(videoCount)
-                                                .arg(QDir::toNativeSeparators(path)));
+                        ++progressSequence,
+                        QStringLiteral("Found %1 videos | %2").arg(videoCount).arg(QDir::toNativeSeparators(path)));
                     progressTimer.restart();
                 }
                 return true;
             });
-        }));
+        promise.addResult(std::move(result));
+    }));
 }
 
 void MainWindow::videoDiscoveryFinished()
 {
-    if (_windowClosing || !_videoDiscoveryResult)
+    if (_windowClosing)
         return;
 
-    _everyVideo = std::move(_videoDiscoveryResult->videos);
-    const QStringList missingDirectories = std::move(_videoDiscoveryResult->missingDirectories);
-    _videoDiscoveryResult.reset();
+    VideoDiscoveryResult result = _videoDiscoveryWatcher.result();
+    _everyVideo = std::move(result.videos);
+    const QStringList missingDirectories = std::move(result.missingDirectories);
 
     for (const QString& missingDirectory : missingDirectories)
         addStatusMessage(QStringLiteral("Cannot find folder: %1").arg(missingDirectory));
@@ -321,7 +332,6 @@ void MainWindow::videoDiscoveryFinished()
             QStringLiteral("Cannot find folder: %1").arg(missingDirectories.join(QStringLiteral(" "))));
 
     // Preserve the existing Stop behavior: process and compare videos found before directory discovery stopped.
-    _userPressedStop = false;
     processVideos();
     finishFindDuplicates();
 }
@@ -379,7 +389,7 @@ void MainWindow::processVideos()
         // Wait if we have too many active tasks
         while (activeFutures.size() >= 2 * maxParallelTasks)
         { // double to schedule some tasks in advance so QT can immediately run them when a thread frees up
-            if (this->_userPressedStop)
+            if (this->_stopVideoProcessing)
                 break;
             // Check completed futures and process their results
             for (int i = activeFutures.size() - 1; i >= 0; --i) { // reverse iteration as we remove in place from list
@@ -395,7 +405,7 @@ void MainWindow::processVideos()
             QThread::msleep(10); // Small sleep to avoid busy-waiting
         }
 
-        if (this->_userPressedStop)
+        if (this->_stopVideoProcessing)
             break;
 
         // Create video and submit for processing
@@ -416,7 +426,7 @@ void MainWindow::processVideos()
     QElapsedTimer timer;
     timer.start();
     while (!activeFutures.isEmpty()) {
-        if (this->_userPressedStop && this->ui->findDuplicates->isEnabled()) {
+        if (this->_stopVideoProcessing && this->ui->findDuplicates->isEnabled()) {
             this->ui->findDuplicates->setText(QStringLiteral("Stopping..."));
             this->ui->findDuplicates->setDisabled(true);
         }
@@ -432,7 +442,7 @@ void MainWindow::processVideos()
         }
         progress.setValue(progress.maximum() - activeFutures.size());
         QApplication::processEvents();
-        if (this->_userPressedStop && timer.elapsed() > 60000) { // 60 seconds
+        if (this->_stopVideoProcessing && timer.elapsed() > 60000) { // 60 seconds
             // Memory leak occurs here but that's small enough to not be a big deal.
             addStatusMessage(QString("Warning: Video processing took too long after user pressed stop (more than 60 "
                                      "seconds), ignoring remaining ones."));
