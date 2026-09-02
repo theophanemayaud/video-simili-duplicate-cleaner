@@ -15,6 +15,7 @@
 #include "../../../app/mainwindow.h"
 #include "../../../app/prefs.h"
 #include "../../../app/ui_mainwindow.h"
+#include "../../../app/videodiscovery.h"
 
 class TestAutoDelete : public QObject
 {
@@ -168,8 +169,7 @@ void TestAutoDelete::test_matchingFeaturePairs()
     w._prefs.useCacheOption(Prefs::NO_CACHE);
     w.on_thresholdSlider_valueChanged(90);
     w.ui->detectRotatedCopiesCheckbox->setChecked(detectRotatedCopies);
-    QDir videoDir(testVideosDir.path());
-    w.findVideos(videoDir);
+    w._everyVideo = discoverVideos({testVideosDir.path()}, w._extensionList).videos;
     w.processVideos();
 
     QCOMPARE(w._everyVideo.count(), 2);
@@ -217,8 +217,7 @@ void TestAutoDelete::test_keepBiggestMovesLetterboxedCopy()
     w._prefs.delMode = Prefs::CUSTOM_TRASH;
     w._prefs.customTrashFolder(QDir(trashDir.path()));
     w.on_thresholdSlider_valueChanged(90);
-    QDir videoDir(testVideosDir.path());
-    w.findVideos(videoDir);
+    w._everyVideo = discoverVideos({testVideosDir.path()}, w._extensionList).videos;
     w.processVideos();
 
     QCOMPARE(w._everyVideo.count(), 2);
@@ -277,8 +276,7 @@ void TestAutoDelete::runAutoDeleteBySize(const bool keepBiggest) const
     w._prefs.customTrashFolder(QDir(trashDir.path()));
     w.on_thresholdSlider_valueChanged(100);
 
-    QDir videoDir(testVideosDir.path());
-    w.findVideos(videoDir);
+    w._everyVideo = discoverVideos({testVideosDir.path()}, w._extensionList).videos;
     w.processVideos();
 
     QCOMPARE(w._everyVideo.count(), 2);

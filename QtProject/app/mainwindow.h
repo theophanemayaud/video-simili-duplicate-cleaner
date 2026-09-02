@@ -4,9 +4,12 @@
 #include <QDesktopServices>
 #include <QDragEnterEvent>
 #include <QFileDialog>
+#include <QFutureWatcher>
 #include <QMimeData>
 #include <QScrollBar>
 #include <QtConcurrent/QtConcurrent>
+
+#include <atomic>
 
 #include "ui_mainwindow.h"
 
@@ -14,6 +17,7 @@
 #include "db.h"
 #include "prefs.h"
 #include "video.h"
+#include "videodiscovery.h"
 
 namespace Ui
 {
@@ -29,11 +33,7 @@ class MainWindow : public QMainWindow
 
   public:
     MainWindow();
-    ~MainWindow()
-    {
-        deleteTemporaryFiles();
-        delete ui;
-    }
+    ~MainWindow() override;
 
   private:
     Ui::MainWindow* ui;
@@ -43,24 +43,23 @@ class MainWindow : public QMainWindow
     QSet<QString> _everyVideo; // set as we need to avoid duplicates
     QStringList _rejectedVideos;
     QStringList _extensionList;
+    QFutureWatcher<VideoDiscoveryResult> _videoDiscoveryWatcher;
+    std::atomic_bool _cancelVideoDiscovery = false;
 
     Prefs _prefs;
-    bool _userPressedStop = false;
+    bool _stopVideoProcessing = false;
     bool shouldScan = true;
+    bool _windowClosing = false;
 
   private slots:
     void deleteTemporaryFiles() const;
-    void closeEvent(QCloseEvent* event)
-    {
-        Q_UNUSED(event)
-        _userPressedStop = true;
-    }
-    void dragEnterEvent(QDragEnterEvent* event)
+    void closeEvent(QCloseEvent* event) override;
+    void dragEnterEvent(QDragEnterEvent* event) override
     {
         if (event->mimeData()->hasUrls())
             event->acceptProposedAction();
     }
-    void dropEvent(QDropEvent* event);
+    void dropEvent(QDropEvent* event) override;
     void loadExtensions();
 
     void setComparisonMode(const int& mode);
@@ -79,7 +78,9 @@ class MainWindow : public QMainWindow
     void on_browseApplePhotos_clicked();
     void on_directoryBox_returnPressed() { on_findDuplicates_clicked(); }
     void on_findDuplicates_clicked();
-    void findVideos(QDir& dir);
+    void startVideoDiscovery(const QStringList& directories);
+    void videoDiscoveryFinished();
+    void finishFindDuplicates();
     void processVideos();
     void videoSummary();
 
