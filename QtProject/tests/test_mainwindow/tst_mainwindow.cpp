@@ -25,6 +25,7 @@ class TestMainWindow : public QObject
     void test_discoveryCanBeCancelled();
     void test_discoveryCanBeCancelledWhileSkippingNonVideos();
     void test_videoExtensionsMatchRegardlessOfCase();
+    void test_hiddenEntriesAreDiscovered();
     void test_loadVideoExtensionFilters();
     void test_emptyFolderScanLeavesNoSearchingMessage();
 
@@ -134,6 +135,18 @@ void TestMainWindow::test_videoExtensionsMatchRegardlessOfCase()
     QVERIFY(!createFile(QStringLiteral("Movies/notes.TXT")).isEmpty());
 
     QCOMPARE(discoveredVideosIn(_scanRoot->path()), QSet<QString>({shouting, mixed}));
+}
+
+void TestMainWindow::test_hiddenEntriesAreDiscovered()
+{
+    const QString inHiddenDir = createFile(QStringLiteral(".private/cache/video.mp4"));
+    const QString hiddenFile = createFile(QStringLiteral("Movies/.hidden.mov"));
+    const QString normal = createFile(QStringLiteral("Movies/normal.mp4"));
+    QVERIFY(!inHiddenDir.isEmpty());
+    QVERIFY(!hiddenFile.isEmpty());
+    QVERIFY(!normal.isEmpty());
+
+    QCOMPARE(discoveredVideosIn(_scanRoot->path()), QSet<QString>({inHiddenDir, hiddenFile, normal}));
 }
 
 void TestMainWindow::test_loadVideoExtensionFilters()
