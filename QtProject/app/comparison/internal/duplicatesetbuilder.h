@@ -17,7 +17,9 @@ struct DuplicateSet {
 
 namespace DuplicateSetBuilder
 {
-QVector<DuplicateSet> build(int videoCount, const QVector<MatchedVideoPair>& matches);
-}
+// Consumes the accepted-match buffer. Set rebuilding produces that buffer just
+// before this call, so its edges can move directly into their components.
+QVector<DuplicateSet> build(int videoCount, QVector<MatchedVideoPair>&& matches);
+} // namespace DuplicateSetBuilder
 
 #endif // DUPLICATESETBUILDER_H

@@ -41,7 +41,7 @@ class UnionFind
 };
 } // namespace
 
-QVector<DuplicateSet> DuplicateSetBuilder::build(int videoCount, const QVector<MatchedVideoPair>& matches)
+QVector<DuplicateSet> DuplicateSetBuilder::build(int videoCount, QVector<MatchedVideoPair>&& matches)
 {
     if (videoCount < 2)
         return {};
@@ -59,12 +59,12 @@ QVector<DuplicateSet> DuplicateSetBuilder::build(int videoCount, const QVector<M
         setsByRoot[sets.find(video)].members.append(video);
 
     // Union-find has reached its final roots, so every accepted input edge can
-    // now be assigned exactly once to the component that owns its evidence.
-    for (const MatchedVideoPair& match : matches) {
+    // now be moved exactly once to the component that owns its evidence.
+    for (MatchedVideoPair& match : matches) {
         if (match.left < 0 || match.right < 0 || match.left >= videoCount || match.right >= videoCount
             || match.left == match.right)
             continue;
-        setsByRoot[sets.find(match.left)].edges.append(match);
+        setsByRoot[sets.find(match.left)].edges.append(std::move(match));
     }
 
     QVector<DuplicateSet> result;

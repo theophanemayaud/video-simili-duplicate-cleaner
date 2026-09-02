@@ -441,12 +441,12 @@ void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
         };
     }
 
-    QImage portraitPreview(40, 160, QImage::Format_RGB32);
-    portraitPreview.fill(Qt::blue);
+    QImage thumbnailPreview(448, 336, QImage::Format_RGB32);
+    thumbnailPreview.fill(Qt::blue);
     QByteArray thumbnail;
     QBuffer thumbnailBuffer(&thumbnail);
     thumbnailBuffer.open(QIODevice::WriteOnly);
-    QVERIFY(portraitPreview.save(&thumbnailBuffer, "JPG"));
+    QVERIFY(thumbnailPreview.save(&thumbnailBuffer, "JPG"));
     reference.thumbnail = selected.thumbnail = other.thumbnail = thumbnail;
 
     Comparison comparison({&reference, &selected, &other}, prefs, QRect(0, 0, 1120, 720));
@@ -456,8 +456,12 @@ void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
     comparison.show();
     QCoreApplication::processEvents();
 
-    comparison._duplicateSets = DuplicateSetBuilder::build(3, {{0, 1, 1, 64, 1.0}, {0, 2, 2, 64, 1.0}});
-    comparison.selectDuplicateSet(0, 1);
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}},
+        {2, MatchedVideoPair{0, 2, 2, 64, 1.0}},
+    };
+    markDiscoveryComplete(comparison, 2);
+    comparison.rebuildDuplicateSets();
     QCoreApplication::processEvents();
 
     auto* sets = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"));
@@ -514,6 +518,11 @@ void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
 
     auto* members = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSetMembers"));
     QVERIFY(members);
+    const QSize sourceThumbnailSize(448, 336);
+    QCOMPARE(sets->item(0)->icon().availableSizes(),
+             QList<QSize>{sourceThumbnailSize.scaled(sets->iconSize(), Qt::KeepAspectRatio)});
+    QCOMPARE(members->item(0)->icon().availableSizes(),
+             QList<QSize>{sourceThumbnailSize.scaled(members->iconSize(), Qt::KeepAspectRatio)});
     QCOMPARE(members->item(0)->text(), QStringLiteral("Reference: A-reference.mp4"));
     QCOMPARE(members->item(1)->text(), QStringLiteral("Selected: A-copy-3.mp4"));
     QVERIFY(!members->item(0)->text().contains('\n'));
@@ -862,7 +871,7 @@ void test_comparison::test_activeSetRemainsActionableWhenAnotherSetIsStale()
     Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
     comparison._backgroundDiscovery->stop();
     comparison._videos = videos;
-    comparison._duplicateSets = DuplicateSetBuilder::build(videos.size(), matches);
+    comparison._duplicateSets = DuplicateSetBuilder::build(videos.size(), std::move(matches));
     QCOMPARE(comparison._duplicateSets.size(), 2);
     QCOMPARE(comparison._duplicateSets[0].members, QVector<int>({0, 1}));
     QCOMPARE(comparison._duplicateSets[0].edges.size(), 1);
@@ -1018,17 +1027,23 @@ void test_comparison::test_backgroundDiscoveryHidesOutOfOrderMatchesUntilPrefixC
 
     discovery.acceptCompletedChunk(0, 1, {pair(0, 3, 3)});
     QCOMPARE(discovery.preScannedEnd(), 0);
-    QVERIFY(discovery.safeMatches().isEmpty());
+    int safeMatchCount = 0;
+    discovery.forEachSafeMatch([&safeMatchCount](const MatchedVideoPair&) { ++safeMatchCount; });
+    QCOMPARE(safeMatchCount, 0);
     QVERIFY(!discovery.isComplete());
 
     discovery.acceptCompletedChunk(0, 0, {pair(0, 1, 1)});
     QCOMPARE(discovery.preScannedEnd(), 4);
-    QCOMPARE(discovery.safeMatches().size(), 2);
+    safeMatchCount = 0;
+    discovery.forEachSafeMatch([&safeMatchCount](const MatchedVideoPair&) { ++safeMatchCount; });
+    QCOMPARE(safeMatchCount, 2);
     QVERIFY(!discovery.isComplete());
 
     discovery.acceptCompletedChunk(0, 2, {pair(1, 3, 5)});
     QCOMPARE(discovery.preScannedEnd(), 6);
-    QCOMPARE(discovery.safeMatches().size(), 3);
+    safeMatchCount = 0;
+    discovery.forEachSafeMatch([&safeMatchCount](const MatchedVideoPair&) { ++safeMatchCount; });
+    QCOMPARE(safeMatchCount, 3);
     QVERIFY(discovery.isComplete());
 }
 
@@ -1059,9 +1074,14 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     QVERIFY(discovery.isComplete());
     QCOMPARE(discovery.discoveredMatchCount(), 1);
 
-    const QVector<MatchedVideoPair> safeMatches = discovery.safeMatches();
-    QCOMPARE(safeMatches.size(), 1);
-    QCOMPARE(safeMatches.first().position, 3);
+    int safeMatchCount = 0;
+    int64_t safeMatchPosition = 0;
+    discovery.forEachSafeMatch([&safeMatchCount, &safeMatchPosition](const MatchedVideoPair& match) {
+        ++safeMatchCount;
+        safeMatchPosition = match.position;
+    });
+    QCOMPARE(safeMatchCount, 1);
+    QCOMPARE(safeMatchPosition, 3);
 
     const auto next = discovery.nextCandidateAfter(0);
     QVERIFY(next.has_value());

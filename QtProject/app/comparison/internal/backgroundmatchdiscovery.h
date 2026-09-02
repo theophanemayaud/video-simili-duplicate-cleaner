@@ -10,6 +10,7 @@
 #include <QVector>
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -31,9 +32,10 @@ class BackgroundMatchDiscovery : public QObject
     bool hasStarted() const { return _started; }
     int64_t preScannedEnd() const { return _lastContiguousScannedPairPosition; }
     int discoveredMatchCount() const { return _matches.size(); }
-    // Results are exposed only from the completed contiguous prefix. This
-    // keeps consumers from showing later chunks before earlier work is known.
-    QVector<MatchedVideoPair> safeMatches() const;
+    // Visits results only from the completed contiguous prefix. This keeps
+    // consumers from showing later chunks before earlier work is known, while
+    // avoiding a copy of the discovered-match graph for set rebuilding.
+    void forEachSafeMatch(const std::function<void(const MatchedVideoPair&)>& visitor) const;
     bool isComplete() const { return _started && _lastContiguousScannedPairPosition == _maxPosition; }
 
     std::optional<MatchedVideoPair> nextCandidateAfter(int64_t position) const;

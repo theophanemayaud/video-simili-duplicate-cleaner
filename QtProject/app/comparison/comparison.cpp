@@ -1,6 +1,8 @@
 #include "comparison.h"
 
+#include <QBuffer>
 #include <QElapsedTimer>
+#include <QImageReader>
 #include <QMimeData>
 #include <QProcess> // for opening a file in the platform file manager
 #include <QProgressBar>
@@ -8,6 +10,8 @@
 #include <QSet>
 #include <QSignalBlocker>
 #include <QTimer>
+
+#include <utility>
 
 #include "internal/backgroundmatchdiscovery.h"
 #include "internal/videopairmatcher.h"
@@ -38,6 +42,22 @@ QString ignoredPairKey(QString first, QString second)
     first.append(QChar(u'\0'));
     first.append(second);
     return first;
+}
+
+QIcon thumbnailIcon(const QByteArray& thumbnail, const QSize& iconSize)
+{
+    QBuffer buffer;
+    buffer.setData(thumbnail);
+    if (!buffer.open(QIODevice::ReadOnly))
+        return {};
+
+    QImageReader reader(&buffer, "JPG");
+    const QSize sourceSize = reader.size();
+    if (sourceSize.isValid() && (sourceSize.width() > iconSize.width() || sourceSize.height() > iconSize.height()))
+        reader.setScaledSize(sourceSize.scaled(iconSize, Qt::KeepAspectRatio));
+
+    const QImage image = reader.read();
+    return image.isNull() ? QIcon{} : QIcon(QPixmap::fromImage(image));
 }
 
 #ifdef Q_OS_MACOS
@@ -412,13 +432,13 @@ void Comparison::rebuildDuplicateSets()
         ignoredPairKeys.insert(ignoredPairKey(ignoredPair.first, ignoredPair.second));
 
     QVector<MatchedVideoPair> eligibleMatches;
-    for (const MatchedVideoPair& pair : _backgroundDiscovery->safeMatches()) {
+    _backgroundDiscovery->forEachSafeMatch([this, &eligibleMatches, &ignoredPairKeys](const MatchedVideoPair& pair) {
         const QString& leftPath = _videos[pair.left]->_filePathName;
         const QString& rightPath = _videos[pair.right]->_filePathName;
         if (pairPassesNonCacheFilters(pair) && !ignoredPairKeys.contains(ignoredPairKey(leftPath, rightPath)))
             eligibleMatches.append(pair);
-    }
-    _duplicateSets = DuplicateSetBuilder::build(_videos.size(), eligibleMatches);
+    });
+    _duplicateSets = DuplicateSetBuilder::build(_videos.size(), std::move(eligibleMatches));
 
     int selectedSet = -1;
     int selectedMember = 1;
@@ -453,12 +473,12 @@ void Comparison::rebuildDuplicateSets()
         qint64 size = 0;
         for (int member : set.members)
             size += _videos[member]->size;
-        auto* item = new QListWidgetItem(
-            QIcon(QPixmap::fromImage(QImage::fromData(_videos[set.members.first()]->thumbnail, "JPG"))),
-            QStringLiteral("Set %1\n%2 videos · %3")
-                .arg(setIndex + 1)
-                .arg(set.members.size())
-                .arg(readableFileSize(size)));
+        auto* item =
+            new QListWidgetItem(thumbnailIcon(_videos[set.members.first()]->thumbnail, ui->duplicateSets->iconSize()),
+                                QStringLiteral("Set %1\n%2 videos · %3")
+                                    .arg(setIndex + 1)
+                                    .arg(set.members.size())
+                                    .arg(readableFileSize(size)));
         ui->duplicateSets->addItem(item);
     }
 
@@ -497,7 +517,7 @@ void Comparison::selectDuplicateSet(int row, int preferredMember)
     for (int member = 0; member < set.members.size(); ++member) {
         const Video* video = _videos[set.members[member]];
         auto* item = new QListWidgetItem(
-            QIcon(QPixmap::fromImage(QImage::fromData(video->thumbnail, "JPG"))),
+            thumbnailIcon(video->thumbnail, ui->duplicateSetMembers->iconSize()),
             member == 0 ? QStringLiteral("Reference: %1").arg(QFileInfo(video->_filePathName).fileName())
                         : QFileInfo(video->_filePathName).fileName());
         item->setTextAlignment(Qt::AlignHCenter);

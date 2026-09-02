@@ -110,12 +110,10 @@ void BackgroundMatchDiscovery::stop()
     _started = false;
 }
 
-QVector<MatchedVideoPair> BackgroundMatchDiscovery::safeMatches() const
+void BackgroundMatchDiscovery::forEachSafeMatch(const std::function<void(const MatchedVideoPair&)>& visitor) const
 {
-    QVector<MatchedVideoPair> matches;
     for (auto it = _matches.cbegin(); it != _matches.cend() && it.key() <= _lastContiguousScannedPairPosition; ++it)
-        matches.append(it.value());
-    return matches;
+        visitor(it.value());
 }
 
 std::optional<MatchedVideoPair> BackgroundMatchDiscovery::nextCandidateAfter(int64_t position) const
