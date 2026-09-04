@@ -48,8 +48,8 @@ class Video : public QObject
     QString nameInApplePhotos;
     int64_t size = 0; // in bytes
     // Filled by readMetadata: empty when the cached metadata is usable, otherwise this path already failed processing
-    // and the scan can skip FFmpeg from that same query. process() persists deterministic step failures after extraction
-    // returns. Thumbnail mode is ignored: retrying is emptying the cache, or scanning without it.
+    // and the scan can skip FFmpeg from that same query. process() persists failures after extraction returns.
+    // Thumbnail mode is ignored: retrying is emptying the cache, or scanning without it.
     QString cachedFailure;
     QDateTime modified;
     QDateTime _fileCreateDate;
@@ -80,11 +80,6 @@ class Video : public QObject
                                const int ofDuration = 100); // new methods for capture of image, using ffmpeg library
 
   private:
-    struct ProcessingStepResult {
-        QString error;
-        bool cacheFailure = false;
-    };
-
     struct ResolvedCapture {
         QImage frame;
         FrameAnalysis analysis;
@@ -95,12 +90,12 @@ class Video : public QObject
     };
 
     QString validateInput() const;
-    ProcessingStepResult processMetadata(const Db& cache);
-    ProcessingStepResult processFrames(const Db& cache);
+    QString processMetadata(bool metadataCached);
+    QString processFrames(const Db* cache);
     const QString getMetadata(const QString& filename); // returns error message or empty string if success
-    const QString takeScreenCaptures(const Db& cache);
+    const QString takeScreenCaptures(const Db* cache);
     // Content-quality selection is separate from the outer decode-failure retry.
-    ResolvedCapture resolveCaptureSlot(const Db& cache, int percentage, int ofDuration);
+    ResolvedCapture resolveCaptureSlot(const Db* cache, int percentage, int ofDuration);
     // Builds the comparison fingerprints from the selected frames and their analyses, then stores a minimized copy of
     // the original collage for the review UI. Cached and decoded frames have already followed the same analysis path.
     void processThumbnail(QImage& thumbnail, const Thumbnail& thumb, const std::vector<FrameAnalysis>& analyses);

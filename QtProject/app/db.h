@@ -51,8 +51,7 @@ class Db
     //save video properties in cache, including any cachedFailure from a previous processing attempt
     void writeMetadata(const Video& video) const;
 
-    // Marks an already cached video as failed, leaving its metadata untouched. Does nothing when the video has no
-    // metadata row yet, which only leaves the failure unrecorded so the next scan processes the video again.
+    // Replaces any cached state for this path with a failure-only metadata row (creates the row when missing).
     void writeFailure(const QString& filePathname, const QString& failure) const;
 
     //returns screen capture if it was cached, else return null ptr
