@@ -84,13 +84,11 @@ Video::ProcessingResult Video::process()
     std::unique_ptr<Db> cache;
     if (_prefs.useCacheOption() != Prefs::NO_CACHE)
         cache = std::make_unique<Db>(_prefs.cacheFilePathName());
-    // CACHE_ONLY must stay read-only: never persist failures or rewrite metadata from that mode.
-    const bool canWriteCache = _prefs.useCacheOption() == Prefs::WITH_CACHE && cache != nullptr;
 
     const QString validationError = validateInput();
     if (!validationError.isEmpty()) {
         result.errorMsg = validationError;
-        if (canWriteCache)
+        if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
             cache->writeFailure(_filePathName, validationError);
         return result;
     }
@@ -125,7 +123,7 @@ Video::ProcessingResult Video::process()
     QString error = processMetadata(metadataCached);
     if (!error.isEmpty()) {
         result.errorMsg = error;
-        if (canWriteCache)
+        if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
             cache->writeFailure(_filePathName, error);
         return result;
     }
@@ -133,7 +131,7 @@ Video::ProcessingResult Video::process()
     error = processFrames(cache.get());
     if (!error.isEmpty()) {
         result.errorMsg = error;
-        if (canWriteCache)
+        if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
             cache->writeFailure(_filePathName, error);
         return result;
     }
@@ -141,7 +139,7 @@ Video::ProcessingResult Video::process()
     result.success = true;
     // Cache metadata only after a full successful run: duration may still be 0 after metadata extraction
     // and get inferred later while decoding frames, so we wait until both stages finish.
-    if (canWriteCache && !metadataCached)
+    if (_prefs.useCacheOption() == Prefs::WITH_CACHE && !metadataCached)
         cache->writeMetadata(*this);
     return result;
 }
