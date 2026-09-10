@@ -16,10 +16,10 @@ VENV="$SCRIPT_DIR/.venv"
 echo "[qt.sh] Installing Qt $QT_VERSION (tag $QT_TAG)"
 
 resolve_prefix() {
-  local candidate
-  for candidate in "$INSTALL_LINK" "$SCRIPT_DIR/$QT_VERSION/gcc_64" "$SCRIPT_DIR/$QT_VERSION/linux_gcc_64"; do
+  local candidate installed
+  # Never treat qt-install as the source: relinking it to itself loops.
+  for candidate in "$SCRIPT_DIR/$QT_VERSION/gcc_64" "$SCRIPT_DIR/$QT_VERSION/linux_gcc_64"; do
     if [[ -x "$candidate/bin/qmake" ]]; then
-      local installed
       installed="$("$candidate/bin/qmake" -query QT_VERSION || true)"
       if [[ "$installed" == "$QT_VERSION" ]]; then
         echo "$candidate"
