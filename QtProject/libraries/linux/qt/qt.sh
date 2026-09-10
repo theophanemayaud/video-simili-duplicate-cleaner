@@ -15,12 +15,25 @@ VENV="$SCRIPT_DIR/.venv"
 
 echo "[qt.sh] Installing Qt $QT_VERSION (tag $QT_TAG)"
 
-if [[ -x "$INSTALL_LINK/bin/qmake" ]]; then
-  installed="$("$INSTALL_LINK/bin/qmake" -query QT_VERSION || true)"
-  if [[ "$installed" == "$QT_VERSION" ]]; then
-    echo "[qt.sh] Qt $QT_VERSION already installed at $INSTALL_LINK"
-    exit 0
-  fi
+resolve_prefix() {
+  local candidate
+  for candidate in "$INSTALL_LINK" "$SCRIPT_DIR/$QT_VERSION/gcc_64" "$SCRIPT_DIR/$QT_VERSION/linux_gcc_64"; do
+    if [[ -x "$candidate/bin/qmake" ]]; then
+      local installed
+      installed="$("$candidate/bin/qmake" -query QT_VERSION || true)"
+      if [[ "$installed" == "$QT_VERSION" ]]; then
+        echo "$candidate"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
+if prefix="$(resolve_prefix)"; then
+  ln -sfn "$prefix" "$INSTALL_LINK"
+  echo "[qt.sh] Qt $QT_VERSION already installed at $INSTALL_LINK"
+  exit 0
 fi
 
 python3 -m venv "$VENV"
@@ -28,10 +41,11 @@ python3 -m venv "$VENV"
 
 arch="$("$VENV/bin/aqt" list-qt linux desktop --arch "$QT_VERSION")"
 echo "[qt.sh] Available architectures: $arch"
-if echo "$arch" | grep -qw linux_gcc_64; then
-  aqt_arch=linux_gcc_64
-elif echo "$arch" | grep -qw gcc_64; then
+# aqt's linux_gcc_64 name still unpacks as gcc_64 on x86_64. Prefer that folder.
+if echo "$arch" | grep -qw gcc_64; then
   aqt_arch=gcc_64
+elif echo "$arch" | grep -qw linux_gcc_64; then
+  aqt_arch=linux_gcc_64
 else
   echo "[qt.sh] Error: no gcc_64 architecture for Qt $QT_VERSION" >&2
   exit 1
@@ -39,9 +53,15 @@ fi
 
 "$VENV/bin/aqt" install-qt linux desktop "$QT_VERSION" "$aqt_arch" -O "$SCRIPT_DIR"
 
-prefix="$SCRIPT_DIR/$QT_VERSION/$aqt_arch"
-if [[ ! -x "$prefix/bin/qmake" ]]; then
-  echo "[qt.sh] Error: qmake missing under $prefix" >&2
+prefix=""
+for candidate in "$SCRIPT_DIR/$QT_VERSION/gcc_64" "$SCRIPT_DIR/$QT_VERSION/linux_gcc_64" "$SCRIPT_DIR/$QT_VERSION/$aqt_arch"; do
+  if [[ -x "$candidate/bin/qmake" ]]; then
+    prefix="$candidate"
+    break
+  fi
+done
+if [[ -z "$prefix" ]]; then
+  echo "[qt.sh] Error: qmake missing under $SCRIPT_DIR/$QT_VERSION" >&2
   exit 1
 fi
 ln -sfn "$prefix" "$INSTALL_LINK"
