@@ -50,11 +50,12 @@ The main development platform is macOS; keep default agent commands on this path
 
 ### Linux (Cloud Agent)
 
-The Cloud Agent environment builds against system Qt 6, OpenCV, and FFmpeg (the `else()`/Unix branch of `QtProject/CMakeLists.txt`) instead of the vendored macOS libraries. Tests run headless via Qt's `offscreen` platform, so no display server is needed.
+The Cloud Agent environment builds against system Qt 6, OpenCV, and FFmpeg (the `else()`/Unix branch of `QtProject/CMakeLists.txt`) instead of the vendored macOS libraries. Use the `debug-linux` CMake preset (Ninja + `g++`); the image's default `c++` is Clang and fails to link libstdc++.
 
 - Configure: `cmake -S QtProject --preset debug-linux`
 - Build: `cmake --build QtProject/builds/build-debug-linux`
 - Run the self-contained CTest baseline (all green on Linux):
  `ctest --test-dir QtProject/builds/build-debug-linux --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
+- Run the app on the Cloud Agent desktop: `QtProject/builds/build-debug-linux/video-simili-duplicate-cleaner`
 - Do not gate Linux runs on `test_repo_video_extraction_regression`: its Nice-video metadata/thumbnail hashes are macOS-specific and mismatch on Linux by design (verify those on macOS). The `repo-fixtures` label includes it, so prefer the explicit baseline above on Linux.
-- The Cloud Agent's `install` step installs the toolchain (`qt6-base-dev`, `qt6-base-dev-tools`, `libqt6sql6-sqlite`, `libopencv-dev`, the FFmpeg `-dev` libraries, `ninja-build`, `pkg-config`, `build-essential`) and warms the baseline test targets.
+- The Cloud Agent `install` only installs apt packages (idempotent). It does not configure or build the project—do that with the commands above after checkout. Packages: `build-essential`, `ninja-build`, `pkg-config`, `qt6-base-dev`, `qt6-base-dev-tools`, `qt6-qpa-plugins`, `libqt6sql6-sqlite`, `libgl1-mesa-dev`, `libxkbcommon-dev`, `libxcb-cursor0`, `libopencv-dev`, and the FFmpeg `-dev` libraries (`libavcodec-dev`, `libavformat-dev`, `libavutil-dev`, `libswscale-dev`, `libswresample-dev`). `cmake` is already on the base image.
