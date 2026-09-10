@@ -24,3 +24,15 @@ build-*/
 
 # vcpkg local files (if vcpkg is cloned in project)
 vcpkg/
+
+# Linux Cloud Agent pinned Qt/OpenCV/FFmpeg installs (same versions as macOS)
+QtProject/libraries/linux/qt/qt-install
+QtProject/libraries/linux/qt/.venv
+QtProject/libraries/linux/qt/6.*
+QtProject/libraries/linux/opencv/opencv-install
+QtProject/libraries/linux/opencv/opencv-source
+QtProject/libraries/linux/opencv/opencv-build
+QtProject/libraries/linux/ffmpeg/ffmpeg-install
+QtProject/libraries/linux/ffmpeg/ffmpeg-source
+QtProject/libraries/linux/ffmpeg/ffmpeg-build
+QtProject/libraries/linux/ffmpeg/libaom-*

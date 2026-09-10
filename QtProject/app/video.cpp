@@ -843,7 +843,7 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame, int presentation
     ffmpeg::SwsContext* img_convert_ctx = ffmpeg::sws_getContext(
         pFrame->width, pFrame->height, (ffmpeg::AVPixelFormat)pFrame->format, pFrame->width, pFrame->height,
         ffmpeg::AV_PIX_FMT_RGB24,
-#ifdef Q_OS_MACOS                               // ffmpeg macos bumped to 8+ but not on windows yet
+#if LIBSWSCALE_VERSION_MAJOR >= 8
         ffmpeg::SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
 #else
         SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???

@@ -66,6 +66,9 @@
     "opencv-macos": "cd ./QtProject/libraries/macos/opencv-arm && ./opencv.sh",
     "ffmpeg-macos": "cd ./QtProject/libraries/macos/ffmpeg && ./ffmpeg.sh",
     "qt-macos": "cd ./QtProject/libraries/macos/qt && ./qt.sh",
+    "qt-linux": "cd ./QtProject/libraries/linux/qt && ./qt.sh",
+    "opencv-linux": "cd ./QtProject/libraries/linux/opencv && ./opencv.sh",
+    "ffmpeg-linux": "cd ./QtProject/libraries/linux/ffmpeg && ./ffmpeg.sh",
     "prepare": "husky"
   },
   "repository": {

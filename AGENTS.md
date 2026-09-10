@@ -50,12 +50,14 @@ The main development platform is macOS; keep default agent commands on this path
 
 ### Linux (Cloud Agent)
 
-The Cloud Agent environment builds against system Qt 6, OpenCV, and FFmpeg (the `else()`/Unix branch of `QtProject/CMakeLists.txt`) instead of the vendored macOS libraries. Use the `debug-linux` CMake preset (Ninja + `g++`); the image's default `c++` is Clang and fails to link libstdc++.
+Linux uses the same version pins as macOS (`package.json` `cpp-dependencies-macos`: Qt, OpenCV, FFmpeg, libaom). `.cursor/environment.json` runs `scripts/cloud-agent-install.sh`, which installs OS packages for the Qt xcb backend and then `qt.sh` / `opencv.sh` / `ffmpeg.sh` under `QtProject/libraries/linux/`. Those scripts are idempotent and skip work when the pinned version is already present. They do not configure or compile the app.
+
+Use the `debug-linux` CMake preset (Ninja + `g++`, `CMAKE_PREFIX_PATH` / `PKG_CONFIG_PATH` pointing at those installs). The image's default `c++` is Clang and fails to link libstdc++.
 
 - Configure: `cmake -S QtProject --preset debug-linux`
 - Build: `cmake --build QtProject/builds/build-debug-linux`
-- Run the self-contained CTest baseline (all green on Linux):
+- Run the self-contained CTest baseline:
  `ctest --test-dir QtProject/builds/build-debug-linux --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
 - Run the app on the Cloud Agent desktop: `QtProject/builds/build-debug-linux/video-simili-duplicate-cleaner`
 - Do not gate Linux runs on `test_repo_video_extraction_regression`: its Nice-video metadata/thumbnail hashes are macOS-specific and mismatch on Linux by design (verify those on macOS). The `repo-fixtures` label includes it, so prefer the explicit baseline above on Linux.
-- The Cloud Agent `install` only installs apt packages (idempotent). It does not configure or build the project—do that with the commands above after checkout. Packages: `build-essential`, `ninja-build`, `pkg-config`, `qt6-base-dev`, `qt6-base-dev-tools`, `qt6-qpa-plugins`, `libqt6sql6-sqlite`, `libgl1-mesa-dev`, `libxkbcommon-dev`, `libxcb-cursor0`, `libopencv-dev`, and the FFmpeg `-dev` libraries (`libavcodec-dev`, `libavformat-dev`, `libavutil-dev`, `libswscale-dev`, `libswresample-dev`). `cmake` is already on the base image.
+- GitHub `linux-local-tests` still uses Ubuntu system packages and a one-off CMake build dir, not this preset.

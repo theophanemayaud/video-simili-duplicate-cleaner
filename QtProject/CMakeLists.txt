@@ -88,7 +88,7 @@ function(target_link_video_processing_dependencies TARGET_NAME)
             ${FFMPEG_LIBRARIES}
         )
     else()
-        message(STATUS "Unix: adding libraries expecting management by system packages")
+        message(STATUS "Unix: OpenCV and FFmpeg via find_package/pkg-config (CMAKE_PREFIX_PATH or system)")
 
         find_package(OpenCV REQUIRED COMPONENTS core imgproc)
         target_link_libraries(${TARGET_NAME} PRIVATE
