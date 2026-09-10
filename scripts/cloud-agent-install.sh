@@ -8,6 +8,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export DEBIAN_FRONTEND=noninteractive
+# Cloud Agent images point /usr/bin/c++ at Clang, which fails to link libstdc++.
+# The debug-linux preset already forces g++ for the app; the dep builds must too.
+export CC="${CC:-gcc}"
+export CXX="${CXX:-g++}"
 
 sudo apt-get update
 sudo apt-get install -y \

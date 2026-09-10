@@ -52,7 +52,7 @@ The main development platform is macOS; keep default agent commands on this path
 
 Linux uses the same version pins as macOS (`package.json` `cpp-dependencies-macos`: Qt, OpenCV, FFmpeg, libaom). `.cursor/environment.json` runs `scripts/cloud-agent-install.sh`, which installs OS packages for the Qt xcb backend and then `qt.sh` / `opencv.sh` / `ffmpeg.sh`. Those scripts install into `$HOME/.local/video-simili-deps` (outside the git checkout so environment snapshots keep them) and skip work when the pinned version is already present. They do not configure or compile the app.
 
-Use the `debug-linux` CMake preset (Ninja + `g++`, `CMAKE_PREFIX_PATH` / `PKG_CONFIG_PATH` pointing at those installs). The image's default `c++` is Clang and fails to link libstdc++.
+Use the `debug-linux` CMake preset (Ninja + `g++`, `CMAKE_PREFIX_PATH` / `PKG_CONFIG_PATH` pointing at those installs). The image's default `c++` is Clang and fails to link libstdc++. The Linux Qt/OpenCV/FFmpeg scripts pin `gcc`/`g++` for the same reason.
 
 - Configure: `cmake -S QtProject --preset debug-linux`
 - Build: `cmake --build QtProject/builds/build-debug-linux`

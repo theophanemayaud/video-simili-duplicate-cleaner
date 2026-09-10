@@ -40,6 +40,8 @@ git -C "$DEPS_ROOT/libaom-source" fetch origin 6d2b7f71b98bfa28e372b1f2d85f13728
 git -C "$DEPS_ROOT/libaom-source" cherry-pick --no-commit 6d2b7f71b98bfa28e372b1f2d85f137280bdb3de
 
 cmake -S "$DEPS_ROOT/libaom-source" -B "$DEPS_ROOT/libaom-build" -G Ninja \
+  -DCMAKE_C_COMPILER="${CC:-gcc}" \
+  -DCMAKE_CXX_COMPILER="${CXX:-g++}" \
   -DCMAKE_INSTALL_PREFIX="$AOM_INSTALL" \
   -DBUILD_SHARED_LIBS=0 \
   -DENABLE_DOCS=0 \
@@ -54,8 +56,12 @@ cmake --install "$DEPS_ROOT/libaom-build"
 git clone "$FFMPEG_REPO_URL" "$DEPS_ROOT/ffmpeg-source" -b "$FFMPEG_VERSION" --depth 1
 mkdir "$DEPS_ROOT/ffmpeg-build"
 cd "$DEPS_ROOT/ffmpeg-build"
+export CC="${CC:-gcc}"
+export CXX="${CXX:-g++}"
 export PKG_CONFIG_PATH="$AOM_INSTALL/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 ../ffmpeg-source/configure \
+  --cc="$CC" \
+  --cxx="$CXX" \
   --prefix="$INSTALL_DIR" \
   --enable-gpl \
   --enable-shared \
