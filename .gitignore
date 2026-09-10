@@ -29,6 +29,7 @@ vcpkg/
 QtProject/libraries/linux/qt/qt-install
 QtProject/libraries/linux/qt/.venv
 QtProject/libraries/linux/qt/6.*
+QtProject/libraries/linux/qt/aqtinstall.log
 QtProject/libraries/linux/opencv/opencv-install
 QtProject/libraries/linux/opencv/opencv-source
 QtProject/libraries/linux/opencv/opencv-build
