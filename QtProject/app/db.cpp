@@ -121,10 +121,14 @@ void Db::createTables(QSqlDatabase db, const QString appVersion)
                               "width INTEGER, "
                               "height INTEGER, "
                               "additional_metadata TEXT, "
-                              "failure TEXT"
+                              "failure TEXT, "
+                              "modified TEXT, "
+                              "birth_time TEXT"
                               ");"));
-    // Existing caches created before failure lived on this row; duplicate-column errors are ignored.
+    // Existing caches created before these columns existed; duplicate-column errors are ignored.
     query.exec(QStringLiteral("ALTER TABLE metadata ADD COLUMN failure TEXT"));
+    query.exec(QStringLiteral("ALTER TABLE metadata ADD COLUMN modified TEXT"));
+    query.exec(QStringLiteral("ALTER TABLE metadata ADD COLUMN birth_time TEXT"));
 
     query.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS "
                               "capture ("
@@ -191,6 +195,11 @@ Db::~Db()
     QSqlDatabase::removeDatabase(_uniqueConnexionName); // clear the connexion backlog, basically... !
 }
 
+namespace
+{
+const QString metadataDateTimeFormat = QStringLiteral("yyyy-MM-dd HH:mm:ss");
+} // namespace
+
 bool Db::readMetadata(Video& video) const
 {
     if (!_db.isOpen()) {
@@ -208,17 +217,16 @@ bool Db::readMetadata(Video& video) const
     }
 
     while (query.next()) {
-        //        video.modified = _modified;
-        video.size = query.value(1).toLongLong();
-        video.duration = query.value(2).toLongLong();
-        video.bitrate = query.value(3).toInt();
-        video.framerate = query.value(4).toDouble();
-        video.codec = query.value(5).toString();
-        video.audio = query.value(6).toString();
-        video.width = static_cast<short>(query.value(7).toInt());
-        video.height = static_cast<short>(query.value(8).toInt());
+        video.size = query.value(QStringLiteral("size")).toLongLong();
+        video.duration = query.value(QStringLiteral("duration")).toLongLong();
+        video.bitrate = query.value(QStringLiteral("bitrate")).toInt();
+        video.framerate = query.value(QStringLiteral("framerate")).toDouble();
+        video.codec = query.value(QStringLiteral("codec")).toString();
+        video.audio = query.value(QStringLiteral("audio")).toString();
+        video.width = static_cast<short>(query.value(QStringLiteral("width")).toInt());
+        video.height = static_cast<short>(query.value(QStringLiteral("height")).toInt());
 
-        QString jsonString = query.value(9).toString();
+        QString jsonString = query.value(QStringLiteral("additional_metadata")).toString();
         QMap<QString, QString> map;
         if (!jsonString.isEmpty()) {
             QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
@@ -229,6 +237,10 @@ bool Db::readMetadata(Video& video) const
         video.meta.additionalMetadata = map;
         video.meta.setRelevantValuesFromAdditionalMetadata();
         video.cachedFailure = query.value(QStringLiteral("failure")).toString();
+        video.modified =
+            QDateTime::fromString(query.value(QStringLiteral("modified")).toString(), metadataDateTimeFormat);
+        video._fileCreateDate =
+            QDateTime::fromString(query.value(QStringLiteral("birth_time")).toString(), metadataDateTimeFormat);
         return true;
     } // TODO : should proooobably delete others if there are multiple results !!! Or produce error !
     return false;
@@ -242,9 +254,12 @@ void Db::writeMetadata(const Video& video) const
     }
 
     QSqlQuery query(_db);
-    query.prepare("INSERT OR REPLACE INTO metadata "
-                  "(id, size, duration, bitrate, framerate, codec, audio, width, height, additional_metadata, failure) "
-                  "VALUES(:id,:size,:duration,:bitrate,:framerate,:codec,:audio,:width,:height,:additional_metadata,:failure);");
+    query.prepare(
+        "INSERT OR REPLACE INTO metadata "
+        "(id, size, duration, bitrate, framerate, codec, audio, width, height, additional_metadata, failure, modified, "
+        "birth_time) "
+        "VALUES(:id,:size,:duration,:bitrate,:framerate,:codec,:audio,:width,:height,:additional_metadata,:failure,"
+        ":modified,:birth_time);");
     query.bindValue(":id", video._filePathName);
     query.bindValue(":size", QVariant::fromValue(static_cast<qlonglong>(video.size)));
     query.bindValue(":duration", QVariant::fromValue(static_cast<qlonglong>(video.duration)));
@@ -261,6 +276,11 @@ void Db::writeMetadata(const Video& video) const
     QString jsonString = QJsonDocument(QJsonObject::fromVariantMap(vmap)).toJson(QJsonDocument::Compact);
     query.bindValue(":additional_metadata", jsonString);
     query.bindValue(":failure", video.cachedFailure);
+    query.bindValue(":modified",
+                    video.modified.isValid() ? video.modified.toString(metadataDateTimeFormat) : QString());
+    query.bindValue(":birth_time", video._fileCreateDate.isValid()
+                                       ? video._fileCreateDate.toString(metadataDateTimeFormat)
+                                       : QString());
     query.exec();
 
     QSqlError error = query.lastError();
@@ -279,9 +299,16 @@ void Db::writeFailure(const QString& filePathname, const QString& failure) const
     }
 
     QSqlQuery query(_db);
-    query.prepare("UPDATE metadata SET failure = :failure WHERE id = :id;");
-    query.bindValue(":failure", failure);
+    query.prepare("DELETE FROM capture WHERE id = :id;");
     query.bindValue(":id", filePathname);
+    query.exec();
+
+    query.prepare("INSERT OR REPLACE INTO metadata "
+                  "(id, size, duration, bitrate, framerate, codec, audio, width, height, additional_metadata, failure, "
+                  "modified, birth_time) "
+                  "VALUES(:id, 0, 0, 0, 0, '', '', 0, 0, '', :failure, '', '');");
+    query.bindValue(":id", filePathname);
+    query.bindValue(":failure", failure);
     query.exec();
 
     QSqlError error = query.lastError();
