@@ -21,6 +21,7 @@ sudo apt-get install -y \
   python3-venv \
   python3-pip \
   p7zip-full \
+  patchelf \
   zlib1g-dev \
   libgl1-mesa-dev \
   libegl1-mesa-dev \

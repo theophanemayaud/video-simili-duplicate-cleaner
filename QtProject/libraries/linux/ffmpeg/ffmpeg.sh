@@ -67,6 +67,18 @@ make -j"$JOBS"
 make install
 cd "$SCRIPT_DIR"
 
+# Shared FFmpeg libs need $ORIGIN so libavcodec can find libswresample without
+# LD_LIBRARY_PATH. Executable RUNPATH is not searched for those transitive deps.
+if ! command -v patchelf >/dev/null 2>&1; then
+  echo "[ffmpeg.sh] Error: patchelf is required to set \$ORIGIN on FFmpeg libraries." >&2
+  exit 1
+fi
+for lib in "$SCRIPT_DIR"/ffmpeg-install/lib/lib*.so*; do
+  if [[ -f "$lib" && ! -L "$lib" ]]; then
+    patchelf --set-rpath '$ORIGIN' "$lib"
+  fi
+done
+
 rm -rf libaom-source libaom-build ffmpeg-source ffmpeg-build
 echo "$FFMPEG_VERSION+$AOM_VERSION" > "$VERSION_FILE"
 
