@@ -46,12 +46,12 @@
             },
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "g++",
-                "CMAKE_PREFIX_PATH": "${sourceDir}/libraries/linux/qt/qt-install;${sourceDir}/libraries/linux/opencv/opencv-install",
-                "CMAKE_BUILD_RPATH": "${sourceDir}/libraries/linux/qt/qt-install/lib;${sourceDir}/libraries/linux/opencv/opencv-install/lib;${sourceDir}/libraries/linux/ffmpeg/ffmpeg-install/lib"
+                "CMAKE_PREFIX_PATH": "$env{HOME}/.local/video-simili-deps/qt-install;$env{HOME}/.local/video-simili-deps/opencv-install",
+                "CMAKE_BUILD_RPATH": "$env{HOME}/.local/video-simili-deps/qt-install/lib;$env{HOME}/.local/video-simili-deps/opencv-install/lib;$env{HOME}/.local/video-simili-deps/ffmpeg-install/lib"
             },
             "environment": {
-                "PATH": "${sourceDir}/libraries/linux/qt/qt-install/bin:$penv{PATH}",
-                "PKG_CONFIG_PATH": "${sourceDir}/libraries/linux/ffmpeg/ffmpeg-install/lib/pkgconfig:$penv{PKG_CONFIG_PATH}"
+                "PATH": "$env{HOME}/.local/video-simili-deps/qt-install/bin:$penv{PATH}",
+                "PKG_CONFIG_PATH": "$env{HOME}/.local/video-simili-deps/ffmpeg-install/lib/pkgconfig:$penv{PKG_CONFIG_PATH}"
             }
         }
     ]
