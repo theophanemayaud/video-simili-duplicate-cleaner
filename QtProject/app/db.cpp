@@ -206,14 +206,7 @@ QString serializeMetadataDateTime(const QDateTime& dateTime)
 
 QDateTime deserializeMetadataDateTime(const QString& text)
 {
-    if (text.isEmpty())
-        return {};
-    QDateTime dateTime = QDateTime::fromString(text, Qt::ISODateWithMs);
-    if (!dateTime.isValid()) {
-        // Rows written by an earlier revision of this PR used second-only local strings.
-        dateTime = QDateTime::fromString(text, QStringLiteral("yyyy-MM-dd HH:mm:ss"));
-    }
-    return dateTime;
+    return text.isEmpty() ? QDateTime{} : QDateTime::fromString(text, Qt::ISODateWithMs);
 }
 } // namespace
 
