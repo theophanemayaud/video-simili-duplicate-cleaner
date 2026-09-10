@@ -1,0 +1,4 @@
+{
+  "name": "video-simili",
+  "install": "./scripts/linux-install.sh"
+}

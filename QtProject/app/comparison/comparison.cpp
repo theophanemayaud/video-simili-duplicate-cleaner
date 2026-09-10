@@ -2,6 +2,7 @@
 
 #include <QAbstractSlider>
 #include <QElapsedTimer>
+#include <QFileInfo>
 #include <QMimeData>
 #include <QProcess> // for opening a file in the platform file manager
 #include <QProgressDialog>
@@ -849,8 +850,10 @@ void Comparison::openFileManager(const QString& filename)
             QProcess::startDetached("open", QStringList() << "-R" << filename);
         }
     }
-#elif defined(Q_OS_X11)
-    QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(filename.left(filename.lastIndexOf("/"))));
+#elif defined(Q_OS_LINUX)
+    // Qt 6 defines Q_OS_LINUX, not Q_OS_X11. Open the containing folder so Linux
+    // desktops can inspect the match from the comparison UI.
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(filename).absolutePath()));
 #endif
 }
 

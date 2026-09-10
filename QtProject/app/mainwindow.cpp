@@ -843,8 +843,10 @@ void MainWindow::on_actionOpen_logs_folder_triggered()
     QProcess::startDetached("explorer", {"/select,", logsFolder.absolutePath()});
 #elif defined(Q_OS_MACOS)
     QProcess::startDetached("open", QStringList() << logsFolder.absolutePath());
-#elif defined(Q_OS_X11)
-    QProcess::startDetached(QStringLiteral("xdg-open \"%1\"").arg(logsFolder.absolutePath()));
+#elif defined(Q_OS_LINUX)
+    // Qt 6 defines Q_OS_LINUX, not Q_OS_X11. QDesktopServices opens the folder in
+    // the desktop file manager without treating a quoted xdg-open string as the program name.
+    QDesktopServices::openUrl(QUrl::fromLocalFile(logsFolder.absolutePath()));
 #endif
 }
 

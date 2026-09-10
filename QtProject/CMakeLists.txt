@@ -88,7 +88,7 @@ function(target_link_video_processing_dependencies TARGET_NAME)
             ${FFMPEG_LIBRARIES}
         )
     else()
-        message(STATUS "Unix: adding libraries expecting management by system packages")
+        message(STATUS "Unix: OpenCV and FFmpeg via find_package/pkg-config (CMAKE_PREFIX_PATH or system)")
 
         find_package(OpenCV REQUIRED COMPONENTS core imgproc)
         target_link_libraries(${TARGET_NAME} PRIVATE
@@ -233,7 +233,9 @@ endif()
 target_compile_definitions(video-simili-duplicate-cleaner PRIVATE
     QT_DISABLE_DEPRECATED_BEFORE=0x060000
     APP_NAME="Video simili duplicate cleaner"
-    APP_COPYRIGHT=${APP_COPYRIGHT}
+    # Quote the value: it contains spaces and the © glyph, which strict compilers
+    # (GCC's AutoMoc predefs step on Linux) reject as bare command-line macro tokens.
+    APP_COPYRIGHT="${APP_COPYRIGHT}"
 )
 
 target_link_video_processing_dependencies(video-simili-duplicate-cleaner)
