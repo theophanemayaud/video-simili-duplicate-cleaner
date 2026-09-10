@@ -10,8 +10,8 @@ cd "$ROOT"
 export DEBIAN_FRONTEND=noninteractive
 # Some Linux images point /usr/bin/c++ at Clang, which fails to link libstdc++.
 # The debug-linux preset already forces g++ for the app; the dep builds must too.
-export CC="${CC:-gcc}"
-export CXX="${CXX:-g++}"
+export CC=gcc
+export CXX=g++
 
 sudo apt-get update
 sudo apt-get install -y \
@@ -44,12 +44,8 @@ sudo apt-get install -y \
   libxcb-shape0-dev \
   libxcb-xinerama0-dev \
   libxcb-xkb-dev \
-  libdbus-1-dev
-
-# cmake is already on many CI/dev images; install it if a host lacks it.
-if ! command -v cmake >/dev/null 2>&1; then
-  sudo apt-get install -y cmake
-fi
+  libdbus-1-dev \
+  cmake
 
 "$ROOT/QtProject/libraries/linux/qt/qt.sh"
 "$ROOT/QtProject/libraries/linux/opencv/opencv.sh"

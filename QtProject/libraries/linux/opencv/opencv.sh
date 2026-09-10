@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-DEPS_ROOT="${VIDEO_SIMILI_LINUX_DEPS:-$HOME/.local/video-simili-deps}"
+DEPS_ROOT="$HOME/.local/video-simili-deps"
 mkdir -p "$DEPS_ROOT"
 
 REPO_URL="$(npm --prefix "$PROJECT_ROOT" pkg get cpp-dependencies-macos.opencv.repo | tr -d '"')"
@@ -51,8 +51,8 @@ rm -rf "$BUILD_DIR" "$INSTALL_DIR" "$SOURCE_DIR"
 git clone "$REPO_URL" -b "$OPENCV_VERSION" --depth 1 "$SOURCE_DIR"
 
 cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja \
-  -DCMAKE_C_COMPILER="${CC:-gcc}" \
-  -DCMAKE_CXX_COMPILER="${CXX:-g++}" \
+  -DCMAKE_C_COMPILER=gcc \
+  -DCMAKE_CXX_COMPILER=g++ \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
   -DBUILD_SHARED_LIBS=OFF \
@@ -71,12 +71,6 @@ cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja \
   -DWITH_PNG=OFF \
   -DWITH_OPENJPEG=OFF \
   -DWITH_JASPER=OFF \
-  -DBUILD_TIFF=OFF \
-  -DBUILD_WEBP=OFF \
-  -DBUILD_OPENEXR=OFF \
-  -DBUILD_JPEG=OFF \
-  -DBUILD_PNG=OFF \
-  -DBUILD_OPENJPEG=OFF \
   -DOPENCV_GENERATE_PKGCONFIG=YES
 
 cmake --build "$BUILD_DIR" --parallel "$(nproc)"

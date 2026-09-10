@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-DEPS_ROOT="${VIDEO_SIMILI_LINUX_DEPS:-$HOME/.local/video-simili-deps}"
+DEPS_ROOT="$HOME/.local/video-simili-deps"
 mkdir -p "$DEPS_ROOT"
 
 dependency_value() {
@@ -40,8 +40,8 @@ git -C "$DEPS_ROOT/libaom-source" fetch origin 6d2b7f71b98bfa28e372b1f2d85f13728
 git -C "$DEPS_ROOT/libaom-source" cherry-pick --no-commit 6d2b7f71b98bfa28e372b1f2d85f137280bdb3de
 
 cmake -S "$DEPS_ROOT/libaom-source" -B "$DEPS_ROOT/libaom-build" -G Ninja \
-  -DCMAKE_C_COMPILER="${CC:-gcc}" \
-  -DCMAKE_CXX_COMPILER="${CXX:-g++}" \
+  -DCMAKE_C_COMPILER=gcc \
+  -DCMAKE_CXX_COMPILER=g++ \
   -DCMAKE_INSTALL_PREFIX="$AOM_INSTALL" \
   -DBUILD_SHARED_LIBS=0 \
   -DENABLE_DOCS=0 \
@@ -56,12 +56,12 @@ cmake --install "$DEPS_ROOT/libaom-build"
 git clone "$FFMPEG_REPO_URL" "$DEPS_ROOT/ffmpeg-source" -b "$FFMPEG_VERSION" --depth 1
 mkdir "$DEPS_ROOT/ffmpeg-build"
 cd "$DEPS_ROOT/ffmpeg-build"
-export CC="${CC:-gcc}"
-export CXX="${CXX:-g++}"
-export PKG_CONFIG_PATH="$AOM_INSTALL/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export CC=gcc
+export CXX=g++
+export PKG_CONFIG_PATH="$AOM_INSTALL/lib/pkgconfig"
 ../ffmpeg-source/configure \
-  --cc="$CC" \
-  --cxx="$CXX" \
+  --cc=gcc \
+  --cxx=g++ \
   --prefix="$INSTALL_DIR" \
   --enable-gpl \
   --enable-shared \
@@ -80,10 +80,6 @@ cd "$DEPS_ROOT"
 
 # Shared FFmpeg libs need $ORIGIN so libavcodec can find libswresample without
 # LD_LIBRARY_PATH. Executable RUNPATH is not searched for those transitive deps.
-if ! command -v patchelf >/dev/null 2>&1; then
-  echo "[ffmpeg.sh] Error: patchelf is required to set \$ORIGIN on FFmpeg libraries." >&2
-  exit 1
-fi
 for lib in "$INSTALL_DIR"/lib/lib*.so*; do
   if [[ -f "$lib" && ! -L "$lib" ]]; then
     patchelf --set-rpath '$ORIGIN' "$lib"
