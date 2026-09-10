@@ -47,3 +47,14 @@ The main development platform is macOS; keep default agent commands on this path
 - Do not run `test_external_large_video_corpus` unless explicitly requested; its active functions require the mounted 100GB folder.
 - Package macOS binaries: `npm run binaries`
 - Rebuild vendored macOS deps only when needed: `npm run qt-macos`, `npm run ffmpeg-macos`, `npm run opencv-macos`
+
+### Linux (Cloud Agent)
+
+The Cloud Agent environment builds against system Qt 6, OpenCV, and FFmpeg (the `else()`/Unix branch of `QtProject/CMakeLists.txt`) instead of the vendored macOS libraries. Tests run headless via Qt's `offscreen` platform, so no display server is needed.
+
+- Configure: `cmake -S QtProject --preset debug-linux`
+- Build: `cmake --build QtProject/builds/build-debug-linux`
+- Run the self-contained CTest baseline (all green on Linux):
+ `ctest --test-dir QtProject/builds/build-debug-linux --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
+- Do not gate Linux runs on `test_repo_video_extraction_regression`: its Nice-video metadata/thumbnail hashes are macOS-specific and mismatch on Linux by design (verify those on macOS). The `repo-fixtures` label includes it, so prefer the explicit baseline above on Linux.
+- The Cloud Agent's `install` step installs the toolchain (`qt6-base-dev`, `qt6-base-dev-tools`, `libqt6sql6-sqlite`, `libopencv-dev`, the FFmpeg `-dev` libraries, `ninja-build`, `pkg-config`, `build-essential`) and warms the baseline test targets.

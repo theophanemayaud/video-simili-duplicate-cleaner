@@ -31,6 +31,22 @@
                 "base-6.10.1-macos",
                 "base-release"
             ]
+        },
+        {
+            "name": "debug-linux",
+            "binaryDir": "${sourceDir}/builds/build-debug-linux",
+            "inherits": [
+                "base-ninja",
+                "base-debug"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+            }
         }
     ]
 }
