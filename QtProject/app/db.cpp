@@ -197,7 +197,24 @@ Db::~Db()
 
 namespace
 {
-const QString metadataDateTimeFormat = QStringLiteral("yyyy-MM-dd HH:mm:ss");
+// ISO-8601 with milliseconds preserves sub-second ordering used by auto-delete comparisons
+// and keeps the original UTC offset from QFileInfo timestamps.
+QString serializeMetadataDateTime(const QDateTime& dateTime)
+{
+    return dateTime.isValid() ? dateTime.toString(Qt::ISODateWithMs) : QString();
+}
+
+QDateTime deserializeMetadataDateTime(const QString& text)
+{
+    if (text.isEmpty())
+        return {};
+    QDateTime dateTime = QDateTime::fromString(text, Qt::ISODateWithMs);
+    if (!dateTime.isValid()) {
+        // Rows written by an earlier revision of this PR used second-only local strings.
+        dateTime = QDateTime::fromString(text, QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    }
+    return dateTime;
+}
 } // namespace
 
 bool Db::readMetadata(Video& video) const
@@ -237,10 +254,8 @@ bool Db::readMetadata(Video& video) const
         video.meta.additionalMetadata = map;
         video.meta.setRelevantValuesFromAdditionalMetadata();
         video.cachedFailure = query.value(QStringLiteral("failure")).toString();
-        video.modified =
-            QDateTime::fromString(query.value(QStringLiteral("modified")).toString(), metadataDateTimeFormat);
-        video._fileCreateDate =
-            QDateTime::fromString(query.value(QStringLiteral("birth_time")).toString(), metadataDateTimeFormat);
+        video.modified = deserializeMetadataDateTime(query.value(QStringLiteral("modified")).toString());
+        video._fileCreateDate = deserializeMetadataDateTime(query.value(QStringLiteral("birth_time")).toString());
         return true;
     } // TODO : should proooobably delete others if there are multiple results !!! Or produce error !
     return false;
@@ -276,11 +291,8 @@ void Db::writeMetadata(const Video& video) const
     QString jsonString = QJsonDocument(QJsonObject::fromVariantMap(vmap)).toJson(QJsonDocument::Compact);
     query.bindValue(":additional_metadata", jsonString);
     query.bindValue(":failure", video.cachedFailure);
-    query.bindValue(":modified",
-                    video.modified.isValid() ? video.modified.toString(metadataDateTimeFormat) : QString());
-    query.bindValue(":birth_time", video._fileCreateDate.isValid()
-                                       ? video._fileCreateDate.toString(metadataDateTimeFormat)
-                                       : QString());
+    query.bindValue(":modified", serializeMetadataDateTime(video.modified));
+    query.bindValue(":birth_time", serializeMetadataDateTime(video._fileCreateDate));
     query.exec();
 
     QSqlError error = query.lastError();

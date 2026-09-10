@@ -84,26 +84,48 @@ Video::ProcessingResult Video::process()
     std::unique_ptr<Db> cache;
     if (_prefs.useCacheOption() != Prefs::NO_CACHE)
         cache = std::make_unique<Db>(_prefs.cacheFilePathName());
+    // CACHE_ONLY must stay read-only: never persist failures or rewrite metadata from that mode.
+    const bool canWriteCache = _prefs.useCacheOption() == Prefs::WITH_CACHE && cache != nullptr;
 
     const QString validationError = validateInput();
     if (!validationError.isEmpty()) {
         result.errorMsg = validationError;
-        if (cache != nullptr)
+        if (canWriteCache)
             cache->writeFailure(_filePathName, validationError);
         return result;
     }
 
-    const bool metadataCached = cache != nullptr && cache->readMetadata(*this);
+    bool metadataCached = cache != nullptr && cache->readMetadata(*this);
     if (metadataCached && !cachedFailure.isEmpty()) {
         result.errorMsg =
             QString("skipped, cache indicated it had failed in a previous scan with: %1").arg(cachedFailure);
         return result;
     }
 
+    if (metadataCached) {
+        const QFileInfo info(_filePathName);
+        const QDateTime liveModified = info.lastModified();
+        // Cached modified/birth_time avoid filesystem stats on warm hits, but a changed file under the same
+        // path must drop stale metadata and captures rather than reuse them for matching or auto-delete.
+        if (modified.isValid() && liveModified.isValid()
+            && modified.toMSecsSinceEpoch() != liveModified.toMSecsSinceEpoch()) {
+            cache->removeVideo(_filePathName);
+            metadataCached = false;
+            modified = {};
+            _fileCreateDate = {};
+            cachedFailure.clear();
+        } else if (!modified.isValid()) {
+            // Legacy rows without dates: use live timestamps without forcing a re-extract.
+            modified = liveModified;
+            if (info.birthTime().isValid())
+                _fileCreateDate = info.birthTime();
+        }
+    }
+
     QString error = processMetadata(metadataCached);
     if (!error.isEmpty()) {
         result.errorMsg = error;
-        if (cache != nullptr)
+        if (canWriteCache)
             cache->writeFailure(_filePathName, error);
         return result;
     }
@@ -111,7 +133,7 @@ Video::ProcessingResult Video::process()
     error = processFrames(cache.get());
     if (!error.isEmpty()) {
         result.errorMsg = error;
-        if (cache != nullptr)
+        if (canWriteCache)
             cache->writeFailure(_filePathName, error);
         return result;
     }
@@ -119,7 +141,7 @@ Video::ProcessingResult Video::process()
     result.success = true;
     // Cache metadata only after a full successful run: duration may still be 0 after metadata extraction
     // and get inferred later while decoding frames, so we wait until both stages finish.
-    if (cache != nullptr && !metadataCached)
+    if (canWriteCache && !metadataCached)
         cache->writeMetadata(*this);
     return result;
 }

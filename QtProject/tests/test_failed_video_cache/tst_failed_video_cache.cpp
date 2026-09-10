@@ -93,6 +93,8 @@ class TestFailedVideoCache : public QObject
     void cleanup();
     void test_processingCachePolicy();
     void test_metadataDatesAreCached();
+    void test_cacheOnlyDoesNotPersistFailures();
+    void test_changedFileInvalidatesCache();
     void test_databaseClearingAndRemoval();
     void test_failureSkipsUntilCacheBypassedOrEmptied();
 };
@@ -205,8 +207,8 @@ void TestFailedVideoCache::test_metadataDatesAreCached()
     const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(Db::emptyAllDb(prefs));
 
-    const QDateTime modified = QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0));
-    const QDateTime birthTime = QDateTime(QDate(2020, 1, 2), QTime(8, 0, 0));
+    const QDateTime modified = QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0, 456));
+    const QDateTime birthTime = QDateTime(QDate(2020, 1, 2), QTime(8, 0, 0, 789));
     {
         Db cache(cachePath);
         Video metadata(prefs, videoPath);
@@ -224,8 +226,73 @@ void TestFailedVideoCache::test_metadataDatesAreCached()
 
     Video loaded(cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds), videoPath);
     QVERIFY(Db(cachePath).readMetadata(loaded));
-    QCOMPARE(loaded.modified, modified);
-    QCOMPARE(loaded._fileCreateDate, birthTime);
+    QCOMPARE(loaded.modified.toMSecsSinceEpoch(), modified.toMSecsSinceEpoch());
+    QCOMPARE(loaded._fileCreateDate.toMSecsSinceEpoch(), birthTime.toMSecsSinceEpoch());
+}
+
+void TestFailedVideoCache::test_cacheOnlyDoesNotPersistFailures()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
+    const QString videoPath = temporary.filePath(QStringLiteral("partial.mp4"));
+    QVERIFY(writeInvalidVideo(videoPath, QByteArrayLiteral("not a video")));
+
+    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(Db::emptyAllDb(prefs));
+    {
+        Db cache(cachePath);
+        writePlausibleMetadata(cache, prefs, videoPath, QFileInfo(videoPath).size());
+    }
+
+    const QString cacheOnlyError = processError(videoPath, cachePath, Prefs::CACHE_ONLY, cutEnds);
+    QVERIFY(cacheOnlyError.contains(QStringLiteral("capture failed")));
+    QVERIFY(cachedFailure(cachePath, videoPath).isEmpty());
+    {
+        Video cached(prefs, videoPath);
+        QVERIFY(Db(cachePath).readMetadata(cached));
+        QCOMPARE(cached.size, QFileInfo(videoPath).size());
+        QCOMPARE(cached.duration, 1000);
+        QCOMPARE(cached.codec, QStringLiteral("test"));
+        QVERIFY(cached.cachedFailure.isEmpty());
+    }
+}
+
+void TestFailedVideoCache::test_changedFileInvalidatesCache()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
+    const QString videoPath = temporary.filePath(QStringLiteral("replaced.mp4"));
+    QVERIFY(writeInvalidVideo(videoPath, QByteArrayLiteral("not a video")));
+
+    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(Db::emptyAllDb(prefs));
+
+    const QDateTime staleModified = QFileInfo(videoPath).lastModified().addSecs(-3600);
+    {
+        Db cache(cachePath);
+        Video metadata(prefs, videoPath);
+        metadata.size = QFileInfo(videoPath).size();
+        metadata.duration = 1000;
+        metadata.bitrate = 100;
+        metadata.framerate = 25;
+        metadata.codec = QStringLiteral("stale");
+        metadata.width = 16;
+        metadata.height = 16;
+        metadata.modified = staleModified;
+        metadata._fileCreateDate = staleModified;
+        cache.writeMetadata(metadata);
+        cache.writeCapture(videoPath, 8, blackCapture());
+    }
+
+    QVERIFY(hasMetadata(cachePath, videoPath));
+    QVERIFY(!Db(cachePath).readCapture(videoPath, 8).isNull());
+
+    const QString error = processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(error.contains(QStringLiteral("could not read metadata")));
+    QCOMPARE(cachedFailure(cachePath, videoPath), error);
+    QVERIFY(Db(cachePath).readCapture(videoPath, 8).isNull());
 }
 
 void TestFailedVideoCache::test_databaseClearingAndRemoval()
