@@ -32,6 +32,9 @@ cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja \
   -DBUILD_PERF_TESTS=OFF \
   -DBUILD_EXAMPLES=OFF \
   -DBUILD_opencv_apps=OFF \
+  -DWITH_PROTOBUF=OFF \
+  -DBUILD_PROTOBUF=OFF \
+  -DWITH_ADE=OFF \
   -DOPENCV_GENERATE_PKGCONFIG=YES
 
 cmake --build "$BUILD_DIR" --parallel "$(nproc)"
