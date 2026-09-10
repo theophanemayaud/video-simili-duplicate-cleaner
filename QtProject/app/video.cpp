@@ -93,31 +93,11 @@ Video::ProcessingResult Video::process()
         return result;
     }
 
-    bool metadataCached = cache != nullptr && cache->readMetadata(*this);
+    const bool metadataCached = cache != nullptr && cache->readMetadata(*this);
     if (metadataCached && !cachedFailure.isEmpty()) {
         result.errorMsg =
             QString("skipped, cache indicated it had failed in a previous scan with: %1").arg(cachedFailure);
         return result;
-    }
-
-    if (metadataCached) {
-        const QFileInfo info(_filePathName);
-        const QDateTime liveModified = info.lastModified();
-        // Cached modified/birth_time avoid filesystem stats on warm hits, but a changed file under the same
-        // path must drop stale metadata and captures rather than reuse them for matching or auto-delete.
-        if (modified.isValid() && liveModified.isValid()
-            && modified.toMSecsSinceEpoch() != liveModified.toMSecsSinceEpoch()) {
-            cache->removeVideo(_filePathName);
-            metadataCached = false;
-            modified = {};
-            _fileCreateDate = {};
-            cachedFailure.clear();
-        } else if (!modified.isValid()) {
-            // Legacy rows without dates: use live timestamps without forcing a re-extract.
-            modified = liveModified;
-            if (info.birthTime().isValid())
-                _fileCreateDate = info.birthTime();
-        }
     }
 
     QString error = processMetadata(metadataCached);
