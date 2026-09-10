@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install the same Qt version macOS builds (package.json cpp-dependencies-macos.qt),
-# as official Linux gcc_64 binaries. Artifacts go under $HOME/.local so Cloud
-# Agent git checkout does not wipe them. Shared Qt is required for xcb plugins.
+# as official Linux gcc_64 binaries. Artifacts go under $HOME/.local so a later
+# git checkout does not wipe them. Shared Qt is required for xcb plugins.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

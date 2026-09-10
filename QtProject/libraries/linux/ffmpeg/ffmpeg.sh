@@ -2,7 +2,7 @@
 # Build FFmpeg + libaom from the same tags macOS uses
 # (package.json cpp-dependencies-macos.ffmpeg / .aom). Shared FFmpeg keeps the
 # Unix CMake pkg-config path unchanged; aom stays static and is linked in.
-# Installs under $HOME/.local so Cloud Agent git checkout does not wipe the prefix.
+# Installs under $HOME/.local so a later git checkout does not wipe the prefix.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

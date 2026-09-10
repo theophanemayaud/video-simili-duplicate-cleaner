@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Idempotent Cloud Agent install: OS packages needed to run Qt, then the same
+# Idempotent Linux install: OS packages needed to run Qt, then the same
 # Qt/OpenCV/FFmpeg versions macOS builds (package.json cpp-dependencies-macos).
 # Does not configure or compile the app; use the debug-linux CMake preset after.
 set -euo pipefail
@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export DEBIAN_FRONTEND=noninteractive
-# Cloud Agent images point /usr/bin/c++ at Clang, which fails to link libstdc++.
+# Some Linux images point /usr/bin/c++ at Clang, which fails to link libstdc++.
 # The debug-linux preset already forces g++ for the app; the dep builds must too.
 export CC="${CC:-gcc}"
 export CXX="${CXX:-g++}"
@@ -46,7 +46,7 @@ sudo apt-get install -y \
   libxcb-xkb-dev \
   libdbus-1-dev
 
-# cmake is already on the Cloud Agent base image; install it if a host lacks it.
+# cmake is already on many CI/dev images; install it if a host lacks it.
 if ! command -v cmake >/dev/null 2>&1; then
   sudo apt-get install -y cmake
 fi

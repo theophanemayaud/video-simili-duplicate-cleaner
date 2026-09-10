@@ -25,7 +25,7 @@ build-*/
 # vcpkg local files (if vcpkg is cloned in project)
 vcpkg/
 
-# Linux Cloud Agent pinned Qt/OpenCV/FFmpeg installs (same versions as macOS)
+# Leftover in-tree Linux Qt/OpenCV/FFmpeg dirs (canonical prefix is ~/.local/video-simili-deps)
 QtProject/libraries/linux/qt/qt-install
 QtProject/libraries/linux/qt/.venv
 QtProject/libraries/linux/qt/6.*

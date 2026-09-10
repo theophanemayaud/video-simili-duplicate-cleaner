@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build OpenCV from the same tag macOS uses (package.json cpp-dependencies-macos.opencv).
-# Installs under $HOME/.local so Cloud Agent git checkout does not wipe the prefix.
+# Installs under $HOME/.local so a later git checkout does not wipe the prefix.
 #
-# Image codecs are off because Cloud Agent desktop images ship libtiff/libwebp/
+# Image codecs are off because some Linux desktop images ship libtiff/libwebp/
 # OpenEXR. OpenCV then exports those 3rdparty targets, but with BUILD_LIST=
 # core,imgproc cmake --install does not copy the archives, so find_package fails.
 set -euo pipefail

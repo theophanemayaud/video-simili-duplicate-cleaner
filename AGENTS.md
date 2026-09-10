@@ -50,7 +50,7 @@ The main development platform is macOS; keep default agent commands on this path
 
 ### Linux
 
-Linux uses the same version pins as macOS (`package.json` `cpp-dependencies-macos`: Qt, OpenCV, FFmpeg, libaom). `./scripts/cloud-agent-install.sh` installs OS packages for the Qt xcb backend and then `qt.sh` / `opencv.sh` / `ffmpeg.sh`. Those scripts install into `$HOME/.local/video-simili-deps` (outside the git checkout so later checkouts do not wipe them) and skip work when the pinned version is already present. They do not configure or compile the app. `.cursor/environment.json` points Cloud Agents at that same script.
+Linux uses the same version pins as macOS (`package.json` `cpp-dependencies-macos`: Qt, OpenCV, FFmpeg, libaom). `./scripts/linux-install.sh` installs OS packages for the Qt xcb backend and then `qt.sh` / `opencv.sh` / `ffmpeg.sh`. Those scripts install into `$HOME/.local/video-simili-deps` (outside the git checkout so later checkouts do not wipe them) and skip work when the pinned version is already present. They do not configure or compile the app. `.cursor/environment.json` runs that same install after checkout.
 
 Use the `debug-linux` CMake preset (Ninja + `g++`, `CMAKE_PREFIX_PATH` / `PKG_CONFIG_PATH` pointing at those installs). On images where `/usr/bin/c++` is Clang, linking libstdc++ fails; the preset and the Linux Qt/OpenCV/FFmpeg scripts pin `gcc`/`g++` for that reason.
 

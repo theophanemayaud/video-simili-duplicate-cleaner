@@ -1,4 +1,4 @@
 {
   "name": "video-simili",
-  "install": "./scripts/cloud-agent-install.sh"
+  "install": "./scripts/linux-install.sh"
 }
