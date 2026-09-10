@@ -850,9 +850,9 @@ void Comparison::openFileManager(const QString& filename)
             QProcess::startDetached("open", QStringList() << "-R" << filename);
         }
     }
-#else
+#elif defined(Q_OS_LINUX)
     // Qt 6 defines Q_OS_LINUX, not Q_OS_X11. Open the containing folder so Linux
-    // Cloud Agent and desktop sessions can inspect the match from the comparison UI.
+    // desktops can inspect the match from the comparison UI.
     QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(filename).absolutePath()));
 #endif
 }
