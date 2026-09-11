@@ -88,6 +88,7 @@ Video::ProcessingResult Video::process()
     const QString validationError = validateInput();
     if (!validationError.isEmpty()) {
         result.errorMsg = validationError;
+        // CACHE_ONLY errors are cache misses, not processing failures: don't persist them.
         if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
             cache->writeFailure(_filePathName, validationError);
         return result;
@@ -103,6 +104,7 @@ Video::ProcessingResult Video::process()
     QString error = processMetadata(metadataCached);
     if (!error.isEmpty()) {
         result.errorMsg = error;
+        // CACHE_ONLY errors are cache misses, not processing failures: don't persist them.
         if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
             cache->writeFailure(_filePathName, error);
         return result;
@@ -111,6 +113,7 @@ Video::ProcessingResult Video::process()
     error = processFrames(cache.get());
     if (!error.isEmpty()) {
         result.errorMsg = error;
+        // CACHE_ONLY errors are cache misses, not processing failures: don't persist them.
         if (_prefs.useCacheOption() == Prefs::WITH_CACHE)
             cache->writeFailure(_filePathName, error);
         return result;
