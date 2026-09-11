@@ -56,7 +56,22 @@ void writePlausibleMetadata(const Db& cache, const Prefs& prefs, const QString& 
     metadata.width = width;
     metadata.height = height;
     metadata.cachedFailure = failure;
+    // Successful rows always carry the modified date, a row without one is a pre-v1.15.0 legacy row.
+    metadata.modified = QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0));
     cache.writeMetadata(metadata);
+}
+
+// Locates the tracked samples so the test can copy a real video into its temporary folder.
+QString sampleVideoPath(const QString& fileName)
+{
+    QString projectRoot = QDir::currentPath();
+    while (!QFileInfo::exists(projectRoot + QStringLiteral("/samples/videos")) && projectRoot != QStringLiteral("/")) {
+        QDir dir(projectRoot);
+        if (!dir.cdUp())
+            break;
+        projectRoot = dir.absolutePath();
+    }
+    return projectRoot + QStringLiteral("/samples/videos/") + fileName;
 }
 
 bool hasMetadata(const QString& cachePath, const QString& path)
@@ -93,6 +108,7 @@ class TestFailedVideoCache : public QObject
     void cleanup();
     void test_processingCachePolicy();
     void test_metadataDatesAreCached();
+    void test_legacyRowWithoutDatesIsRefreshed();
     void test_cacheOnlyDoesNotPersistFailures();
     void test_databaseClearingAndRemoval();
     void test_failureSkipsUntilCacheBypassedOrEmptied();
@@ -227,6 +243,51 @@ void TestFailedVideoCache::test_metadataDatesAreCached()
     QVERIFY(Db(cachePath).readMetadata(loaded));
     QCOMPARE(loaded.modified, modified);
     QCOMPARE(loaded._fileCreateDate, birthTime);
+}
+
+// Pre-v1.15.0 caches have NULL modified/birth_time on every row. Such a row must read as a miss so one WITH_CACHE scan
+// rewrites it with dates, otherwise auto delete by dates would compare invalid QDateTimes. Failure rows keep skipping.
+void TestFailedVideoCache::test_legacyRowWithoutDatesIsRefreshed()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
+    const QString videoPath = temporary.filePath(QStringLiteral("legacy.mp4"));
+    QVERIFY(QFile::copy(sampleVideoPath(QStringLiteral("Nice_383p_500kbps.mp4")), videoPath));
+
+    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(Db::emptyAllDb(prefs));
+    {
+        Db cache(cachePath);
+        Video legacy(prefs, videoPath);
+        legacy.size = QFileInfo(videoPath).size();
+        legacy.duration = 1000;
+        legacy.bitrate = 100;
+        legacy.framerate = 25;
+        legacy.codec = QStringLiteral("legacy");
+        legacy.width = 16;
+        legacy.height = 16;
+        cache.writeMetadata(legacy); // invalid dates are stored empty, like the NULL an ALTER TABLE upgrade leaves
+    }
+    QVERIFY(!hasMetadata(cachePath, videoPath));
+
+    // Cache only has nothing usable until a WITH_CACHE scan has refreshed the row.
+    QVERIFY(processError(videoPath, cachePath, Prefs::CACHE_ONLY, cutEnds)
+                .contains(QStringLiteral("video was not fully cached")));
+
+    QCOMPARE(processError(videoPath, cachePath, Prefs::WITH_CACHE, cutEnds), QString());
+    Video refreshed(prefs, videoPath);
+    QVERIFY(Db(cachePath).readMetadata(refreshed));
+    QVERIFY(refreshed.codec != QStringLiteral("legacy"));
+    QVERIFY(refreshed.duration > 1000);
+    QCOMPARE(refreshed.modified.toSecsSinceEpoch(), QFileInfo(videoPath).lastModified().toSecsSinceEpoch());
+    QCOMPARE(processError(videoPath, cachePath, Prefs::CACHE_ONLY, cutEnds), QString());
+
+    const QString failedPath = temporary.filePath(QStringLiteral("failed.mp4"));
+    QVERIFY(writeInvalidVideo(failedPath, QByteArrayLiteral("not a video")));
+    Db(cachePath).writeFailure(failedPath, QStringLiteral("boom"));
+    QVERIFY(hasMetadata(cachePath, failedPath));
+    QCOMPARE(processError(failedPath, cachePath, Prefs::WITH_CACHE, cutEnds), skippedMessage(QStringLiteral("boom")));
 }
 
 void TestFailedVideoCache::test_cacheOnlyDoesNotPersistFailures()
