@@ -197,7 +197,7 @@ Db::~Db()
 
 namespace
 {
-const QString metadataDateTimeFormat = QStringLiteral("yyyy-MM-dd HH:mm:ss");
+const QString metadataDateTimeFormat = QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz");
 } // namespace
 
 bool Db::readMetadata(Video& video) const
@@ -217,15 +217,15 @@ bool Db::readMetadata(Video& video) const
     }
 
     while (query.next()) {
-        // TEMPORARY, remove a few releases after v1.15.0: caches written by v1.14.0 and earlier have no timestamps,
-        // ALTER TABLE left the modified/birth_time columns NULL on every existing row. Since hits are never rewritten,
-        // those rows would stay dateless forever and auto delete by dates would compare invalid QDateTimes, which Qt
-        // orders before any valid one, making the legacy copy always "earlier". Reporting a miss instead makes the next
-        // WITH_CACHE scan re-read the header and rewrite the row with dates (captures are still read from cache).
-        // Failure rows carry no dates by design and must keep skipping.
-        const bool legacyRowWithoutDates = query.value(QStringLiteral("modified")).toString().isEmpty()
-                                           && query.value(QStringLiteral("failure")).toString().isEmpty();
-        if (legacyRowWithoutDates)
+        // TEMPORARY, remove a few releases after v1.15.0: caches written by v1.14.0 and earlier have no timestamps
+        // (ALTER TABLE left modified/birth_time NULL). Hits are never rewritten, so those rows would stay dateless
+        // forever and auto delete by dates would compare invalid QDateTimes, which Qt orders before any valid one,
+        // making the legacy copy always "earlier". A miss makes the next WITH_CACHE scan re-read the header and
+        // rewrite the row with dates (captures are still read from cache). Failure rows carry no dates by design
+        // and must keep skipping.
+        const QDateTime modified =
+            QDateTime::fromString(query.value(QStringLiteral("modified")).toString(), metadataDateTimeFormat);
+        if (!modified.isValid() && query.value(QStringLiteral("failure")).toString().isEmpty())
             return false;
 
         video.size = query.value(QStringLiteral("size")).toLongLong();
@@ -248,8 +248,7 @@ bool Db::readMetadata(Video& video) const
         video.meta.additionalMetadata = map;
         video.meta.setRelevantValuesFromAdditionalMetadata();
         video.cachedFailure = query.value(QStringLiteral("failure")).toString();
-        video.modified =
-            QDateTime::fromString(query.value(QStringLiteral("modified")).toString(), metadataDateTimeFormat);
+        video.modified = modified;
         video._fileCreateDate =
             QDateTime::fromString(query.value(QStringLiteral("birth_time")).toString(), metadataDateTimeFormat);
         return true;

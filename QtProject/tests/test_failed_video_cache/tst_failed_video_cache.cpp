@@ -109,7 +109,7 @@ class TestFailedVideoCache : public QObject
     void cleanup();
     void test_processingCachePolicy();
     void test_metadataDatesAreCached();
-    void test_liveDatesTruncatedToCachedSecondPrecision();
+    void test_cachedDatesKeepMilliseconds();
     void test_legacyRowWithoutDatesIsRefreshed();
     void test_cacheOnlyDoesNotPersistFailures();
     void test_databaseClearingAndRemoval();
@@ -224,8 +224,8 @@ void TestFailedVideoCache::test_metadataDatesAreCached()
     const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(Db::emptyAllDb(prefs));
 
-    const QDateTime modified = QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0));
-    const QDateTime birthTime = QDateTime(QDate(2020, 1, 2), QTime(8, 0, 0));
+    const QDateTime modified = QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0, 347));
+    const QDateTime birthTime = QDateTime(QDate(2020, 1, 2), QTime(8, 0, 0, 12));
     {
         Db cache(cachePath);
         Video metadata(prefs, videoPath);
@@ -247,10 +247,9 @@ void TestFailedVideoCache::test_metadataDatesAreCached()
     QCOMPARE(loaded._fileCreateDate, birthTime);
 }
 
-// Copies with preserved mtimes share the same second; the cache stores that second only. Live QFileInfo
-// keeps milliseconds, so without truncating at extract time a cache hit is always earlier than a fresh
-// extract of the duplicate and auto trash by dates always prefers the already-cached disk.
-void TestFailedVideoCache::test_liveDatesTruncatedToCachedSecondPrecision()
+// Live QFileInfo keeps milliseconds; the cache must too, otherwise a cache hit compared to a fresh extract of a copy
+// with the same mtime is always earlier and auto trash by dates always prefers the already-cached disk.
+void TestFailedVideoCache::test_cachedDatesKeepMilliseconds()
 {
     QTemporaryDir temporary;
     QVERIFY(temporary.isValid());
@@ -270,10 +269,13 @@ void TestFailedVideoCache::test_liveDatesTruncatedToCachedSecondPrecision()
     QVERIFY(Db::emptyAllDb(prefs));
     Video extracted(prefs, videoPath);
     QCOMPARE(extracted.process().errorMsg, QString());
-    QCOMPARE(extracted.modified.time().msec(), 0);
-    QCOMPARE(extracted.modified, QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0)));
-    QVERIFY(extracted.modified != QFileInfo(videoPath).lastModified());
-    QCOMPARE(extracted.modified.toSecsSinceEpoch(), QFileInfo(videoPath).lastModified().toSecsSinceEpoch());
+    QCOMPARE(extracted.modified.time().msec(), 347);
+    QCOMPARE(extracted.modified, QFileInfo(videoPath).lastModified());
+
+    Video loaded(prefs, videoPath);
+    QVERIFY(Db(cachePath).readMetadata(loaded));
+    QCOMPARE(loaded.modified.time().msec(), 347);
+    QCOMPARE(loaded.modified, extracted.modified);
 }
 
 // Pre-v1.15.0 caches have NULL modified/birth_time on every row. Such a row must read as a miss so one WITH_CACHE scan
