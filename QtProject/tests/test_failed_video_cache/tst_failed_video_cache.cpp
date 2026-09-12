@@ -1,5 +1,6 @@
 #include <QBuffer>
 #include <QFile>
+#include <QFileDevice>
 #include <QFileInfo>
 #include <QImage>
 #include <QTemporaryDir>
@@ -108,6 +109,7 @@ class TestFailedVideoCache : public QObject
     void cleanup();
     void test_processingCachePolicy();
     void test_metadataDatesAreCached();
+    void test_liveDatesTruncatedToCachedSecondPrecision();
     void test_legacyRowWithoutDatesIsRefreshed();
     void test_cacheOnlyDoesNotPersistFailures();
     void test_databaseClearingAndRemoval();
@@ -243,6 +245,35 @@ void TestFailedVideoCache::test_metadataDatesAreCached()
     QVERIFY(Db(cachePath).readMetadata(loaded));
     QCOMPARE(loaded.modified, modified);
     QCOMPARE(loaded._fileCreateDate, birthTime);
+}
+
+// Copies with preserved mtimes share the same second; the cache stores that second only. Live QFileInfo
+// keeps milliseconds, so without truncating at extract time a cache hit is always earlier than a fresh
+// extract of the duplicate and auto trash by dates always prefers the already-cached disk.
+void TestFailedVideoCache::test_liveDatesTruncatedToCachedSecondPrecision()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
+    const QString videoPath = temporary.filePath(QStringLiteral("dated.mp4"));
+    QVERIFY(QFile::copy(sampleVideoPath(QStringLiteral("Nice_383p_500kbps.mp4")), videoPath));
+
+    const QDateTime live = QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0, 347));
+    {
+        QFile file(videoPath);
+        QVERIFY(file.open(QIODevice::ReadWrite));
+        QVERIFY(file.setFileTime(live, QFileDevice::FileModificationTime));
+    }
+    QCOMPARE(QFileInfo(videoPath).lastModified().time().msec(), 347);
+
+    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(Db::emptyAllDb(prefs));
+    Video extracted(prefs, videoPath);
+    QCOMPARE(extracted.process().errorMsg, QString());
+    QCOMPARE(extracted.modified.time().msec(), 0);
+    QCOMPARE(extracted.modified, QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0)));
+    QVERIFY(extracted.modified != QFileInfo(videoPath).lastModified());
+    QCOMPARE(extracted.modified.toSecsSinceEpoch(), QFileInfo(videoPath).lastModified().toSecsSinceEpoch());
 }
 
 // Pre-v1.15.0 caches have NULL modified/birth_time on every row. Such a row must read as a miss so one WITH_CACHE scan

@@ -25,6 +25,17 @@ int normalizedRightAngle(int angle)
     return 0;
 }
 
+// Cache stores modified/birth_time as yyyy-MM-dd HH:mm:ss, so drop sub-second
+// bits from the live QFileInfo values. Otherwise a cache hit (truncated) compared
+// to a fresh extract of a copy with the same mtime (milliseconds kept) is always
+// "earlier", and auto trash by dates systematically prefers the already-cached disk.
+QDateTime atWholeSeconds(QDateTime dt)
+{
+    if (dt.isValid())
+        dt = dt.addMSecs(-dt.time().msec());
+    return dt;
+}
+
 // Display Matrix is the modern representation and takes precedence over the legacy rotate tag.
 // Both describe the same presentation transform, so they must never be applied cumulatively.
 int presentationRotation(const ffmpeg::AVStream* stream)
@@ -301,9 +312,10 @@ const QString Video::getMetadata(const QString& filename)
 
     ffmpeg::avformat_close_input(&fmt_ctx);
 
-    modified = videoFile.lastModified(); // get it at the end so as not to have a date when other infos are empty
+    // get dates at the end so as not to have a date when other infos are empty
+    modified = atWholeSeconds(videoFile.lastModified());
     if (videoFile.birthTime().isValid())
-        _fileCreateDate = videoFile.birthTime();
+        _fileCreateDate = atWholeSeconds(videoFile.birthTime());
 
     return ""; // success !
 }
