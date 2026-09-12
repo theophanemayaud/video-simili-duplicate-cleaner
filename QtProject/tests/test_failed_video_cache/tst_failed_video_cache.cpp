@@ -109,7 +109,6 @@ class TestFailedVideoCache : public QObject
     void cleanup();
     void test_processingCachePolicy();
     void test_metadataDatesAreCached();
-    void test_cachedDatesKeepMilliseconds();
     void test_legacyRowWithoutDatesIsRefreshed();
     void test_cacheOnlyDoesNotPersistFailures();
     void test_databaseClearingAndRemoval();
@@ -247,14 +246,14 @@ void TestFailedVideoCache::test_metadataDatesAreCached()
     QCOMPARE(loaded._fileCreateDate, birthTime);
 }
 
-// Live QFileInfo keeps milliseconds; the cache must too, otherwise a cache hit compared to a fresh extract of a copy
-// with the same mtime is always earlier and auto trash by dates always prefers the already-cached disk.
-void TestFailedVideoCache::test_cachedDatesKeepMilliseconds()
+// Remove with the TEMPORARY dateless-row miss in Db::readMetadata a few releases after v1.15.0.
+// A real video is required so process() can succeed and rewrite the row (junk bytes never get that far).
+void TestFailedVideoCache::test_legacyRowWithoutDatesIsRefreshed()
 {
     QTemporaryDir temporary;
     QVERIFY(temporary.isValid());
     const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
-    const QString videoPath = temporary.filePath(QStringLiteral("dated.mp4"));
+    const QString videoPath = temporary.filePath(QStringLiteral("legacy.mp4"));
     QVERIFY(QFile::copy(sampleVideoPath(QStringLiteral("Nice_383p_500kbps.mp4")), videoPath));
 
     const QDateTime live = QDateTime(QDate(2024, 3, 15), QTime(10, 30, 0, 347));
@@ -264,29 +263,6 @@ void TestFailedVideoCache::test_cachedDatesKeepMilliseconds()
         QVERIFY(file.setFileTime(live, QFileDevice::FileModificationTime));
     }
     QCOMPARE(QFileInfo(videoPath).lastModified().time().msec(), 347);
-
-    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
-    QVERIFY(Db::emptyAllDb(prefs));
-    Video extracted(prefs, videoPath);
-    QCOMPARE(extracted.process().errorMsg, QString());
-    QCOMPARE(extracted.modified.time().msec(), 347);
-    QCOMPARE(extracted.modified, QFileInfo(videoPath).lastModified());
-
-    Video loaded(prefs, videoPath);
-    QVERIFY(Db(cachePath).readMetadata(loaded));
-    QCOMPARE(loaded.modified.time().msec(), 347);
-    QCOMPARE(loaded.modified, extracted.modified);
-}
-
-// Pre-v1.15.0 caches have NULL modified/birth_time on every row. Such a row must read as a miss so one WITH_CACHE scan
-// rewrites it with dates, otherwise auto delete by dates would compare invalid QDateTimes. Failure rows keep skipping.
-void TestFailedVideoCache::test_legacyRowWithoutDatesIsRefreshed()
-{
-    QTemporaryDir temporary;
-    QVERIFY(temporary.isValid());
-    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
-    const QString videoPath = temporary.filePath(QStringLiteral("legacy.mp4"));
-    QVERIFY(QFile::copy(sampleVideoPath(QStringLiteral("Nice_383p_500kbps.mp4")), videoPath));
 
     const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
     QVERIFY(Db::emptyAllDb(prefs));
@@ -313,7 +289,8 @@ void TestFailedVideoCache::test_legacyRowWithoutDatesIsRefreshed()
     QVERIFY(Db(cachePath).readMetadata(refreshed));
     QVERIFY(refreshed.codec != QStringLiteral("legacy"));
     QVERIFY(refreshed.duration > 1000);
-    QCOMPARE(refreshed.modified.toSecsSinceEpoch(), QFileInfo(videoPath).lastModified().toSecsSinceEpoch());
+    QCOMPARE(refreshed.modified.time().msec(), 347);
+    QCOMPARE(refreshed.modified, QFileInfo(videoPath).lastModified());
     QCOMPARE(processError(videoPath, cachePath, Prefs::CACHE_ONLY, cutEnds), QString());
 
     const QString failedPath = temporary.filePath(QStringLiteral("failed.mp4"));
