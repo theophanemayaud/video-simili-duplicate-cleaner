@@ -25,7 +25,7 @@ class TestMainWindow : public QObject
     void test_discoveryCanBeCancelled();
     void test_discoveryCanBeCancelledWhileSkippingNonVideos();
     void test_videoExtensionsMatchRegardlessOfCase();
-    void test_hiddenEntriesAreDiscovered();
+    void test_hiddenEntriesAreSkipped();
     void test_loadVideoExtensionFilters();
     void test_emptyFolderScanLeavesNoSearchingMessage();
 
@@ -137,16 +137,17 @@ void TestMainWindow::test_videoExtensionsMatchRegardlessOfCase()
     QCOMPARE(discoveredVideosIn(_scanRoot->path()), QSet<QString>({shouting, mixed}));
 }
 
-void TestMainWindow::test_hiddenEntriesAreDiscovered()
+// Hidden files and folders are left alone, as the recursive QDirIterator did: a scan of a home folder must not walk
+// into the trash and rediscover what the app itself moved there.
+void TestMainWindow::test_hiddenEntriesAreSkipped()
 {
-    const QString inHiddenDir = createFile(QStringLiteral(".private/cache/video.mp4"));
-    const QString hiddenFile = createFile(QStringLiteral("Movies/.hidden.mov"));
+    QVERIFY(!createFile(QStringLiteral(".private/cache/video.mp4")).isEmpty());
+    QVERIFY(!createFile(QStringLiteral(".Trash/trashed.mp4")).isEmpty());
+    QVERIFY(!createFile(QStringLiteral("Movies/.hidden.mov")).isEmpty());
     const QString normal = createFile(QStringLiteral("Movies/normal.mp4"));
-    QVERIFY(!inHiddenDir.isEmpty());
-    QVERIFY(!hiddenFile.isEmpty());
     QVERIFY(!normal.isEmpty());
 
-    QCOMPARE(discoveredVideosIn(_scanRoot->path()), QSet<QString>({inHiddenDir, hiddenFile, normal}));
+    QCOMPARE(discoveredVideosIn(_scanRoot->path()), QSet<QString>({normal}));
 }
 
 void TestMainWindow::test_loadVideoExtensionFilters()
