@@ -37,6 +37,7 @@ class test_comparison : public QObject
     void cleanupTestCase();
 
     void test_videoToDelete_OnlyTimeDiffs();
+    void test_videoToDelete_RotatedCopyComparesSwappedResolution();
 #ifdef Q_OS_MACOS
     void test_applePhotosNameLookupIsSynchronousAndSessionOnly();
     void test_applePhotosNameLookupReportsRefusedAccess();
@@ -99,41 +100,78 @@ void test_comparison::test_videoToDelete_OnlyTimeDiffs()
     Comparison::AutoDeleteUserSettings userSet(false); // trash later video as is default
 
     //check default case, all exact same so should not be covered in this auto mode
-    const VideoMetadata* vidToDeleteMetaPtr = autoDelConf.videoToDelete(&meta1, &meta2, userSet);
+    const VideoMetadata* vidToDeleteMetaPtr =
+        autoDelConf.videoToDelete(&meta1, &meta2, userSet, FingerprintRotation::none);
     QVERIFY2(vidToDeleteMetaPtr == nullptr, "Vids date metadata same but auto date comparison said they're different");
 
     meta1._fileCreateDate = earlierDate;
     meta2._fileCreateDate = laterDate;
-    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet) == &meta2,
+    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet, FingerprintRotation::none) == &meta2,
              "Should have delete later creation date video but selected ealier");
 
     meta1._fileCreateDate = laterDate;
     meta2._fileCreateDate = earlierDate;
-    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet) == &meta1,
+    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet, FingerprintRotation::none) == &meta1,
              "Should have delete later creation date video but selected ealier");
 
     meta1._fileCreateDate = refDate;
     meta2._fileCreateDate = refDate;
     meta1.modified = earlierDate;
     meta2.modified = laterDate;
-    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet) == &meta2,
+    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet, FingerprintRotation::none) == &meta2,
              "Should have delete later modified date video but selected ealier");
 
     meta1._fileCreateDate = refDate;
     meta2._fileCreateDate = refDate;
     meta1.modified = laterDate;
     meta2.modified = earlierDate;
-    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet) == &meta1,
+    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet, FingerprintRotation::none) == &meta1,
              "Should have delete later modified date video but selected ealier");
 
     meta1._fileCreateDate = earlierDate;
     meta2._fileCreateDate = laterDate;
     meta1.modified = laterDate;
     meta2.modified = earlierDate;
-    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet) == &meta2,
+    QVERIFY2(autoDelConf.videoToDelete(&meta1, &meta2, userSet, FingerprintRotation::none) == &meta2,
              "Later creation date should be deleted but instead later modified date or else was");
 
     // TODO could add more interesting tests with small differences, and check more specifically the outcomes
+}
+
+// A 90/270 rotated copy has swapped width and height, so it is the same resolution only when the rotation the pair
+// matched under is taken into account. Without it the pair must still be rejected, as must a real resolution change.
+void test_comparison::test_videoToDelete_RotatedCopyComparesSwappedResolution()
+{
+    VideoMetadata meta1, meta2;
+    meta1.size = meta2.size = 36 * 10 * 1024;
+    meta1.duration = meta2.duration = 36 * 1000;
+    meta1.framerate = meta2.framerate = 30;
+    meta1.codec = meta2.codec = "hevc";
+    meta1.bitrate = meta2.bitrate = 10 * 1024;
+    meta1.audio = meta2.audio = "aac";
+    meta1._fileCreateDate = QDateTime(QDate(1999, 1, 1), QTime(1, 0, 0));
+    meta2._fileCreateDate = QDateTime(QDate(2001, 1, 1), QTime(1, 0, 0));
+    meta1.width = 1920;
+    meta1.height = 1080;
+    meta2.width = 1080;
+    meta2.height = 1920;
+
+    Comparison::AutoDeleteConfig autoDelConf(Comparison::AUTO_DELETE_ONLY_TIMES_DIFF);
+    Comparison::AutoDeleteUserSettings trashLater(false);
+
+    QVERIFY(autoDelConf.videoToDelete(&meta1, &meta2, trashLater, FingerprintRotation::none) == nullptr);
+    QVERIFY(autoDelConf.videoToDelete(&meta1, &meta2, trashLater, FingerprintRotation::rotated180) == nullptr);
+    QVERIFY(autoDelConf.videoToDelete(&meta1, &meta2, trashLater, FingerprintRotation::clockwise90) == &meta2);
+    QVERIFY(autoDelConf.videoToDelete(&meta1, &meta2, trashLater, FingerprintRotation::counterClockwise90) == &meta2);
+
+    meta2.width = 1080;
+    meta2.height = 1440;
+    QVERIFY(autoDelConf.videoToDelete(&meta1, &meta2, trashLater, FingerprintRotation::clockwise90) == nullptr);
+
+    meta2.width = 1920;
+    meta2.height = 1080;
+    QVERIFY(autoDelConf.videoToDelete(&meta1, &meta2, trashLater, FingerprintRotation::rotated180) == &meta2);
+    QVERIFY(autoDelConf.videoToDelete(&meta1, &meta2, trashLater, FingerprintRotation::clockwise90) == nullptr);
 }
 
 #ifdef Q_OS_MACOS
@@ -273,6 +311,7 @@ void test_comparison::test_videoPairMatcherUsesConfigSnapshot()
     const auto result = VideoPairMatcher::match(left, right, config);
     QVERIFY(result.matches);
     QCOMPARE(result.phashSimilarity, 63);
+    QCOMPARE(result.rotation, FingerprintRotation::none);
 }
 
 void test_comparison::test_ssimUsesEachBlockForMeans()
@@ -319,6 +358,8 @@ void test_comparison::test_rotatedMatcherRequiresSsimSafeguard()
     right.fingerprint(0, FingerprintRotation::clockwise90).ssimPixels = left.fingerprint(0).ssimPixels;
     const VideoPairMatchResult result = VideoPairMatcher::match(left, right, config);
     QVERIFY(result.matches);
+    // Auto trash compares resolutions under this rotation, so the matcher has to report which one matched.
+    QCOMPARE(result.rotation, FingerprintRotation::clockwise90);
 }
 
 void test_comparison::test_rotatedMatcherAppliesDurationModifierToSsimThreshold()
