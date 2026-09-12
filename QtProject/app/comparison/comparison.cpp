@@ -309,6 +309,7 @@ bool Comparison::bothVideosMatch(const Video* left, const Video* right)
     const auto result = VideoPairMatcher::match(*left, *right, VideoPairMatcher::configFromPrefs(_prefs));
     _phashSimilarity = result.phashSimilarity;
     _ssimSimilarity = result.ssimSimilarity;
+    _matchRotation = result.rotation;
     if (!result.matches)
         return false;
     // check if pair is flagged as not dupplicate in DB. DB is very slow so only do this after all checks
@@ -1467,9 +1468,9 @@ void Comparison::on_identicalFilesAutoTrash_clicked()
                     continue;
                 if (_videos[_leftVideo]->duration != _videos[_rightVideo]->duration)
                     continue;
-                if (_videos[_leftVideo]->height != _videos[_rightVideo]->height)
-                    continue;
-                if (_videos[_leftVideo]->width != _videos[_rightVideo]->width)
+                if (!sameResolutionUnderRotation(_videos[_leftVideo]->width, _videos[_leftVideo]->height,
+                                                 _videos[_rightVideo]->width, _videos[_rightVideo]->height,
+                                                 _matchRotation))
                     continue;
                 if (qAbs(_videos[_leftVideo]->bitrate - _videos[_rightVideo]->bitrate)
                     > BITRATE_DIFF_STILL_EQUAL_kbs) //leave some margin due to decoding error
@@ -1584,9 +1585,9 @@ void Comparison::on_autoDelOnlySizeDiffersButton_clicked()
                     > VIDEO_DURATION_STILL_EQUALS_MS) // video durations more than 1 second length difference
                     continue;
                 if (!ui->autoOnlySizeDontCheckResFpsCheckbox->isChecked()) {
-                    if (_videos[_leftVideo]->height != _videos[_rightVideo]->height)
-                        continue;
-                    if (_videos[_leftVideo]->width != _videos[_rightVideo]->width)
+                    if (!sameResolutionUnderRotation(_videos[_leftVideo]->width, _videos[_leftVideo]->height,
+                                                     _videos[_rightVideo]->width, _videos[_rightVideo]->height,
+                                                     _matchRotation))
                         continue;
                     if (qAbs(_videos[_leftVideo]->framerate - _videos[_rightVideo]->framerate)
                         > 0.1) //both framerates more than 0.1 fps different
@@ -1704,7 +1705,7 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
 
                 const VideoMetadata* vidToDeleteMetaPtr = autoDelConfig.videoToDelete(
                     &leftVidMeta, &rightVidMeta,
-                    AutoDeleteUserSettings(ui->radioButton_onlyTimeDiffers_trashEarlier->isChecked()));
+                    AutoDeleteUserSettings(ui->radioButton_onlyTimeDiffers_trashEarlier->isChecked()), _matchRotation);
                 if (vidToDeleteMetaPtr == nullptr) // null means the videos don't match in the auto mode
                     continue;
 
@@ -1778,7 +1779,8 @@ void Comparison::autoDeleteLoopthrough(const AutoDeleteConfig autoDelConfig)
 }
 
 const VideoMetadata* Comparison::AutoDeleteConfig::videoToDelete(const VideoMetadata* meta1, const VideoMetadata* meta2,
-                                                                 const AutoDeleteUserSettings userAutoDelConf) const
+                                                                 const AutoDeleteUserSettings userAutoDelConf,
+                                                                 const FingerprintRotation matchRotation) const
 {
     if (_autoDelConfig == AUTO_DELETE_ONLY_TIMES_DIFF) {
 
@@ -1786,9 +1788,7 @@ const VideoMetadata* Comparison::AutoDeleteConfig::videoToDelete(const VideoMeta
             return nullptr;
         if (qAbs(meta1->duration - meta2->duration) > VIDEO_DURATION_STILL_EQUALS_MS)
             return nullptr;
-        if (meta1->height != meta2->height)
-            return nullptr;
-        if (meta1->width != meta2->width)
+        if (!sameResolutionUnderRotation(meta1->width, meta1->height, meta2->width, meta2->height, matchRotation))
             return nullptr;
         if (qAbs(meta1->bitrate - meta2->bitrate)
             > BITRATE_DIFF_STILL_EQUAL_kbs) //leave some margin due to decoding error

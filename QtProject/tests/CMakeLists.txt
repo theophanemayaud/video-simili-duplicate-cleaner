@@ -100,11 +100,11 @@ add_qt_test(test_mainwindow
     SOURCES test_mainwindow/tst_mainwindow.cpp
 )
 
-# failed-video negative cache uses generated temporary files and no fixture corpus
+# failed-video cache policy; copies a tracked sample when extraction has to succeed
 add_qt_test(test_failed_video_cache
     SOURCES test_failed_video_cache/tst_failed_video_cache.cpp
 )
-set_tests_properties(test_failed_video_cache PROPERTIES RUN_SERIAL TRUE)
+set_tests_properties(test_failed_video_cache PROPERTIES RUN_SERIAL TRUE LABELS "repo-fixtures")
 
 # checked-in fixture cleanup flow
 add_qt_test(test_repo_auto_delete

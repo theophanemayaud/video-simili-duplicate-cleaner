@@ -92,9 +92,10 @@ VideoDiscoveryResult discoverVideos(const QStringList& directories, const QStrin
 
         // One pass per folder. Subdirectories is omitted so a .photoslibrary can be replaced by originals/ instead
         // of walking resources/. Symlinked folders are left alone, which also prevents recursion cycles.
-        // Hidden entries are included, matching master’s default QDir::AllEntries walk, so hidden videos are found and
-        // Stop is observable on hidden non-video entries too.
-        QDirIterator iter(folder, QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
+        // Hidden entries are skipped, as QDir's default filter and the recursive QDirIterator it replaced always did.
+        // That keeps the app out of trash folders (~/.Trash, ~/.local/share/Trash), where it would rediscover the
+        // duplicates it trashed itself and pit them against the copies it kept.
+        QDirIterator iter(folder, QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
         while (iter.hasNext()) {
             const QFileInfo entry = iter.nextFileInfo();
             const bool isDirectory = entry.isDir();

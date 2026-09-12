@@ -16,6 +16,8 @@
 #include <functional>
 #include <memory>
 
+#include "visualfingerprint.h"
+
 #ifdef Q_OS_MACOS
 #include "obj-c.h"
 #endif
@@ -56,6 +58,7 @@ class Comparison : public QDialog
 
     int _phashSimilarity = 0;
     double _ssimSimilarity = 0.0;
+    FingerprintRotation _matchRotation = FingerprintRotation::none; // of the pair bothVideosMatch() last accepted
 
     int _zoomLevel = 0;
     QPixmap _leftZoomed;
@@ -106,8 +109,10 @@ class Comparison : public QDialog
 
         QString getDeleteByText() const;
 
-        const VideoMetadata* videoToDelete(const VideoMetadata*, const VideoMetadata*,
-                                           const AutoDeleteUserSettings) const; //returns null if none should be deleted
+        // Returns null if none should be deleted. matchRotation is the rotation the pair matched under, so a rotated
+        // copy is compared on its swapped resolution rather than rejected for having different raw dimensions.
+        const VideoMetadata* videoToDelete(const VideoMetadata*, const VideoMetadata*, const AutoDeleteUserSettings,
+                                           FingerprintRotation matchRotation) const;
 
       private:
         const AUTO_DELETE_CONFIG _autoDelConfig;
