@@ -1,6 +1,6 @@
 ---
 name: store-release-notes
-description: Format concise, user-facing release notes for app-store submissions.
+description: Format user-facing release notes for stores
 ---
 
 # Store release notes
