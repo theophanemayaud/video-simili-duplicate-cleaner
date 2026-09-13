@@ -862,7 +862,7 @@ QImage Video::getQImageFromFrame(const ffmpeg::AVFrame* pFrame, int presentation
         pFrame->width, pFrame->height, (ffmpeg::AVPixelFormat)pFrame->format, pFrame->width, pFrame->height,
         ffmpeg::AV_PIX_FMT_RGB24,
 #if LIBSWSCALE_VERSION_MAJOR >= 8
-        ffmpeg::SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
+        ffmpeg::swsBicubic, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
 #else
         SWS_BICUBIC, NULL, NULL, NULL); // TODO : could we change to something else than bicubic ???
 #endif
