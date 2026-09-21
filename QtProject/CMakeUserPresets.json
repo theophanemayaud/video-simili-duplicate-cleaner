@@ -13,7 +13,7 @@
                 "base-macos"
             ],
             "environment": {
-                "PATH": "${sourceDir}/libraries/macos/qt/qt-install/bin:$env{HOME}/Qt/Tools/Ninja/:$penv{PATH}"
+                "PATH": "${sourceDir}/libraries/macos/qt/qt-install/bin:$penv{PATH}"
             }
         },
         {
