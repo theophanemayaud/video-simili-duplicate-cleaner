@@ -71,6 +71,16 @@ VideoPairMatchResult scoreFingerprints(const Video& leftVideo, const Video& righ
 }
 } // namespace
 
+bool sameResolutionUnderRotation(const short leftWidth, const short leftHeight, const short rightWidth,
+                                 const short rightHeight, const FingerprintRotation rotation)
+{
+    const bool quarterTurn =
+        rotation == FingerprintRotation::clockwise90 || rotation == FingerprintRotation::counterClockwise90;
+    if (quarterTurn)
+        return leftWidth == rightHeight && leftHeight == rightWidth;
+    return leftWidth == rightWidth && leftHeight == rightHeight;
+}
+
 VideoPairMatchConfig VideoPairMatcher::configFromPrefs(const Prefs& prefs)
 {
     return {prefs.comparisonMode(), prefs.thumbnailsMode(),      prefs._thresholdPhash,
@@ -102,6 +112,7 @@ VideoPairMatchResult VideoPairMatcher::match(const Video& left, const Video& rig
         for (int hashIndex = 0; hashIndex < hashes; ++hashIndex) {
             VideoPairMatchResult rotated = scoreFingerprints(left, right, left.fingerprint(hashIndex),
                                                              right.fingerprint(hashIndex, rotation), config, true);
+            rotated.rotation = rotation;
             if (rotated.phashSimilarity > bestResult.phashSimilarity)
                 bestResult = rotated;
             if (rotated.matches)

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.15.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.14.0...v1.15.0) (2026-09-13)
+
+
+### Features
+
+* **matching:** crop black bars, retry full black frames, and match rotated copies ([#198](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/198)) ([6b63773](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/6b63773e069a1b064521acfa8249045af32f1643))
+
+
+### Bug Fixes
+
+* **comparison:** restore slider after cancelled navigation ([c235b11](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/c235b1123d1938baa1bedb6f76798ed89043d072))
+* **release:** heal dateless cache rows, skip hidden entries, auto trash rotated matches, millisecond timestamps ([7ec6acd](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/7ec6acde617932c0ff5a213c317c554fb531fd79))
+* **scan:** keep directory discovery responsive ([#211](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/211)) ([1c07af9](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/commit/1c07af94a97bee51a48602f5158ac3af12b455a2))
+
 ## [1.14.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.13.4...v1.14.0) (2026-07-24)
 
 

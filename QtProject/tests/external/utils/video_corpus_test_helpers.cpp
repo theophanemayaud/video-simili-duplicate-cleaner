@@ -5,6 +5,7 @@
 #include "../../../app/db.h"
 #include "../../../app/mainwindow.h"
 #include "../../../app/video.h"
+#include "../../../app/videodiscovery.h"
 #include "shared/video_extraction_test_helpers.h"
 
 #include <QCoreApplication>
@@ -205,8 +206,7 @@ void VideoCorpusTestHelpers::runWholeAppScan(const QDir& videoDir, const WholeAp
     if (expectation.cacheOption != Prefs::NO_CACHE) {
         MainWindow warmup;
         warmup.ui->radio_UseCacheYes->click();
-        QDir warmupDir = videoDir;
-        warmup.findVideos(warmupDir);
+        warmup._everyVideo = discoverVideos({videoDir.path()}, warmup._extensionList).videos;
         warmup.processVideos();
         warmup.close();
         QCoreApplication::processEvents();
@@ -230,8 +230,7 @@ void VideoCorpusTestHelpers::runWholeAppScan(const QDir& videoDir, const WholeAp
 
     QElapsedTimer timer;
     timer.start();
-    QDir scanDir = videoDir;
-    window.findVideos(scanDir);
+    window._everyVideo = discoverVideos({videoDir.path()}, window._extensionList).videos;
     window.processVideos();
     Comparison comparison(window._videoList, window._prefs, window.geometry());
     const int matchingVideos = comparison.reportMatchingVideos();

@@ -23,6 +23,7 @@ set(COMMON_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/comparison/internal/ssim.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/mainwindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/prefs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/videodiscovery.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/files.qrc
 )
 
@@ -94,16 +95,16 @@ add_qt_test(test_comparison
     SOURCES test_comparison/tst_test_comparison.cpp
 )
 
-# test_mainwindow (currently empty but structure is there)
+# Test 2: directory discovery and MainWindow async integration
 add_qt_test(test_mainwindow
     SOURCES test_mainwindow/tst_mainwindow.cpp
 )
 
-# failed-video negative cache uses generated temporary files and no fixture corpus
+# failed-video cache policy; copies a tracked sample when extraction has to succeed
 add_qt_test(test_failed_video_cache
     SOURCES test_failed_video_cache/tst_failed_video_cache.cpp
 )
-set_tests_properties(test_failed_video_cache PROPERTIES RUN_SERIAL TRUE)
+set_tests_properties(test_failed_video_cache PROPERTIES RUN_SERIAL TRUE LABELS "repo-fixtures")
 
 # checked-in fixture cleanup flow
 add_qt_test(test_repo_auto_delete

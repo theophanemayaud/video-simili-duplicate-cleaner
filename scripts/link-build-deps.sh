@@ -39,6 +39,9 @@ link_from_main() {
 ignoredTrees="
 node_modules
 QtProject/libraries/macos/qt/qt-install
+QtProject/libraries/linux/qt/qt-install
+QtProject/libraries/linux/opencv/opencv-install
+QtProject/libraries/linux/ffmpeg/ffmpeg-install
 "
 
 for ignoredTree in $ignoredTrees; do
@@ -55,6 +58,15 @@ if [ -d "$macosLibraries" ]; then
 		link_from_main "${archive#"$mainWorktree/"}"
 	done <<-EOF
 		$(find "$macosLibraries" -name '*.a' \( -type f -o -type l \))
+	EOF
+fi
+
+linuxLibraries="$mainWorktree/QtProject/libraries/linux"
+if [ -d "$linuxLibraries" ]; then
+	while IFS= read -r archive; do
+		link_from_main "${archive#"$mainWorktree/"}"
+	done <<-EOF
+		$(find "$linuxLibraries" \( -name '*.a' -o -name '*.so*' \) \( -type f -o -type l \))
 	EOF
 fi
 

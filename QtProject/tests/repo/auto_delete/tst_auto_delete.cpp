@@ -15,6 +15,7 @@
 #include "../../../app/mainwindow.h"
 #include "../../../app/prefs.h"
 #include "../../../app/ui_mainwindow.h"
+#include "../../../app/videodiscovery.h"
 
 class TestAutoDelete : public QObject
 {
@@ -28,6 +29,7 @@ class TestAutoDelete : public QObject
     void test_matchingFeaturePairs_data();
     void test_matchingFeaturePairs();
     void test_keepBiggestMovesLetterboxedCopy();
+    void test_keepBiggestMovesRotatedCopyWithResolutionCheck();
 
   private:
     QString samplesDirPath() const;
@@ -168,8 +170,7 @@ void TestAutoDelete::test_matchingFeaturePairs()
     w._prefs.useCacheOption(Prefs::NO_CACHE);
     w.on_thresholdSlider_valueChanged(90);
     w.ui->detectRotatedCopiesCheckbox->setChecked(detectRotatedCopies);
-    QDir videoDir(testVideosDir.path());
-    w.findVideos(videoDir);
+    w._everyVideo = discoverVideos({testVideosDir.path()}, w._extensionList).videos;
     w.processVideos();
 
     QCOMPARE(w._everyVideo.count(), 2);
@@ -217,8 +218,7 @@ void TestAutoDelete::test_keepBiggestMovesLetterboxedCopy()
     w._prefs.delMode = Prefs::CUSTOM_TRASH;
     w._prefs.customTrashFolder(QDir(trashDir.path()));
     w.on_thresholdSlider_valueChanged(90);
-    QDir videoDir(testVideosDir.path());
-    w.findVideos(videoDir);
+    w._everyVideo = discoverVideos({testVideosDir.path()}, w._extensionList).videos;
     w.processVideos();
 
     QCOMPARE(w._everyVideo.count(), 2);
@@ -238,6 +238,67 @@ void TestAutoDelete::test_keepBiggestMovesLetterboxedCopy()
     QVERIFY2(QFileInfo::exists(trashDir.filePath(originalName)),
              qPrintable(QStringLiteral("Expected video in trash: %1").arg(originalName)));
 
+    w.close();
+    QCoreApplication::processEvents();
+}
+
+// a-rot90.mp4 is a-original.mp4 physically rotated: 160x40 against 40x160. With rotation detection on they match,
+// and the resolution check must compare the rotated copy on its swapped dimensions instead of rejecting the pair.
+void TestAutoDelete::test_keepBiggestMovesRotatedCopyWithResolutionCheck()
+{
+    const QString originalName = QStringLiteral("a-original.mp4");
+    const QString rotatedName = QStringLiteral("a-rot90.mp4");
+    const QString originalSource = matchingFixturePath(originalName);
+    const QString rotatedSource = matchingFixturePath(rotatedName);
+    QVERIFY2(QFileInfo::exists(originalSource), qPrintable(QStringLiteral("Video not found: %1").arg(originalSource)));
+    QVERIFY2(QFileInfo::exists(rotatedSource), qPrintable(QStringLiteral("Video not found: %1").arg(rotatedSource)));
+
+    QTemporaryDir testVideosDir;
+    QVERIFY2(testVideosDir.isValid(), "Could not create temporary video folder");
+    QTemporaryDir trashDir;
+    QVERIFY2(trashDir.isValid(), "Could not create temporary trash folder");
+
+    const QString originalPath = testVideosDir.filePath(originalName);
+    const QString rotatedPath = testVideosDir.filePath(rotatedName);
+    QVERIFY(QFile::copy(originalSource, originalPath));
+    QVERIFY(QFile::copy(rotatedSource, rotatedPath));
+
+    // The fixtures differ by a few hundred bytes only; pad the rotated copy past the 100 KiB "still equal" margin.
+    QFile paddedCopy(rotatedPath);
+    QVERIFY(paddedCopy.open(QIODevice::Append));
+    QCOMPARE(paddedCopy.write(QByteArray(101 * 1024, '\0')), qint64(101 * 1024));
+    paddedCopy.close();
+
+    Prefs prefs;
+    Db::emptyAllDb(prefs);
+
+    MainWindow w;
+    w.show();
+    w._prefs.useCacheOption(Prefs::NO_CACHE);
+    w._prefs.delMode = Prefs::CUSTOM_TRASH;
+    w._prefs.customTrashFolder(QDir(trashDir.path()));
+    w.on_thresholdSlider_valueChanged(90);
+    w.ui->detectRotatedCopiesCheckbox->setChecked(true);
+    w._everyVideo = discoverVideos({testVideosDir.path()}, w._extensionList).videos;
+    w.processVideos();
+
+    QCOMPARE(w._everyVideo.count(), 2);
+    QCOMPARE(w._videoList.count(), 2);
+    Comparison comp(w._videoList, w._prefs, w.geometry());
+    QCOMPARE(comp.reportMatchingVideos(), 1);
+    comp.ui->disableDeleteConfirmationCheckbox->setChecked(true);
+    QVERIFY(!comp.ui->autoOnlySizeDontCheckResFpsCheckbox->isChecked());
+    QVERIFY(comp.ui->radioButton_onlySizeDiffers_keepBiggest->isChecked());
+    acceptMessageBoxesDuring(2, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
+
+    QVERIFY2(!QFileInfo::exists(originalPath),
+             qPrintable(QStringLiteral("Expected moved video: %1").arg(originalPath)));
+    QVERIFY2(QFileInfo::exists(rotatedPath),
+             qPrintable(QStringLiteral("Expected retained video: %1").arg(rotatedPath)));
+    QVERIFY2(QFileInfo::exists(trashDir.filePath(originalName)),
+             qPrintable(QStringLiteral("Expected video in trash: %1").arg(originalName)));
+
+    w.ui->detectRotatedCopiesCheckbox->setChecked(false);
     w.close();
     QCoreApplication::processEvents();
 }
@@ -279,8 +340,7 @@ void TestAutoDelete::runAutoDeleteBySize(const bool keepBiggest) const
     w._prefs.customTrashFolder(QDir(trashDir.path()));
     w.on_thresholdSlider_valueChanged(100);
 
-    QDir videoDir(testVideosDir.path());
-    w.findVideos(videoDir);
+    w._everyVideo = discoverVideos({testVideosDir.path()}, w._extensionList).videos;
     w.processVideos();
 
     QCOMPARE(w._everyVideo.count(), 2);

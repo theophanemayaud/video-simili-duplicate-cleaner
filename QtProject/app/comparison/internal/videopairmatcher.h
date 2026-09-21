@@ -35,7 +35,14 @@ struct VideoPairMatchResult {
     bool matches = false;
     int phashSimilarity = 0;
     double ssimSimilarity = 0.0;
+    // Rotation applied to the right video's fingerprint for this result. Auto trash needs it to compare resolutions:
+    // a 90/270 copy has its width and height swapped, so the raw dimensions never agree even though it is the same video.
+    FingerprintRotation rotation = FingerprintRotation::none;
 };
+
+// Whether two videos have the same resolution once the rotation that matched them is taken into account.
+bool sameResolutionUnderRotation(short leftWidth, short leftHeight, short rightWidth, short rightHeight,
+                                 FingerprintRotation rotation);
 
 struct MatchedVideoPair {
     int left = 0;
