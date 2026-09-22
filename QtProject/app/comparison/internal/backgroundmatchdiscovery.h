@@ -10,16 +10,16 @@
 #include <QVector>
 
 #include <atomic>
+#include <functional>
 #include <memory>
-#include <optional>
 
 class BackgroundMatchDiscovery : public QObject
 {
     Q_OBJECT
+    friend class test_comparison;
 
   public:
-    // Discovery deliberately owns no navigation state. Foreground navigation
-    // may duplicate work beyond preScannedEnd rather than coordinating with workers.
+    // Discovery owns scan state; the comparison browser owns navigation.
     // A positive chunkSize overrides the fixed default, primarily for focused tests.
     explicit BackgroundMatchDiscovery(int chunkSize = 0, int workerCount = 0, QObject* parent = nullptr);
     ~BackgroundMatchDiscovery() override;
@@ -30,9 +30,11 @@ class BackgroundMatchDiscovery : public QObject
     bool hasStarted() const { return _started; }
     int64_t preScannedEnd() const { return _lastContiguousScannedPairPosition; }
     int discoveredMatchCount() const { return _matches.size(); }
-
-    std::optional<MatchedVideoPair> nextCandidateAfter(int64_t position) const;
-    std::optional<MatchedVideoPair> previousCandidateBefore(int64_t position) const;
+    // Visits results only from the completed contiguous prefix. This keeps
+    // consumers from showing later chunks before earlier work is known, while
+    // avoiding a copy of the discovered-match graph for set rebuilding.
+    void forEachSafeMatch(const std::function<void(const MatchedVideoPair&)>& visitor) const;
+    bool isComplete() const { return _started && _lastContiguousScannedPairPosition == _maxPosition; }
 
   signals:
     void preScannedEndChanged(int64_t preScannedEnd);
@@ -60,10 +62,8 @@ class BackgroundMatchDiscovery : public QObject
     // reached the owner thread. Chunks may complete out of order; the leading
     // contiguous set of bits is what advances _lastContiguousScannedPairPosition.
     QBitArray _completedChunks;
-    // Keyed by one-based pair-space position so navigation can efficiently find
-    // the next or previous sparse match. Results from chunks completed out of
-    // order are inserted immediately, so this map may contain matches beyond
-    // _lastContiguousScannedPairPosition; query methods hide those until the contiguous prefix catches up.
+    // Pair-space order keeps set construction deterministic even when worker
+    // chunks complete out of order. Iteration hides results beyond the safe prefix.
     QMap<int64_t, MatchedVideoPair> _matches;
     QVector<QFuture<void>> _workers;
     std::shared_ptr<RunState> _runState;
