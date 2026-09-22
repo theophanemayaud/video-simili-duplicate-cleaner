@@ -60,7 +60,6 @@ class Comparison : public QDialog
     int _rightVideo = 0; // index in the video list, of the currently displayed right video
     int _videosDeleted = 0;
     int64_t _spaceSaved = 0;
-    bool _seekForwards = true;
 
     int _phashSimilarity = 0;
     double _ssimSimilarity = 0.0;
@@ -102,11 +101,7 @@ class Comparison : public QDialog
     void clearManualComparisonDisplay();
     bool hasActiveManualComparison() const;
     const MatchedVideoPair* directEligiblePair(const DuplicateSet& set, int left, int right) const;
-    bool navigateForwardFrom(int64_t currentPosition);
-    bool navigateToNextMatch(int64_t fromPosition);
-    bool navigateToPrevMatch(int64_t fromPosition, int64_t throughPosition);
     bool pairPassesNonCacheFilters(const MatchedVideoPair& pair) const;
-    bool isPairStillDisplayable(const MatchedVideoPair& pair) const;
     void displayMatchedPair(const MatchedVideoPair& pair);
 
     void loadLockedFolderFromPrefs();
@@ -156,7 +151,6 @@ class Comparison : public QDialog
     void dragEnterEvent(QDragEnterEvent* event); // drag and drop for locked folders list
     void dropEvent(QDropEvent* event);
 
-    void confirmToExit();
     void on_prevVideo_clicked();
     void on_nextVideo_clicked();
     bool bothVideosMatch(const Video* left, const Video* right);

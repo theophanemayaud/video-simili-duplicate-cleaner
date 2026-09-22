@@ -289,7 +289,7 @@ void TestAutoDelete::test_keepBiggestMovesRotatedCopyWithResolutionCheck()
     comp.ui->disableDeleteConfirmationCheckbox->setChecked(true);
     QVERIFY(!comp.ui->autoOnlySizeDontCheckResFpsCheckbox->isChecked());
     QVERIFY(comp.ui->radioButton_onlySizeDiffers_keepBiggest->isChecked());
-    acceptMessageBoxesDuring(2, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
+    acceptMessageBoxesDuring(1, [&comp] { comp.on_autoDelOnlySizeDiffersButton_clicked(); });
 
     QVERIFY2(!QFileInfo::exists(originalPath),
              qPrintable(QStringLiteral("Expected moved video: %1").arg(originalPath)));

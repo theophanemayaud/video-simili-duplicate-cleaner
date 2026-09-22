@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Similiar and duplicate video finder</string>
+   <string>Similar and duplicate video finder</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -283,7 +283,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
         </layout>
        </item>
        <item>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,0,0,0,0">
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout">
            <property name="sizeConstraint">
@@ -296,7 +296,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
             <number>0</number>
            </property>
            <item>
-            <layout class="QVBoxLayout" name="verticalLayoutLeftPane">
+            <layout class="QVBoxLayout" name="verticalLayoutLeftPane" stretch="0,1,0,0,0,0,0,0">
              <property name="bottomMargin">
               <number>0</number>
              </property>
@@ -315,7 +315,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
              <item>
               <widget class="ClickableLabel" name="leftImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -323,12 +323,6 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <property name="minimumSize">
                 <size>
                  <width>400</width>
-                 <height>120</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
                  <height>120</height>
                 </size>
                </property>
@@ -780,7 +774,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
             </layout>
            </item>
            <item>
-            <layout class="QVBoxLayout" name="verticalLayoutRightPane">
+            <layout class="QVBoxLayout" name="verticalLayoutRightPane" stretch="0,1,0,0,0,0,0,0">
              <property name="bottomMargin">
               <number>0</number>
              </property>
@@ -799,7 +793,7 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
              <item>
               <widget class="ClickableLabel" name="rightImage" native="true">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -807,12 +801,6 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
                <property name="minimumSize">
                 <size>
                  <width>400</width>
-                 <height>120</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
                  <height>120</height>
                 </size>
                </property>
@@ -1306,6 +1294,9 @@ Ex. VideoA.mp4 and VideoA-2.mp4</string>
            </item>
            <item>
             <widget class="QListWidget" name="duplicateSetMembers">
+             <property name="movement">
+              <enum>QListView::Movement::Static</enum>
+             </property>
              <property name="flow">
               <enum>QListView::Flow::LeftToRight</enum>
              </property>

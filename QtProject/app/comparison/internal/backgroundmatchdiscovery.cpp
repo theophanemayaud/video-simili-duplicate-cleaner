@@ -116,26 +116,6 @@ void BackgroundMatchDiscovery::forEachSafeMatch(const std::function<void(const M
         visitor(it.value());
 }
 
-std::optional<MatchedVideoPair> BackgroundMatchDiscovery::nextCandidateAfter(int64_t position) const
-{
-    const auto candidate = _matches.upperBound(position);
-    if (candidate == _matches.end() || candidate.key() > _lastContiguousScannedPairPosition)
-        return std::nullopt;
-    return candidate.value();
-}
-
-std::optional<MatchedVideoPair> BackgroundMatchDiscovery::previousCandidateBefore(int64_t position) const
-{
-    if (_matches.isEmpty() || _lastContiguousScannedPairPosition < 1)
-        return std::nullopt;
-
-    auto candidate = _matches.lowerBound(qMin(position, _lastContiguousScannedPairPosition + 1));
-    if (candidate == _matches.begin())
-        return std::nullopt;
-    --candidate;
-    return candidate.value();
-}
-
 int BackgroundMatchDiscovery::workerCountForRun(int chunkCount) const
 {
     if (_requestedWorkerCount > 0)

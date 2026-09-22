@@ -73,6 +73,7 @@ class test_comparison : public QObject
     void test_rotatedMatcherRequiresSsimSafeguard();
     void test_rotatedMatcherAppliesDurationModifierToSsimThreshold();
     void test_manualSetBrowserGeometryAtMinimumSize();
+    void test_browserNavigationAndCleanupProgression();
     void test_ignoredPairsLoadNormalized();
     void test_rebuildDuplicateSetsExcludesIgnoredEdge();
     void test_missingSetMemberRebuildsSynchronously();
@@ -579,9 +580,13 @@ void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
     QVERIFY2(bottomAtMinimum(useAsReference) <= topAtMinimum(members),
              "The reference control must stay above the member cards at minimum size.");
 
+    const int minimumPreviewHeight = leftImage->height();
+    comparison._zoomLevel = 2;
     comparison.resize(1228, 768);
     QCoreApplication::processEvents();
     QVERIFY2(previewsFitLabels(), "Displayed preview pixmaps must fit their labels after resizing.");
+    QCOMPARE(comparison._zoomLevel, 0);
+    QVERIFY2(leftImage->height() > minimumPreviewHeight, "Larger windows must give the previews more space.");
 
     auto* metadata = comparison.findChild<QWidget*>(QStringLiteral("textEdit_leftMetadata"));
     auto* evidence = comparison.findChild<QWidget*>(QStringLiteral("duplicateSetEvidence"));
@@ -593,6 +598,117 @@ void test_comparison::test_manualSetBrowserGeometryAtMinimumSize()
     QVERIFY2(bottom(members) <= top(evidence), "Member cards must not overlap their evidence label.");
     QVERIFY2(bottom(evidence) <= top(previous), "Evidence must not overlap the review actions.");
     QVERIFY2(bottom(swap) < bottom(manualTab), "Review actions must remain inside the manual tab.");
+
+    // A resize callback queued for an old pair must not restore its previews
+    // while the set browser is showing the cleared discovery state.
+    comparison.queuePreviewRefresh();
+    comparison.clearDuplicateSets();
+    QCoreApplication::processEvents();
+    QVERIFY(leftImage->pixmap().isNull());
+    QVERIFY(rightImage->pixmap().isNull());
+}
+
+void test_comparison::test_browserNavigationAndCleanupProgression()
+{
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    Prefs prefs;
+    CachePathRestore restoreCachePath(prefs);
+    prefs.cacheFilePathName(fixture.filePath(QStringLiteral("cache.db")));
+    prefs.delMode = Prefs::DIRECT_DELETION;
+    QVERIFY(Db::initDbAndCacheLocation(prefs));
+
+    // Supply discovered matches directly: this exercises reviewing and removing
+    // temporary files, without depending on video extraction or worker timing.
+    std::vector<std::unique_ptr<Video>> ownedVideos;
+    QVector<Video*> videos;
+    for (int index = 0; index < 9; ++index) {
+        const QString path = fixture.filePath(QStringLiteral("video-%1.mp4").arg(index));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        ownedVideos.push_back(std::make_unique<Video>(prefs, path));
+        videos.append(ownedVideos.back().get());
+    }
+
+    Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
+    comparison._backgroundDiscovery->stop();
+    comparison._videos = videos;
+    comparison._backgroundDiscovery->_matches = {
+        {1, MatchedVideoPair{0, 1, 1, 64, 1.0}}, {2, MatchedVideoPair{0, 2, 2, 64, 1.0}},
+        {3, MatchedVideoPair{3, 4, 3, 64, 1.0}}, {4, MatchedVideoPair{5, 6, 4, 64, 1.0}},
+        {5, MatchedVideoPair{7, 8, 5, 64, 1.0}},
+    };
+    markDiscoveryComplete(comparison, 5);
+    comparison.rebuildDuplicateSets();
+    comparison.show();
+    QCoreApplication::processEvents();
+
+    auto* sets = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSets"));
+    auto* members = comparison.findChild<QListWidget*>(QStringLiteral("duplicateSetMembers"));
+    auto* previous = comparison.findChild<QPushButton*>(QStringLiteral("prevVideo"));
+    auto* next = comparison.findChild<QPushButton*>(QStringLiteral("nextVideo"));
+    auto* remove = comparison.findChild<QPushButton*>(QStringLiteral("rightDelete"));
+    auto* ignore = comparison.findChild<QPushButton*>(QStringLiteral("ignoreDuplicatePairButton"));
+    QVERIFY(sets && members && previous && next && remove && ignore);
+    QCOMPARE(comparison._leftVideo, 0);
+    QCOMPARE(comparison._rightVideo, 1);
+    QVERIFY(!previous->isEnabled());
+    QVERIFY(next->isEnabled());
+
+    next->click();
+    QCOMPARE(comparison._rightVideo, 2);
+    next->click();
+    QCOMPARE(comparison._leftVideo, 3);
+    QCOMPARE(comparison._rightVideo, 4);
+    previous->click();
+    QCOMPARE(comparison._leftVideo, 0);
+    QCOMPARE(comparison._rightVideo, 2);
+    previous->click();
+    QCOMPARE(comparison._rightVideo, 1);
+    QVERIFY(!previous->isEnabled());
+
+    QTest::mouseClick(members->viewport(), Qt::LeftButton, Qt::NoModifier,
+                      members->visualItemRect(members->item(2)).center());
+    QCOMPARE(comparison._rightVideo, 2);
+    QTest::mouseClick(sets->viewport(), Qt::LeftButton, Qt::NoModifier, sets->visualItemRect(sets->item(3)).center());
+    QCOMPARE(comparison._leftVideo, 7);
+    QCOMPARE(comparison._rightVideo, 8);
+    QVERIFY(!next->isEnabled());
+    next->click();
+    QCOMPARE(comparison._leftVideo, 7);
+
+    // Removing the active pair in a middle set continues at its next neighbor.
+    previous->click();
+    QCOMPARE(comparison._leftVideo, 5);
+    comparison.findChild<QListWidget*>(QStringLiteral("lockedFolderslistWidget"))->clear();
+    comparison.findChild<QCheckBox*>(QStringLiteral("disableDeleteConfirmationCheckbox"))->setChecked(true);
+    remove->click();
+    QVERIFY(!QFileInfo::exists(videos[6]->_filePathName));
+    QCOMPARE(sets->count(), 3);
+    QCOMPARE(sets->currentRow(), 2);
+    QCOMPARE(comparison._leftVideo, 7);
+    QVERIFY(sets->viewport()->rect().intersects(sets->visualItemRect(sets->currentItem())));
+
+    // Ignoring the last set continues at the preceding set, without wrapping.
+    ignore->click();
+    QCOMPARE(sets->count(), 2);
+    QCOMPARE(sets->currentRow(), 1);
+    QCOMPARE(comparison._leftVideo, 3);
+    QCOMPARE(comparison._rightVideo, 4);
+    QVERIFY(!next->isEnabled());
+    QVERIFY(Db(prefs.cacheFilePathName()).isPairToIgnore(videos[7]->_filePathName, videos[8]->_filePathName));
+
+    // Automatic cleanup owns its pair indices even when a file is already gone.
+    comparison._leftVideo = 7;
+    comparison._rightVideo = 8;
+    comparison.deleteVideo(6, true);
+    QCOMPARE(comparison._leftVideo, 7);
+    QCOMPARE(comparison._rightVideo, 8);
+
+    QSignalSpy status(&comparison, &Comparison::sendStatusMessage);
+    comparison.close();
+    QCOMPARE(status.size(), 1);
+    QVERIFY(status.first().first().toString().contains(QStringLiteral("1 file(s) removed")));
 }
 
 void test_comparison::test_ignoredPairsLoadNormalized()
@@ -962,16 +1078,12 @@ void test_comparison::test_cleanupCompletionDoesNotNavigateForeground()
         }
         Comparison comparison(videos, prefs, QRect(0, 0, 1120, 720));
         comparison._backgroundDiscovery->stop();
-        comparison._seekForwards = false;
         QTabWidget* tabs = comparison.findChild<QTabWidget*>(QStringLiteral("tabWidget"));
         QVERIFY(tabs);
         tabs->setCurrentIndex(1);
 
         comparison.finishAutomaticCleanupRefresh();
 
-        // on_nextVideo_clicked always flips this flag before it can scan or show
-        // confirmToExit, so preserving it proves cleanup only restarted discovery.
-        QVERIFY(!comparison._seekForwards);
         QVERIFY(comparison._backgroundDiscovery->hasStarted());
         QVERIFY(comparison._backgroundDiscovery->isComplete());
         QCOMPARE(tabs->currentIndex(), 1);
@@ -1118,22 +1230,15 @@ void test_comparison::test_backgroundDiscoveryFindsMatchesAndCompletesSafePrefix
     int safeMatchCount = 0;
     int64_t safeMatchPosition = 0;
     discovery.forEachSafeMatch([&safeMatchCount, &safeMatchPosition](const MatchedVideoPair& match) {
+        QCOMPARE(match.left, 0);
+        QCOMPARE(match.right, 3);
         ++safeMatchCount;
         safeMatchPosition = match.position;
     });
     QCOMPARE(safeMatchCount, 1);
     QCOMPARE(safeMatchPosition, 3);
 
-    const auto next = discovery.nextCandidateAfter(0);
-    QVERIFY(next.has_value());
-    QCOMPARE(next->left, 0);
-    QCOMPARE(next->right, 3);
-    QCOMPARE(next->position, 3);
-    QVERIFY(!discovery.nextCandidateAfter(next->position).has_value());
 
-    const auto previous = discovery.previousCandidateBefore(7);
-    QVERIFY(previous.has_value());
-    QCOMPARE(previous->position, 3);
 }
 
 QTEST_MAIN(test_comparison)

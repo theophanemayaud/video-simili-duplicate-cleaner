@@ -64,11 +64,11 @@ Sets are derived from the current scan and rebuilt when matching settings, sort 
 
 ## First-version interaction
 
-The Manual tab becomes a three-level review surface:
+The Manual tab adds a sidebar and a member strip to the existing comparison:
 
 1. A persistent **Duplicate sets** sidebar lists each connected component with a representative thumbnail, member count, and combined size.
 2. Selecting a set populates a compact **member gallery**. The first member in the current sort order is the default reference, selecting item 2 through N replaces the right-hand comparison video, and the user can promote a selected member to become the reference.
-3. The existing side-by-side previews and metadata remain the detailed comparison surface. Previous and Next cycle through members of the selected set rather than through the global pair stream.
+3. The existing side-by-side previews and metadata remain the detailed comparison surface. Previous and Next visit the remaining members, then continue to the adjacent set. They stop at the first and last comparison; a two-video set takes one step to review.
 
 While background discovery is running, the sidebar remains in a disabled **Scanning** state and a read-only progress bar shows the completed and total pair comparisons. It updates from the asynchronous discovery safe prefix and changes to **Pair scan complete** when finished. Automatic cleanup uses the same bar with an **Automatic cleanup** label. Sets appear only after discovery completes, so a family cannot merge, move, or change while the user is reviewing it. A completed library with no matches gets an explicit empty state.
 
@@ -92,7 +92,7 @@ When the reference and selected member were not a direct matching edge, the UI m
 ```
 
 The application remains visually native to Qt/macOS. The first version should favor clear selection states, readable thumbnails, and compact labels over custom decoration.
-The set and member lists use their native arrow-key navigation. Destructive actions remain explicit buttons rather than overloading global arrow shortcuts.
+The previews grow with the window, while the sidebar stays compact and scrollable. The set and member lists use their native arrow-key navigation. Destructive actions remain explicit buttons rather than overloading global arrow shortcuts.
 
 ## Architecture
 
@@ -102,17 +102,17 @@ A small UI-independent helper consumes the video count and discovered `MatchedVi
 
 ### Background discovery
 
-`BackgroundMatchDiscovery` remains the authority for the asynchronous scan. It exposes a read-only snapshot containing only matches in the safe contiguous prefix and a completion state derived from `preScannedEnd == maxPosition`. Out-of-order chunks beyond that prefix remain hidden, preserving the progress guarantee already used by pair navigation.
+`BackgroundMatchDiscovery` remains the authority for the asynchronous scan. It exposes read-only iteration over matches in the safe contiguous prefix and a completion state derived from `preScannedEnd == maxPosition`. Out-of-order chunks beyond that prefix remain hidden, preserving the progress guarantee already used by pair navigation.
 
 ### Comparison dialog
 
-`Comparison` owns only derived set/member indexes for the current discovery generation. Once discovery completes, it builds the sidebar from the safe match snapshot, preserves the selected set when explicit mutations rebuild the result, and sends an explicit selected pair to the existing display method. Existing file safety checks remain in `deleteVideo`; this PR does not create a second deletion path.
+`Comparison` owns only derived set/member indexes for the current discovery generation. Once discovery completes, it builds the sidebar by iterating the safe matches, preserves the selected set when explicit mutations rebuild the result, and sends an explicit selected pair to the existing display method. Existing file safety checks remain in `deleteVideo`; this PR does not create a second deletion path.
 
 ## Safety and edge cases
 
 - Deleted, missing, protected, or ignored videos/pairs must not silently bypass existing safeguards.
 - Ignoring an edge can split a connected component, so sets are rebuilt from eligible edges rather than mutated in place.
-- Deleting a video removes it from the next rebuild; a component that falls to one member disappears.
+- Deleting a video removes it from the next rebuild; a component that falls to one member disappears. Keep the active family when it survives; otherwise select the nearest remaining row instead of jumping to the beginning.
 - Before displaying or promoting a member, the dialog checks that every member in the active set still exists and is not trashed. If the set is stale, it rebuilds synchronously from the completed discovery result.
 - Sort and matching-setting changes restart discovery and clear derived set state before accepting new results.
 - A low-confidence bridge can create a larger transitive component. The UI calls these linked sets and retains pair-specific evidence instead of implying clique semantics.
@@ -123,7 +123,8 @@ A small UI-independent helper consumes the video count and discovered `MatchedVi
 Automated coverage:
 
 - duplicate-set builder: pair, chain, triangle, disjoint components, duplicate edges, and deterministic ordering;
-- background discovery: safe-prefix match snapshots and completed scan state;
+- background discovery: safe-prefix match iteration and completed scan state;
+- browser navigation across sets, selection after Ignore/delete, and cleared previews while rescanning;
 - existing comparison and cleanup regression tests.
 
 Manual acceptance:
@@ -131,7 +132,7 @@ Manual acceptance:
 1. Open a scan containing at least one two-video set and one three-or-more-video set.
 2. Confirm the sidebar counts and representative thumbnails.
 3. Select a set and click every member; the reference remains stable and the right preview/metadata changes.
-4. Use Previous and Next to cycle only within that set.
+4. Use Previous and Next to visit members and cross set boundaries. Confirm both global endpoints disable the corresponding button.
 5. Ignore a direct pair and confirm the affected set updates or splits.
 6. Trash a member and confirm it disappears while the existing trash destination and confirmations are respected.
 7. Change sort order, threshold, and pHash/SSIM mode; stale sets must clear and the new scan must repopulate them.
