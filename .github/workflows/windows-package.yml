@@ -61,7 +61,8 @@ jobs:
         run: New-Item -ItemType Directory -Path $env:VCPKG_DEFAULT_BINARY_CACHE -Force | Out-Null
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}\vcpkg-binary-cache
           # Keep the primary key independent of branch/ref. The restore prefix
@@ -70,6 +71,7 @@ jobs:
           key: windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('QtProject/vcpkg.json', 'QtProject/CMakePresets.json', 'QtProject/vcpkg-triplets/**') }}
           restore-keys: |
             windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-
+            windows-vcpkg-
 
       - name: Install vcpkg
         shell: pwsh
@@ -119,6 +121,37 @@ jobs:
         env:
           BUILD_SCRIPT: ${{ matrix.build-script }}
         run: npm run $env:BUILD_SCRIPT
+
+      # Save expensive dependency builds before tests, so a test failure does not
+      # discard hours of build work. ABI-keyed archives can share host tools across architectures.
+      - name: Save vcpkg binary cache
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}\vcpkg-binary-cache
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
+
+      # The reported crash is a Windows x64 FFmpeg assertion. Exercise the supplied
+      # file against the same static dependencies used by the release package.
+      - name: Build and run self-contained tests (x64)
+        if: matrix.architecture == 'x64'
+        shell: pwsh
+        env:
+          QT_LOGGING_TO_CONSOLE: 1
+        run: |
+          cmake --build QtProject/release-build/windows/build --config Release --parallel $env:NUMBER_OF_PROCESSORS --target test_comparison test_mainwindow test_failed_video_cache test_repo_auto_delete test_repo_video_matching
+          if ($LASTEXITCODE -ne 0) { throw "Self-contained test build failed" }
+          ctest --test-dir QtProject/release-build/windows/build -C Release --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"
+          if ($LASTEXITCODE -ne 0) { throw "Self-contained tests failed" }
+
+      - name: Upload test diagnostics (x64)
+        if: always() && matrix.architecture == 'x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-diagnostics-x64
+          path: QtProject/release-build/windows/build/Testing/Temporary/*.log
+          if-no-files-found: ignore
+          retention-days: 2
 
       - name: Collect MSIX
         shell: pwsh

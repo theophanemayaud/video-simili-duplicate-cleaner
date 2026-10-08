@@ -33,14 +33,16 @@ if(APPLE)
     )
 endif()
 
-# Prefer Qt's offscreen platform so widget tests do not depend on a window server.
+# Static Qt must import the requested platform plugin on every platform. Without
+# offscreen on Windows, Qt can show a fatal startup dialog and CTest just times out.
 set(TEST_QPA_PLATFORM "offscreen")
-if(APPLE)
-    if(TARGET Qt6::QOffscreenIntegrationPlugin)
-        set(TEST_PLATFORM_PLUGIN Qt6::QOffscreenIntegrationPlugin)
-    else()
-        set(TEST_QPA_PLATFORM "cocoa")
-    endif()
+if(TARGET Qt6::QOffscreenIntegrationPlugin)
+    set(TEST_PLATFORM_PLUGIN Qt6::QOffscreenIntegrationPlugin)
+elseif(APPLE)
+    set(TEST_QPA_PLATFORM "cocoa")
+elseif(WIN32)
+    set(TEST_QPA_PLATFORM "windows")
+    set(TEST_PLATFORM_PLUGIN Qt6::QWindowsIntegrationPlugin)
 endif()
 
 # Function to create a test executable

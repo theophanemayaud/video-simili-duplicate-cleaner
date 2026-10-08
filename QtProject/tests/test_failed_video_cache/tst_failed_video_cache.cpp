@@ -107,6 +107,9 @@ class TestFailedVideoCache : public QObject
   private slots:
     void init();
     void cleanup();
+    void test_audioCoverIsNotVideo();
+    void test_audioCoverCachedMetadata();
+    void test_videoWithCoverStillProcesses();
     void test_processingCachePolicy();
     void test_metadataDatesAreCached();
     void test_legacyRowWithoutDatesIsRefreshed();
@@ -123,6 +126,58 @@ void TestFailedVideoCache::init()
 void TestFailedVideoCache::cleanup()
 {
     Prefs().resetSettings();
+}
+
+// Issue #220: FFmpeg exposes Ogg cover art as MJPEG video, but seeking it can abort the process.
+void TestFailedVideoCache::test_audioCoverIsNotVideo()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString path = sampleVideoPath(QStringLiteral("issue-220-audio-cover.ogg"));
+    QVERIFY(QFileInfo::exists(path));
+    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
+    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(Db::emptyAllDb(prefs));
+
+    const QString error = processError(path, cachePath, Prefs::NO_CACHE, cutEnds);
+    QVERIFY(error.contains(QStringLiteral("video stream")));
+    QCOMPARE(processError(path, cachePath, Prefs::WITH_CACHE, cutEnds), error);
+    QCOMPARE(cachedFailure(cachePath, path), error);
+    QCOMPARE(processError(path, cachePath, Prefs::WITH_CACHE, cutEnds), skippedMessage(error));
+}
+
+void TestFailedVideoCache::test_audioCoverCachedMetadata()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const QString path = sampleVideoPath(QStringLiteral("issue-220-audio-cover.ogg"));
+    QVERIFY(QFileInfo::exists(path));
+    const QString cachePath = temporary.filePath(QStringLiteral("cache.sqlite"));
+    const Prefs prefs = cachePrefs(cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(Db::emptyAllDb(prefs));
+    {
+        Db cache(cachePath);
+        writePlausibleMetadata(cache, prefs, path, QFileInfo(path).size(), {}, 64, 64);
+    }
+    // Old or partial cache entries bypass getMetadata(), so capture must also reject cover art.
+    QVERIFY(processError(path, cachePath, Prefs::CACHE_ONLY, cutEnds).contains(QStringLiteral("capture failed")));
+    QVERIFY(cachedFailure(cachePath, path).isEmpty());
+    const QString error = processError(path, cachePath, Prefs::WITH_CACHE, cutEnds);
+    QVERIFY(error.contains(QStringLiteral("capture failed")));
+    QCOMPARE(cachedFailure(cachePath, path), error);
+}
+
+void TestFailedVideoCache::test_videoWithCoverStillProcesses()
+{
+    QTemporaryDir temporary;
+    QVERIFY(temporary.isValid());
+    const Prefs prefs = cachePrefs(temporary.filePath(QStringLiteral("cache.sqlite")), Prefs::NO_CACHE, thumb1);
+    Video video(prefs, sampleVideoPath(QStringLiteral("issue-220-video-cover.mp4")));
+    const auto result = video.process();
+    QVERIFY2(result.success, qPrintable(result.errorMsg));
+    QCOMPARE(video.codec, QStringLiteral("h264"));
+    QCOMPARE(video.width, short(680));
+    QCOMPARE(video.height, short(382));
 }
 
 void TestFailedVideoCache::test_processingCachePolicy()
