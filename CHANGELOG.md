@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.15.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.0...v1.15.1) (2026-10-08)
+
+### Bug Fixes
+
+* **video:** skip embedded cover art and thumbnail streams instead of seeking them as video, preventing a scan crash with Ogg audio files ([#220](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/issues/220)).
+
 ## [1.15.0](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.14.0...v1.15.0) (2026-09-13)
 
 
