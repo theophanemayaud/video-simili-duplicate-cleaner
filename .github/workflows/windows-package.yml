@@ -2,6 +2,14 @@ name: Windows package
 
 # CI publishes unsigned packages; local disposable-VM instructions handle test signing.
 on:
+  pull_request:
+    paths:
+      - 'QtProject/**'
+      - 'samples/videos/**'
+      - '.github/workflows/windows-package.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'update-plist-version.js'
   workflow_dispatch:
 
 permissions:
