@@ -17,7 +17,7 @@ jobs:
     # The stable VS2022 image can cross-build ARM64 and build x64 without
     # depending on the public-preview Windows ARM runner.
     runs-on: windows-2022
-    timeout-minutes: 180
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -117,6 +117,9 @@ jobs:
           $makeAppx.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Build MSIX
+        id: build-msix
+        # Leave time for saving partial dependencies and running tests even on a cold build.
+        timeout-minutes: 300
         shell: pwsh
         env:
           BUILD_SCRIPT: ${{ matrix.build-script }}
@@ -125,11 +128,12 @@ jobs:
       # Save expensive dependency builds before tests, so a test failure does not
       # discard hours of build work. ABI-keyed archives can share host tools across architectures.
       - name: Save vcpkg binary cache
-        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}\vcpkg-binary-cache
-          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
+          # A partial cache must not occupy the immutable key used for a completed build.
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}${{ steps.build-msix.outcome != 'success' && format('-partial-{0}', github.run_id) || '' }}
 
       # The reported crash is a Windows x64 FFmpeg assertion. Exercise the supplied
       # file against the same static dependencies used by the release package.
