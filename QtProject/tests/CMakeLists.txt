@@ -33,16 +33,17 @@ if(APPLE)
     )
 endif()
 
-# Static Qt must import the requested platform plugin on every platform. Without
-# offscreen on Windows, Qt can show a fatal startup dialog and CTest just times out.
+# Use the same native platform as the shipped Windows app. vcpkg's static Qt
+# advertises offscreen but its exported init object is absent, so explicitly
+# importing it fails at link time. Qt imports the native Windows plugin by default.
+# Other platforms prefer offscreen to avoid depending on a window server.
 set(TEST_QPA_PLATFORM "offscreen")
-if(TARGET Qt6::QOffscreenIntegrationPlugin)
+if(WIN32)
+    set(TEST_QPA_PLATFORM "windows")
+elseif(TARGET Qt6::QOffscreenIntegrationPlugin)
     set(TEST_PLATFORM_PLUGIN Qt6::QOffscreenIntegrationPlugin)
 elseif(APPLE)
     set(TEST_QPA_PLATFORM "cocoa")
-elseif(WIN32)
-    set(TEST_QPA_PLATFORM "windows")
-    set(TEST_PLATFORM_PLUGIN Qt6::QWindowsIntegrationPlugin)
 endif()
 
 # Function to create a test executable
