@@ -34,9 +34,7 @@ jobs:
             makeappx_architecture: x64
             artifact: Video simili duplicate cleaner.x64.msix
     env:
-      VCPKG_DISABLE_METRICS: 1
       MAKEAPPX_ARCHITECTURE: ${{ matrix.makeappx_architecture }}
-      VCPKG_COMMIT: 12ae26a216f4c922a8189ed5c691bdb3f8bab686
 
     steps:
       - name: Check out source
@@ -51,112 +49,29 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts
 
-      - name: Set vcpkg paths
-        shell: pwsh
-        run: |
-          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Prepare vcpkg binary cache
-        shell: pwsh
-        run: New-Item -ItemType Directory -Path $env:VCPKG_DEFAULT_BINARY_CACHE -Force | Out-Null
-
-      - name: Restore vcpkg binary cache
-        id: vcpkg-cache
-        uses: actions/cache/restore@v4
+      - name: Set up Windows dependencies
+        uses: ./.github/actions/setup-windows-deps
+        timeout-minutes: 300
         with:
-          path: ${{ runner.temp }}\vcpkg-binary-cache
-          # Keep the primary key independent of branch/ref. The restore prefix
-          # searches for any reachable cache for this architecture and vcpkg
-          # revision, while vcpkg's ABI keys separate incompatible builds.
-          key: windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('QtProject/vcpkg.json', 'QtProject/CMakePresets.json', 'QtProject/vcpkg-triplets/**') }}
-          restore-keys: |
-            windows-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_COMMIT }}-
-            windows-vcpkg-
+          architecture: ${{ matrix.architecture }}
+          build-directory: QtProject/release-build/windows/build
 
-      - name: Install vcpkg
+      - name: Find MakeAppx
         shell: pwsh
         run: |
-          # Keep the port history local so manifest resolution does not depend on
-          # a later promisor fetch while the build is already running.
-          git clone --no-filter https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
-          # This commit has the manifest's Qt/FFmpeg versions and the NASM
-          # version supported by the current AOM port.
-          git -C "$env:VCPKG_ROOT" checkout $env:VCPKG_COMMIT
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
-
-      - name: Verify Visual Studio toolchains
-        shell: pwsh
-        env:
-          TARGET_ARCHITECTURE: ${{ matrix.architecture }}
-        run: |
-          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-          if (-not (Test-Path $vswhere)) {
-            throw "vswhere.exe was not found on the Windows runner"
-          }
-
-          $requiredComponent = if ($env:TARGET_ARCHITECTURE -eq "arm64") {
-            "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
-          } else {
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
-          }
-          $installationPath = & $vswhere -latest -products * -requires $requiredComponent -property installationPath
-          if (-not $installationPath) {
-            throw "The Visual Studio C++ toolchain for $env:TARGET_ARCHITECTURE is not installed"
-          }
-
-          Write-Host "Using Visual Studio at $installationPath"
-
           $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse |
             Where-Object { $_.Directory.Name -eq $env:MAKEAPPX_ARCHITECTURE } |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
-          if (-not $makeAppx) {
-            throw "MakeAppx.exe was not found on the Windows runner"
-          }
-
+          if (-not $makeAppx) { throw "MakeAppx.exe was not found on the Windows runner" }
           $makeAppx.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Build MSIX
-        id: build-msix
-        # Leave time for saving partial dependencies and running tests even on a cold build.
-        timeout-minutes: 300
+        timeout-minutes: 30
         shell: pwsh
         env:
           BUILD_SCRIPT: ${{ matrix.build-script }}
         run: npm run $env:BUILD_SCRIPT
-
-      # Save expensive dependency builds before tests, so a test failure does not
-      # discard hours of build work. ABI-keyed archives can share host tools across architectures.
-      - name: Save vcpkg binary cache
-        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ runner.temp }}\vcpkg-binary-cache
-          # A partial cache must not occupy the immutable key used for a completed build.
-          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}${{ steps.build-msix.outcome != 'success' && format('-partial-{0}', github.run_id) || '' }}
-
-      # The reported crash is a Windows x64 FFmpeg assertion. Exercise the supplied
-      # file against the same static dependencies used by the release package.
-      - name: Build and run self-contained tests (x64)
-        if: matrix.architecture == 'x64'
-        shell: pwsh
-        env:
-          QT_LOGGING_TO_CONSOLE: 1
-        run: |
-          cmake --build QtProject/release-build/windows/build --config Release --parallel $env:NUMBER_OF_PROCESSORS --target test_comparison test_mainwindow test_failed_video_cache test_repo_auto_delete test_repo_video_matching
-          if ($LASTEXITCODE -ne 0) { throw "Self-contained test build failed" }
-          ctest --test-dir QtProject/release-build/windows/build -C Release --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"
-          if ($LASTEXITCODE -ne 0) { throw "Self-contained tests failed" }
-
-      - name: Upload test diagnostics (x64)
-        if: always() && matrix.architecture == 'x64'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-test-diagnostics-x64
-          path: QtProject/release-build/windows/build/Testing/Temporary/*.log
-          if-no-files-found: ignore
-          retention-days: 2
 
       - name: Collect MSIX
         shell: pwsh

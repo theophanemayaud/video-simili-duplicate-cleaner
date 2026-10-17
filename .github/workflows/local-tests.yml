@@ -2,6 +2,10 @@ name: Local Tests
 
 on:
   pull_request:
+  # Populate the default-branch Windows dependency cache, which PRs and manual
+  # packaging can both restore. PR-created caches alone cannot be shared back.
+  push:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -9,11 +13,12 @@ permissions:
 
 concurrency:
   group: local-tests-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 jobs:
   linux-local-tests:
     name: Linux tiny repo-local tests
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -68,10 +73,55 @@ jobs:
             --output-on-failure \
             -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"
 
+  windows-local-tests:
+    name: Windows self-contained tests (x64)
+    runs-on: windows-2022
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Windows dependencies
+        id: dependencies
+        uses: ./.github/actions/setup-windows-deps
+        timeout-minutes: 300
+        with:
+          architecture: x64
+          build-directory: QtProject/builds/ci-windows-local-tests
+
+      - name: Build self-contained test targets
+        shell: pwsh
+        timeout-minutes: 30
+        env:
+          BUILD_DIRECTORY: ${{ steps.dependencies.outputs.build-directory }}
+        run: |
+          cmake --build "$env:BUILD_DIRECTORY" --config Release --parallel $env:NUMBER_OF_PROCESSORS --target test_comparison test_mainwindow test_failed_video_cache test_repo_auto_delete test_repo_video_matching
+          if ($LASTEXITCODE -ne 0) { throw "Self-contained test build failed" }
+
+      - name: Run self-contained tests
+        shell: pwsh
+        env:
+          BUILD_DIRECTORY: ${{ steps.dependencies.outputs.build-directory }}
+          QT_FORCE_STDERR_LOGGING: 1
+        run: |
+          ctest --test-dir "$env:BUILD_DIRECTORY" -C Release --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"
+          if ($LASTEXITCODE -ne 0) { throw "Self-contained tests failed" }
+
+      - name: Upload Windows test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-diagnostics-x64
+          path: QtProject/builds/ci-windows-local-tests/Testing/Temporary/*.log
+          if-no-files-found: ignore
+          retention-days: 2
+
   # We build univeralized static dependencies for macOS directly from latest macOS
   # That we then reuse for all macOS runners
   macos-static-deps:
     name: macOS static dependencies
+    if: github.event_name != 'push'
     runs-on: macos-26
     timeout-minutes: 45 # takes about 25mins
     env:
