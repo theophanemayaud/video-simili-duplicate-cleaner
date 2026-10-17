@@ -14,8 +14,6 @@ The goal of this project is to help users find duplicate or similar videos by co
 - Use Conventional Commit-style PR titles, such as `fix(comparison): restore slider after cancelled navigation`.
 - Squash-merge pull requests into `master` and use the PR title as the resulting commit title.
 
-Before preparing Store release binaries, use `.agents/skills/prepare-store-release/SKILL.md` for CI, local corpus tests, packaging, and desktop UI validation.
-
 ## Project Shape
 
 This is a C++ desktop app built with CMake and relying on static libraries like Qt 6 Widgets for the UI, FFmpeg to read video metadata and extract frames, and OpenCV to support perceptual comparisons.
