@@ -1,0 +1,103 @@
+name: Set up Windows dependencies
+description: Configure CMake with the pinned vcpkg dependencies and share their binary cache between tests and packaging.
+
+inputs:
+  architecture:
+    description: Target architecture (x64 or arm64).
+    required: true
+  build-directory:
+    description: CMake build directory relative to the repository root.
+    required: true
+
+outputs:
+  build-directory:
+    description: Configured CMake build directory.
+    value: ${{ inputs.build-directory }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set vcpkg paths and revision
+      shell: pwsh
+      env:
+        TARGET_ARCHITECTURE: ${{ inputs.architecture }}
+      run: |
+        if ($env:TARGET_ARCHITECTURE -notin @("x64", "arm64")) {
+          throw "Unsupported Windows architecture: $env:TARGET_ARCHITECTURE"
+        }
+        "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "VCPKG_COMMIT=12ae26a216f4c922a8189ed5c691bdb3f8bab686" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "VCPKG_DISABLE_METRICS=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Verify Visual Studio toolchain
+      id: toolchain
+      shell: pwsh
+      env:
+        TARGET_ARCHITECTURE: ${{ inputs.architecture }}
+      run: |
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+        $requiredComponent = if ($env:TARGET_ARCHITECTURE -eq "arm64") {
+          "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
+        } else {
+          "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+        }
+        $installationPath = & $vswhere -latest -products * -requires $requiredComponent -property installationPath
+        if (-not $installationPath) {
+          throw "The Visual Studio C++ toolchain for $env:TARGET_ARCHITECTURE is not installed"
+        }
+        Write-Host "Using Visual Studio at $installationPath"
+        # A runner image update can change the compiler or other tools used in
+        # vcpkg's ABI hashes. Save newly built archives under a fresh outer key;
+        # the restore prefix still reuses compatible archives from older images.
+        if (-not $env:ImageVersion) { throw "Hosted Windows runner image version is missing" }
+        "runner-image=$env:ImageVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+    - name: Prepare vcpkg binary cache
+      shell: pwsh
+      run: New-Item -ItemType Directory -Path $env:VCPKG_DEFAULT_BINARY_CACHE -Force | Out-Null
+
+    - name: Restore vcpkg binary cache
+      id: cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.temp }}\vcpkg-binary-cache
+        # Both callers use the same key. Keep the existing prefix so already
+        # compiled dependencies remain usable after extracting this action.
+        key: windows-vcpkg-${{ inputs.architecture }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('QtProject/vcpkg.json', 'QtProject/CMakePresets.json', 'QtProject/vcpkg-triplets/**') }}-${{ steps.toolchain.outputs.runner-image }}
+        restore-keys: |
+          windows-vcpkg-${{ inputs.architecture }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('QtProject/vcpkg.json', 'QtProject/CMakePresets.json', 'QtProject/vcpkg-triplets/**') }}
+          windows-vcpkg-${{ inputs.architecture }}-${{ env.VCPKG_COMMIT }}-
+          windows-vcpkg-
+
+    - name: Install pinned vcpkg
+      shell: pwsh
+      run: |
+        # Keep port history local so manifest resolution does not need a later
+        # promisor fetch during the dependency build.
+        git clone --no-filter https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+        if ($LASTEXITCODE -ne 0) { throw "vcpkg clone failed" }
+        git -C "$env:VCPKG_ROOT" checkout $env:VCPKG_COMMIT
+        if ($LASTEXITCODE -ne 0) { throw "vcpkg checkout failed" }
+        & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+        if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed" }
+
+    - name: Configure CMake and install dependencies
+      id: configure
+      shell: pwsh
+      env:
+        TARGET_ARCHITECTURE: ${{ inputs.architecture }}
+        BUILD_DIRECTORY: ${{ inputs.build-directory }}
+      run: |
+        cmake -S QtProject -B "$env:BUILD_DIRECTORY" --preset "vcpkg-${env:TARGET_ARCHITECTURE}-static"
+        if ($LASTEXITCODE -ne 0) { throw "Windows CMake configuration failed" }
+
+    # Save before either caller compiles its targets. A later test or application
+    # build failure must not discard hours spent building Qt/FFmpeg/OpenCV.
+    - name: Save vcpkg binary cache
+      if: always() && steps.cache.outputs.cache-primary-key != '' && steps.cache.outputs.cache-hit != 'true' && steps.configure.outcome != 'skipped'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ runner.temp }}\vcpkg-binary-cache
+        # Partial archives must not occupy the immutable completed-build key.
+        key: ${{ steps.cache.outputs.cache-primary-key }}${{ steps.configure.outcome != 'success' && format('-partial-{0}-{1}', github.run_id, github.run_attempt) || '' }}

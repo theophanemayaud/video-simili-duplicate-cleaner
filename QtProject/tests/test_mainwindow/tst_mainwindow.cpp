@@ -9,6 +9,10 @@
 
 #include <memory>
 
+#ifdef Q_OS_WIN
+#include <QtCore/qt_windows.h>
+#endif
+
 #include "../../app/mainwindow.h"
 #include "../../app/videodiscovery.h"
 
@@ -143,7 +147,20 @@ void TestMainWindow::test_hiddenEntriesAreSkipped()
 {
     QVERIFY(!createFile(QStringLiteral(".private/cache/video.mp4")).isEmpty());
     QVERIFY(!createFile(QStringLiteral(".Trash/trashed.mp4")).isEmpty());
-    QVERIFY(!createFile(QStringLiteral("Movies/.hidden.mov")).isEmpty());
+    const QString hiddenVideo = createFile(QStringLiteral("Movies/.hidden.mov"));
+    QVERIFY(!hiddenVideo.isEmpty());
+    const QStringList hiddenEntries = {QDir(_scanRoot->path()).filePath(QStringLiteral(".private")),
+                                       QDir(_scanRoot->path()).filePath(QStringLiteral(".Trash")), hiddenVideo};
+    for (const QString& path : hiddenEntries) {
+#ifdef Q_OS_WIN
+        // A leading dot is not a hidden entry on Windows: exercise QDir's native hidden-attribute filter.
+        const std::wstring nativePath = QDir::toNativeSeparators(path).toStdWString();
+        const DWORD attributes = GetFileAttributesW(nativePath.c_str());
+        QVERIFY(attributes != INVALID_FILE_ATTRIBUTES);
+        QVERIFY(SetFileAttributesW(nativePath.c_str(), attributes | FILE_ATTRIBUTE_HIDDEN));
+#endif
+        QVERIFY(QFileInfo(path).isHidden());
+    }
     const QString normal = createFile(QStringLiteral("Movies/normal.mp4"));
     QVERIFY(!normal.isEmpty());
 

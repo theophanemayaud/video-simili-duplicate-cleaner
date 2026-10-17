@@ -15,6 +15,22 @@ int Video::_jpegQuality = _okJpegQuality;
 
 namespace
 {
+// Cover art is AVMEDIA_TYPE_VIDEO too. FFmpeg's "V" specifier excludes attached pictures
+// and timed thumbnails, which cannot be sought like ordinary video (Ogg can assert and abort).
+// Share this choice between metadata and capture, including when metadata came from the cache.
+int findVideoStream(ffmpeg::AVFormatContext* context)
+{
+    const int best = ffmpeg::av_find_best_stream(context, ffmpeg::AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (best < 0 || ffmpeg::avformat_match_stream_specifier(context, context->streams[best], "V") > 0)
+        return best;
+
+    for (unsigned int index = 0; index < context->nb_streams; ++index) {
+        if (ffmpeg::avformat_match_stream_specifier(context, context->streams[index], "V") > 0)
+            return static_cast<int>(index);
+    }
+    return AVERROR_STREAM_NOT_FOUND;
+}
+
 int normalizedRightAngle(int angle)
 {
     angle %= 360;
@@ -226,11 +242,8 @@ const QString Video::getMetadata(const QString& filename)
     else
         bitrate = 0;
 
-    // Get video stream information
-    //      NB : previous (executable ffmpeg) code seemed to save last good video
-    //          stream info if there were multiple, but now using ffmpeg find best stream
-    ret = ffmpeg::av_find_best_stream(fmt_ctx, ffmpeg::AVMEDIA_TYPE_VIDEO, -1 /* auto stream selection*/,
-                                      -1 /* no related stream finding*/, NULL /*no decoder return*/, 0 /* no flags*/);
+    // Get ordinary video stream information, excluding cover art and thumbnail streams.
+    ret = findVideoStream(fmt_ctx);
     if (ret < 0) { // Didn't find a video stream
         ffmpeg::avformat_close_input(&fmt_ctx);
         return "could not find a video stream, only audio or others";
@@ -543,10 +556,7 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
         return img;
     }
 
-    // find best video stream
-    const int stream_index =
-        ffmpeg::av_find_best_stream(fmt_ctx, ffmpeg::AVMEDIA_TYPE_VIDEO, -1 /* auto stream selection*/,
-                                    -1 /* no related stream finding*/, NULL /*don't find decoder*/, 0 /* no flags*/);
+    const int stream_index = findVideoStream(fmt_ctx);
     if (stream_index < 0) { // Did not find a video stream
         qDebug() << "Could not find a good video stream" << _filePathName;
         ffmpeg::avformat_close_input(&fmt_ctx);
@@ -554,13 +564,6 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     }
     ffmpeg::AVStream* vs = fmt_ctx->streams[stream_index]; // set shorter reference to video stream of interest
     const int capturePresentationRotation = presentationRotation(vs);
-    // av_find_best_stream should not return non video stream if video stream requested !
-    if (vs->codecpar->codec_type != ffmpeg::AVMEDIA_TYPE_VIDEO) {
-        qDebug() << "FFMPEG returned stream was not video... !" << _filePathName;
-        ffmpeg::avformat_close_input(&fmt_ctx);
-        return img;
-    }
-
     // find decoder for the stream
     const ffmpeg::AVCodec* codec = ffmpeg::avcodec_find_decoder(vs->codecpar->codec_id); // null if none found
     if (!codec) {
