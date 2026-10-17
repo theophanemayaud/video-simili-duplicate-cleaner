@@ -1,4 +1,4 @@
-name: Local Tests
+name: Tests
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   linux-local-tests:
-    name: Linux tiny repo-local tests
+    name: Linux tests
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -74,7 +74,7 @@ jobs:
             -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"
 
   windows-local-tests:
-    name: Windows self-contained tests (x64)
+    name: Windows tests (x64)
     runs-on: windows-2022
     timeout-minutes: 360
 
@@ -173,7 +173,7 @@ jobs:
           retention-days: 1
 
   macos-local-tests:
-    name: macOS local-like tests (${{ matrix.name }})
+    name: macOS tests (${{ matrix.name }})
     needs: macos-static-deps
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
