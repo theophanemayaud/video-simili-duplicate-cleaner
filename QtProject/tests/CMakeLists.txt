@@ -33,14 +33,17 @@ if(APPLE)
     )
 endif()
 
-# Prefer Qt's offscreen platform so widget tests do not depend on a window server.
+# Use the same native platform as the shipped Windows app. vcpkg's static Qt
+# advertises offscreen but its exported init object is absent, so explicitly
+# importing it fails at link time. Qt imports the native Windows plugin by default.
+# Other platforms prefer offscreen to avoid depending on a window server.
 set(TEST_QPA_PLATFORM "offscreen")
-if(APPLE)
-    if(TARGET Qt6::QOffscreenIntegrationPlugin)
-        set(TEST_PLATFORM_PLUGIN Qt6::QOffscreenIntegrationPlugin)
-    else()
-        set(TEST_QPA_PLATFORM "cocoa")
-    endif()
+if(WIN32)
+    set(TEST_QPA_PLATFORM "windows")
+elseif(TARGET Qt6::QOffscreenIntegrationPlugin)
+    set(TEST_PLATFORM_PLUGIN Qt6::QOffscreenIntegrationPlugin)
+elseif(APPLE)
+    set(TEST_QPA_PLATFORM "cocoa")
 endif()
 
 # Function to create a test executable
