@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.15.2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.1...v1.15.2) (2026-11-10)
+
+### Maintenance
+
+* **macos:** update the static Qt runtime from 6.9.3 to 6.12.0, retaining Intel and Apple Silicon support. macOS 14.4 or later is now required; older macOS releases can continue using the previous app version.
+
 ## [1.15.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.0...v1.15.1) (2026-10-08)
 
 ### Bug Fixes

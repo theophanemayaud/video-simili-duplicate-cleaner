@@ -2,7 +2,7 @@
     "version": 3,
     "configurePresets": [
         {
-            "name": "base-6.10.1-macos",
+            "name": "base-static-macos",
             "hidden": true,
             "cacheVariables": {
                 "CMAKE_PREFIX_PATH": "${sourceDir}/libraries/macos/qt/qt-install",
@@ -17,10 +17,10 @@
             }
         },
         {
-            "name": "debug-6.10.1-macos",
-            "binaryDir": "${sourceDir}/builds/build-debug-6.10.1-macos",
+            "name": "debug-macos",
+            "binaryDir": "${sourceDir}/builds/build-debug-macos",
             "inherits": [
-                "base-6.10.1-macos",
+                "base-static-macos",
                 "base-debug"
             ]
         },
@@ -28,7 +28,7 @@
             "name": "release-macos",
             "binaryDir": "${sourceDir}/release-build/macos/build",
             "inherits": [
-                "base-6.10.1-macos",
+                "base-static-macos",
                 "base-release"
             ]
         },

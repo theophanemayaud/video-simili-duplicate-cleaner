@@ -30,12 +30,12 @@ This is a C++ desktop app built with CMake and relying on static libraries like 
 
 The main development platform is macOS; keep default agent commands on this path.
 
-- Configure: `cmake -S QtProject --preset debug-6.10.1-macos`
-- Build: `cmake --build QtProject/builds/build-debug-6.10.1-macos`
+- Configure: `cmake -S QtProject --preset debug-macos`
+- Build: `cmake --build QtProject/builds/build-debug-macos`
 - Run the self-contained CTest baseline:
-  `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
-- Prefer targeted `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -R ^<target>$` invocations when using CTest on macOS; the test CMake config chooses a platform plugin compatible with the current Qt build.
-- CTest labels make the safe lanes explicit: `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -L repo-fixtures` runs tracked fixtures, while `-L external-fixtures` runs the optional `~/Dev` suites. `test_external_large_video_corpus` is separately labeled `external-corpus` and `requires-mounted-100gb`; run only its named functions.
+  `ctest --test-dir QtProject/builds/build-debug-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
+- Prefer targeted `ctest --test-dir QtProject/builds/build-debug-macos -R ^<target>$` invocations when using CTest on macOS; the test CMake config chooses a platform plugin compatible with the current Qt build.
+- CTest labels make the safe lanes explicit: `ctest --test-dir QtProject/builds/build-debug-macos -L repo-fixtures` runs tracked fixtures, while `-L external-fixtures` runs the optional `~/Dev` suites. `test_external_large_video_corpus` is separately labeled `external-corpus` and `requires-mounted-100gb`; run only its named functions.
 - `test_repo_video_extraction_regression` compares platform-sensitive metadata/thumbnails for the Nice videos; run it on the macOS dev setup, not Linux CI, unless refreshing reference expectations.
 - `test_external_video_extraction_regression` compares every `~/Dev` video against its metadata and thumbnail references in each cache mode. Reference-detail cases (`test_check_refvidparams_nocache`, `test_check_refvidparams_withcache`, `test_check_refvidparams_withCacheOnly`) are not all green currently.
 - Green `test_external_whole_app_scan` function cases when that corpus is available: `emptyDb`, `test_whole_app_nocache`, `test_whole_app_cached`, `test_whole_app_cache_only`.
