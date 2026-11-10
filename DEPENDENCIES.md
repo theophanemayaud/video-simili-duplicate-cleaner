@@ -155,6 +155,8 @@ Then copy from install directory the includes and the lib files to the correct l
 
 The macOS build pins Qt **6.12.0** in `package.json` and statically builds `qtbase` for both Intel and Apple Silicon with `npm run qt-macos`. Qt and the application require **macOS 14.4 or later**, as declared in `qt.sh`, the application CMake configuration, and the shipped `Info.plist`. See [Qt supported platforms](https://doc.qt.io/qt-6/supported-platforms.html).
 
+The application resolves the `macosx` SDK through the selected Xcode, matching Qt’s configure behavior and avoiding a newer Command Line Tools SDK being mixed with an older Xcode compiler after an OS update.
+
 Use `cmake -S QtProject --preset debug-macos` for local development. Set `CMAKE_BUILD_PARALLEL_LEVEL` to limit dependency build concurrency when needed.
 
 FFmpeg and OpenCV versions are unchanged by this Qt update; their lower deployment target remains compatible with the application minimum. Windows continues using its independently pinned vcpkg dependencies. The optional Linux source-build script shares the Qt version in `package.json`; Linux CI uses distribution packages.
