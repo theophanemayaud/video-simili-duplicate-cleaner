@@ -125,7 +125,8 @@ jobs:
     name: macOS static dependencies
     if: github.event_name != 'push'
     runs-on: macos-26
-    timeout-minutes: 45 # takes about 25mins
+    # A clean universal Qt + FFmpeg + OpenCV rebuild can exceed 45 minutes.
+    timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
