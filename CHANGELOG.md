@@ -6,7 +6,8 @@ All notable changes to this project will be documented in this file. See [commit
 
 ### Maintenance
 
-* **macos:** update the static Qt runtime from 6.9.3 to 6.12.0, retaining Intel and Apple Silicon support. macOS 14.4 or later is now required; older macOS releases can continue using the previous app version.
+* **macos:** update the static Qt runtime from 6.9.3 to 6.12.0, retaining Intel and Apple Silicon support.
+* **compatibility:** adopt the updated Qt 6.12 system requirements: macOS 14.4 or later. This release drops support for macOS 12, macOS 13, and macOS 14.0–14.3. macOS 14.4 and later remain supported; users of the older versions can continue using the previous app version.
 
 ## [1.15.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.0...v1.15.1) (2026-10-08)
 
