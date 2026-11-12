@@ -1,3 +1,7 @@
+# macOS
+
+Run `npm run binaries` to generate the app, DMG, and Store PKG. The public version comes from `package.json`; `CFBundleVersion` in `QtProject/release-build/macos/Info.plist` is a separate build number that must increase for each Store upload, across all public versions.
+
 # Windows
 
 ## Install dependencies
