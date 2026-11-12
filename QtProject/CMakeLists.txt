@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 # Qt 6.12 requires macOS 14.4. Set this before project() initializes the
 # compiler and before find_package(Qt6) checks the deployment target.
 if(CMAKE_HOST_APPLE)
-    # Resolve the default macOS SDK through xcrun.
+    # Default to the macOS SDK from the active developer directory.
     set(CMAKE_OSX_SYSROOT "macosx" CACHE STRING "macOS SDK name or path")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "14.4" CACHE STRING "Minimum supported macOS version" FORCE)
 endif()
