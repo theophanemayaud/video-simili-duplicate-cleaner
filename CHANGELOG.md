@@ -2,12 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
-## [1.15.2](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.1...v1.15.2) (2026-11-10)
+## [1.15.3](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.1...v1.15.3) (2026-11-12)
 
 ### Maintenance
 
 * **macos:** update the static Qt runtime from 6.9.3 to 6.12.0, retaining Intel and Apple Silicon support.
 * **compatibility:** adopt the updated Qt 6.12 system requirements: macOS 14.4 or later. This release drops support for macOS 12, macOS 13, and macOS 14.0–14.3. macOS 14.4 and later remain supported; users of the older versions can continue using the previous app version.
+
+### Bug Fixes
+
+* **macos:** retain the selected video's sandbox access throughout FFmpeg frame extraction, including comparison previews.
 
 ## [1.15.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.0...v1.15.1) (2026-10-08)
 

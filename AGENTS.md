@@ -43,6 +43,7 @@ The main development platform is macOS; keep default agent commands on this path
 - To investigate one `~/Dev` extraction reference, run a single `test_external_video_extraction_regression` data row, for example `test_check_refvidparams_nocache:20150727_115225.mp4`.
 - Do not run `test_external_large_video_corpus` unless explicitly requested; its active functions require the mounted 100GB folder.
 - Package macOS binaries: `npm run binaries`
+- Validate macOS file access in the signed sandboxed app against the original external corpus; copies inside the app container cannot exercise security-scoped access. See `QtProject/tests/manual/macos-sandbox-access.md`.
 - Rebuild vendored macOS deps only when needed: `npm run qt-macos`, `npm run ffmpeg-macos`, `npm run opencv-macos`
 
 ### Linux
