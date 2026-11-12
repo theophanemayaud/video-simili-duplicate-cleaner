@@ -7,6 +7,7 @@ The goal of this project is to help users find duplicate or similar videos by co
 - Keep it simple: one clear approach, fail fast, and avoid overly defensive fallback logic.
 - No backwards compatibility is needed for in-progress changes: fully migrate old approaches instead of layering shims.
 - Capture why important functionality exists, or why certain decisions (code, feature, architecture, etc.) were made, not only what it does, so future refactors can preserve intent.
+- Keep code and documentation focused on the current state, without obvious code duplication or PR/change narratives; reserve history for changelogs and regression tests.
 - Design in a way that can be properly tested. Prefer tests that are more representative of actual use cases and thus end to end. These add value and confidence, even if they need to be refactored over time. Use lower level unit tests more for temporary testing during implementation or more complex functionality, but it's ok to delete them quickly once they are no longer relevant.
 
 ## Pull Requests
