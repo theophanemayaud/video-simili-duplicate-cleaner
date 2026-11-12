@@ -1,31 +1,29 @@
 const fs = require('fs');
 
-var appversion = require('./package.json').version;
-// CFBundleVersion is an independent build number maintained in Info.plist.
+const appVersion = require('./package.json').version;
+const plistPath = './QtProject/release-build/macos/Info.plist';
+const plist = fs.readFileSync(plistPath, 'utf8');
 
-var outputString = '';
-var foundCFBundleShortVersionString = false;
-
-function getPosition(string, subString, index) {
-  return string.split(subString, index).join(subString).length;
+function versionEntry(key) {
+  const pattern = new RegExp(`(<key>${key}</key>\\s*<string>)([^<]*)(</string>)`);
+  if (!pattern.test(plist))
+    throw new Error(`Missing ${key} string in ${plistPath}`);
+  return pattern;
 }
 
-require('fs').readFileSync('./QtProject/release-build/macos/Info.plist', 'utf-8').split(/\r?\n/).forEach(function(line){
-    if(foundCFBundleShortVersionString == true){
-        var beforeString = line.slice(0, getPosition(line, '>', 1) + 1);
-        var afterString =line.slice(getPosition(line, '<', 2));
-        line = beforeString + appversion + afterString;
-        foundCFBundleShortVersionString = false;
-    }
-    if(line.includes('CFBundleShortVersionString')){
-        foundCFBundleShortVersionString = true;
-    }
+const buildEntry = versionEntry('CFBundleVersion');
+const publicVersionEntry = versionEntry('CFBundleShortVersionString');
 
-    outputString += line + "\n";
-    })
+// The public version follows package.json. Apple compares macOS build numbers
+// across all public versions, so increment a global counter for each build.
+// An explicit number also permits reproducing a build without incrementing it.
+const buildNumber = process.env.MACOS_BUILD_NUMBER
+  ?? String(Number(plist.match(buildEntry)[2]) + 1);
+if (!/^[1-9][0-9]*$/.test(buildNumber) || !Number.isSafeInteger(Number(buildNumber)))
+  throw new Error('MACOS_BUILD_NUMBER must be a positive safe integer');
 
-outputString = outputString.substring(0, outputString.length -1); //remove last new line
-fs.writeFile('./QtProject/release-build/macos/Info.plist', outputString, 'utf-8', function (err) {
-    if (err) return console.log(err);
-    console.log('Wrote updated Plist file');
-});
+const output = plist
+  .replace(buildEntry, (_, before, previous, after) => before + buildNumber + after)
+  .replace(publicVersionEntry, (_, before, previous, after) => before + appVersion + after);
+fs.writeFileSync(plistPath, output, 'utf8');
+console.log(`macOS version ${appVersion}, build ${buildNumber}`);

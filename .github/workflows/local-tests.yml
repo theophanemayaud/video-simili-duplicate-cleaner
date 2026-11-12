@@ -26,6 +26,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Test release version updater
+        run: node --test scripts/tests/update-plist-version.test.js
+
       - name: Restore apt package cache
         uses: actions/cache@v4
         with:
