@@ -3,12 +3,9 @@ cmake_minimum_required(VERSION 3.16)
 # Qt 6.12 requires macOS 14.4. Set this before project() initializes the
 # compiler and before find_package(Qt6) checks the deployment target.
 if(CMAKE_HOST_APPLE)
-    # Keep the macOS SDK aligned with the selected Xcode toolchain.
-    set(CMAKE_OSX_SYSROOT "macosx" CACHE STRING "macOS SDK from the selected Xcode")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.4" CACHE STRING "Minimum supported macOS version")
-    if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "14.4")
-        message(FATAL_ERROR "Qt 6.12 requires CMAKE_OSX_DEPLOYMENT_TARGET >= 14.4")
-    endif()
+    # Resolve the default macOS SDK through xcrun.
+    set(CMAKE_OSX_SYSROOT "macosx" CACHE STRING "macOS SDK name or path")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.4" CACHE STRING "Minimum supported macOS version" FORCE)
 endif()
 
 project(video-simili-duplicate-cleaner VERSION 0.1 LANGUAGES CXX)
