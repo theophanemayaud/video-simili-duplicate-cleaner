@@ -538,16 +538,6 @@ QImage Video::ffmpegLib_captureAt(const int percent, const int ofDuration)
     // qImage from avframe : https://stackoverflow.com/questions/13088749/efficient-conversion-of-avframe-to-qimage
     QImage img;
 
-#ifdef Q_OS_MACOS
-    // Qt manages sandbox access for user-selected files through its file engine.
-    // Keep that access alive while FFmpeg uses native file I/O, including seeks.
-    QFile sourceFile(_filePathName);
-    if (!sourceFile.open(QIODevice::ReadOnly)) {
-        qDebug() << "Could not open video for capture" << _filePathName << sourceFile.errorString();
-        return img;
-    }
-#endif
-
     ffmpeg::AVFormatContext* fmt_ctx = NULL;
 
     /* open input file, and allocate format context */

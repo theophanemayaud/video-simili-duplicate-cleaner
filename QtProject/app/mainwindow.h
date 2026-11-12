@@ -47,6 +47,9 @@ class MainWindow : public QMainWindow
     std::atomic_bool _cancelVideoDiscovery = false;
 
     Prefs _prefs;
+#ifdef Q_OS_MACOS
+    MacDirectoryAccess _sourceDirectoryAccess;
+#endif
     bool _stopVideoProcessing = false;
     bool shouldScan = true;
     bool _windowClosing = false;

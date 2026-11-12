@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. See [commit
 
 ### Bug Fixes
 
-* **macos:** retain the selected video's sandbox access throughout FFmpeg frame extraction, including comparison previews.
+* **macos:** keep selected folders accessible throughout scans and comparison previews under App Sandbox.
 
 ## [1.15.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.0...v1.15.1) (2026-10-08)
 

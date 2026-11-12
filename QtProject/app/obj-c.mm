@@ -1,6 +1,88 @@
 #import "obj-c.h"
 #import <Foundation/Foundation.h>
 #import <Photos/Photos.h>
+#import <Security/SecTask.h>
+
+#include <QFileInfo>
+#include <QHash>
+
+namespace
+{
+bool appIsSandboxed()
+{
+    static const bool sandboxed = [] {
+        SecTaskRef task = SecTaskCreateFromSelf(kCFAllocatorDefault);
+        if (task == nullptr)
+            return false;
+        CFTypeRef value = SecTaskCopyValueForEntitlement(task, CFSTR("com.apple.security.app-sandbox"), nullptr);
+        CFRelease(task);
+        const bool enabled = value != nullptr && CFGetTypeID(value) == CFBooleanGetTypeID()
+                             && CFBooleanGetValue(static_cast<CFBooleanRef>(value));
+        if (value != nullptr)
+            CFRelease(value);
+        return enabled;
+    }();
+    return sandboxed;
+}
+}
+
+struct MacDirectoryAccess::Impl
+{
+    QHash<QString, NSURL*> directories;
+
+    ~Impl()
+    {
+        for (NSURL* url : directories) {
+            [url stopAccessingSecurityScopedResource];
+            [url release];
+        }
+    }
+};
+
+MacDirectoryAccess::MacDirectoryAccess() : _impl(std::make_unique<Impl>()) {}
+MacDirectoryAccess::~MacDirectoryAccess() = default;
+
+QString MacDirectoryAccess::retainDirectory(const QString& directory)
+{
+    if (!appIsSandboxed())
+        return {};
+
+    @autoreleasepool {
+        // Keep Qt's existing user-granted scope alive while obtaining our own
+        // native URL. FFmpeg then shares the directory grant for this session.
+        const QFileInfo folder(directory);
+        const QString path = folder.canonicalFilePath();
+        if (path.isEmpty() || !folder.isDir())
+            return QStringLiteral("Folder is not accessible");
+        if (_impl->directories.contains(path))
+            return {};
+
+        NSString* nativePath = path.toNSString();
+        if ([nativePath isEqualToString:NSHomeDirectory()]
+            || [nativePath hasPrefix:[NSHomeDirectory() stringByAppendingString:@"/"]]
+            || [nativePath isEqualToString:NSBundle.mainBundle.bundlePath]
+            || [nativePath hasPrefix:[NSBundle.mainBundle.bundlePath stringByAppendingString:@"/"]])
+            return {}; // The container and application bundle need no external grant.
+
+        NSError* error = nil;
+        NSURL* url = [NSURL fileURLWithPath:nativePath isDirectory:YES];
+        NSData* bookmark = [url bookmarkDataWithOptions:NSURLBookmarkCreationWithSecurityScope
+                        includingResourceValuesForKeys:nil relativeToURL:nil error:&error];
+        if (bookmark == nil)
+            return QStringLiteral("Could not create folder access: %1").arg(QString::fromNSString(error.localizedDescription));
+
+        NSURL* scopedUrl = [NSURL URLByResolvingBookmarkData:bookmark
+                        options:NSURLBookmarkResolutionWithSecurityScope | NSURLBookmarkResolutionWithoutUI
+                        relativeToURL:nil bookmarkDataIsStale:nullptr error:&error];
+        if (scopedUrl == nil)
+            return QStringLiteral("Could not resolve folder access: %1").arg(QString::fromNSString(error.localizedDescription));
+        if (![scopedUrl startAccessingSecurityScopedResource])
+            return QStringLiteral("Folder access could not be retained");
+
+        _impl->directories.insert(path, [scopedUrl retain]);
+        return {};
+    }
+}
 
 char* Obj_C::obj_C_addMediaToAlbum(char* albumName, char* mediaId)
 {

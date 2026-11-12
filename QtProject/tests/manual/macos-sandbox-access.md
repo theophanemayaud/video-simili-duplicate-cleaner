@@ -8,6 +8,6 @@ Run this check in the signed release app with its sandbox entitlements and local
 4. Open a comparison, navigate to another pair, and zoom a preview to exercise captures requested after the scan.
 5. Restart the app and repeat the scan without selecting the folder again, checking that the persisted folder permission works.
 
-Keep native file access authorized throughout each FFmpeg capture. Qt's security-scoped file engine releases access when its owning file object is destroyed; FFmpeg opens and seeks files through native I/O independently of Qt. A temporary `QFileInfo` during metadata extraction does not keep that access alive for later captures.
+Keep each selected directory's native security-scoped URL authorized until the main window closes. Qt's file engine can release its own access between operations; FFmpeg opens and seeks files through native I/O independently of Qt. Verify that repeated scans and comparison previews reuse the session's directory grant.
 
 The regression can find all videos but reject many during capture. A cached failure from an affected run must not be mistaken for a failed extraction in the corrected build; preserve that cache and use a fresh one for the comparison.

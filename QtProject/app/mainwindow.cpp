@@ -241,6 +241,19 @@ void MainWindow::on_findDuplicates_clicked()
 
         const QString foldersToSearch = ui->directoryBox->text();
         const QStringList directories = foldersToSearch.split(QStringLiteral(";"));
+#ifdef Q_OS_MACOS
+        for (const QString& directory : directories) {
+            if (directory.isEmpty() || !QFileInfo(directory).isDir())
+                continue;
+            const QString accessError = _sourceDirectoryAccess.retainDirectory(directory);
+            if (!accessError.isEmpty()) {
+                addStatusMessage(QStringLiteral("Cannot access folder %1: %2. Select it again using the folder button.")
+                                     .arg(directory, accessError));
+                finishFindDuplicates();
+                return;
+            }
+        }
+#endif
         this->_prefs.scanLocations(directories);
         Message::Get()->add(QStringLiteral("Re scanning: %1").arg(directories.join(", ")));
         if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
