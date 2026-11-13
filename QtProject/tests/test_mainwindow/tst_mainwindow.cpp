@@ -1,10 +1,15 @@
 #include <QDir>
 #include <QFile>
+#include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScopeGuard>
 #include <QStatusBar>
 #include <QTemporaryDir>
+#include <QTextEdit>
+#include <QTimer>
 #include <QtTest>
 
 #include <memory>
@@ -32,6 +37,7 @@ class TestMainWindow : public QObject
     void test_hiddenEntriesAreSkipped();
     void test_loadVideoExtensionFilters();
     void test_emptyFolderScanLeavesNoSearchingMessage();
+    void test_comparisonCanCloseAndScanAgain();
 
   private:
     std::unique_ptr<QTemporaryDir> _scanRoot;
@@ -202,6 +208,84 @@ void TestMainWindow::test_emptyFolderScanLeavesNoSearchingMessage()
 
     window.close();
     QCoreApplication::processEvents();
+}
+
+void TestMainWindow::test_comparisonCanCloseAndScanAgain()
+{
+    const QString sample = QFINDTESTDATA("../../../samples/videos/matching/a-original.mp4");
+    QVERIFY(!sample.isEmpty());
+    QVERIFY(QFile::copy(sample, _scanRoot->filePath(QStringLiteral("first.mp4"))));
+    QVERIFY(QFile::copy(sample, _scanRoot->filePath(QStringLiteral("second.mp4"))));
+
+    const QString previousCache = Prefs().cacheFilePathName();
+    const auto restoreCache = qScopeGuard([previousCache] { Prefs().cacheFilePathName(previousCache); });
+    Prefs().cacheFilePathName(_scanRoot->filePath(QStringLiteral("cache.db")));
+
+    MainWindow window;
+    window.show();
+    auto* noCache = window.findChild<QRadioButton*>(QStringLiteral("radio_UseCacheNo"));
+    auto* directoryBox = window.findChild<QLineEdit*>(QStringLiteral("directoryBox"));
+    auto* findDuplicates = window.findChild<QPushButton*>(QStringLiteral("findDuplicates"));
+    auto* statusBox = window.findChild<QTextEdit*>(QStringLiteral("statusBox"));
+    QVERIFY(noCache);
+    QVERIFY(directoryBox);
+    QVERIFY(findDuplicates);
+    QVERIFY(statusBox);
+    noCache->click();
+    directoryBox->setText(_scanRoot->path());
+
+    int closedComparisons = 0;
+    int acceptedRescans = 0;
+    bool previewsLoaded = true;
+    bool timedOut = false;
+    QTimer dialogs;
+    dialogs.setInterval(10);
+    connect(&dialogs, &QTimer::timeout, [&] {
+        auto* modal = QApplication::activeModalWidget();
+        if (auto* comparison = qobject_cast<Comparison*>(modal)) {
+            if (!comparison->isVisible())
+                return;
+            const auto* left = comparison->findChild<QLabel*>(QStringLiteral("leftImage"));
+            const auto* right = comparison->findChild<QLabel*>(QStringLiteral("rightImage"));
+            previewsLoaded &= left && right && !left->pixmap().isNull() && !right->pixmap().isNull();
+            // Exercise both the window-close event and the dialog's Escape shortcut.
+            if (closedComparisons == 0)
+                comparison->close();
+            else
+                QTest::keyClick(comparison, Qt::Key_Escape);
+            ++closedComparisons;
+        }
+        else if (auto* prompt = qobject_cast<QMessageBox*>(modal)) {
+            for (auto* button : prompt->buttons()) {
+                if (button->text() == QStringLiteral("Rescan")) {
+                    ++acceptedRescans;
+                    button->click();
+                    return;
+                }
+            }
+            if (timedOut)
+                prompt->reject();
+        }
+    });
+    dialogs.start();
+    QTimer deadline;
+    deadline.setSingleShot(true);
+    connect(&deadline, &QTimer::timeout, [&] { timedOut = true; });
+    deadline.start(30000);
+
+    for (int scan = 1; scan <= 2; ++scan) {
+        // Use the button and its normal modal path, rather than calling processing helpers.
+        QTimer::singleShot(0, findDuplicates, &QPushButton::click);
+        QTRY_VERIFY_WITH_TIMEOUT(timedOut || (closedComparisons == scan
+                                             && findDuplicates->text() == QStringLiteral("Find duplicates")
+                                             && findDuplicates->isEnabled() && directoryBox->isEnabled()),
+                                 35000);
+        QVERIFY2(!timedOut, "Closing the comparison did not return to an idle scan window");
+        QVERIFY(previewsLoaded);
+        QCOMPARE(statusBox->toPlainText().count(QStringLiteral("2 intact video(s) found")), scan);
+    }
+    QCOMPARE(acceptedRescans, 1);
+    window.close();
 }
 
 QTEST_MAIN(TestMainWindow)
