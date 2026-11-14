@@ -7,6 +7,7 @@ The goal of this project is to help users find duplicate or similar videos by co
 - Keep it simple: one clear approach, fail fast, and avoid overly defensive fallback logic.
 - No backwards compatibility is needed for in-progress changes: fully migrate old approaches instead of layering shims.
 - Capture why important functionality exists, or why certain decisions (code, feature, architecture, etc.) were made, not only what it does, so future refactors can preserve intent.
+- Keep code and documentation focused on the current state, without obvious code duplication or PR/change narratives; reserve history for changelogs and regression tests.
 - Design in a way that can be properly tested. Prefer tests that are more representative of actual use cases and thus end to end. These add value and confidence, even if they need to be refactored over time. Use lower level unit tests more for temporary testing during implementation or more complex functionality, but it's ok to delete them quickly once they are no longer relevant.
 
 ## Pull Requests
@@ -30,18 +31,19 @@ This is a C++ desktop app built with CMake and relying on static libraries like 
 
 The main development platform is macOS; keep default agent commands on this path.
 
-- Configure: `cmake -S QtProject --preset debug-6.10.1-macos`
-- Build: `cmake --build QtProject/builds/build-debug-6.10.1-macos`
+- Configure: `cmake -S QtProject --preset debug-macos`
+- Build: `cmake --build QtProject/builds/build-debug-macos`
 - Run the self-contained CTest baseline:
-  `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
-- Prefer targeted `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -R ^<target>$` invocations when using CTest on macOS; the test CMake config chooses a platform plugin compatible with the current Qt build.
-- CTest labels make the safe lanes explicit: `ctest --test-dir QtProject/builds/build-debug-6.10.1-macos -L repo-fixtures` runs tracked fixtures, while `-L external-fixtures` runs the optional `~/Dev` suites. `test_external_large_video_corpus` is separately labeled `external-corpus` and `requires-mounted-100gb`; run only its named functions.
+  `ctest --test-dir QtProject/builds/build-debug-macos -C Debug --output-on-failure -R "^(test_comparison|test_mainwindow|test_failed_video_cache|test_repo_auto_delete|test_repo_video_matching)$"`
+- Prefer targeted `ctest --test-dir QtProject/builds/build-debug-macos -R ^<target>$` invocations when using CTest on macOS; the test CMake config chooses a platform plugin compatible with the current Qt build.
+- CTest labels make the safe lanes explicit: `ctest --test-dir QtProject/builds/build-debug-macos -L repo-fixtures` runs tracked fixtures, while `-L external-fixtures` runs the optional `~/Dev` suites. `test_external_large_video_corpus` is separately labeled `external-corpus` and `requires-mounted-100gb`; run only its named functions.
 - `test_repo_video_extraction_regression` compares platform-sensitive metadata/thumbnails for the Nice videos; run it on the macOS dev setup, not Linux CI, unless refreshing reference expectations.
 - `test_external_video_extraction_regression` compares every `~/Dev` video against its metadata and thumbnail references in each cache mode. Reference-detail cases (`test_check_refvidparams_nocache`, `test_check_refvidparams_withcache`, `test_check_refvidparams_withCacheOnly`) are not all green currently.
 - Green `test_external_whole_app_scan` function cases when that corpus is available: `emptyDb`, `test_whole_app_nocache`, `test_whole_app_cached`, `test_whole_app_cache_only`.
 - To investigate one `~/Dev` extraction reference, run a single `test_external_video_extraction_regression` data row, for example `test_check_refvidparams_nocache:20150727_115225.mp4`.
 - Do not run `test_external_large_video_corpus` unless explicitly requested; its active functions require the mounted 100GB folder.
 - Package macOS binaries: `npm run binaries`
+- Validate macOS file access in the signed sandboxed app against the original external corpus; copies inside the app container cannot exercise security-scoped access. See `QtProject/tests/manual/macos-sandbox-access.md`.
 - Rebuild vendored macOS deps only when needed: `npm run qt-macos`, `npm run ffmpeg-macos`, `npm run opencv-macos`
 
 ### Linux

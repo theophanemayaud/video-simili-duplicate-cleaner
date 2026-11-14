@@ -1,3 +1,7 @@
+# macOS
+
+Run `npm run binaries` to generate the app, DMG, and Store PKG. The public version comes from `package.json`; the macOS build counter in `Info.plist` increments automatically. Use `MACOS_BUILD_NUMBER=3 npm run binaries` to set an explicit build number. Each Store upload must exceed the last uploaded macOS build, across all public versions.
+
 # Windows
 
 ## Install dependencies

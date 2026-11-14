@@ -1,10 +1,18 @@
 #include <QDir>
 #include <QFile>
+#include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
+#include <QProcess>
+#include <QProcessEnvironment>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScopeGuard>
+#include <QSettings>
 #include <QStatusBar>
 #include <QTemporaryDir>
+#include <QTextEdit>
+#include <QTimer>
 #include <QtTest>
 
 #include <memory>
@@ -32,6 +40,8 @@ class TestMainWindow : public QObject
     void test_hiddenEntriesAreSkipped();
     void test_loadVideoExtensionFilters();
     void test_emptyFolderScanLeavesNoSearchingMessage();
+    void test_comparisonCanCloseAndScanAgain();
+    void test_selectedFoldersPersistAcrossProcesses();
 
   private:
     std::unique_ptr<QTemporaryDir> _scanRoot;
@@ -202,6 +212,155 @@ void TestMainWindow::test_emptyFolderScanLeavesNoSearchingMessage()
 
     window.close();
     QCoreApplication::processEvents();
+}
+
+void TestMainWindow::test_comparisonCanCloseAndScanAgain()
+{
+    const QString sample = QFINDTESTDATA("../../../samples/videos/matching/a-original.mp4");
+    QVERIFY(!sample.isEmpty());
+    QVERIFY(QFile::copy(sample, _scanRoot->filePath(QStringLiteral("first.mp4"))));
+    QVERIFY(QFile::copy(sample, _scanRoot->filePath(QStringLiteral("second.mp4"))));
+
+    const QString previousCache = Prefs().cacheFilePathName();
+    const auto restoreCache = qScopeGuard([previousCache] { Prefs().cacheFilePathName(previousCache); });
+    Prefs().cacheFilePathName(_scanRoot->filePath(QStringLiteral("cache.db")));
+
+    MainWindow window;
+    window.show();
+    auto* noCache = window.findChild<QRadioButton*>(QStringLiteral("radio_UseCacheNo"));
+    auto* directoryBox = window.findChild<QLineEdit*>(QStringLiteral("directoryBox"));
+    auto* findDuplicates = window.findChild<QPushButton*>(QStringLiteral("findDuplicates"));
+    auto* statusBox = window.findChild<QTextEdit*>(QStringLiteral("statusBox"));
+    QVERIFY(noCache);
+    QVERIFY(directoryBox);
+    QVERIFY(findDuplicates);
+    QVERIFY(statusBox);
+    noCache->click();
+    directoryBox->setText(_scanRoot->path());
+
+    int closedComparisons = 0;
+    int acceptedRescans = 0;
+    bool previewsLoaded = true;
+    bool timedOut = false;
+    QTimer dialogs;
+    dialogs.setInterval(10);
+    connect(&dialogs, &QTimer::timeout, [&] {
+        auto* modal = QApplication::activeModalWidget();
+        if (auto* comparison = qobject_cast<Comparison*>(modal)) {
+            if (!comparison->isVisible())
+                return;
+            const auto* left = comparison->findChild<QLabel*>(QStringLiteral("leftImage"));
+            const auto* right = comparison->findChild<QLabel*>(QStringLiteral("rightImage"));
+            previewsLoaded &= left && right && !left->pixmap().isNull() && !right->pixmap().isNull();
+            // Exercise both the window-close event and the dialog's Escape shortcut.
+            if (closedComparisons == 0)
+                comparison->close();
+            else
+                QTest::keyClick(comparison, Qt::Key_Escape);
+            ++closedComparisons;
+        }
+        else if (auto* prompt = qobject_cast<QMessageBox*>(modal)) {
+            for (auto* button : prompt->buttons()) {
+                if (button->text() == QStringLiteral("Rescan")) {
+                    ++acceptedRescans;
+                    button->click();
+                    return;
+                }
+            }
+            if (timedOut)
+                prompt->reject();
+        }
+    });
+    dialogs.start();
+    QTimer deadline;
+    deadline.setSingleShot(true);
+    connect(&deadline, &QTimer::timeout, [&] { timedOut = true; });
+    deadline.start(30000);
+
+    for (int scan = 1; scan <= 2; ++scan) {
+        // Use the button and its normal modal path, rather than calling processing helpers.
+        QTimer::singleShot(0, findDuplicates, &QPushButton::click);
+        QTRY_VERIFY_WITH_TIMEOUT(timedOut || (closedComparisons == scan
+                                             && findDuplicates->text() == QStringLiteral("Find duplicates")
+                                             && findDuplicates->isEnabled() && directoryBox->isEnabled()),
+                                 35000);
+        QVERIFY2(!timedOut, "Closing the comparison did not return to an idle scan window");
+        QVERIFY(previewsLoaded);
+        QCOMPARE(statusBox->toPlainText().count(QStringLiteral("2 intact video(s) found")), scan);
+    }
+    QCOMPARE(acceptedRescans, 1);
+    window.close();
+}
+
+void TestMainWindow::test_selectedFoldersPersistAcrossProcesses()
+{
+    const QString rootVariable = QStringLiteral("VIDEO_SIMILI_FOLDER_RESTORE_TEST_ROOT");
+    const QString phaseVariable = QStringLiteral("VIDEO_SIMILI_FOLDER_RESTORE_TEST_PHASE");
+    const auto environment = QProcessEnvironment::systemEnvironment();
+    const QString phase = environment.value(phaseVariable);
+
+    if (phase.isEmpty()) {
+        const QString preferencesRoot = _scanRoot->filePath(QStringLiteral("preferences"));
+        QVERIFY(QDir().mkpath(preferencesRoot));
+        // APP_NAME is the test application's separate settings domain. Preserve it around the child runs.
+        QSettings settings(APP_NAME, APP_NAME);
+        QVariantMap previousSettings;
+        for (const QString& key : settings.allKeys())
+            previousSettings.insert(key, settings.value(key));
+        const auto restoreSettings = qScopeGuard([&] {
+            settings.clear();
+            for (auto it = previousSettings.cbegin(); it != previousSettings.cend(); ++it)
+                settings.setValue(it.key(), it.value());
+            settings.sync();
+        });
+        settings.clear();
+        settings.sync();
+        // Separate processes exercise settings on disk, including closing before any scan.
+        for (const QString& childPhase : {QStringLiteral("select"), QStringLiteral("restore-and-clear"),
+                                         QStringLiteral("restore-empty")}) {
+            auto childEnvironment = environment;
+            childEnvironment.insert(rootVariable, preferencesRoot);
+            childEnvironment.insert(phaseVariable, childPhase);
+            QProcess child;
+            child.setProcessEnvironment(childEnvironment);
+            child.start(QCoreApplication::applicationFilePath(),
+                        {QStringLiteral("test_selectedFoldersPersistAcrossProcesses")});
+            QVERIFY2(child.waitForStarted(), qPrintable(child.errorString()));
+            QVERIFY2(child.waitForFinished(30000), qPrintable(child.errorString()));
+            const QByteArray output = child.readAllStandardOutput() + child.readAllStandardError();
+            QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, output.constData());
+        }
+        return;
+    }
+
+    const QDir root(environment.value(rootVariable));
+    Prefs().cacheFilePathName(root.filePath(QStringLiteral("cache.db")));
+
+    const QStringList selectedFolders = {QDir::toNativeSeparators(root.filePath(QStringLiteral("first folder"))),
+                                         QDir::toNativeSeparators(root.filePath(QStringLiteral("second folder")))};
+    MainWindow window;
+    window.show();
+    auto* directoryBox = window.findChild<QLineEdit*>(QStringLiteral("directoryBox"));
+    QVERIFY(directoryBox);
+
+    if (phase == QStringLiteral("select")) {
+        QVERIFY(directoryBox->text().isEmpty());
+        directoryBox->setText(QDir::toNativeSeparators(selectedFolders.join(QStringLiteral(";"))));
+        QCOMPARE(Prefs().scanLocations(), selectedFolders);
+    }
+    else if (phase == QStringLiteral("restore-and-clear")) {
+        QCOMPARE(directoryBox->text(), QDir::toNativeSeparators(selectedFolders.join(QStringLiteral(";"))));
+        QCOMPARE(Prefs().scanLocations(), selectedFolders);
+        directoryBox->clear();
+        QVERIFY(Prefs().scanLocations().isEmpty());
+    }
+    else {
+        QCOMPARE(phase, QStringLiteral("restore-empty"));
+        QVERIFY(directoryBox->text().isEmpty());
+        QVERIFY(Prefs().scanLocations().isEmpty());
+    }
+    window.close();
+    QSettings(APP_NAME, APP_NAME).sync();
 }
 
 QTEST_MAIN(TestMainWindow)

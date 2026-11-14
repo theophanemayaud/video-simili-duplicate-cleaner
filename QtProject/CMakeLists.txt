@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 
+# Qt 6.12 requires macOS 14.4. Set this before project() initializes the
+# compiler and before find_package(Qt6) checks the deployment target.
+if(CMAKE_HOST_APPLE)
+    # Default to the macOS SDK from the active developer directory.
+    set(CMAKE_OSX_SYSROOT "macosx" CACHE STRING "macOS SDK name or path")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.4" CACHE STRING "Minimum supported macOS version" FORCE)
+endif()
+
 project(video-simili-duplicate-cleaner VERSION 0.1 LANGUAGES CXX)
 set(APP_COPYRIGHT "Copyright © 2020-2025 Théophane Mayaud, 2018-2019 Kristian Koskimäki")
 
@@ -141,8 +149,6 @@ set(PROJECT_SOURCES
 )
 
 if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
-
     set(MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
     set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/app/AppIcon.icns)
     set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")

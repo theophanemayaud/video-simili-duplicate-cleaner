@@ -26,6 +26,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Test release version updater
+        run: node --test scripts/tests/update-plist-version.test.js
+
       - name: Restore apt package cache
         uses: actions/cache@v4
         with:
@@ -125,7 +128,8 @@ jobs:
     name: macOS static dependencies
     if: github.event_name != 'push'
     runs-on: macos-26
-    timeout-minutes: 45 # takes about 25mins
+    # A clean universal Qt + FFmpeg + OpenCV rebuild can exceed 45 minutes.
+    timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
@@ -181,8 +185,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macOS 14 arm64
-            runner: macos-14
+          # GitHub retired macOS 14 runners on 2026-11-02. The app still targets 14.4.
+          - name: macOS 15 arm64
+            runner: macos-15
           - name: macOS 26 arm64
             runner: macos-26
           - name: macOS 15 Intel

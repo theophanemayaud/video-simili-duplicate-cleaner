@@ -102,6 +102,7 @@ add_qt_test(test_comparison
 add_qt_test(test_mainwindow
     SOURCES test_mainwindow/tst_mainwindow.cpp
 )
+set_tests_properties(test_mainwindow PROPERTIES RUN_SERIAL TRUE)
 
 # failed-video cache policy; copies a tracked sample when extraction has to succeed
 add_qt_test(test_failed_video_cache
