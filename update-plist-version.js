@@ -14,13 +14,28 @@ function versionEntry(key) {
 const buildEntry = versionEntry('CFBundleVersion');
 const publicVersionEntry = versionEntry('CFBundleShortVersionString');
 
-// The public version follows package.json. Apple compares macOS build numbers
-// across all public versions, so increment a global counter for each build.
-// An explicit number also permits reproducing a build without incrementing it.
-const buildNumber = process.env.MACOS_BUILD_NUMBER
-  ?? String(Number(plist.match(buildEntry)[2]) + 1);
-if (!/^[1-9][0-9]*$/.test(buildNumber) || !Number.isSafeInteger(Number(buildNumber)))
-  throw new Error('MACOS_BUILD_NUMBER must be a positive safe integer');
+// ISO weeks belong to the year containing their Thursday. Use UTC so builds
+// agree across machines, including around New Year.
+const date = new Date();
+date.setUTCHours(0, 0, 0, 0);
+date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+const year = date.getUTCFullYear();
+const week = Math.ceil((date - Date.UTC(year, 0, 1) + 86400000) / 604800000);
+
+// The public version follows package.json; macOS builds use YYYY.WW.N.
+// Increment within the same week, otherwise start at 1. An explicit value
+// permits reproducing a build without incrementing it.
+let buildNumber = process.env.MACOS_BUILD_NUMBER;
+if (buildNumber === undefined) {
+  const [previousYear, previousWeek, previousBuild] = plist.match(buildEntry)[2].split('.').map(Number);
+  // Apple requires increasing macOS build versions across public releases.
+  if (previousYear > year || (previousYear === year && previousWeek > week))
+    throw new Error('The previous macOS build is dated in the future; check the clock or set MACOS_BUILD_NUMBER');
+  const build = previousYear === year && previousWeek === week ? previousBuild + 1 : 1;
+  buildNumber = `${year}.${String(week).padStart(2, '0')}.${build}`;
+}
+if (!/^[1-9][0-9]{3}\.(?:0[1-9]|[1-4][0-9]|5[0-3])\.[1-9][0-9]?$/.test(buildNumber))
+  throw new Error('MACOS_BUILD_NUMBER must use YYYY.WW.N (ISO week 01-53, build 1-99)');
 
 const output = plist
   .replace(buildEntry, (_, before, previous, after) => before + buildNumber + after)
