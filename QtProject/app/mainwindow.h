@@ -19,6 +19,10 @@
 #include "video.h"
 #include "videodiscovery.h"
 
+#ifdef Q_OS_MACOS
+#include "obj-c.h"
+#endif
+
 namespace Ui
 {
 class MainWindow;
@@ -47,6 +51,9 @@ class MainWindow : public QMainWindow
     std::atomic_bool _cancelVideoDiscovery = false;
 
     Prefs _prefs;
+#ifdef Q_OS_MACOS
+    MacDirectoryAccess _sourceDirectoryAccess;
+#endif
     bool _stopVideoProcessing = false;
     bool shouldScan = true;
     bool _windowClosing = false;

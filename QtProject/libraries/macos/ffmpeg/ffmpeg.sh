@@ -28,7 +28,7 @@ rm -rf libaom-* ffmpeg-*
 
 ## nasm needed to build aom and ffmpeg
 brew install nasm
-## pkg-config needed for ffmpeg to discover dav1d lib
+## pkg-config lets FFmpeg discover libaom
 brew install pkg-config
 
 # build aom libs for av1 decoding
@@ -61,6 +61,10 @@ lipo -create -arch arm64 ../libaom-arm-install/lib/libaom.a -arch x86_64 ../liba
 cp -r ../libaom-arm-install/lib/pkgconfig ./lib/pkgconfig-arm
 cp -r ../libaom-x86_64-install/lib/pkgconfig ./lib/pkgconfig-x86_64-from-arm
 
+
+# Decode-only build: the app does not encode, mux, or filter video.
+# Keep liblzma disabled for App Store compatibility. Protocols and bitstream
+# filters remain enabled for file access and input-format compatibility.
 
 # build ffmpeg arm
 cd ..

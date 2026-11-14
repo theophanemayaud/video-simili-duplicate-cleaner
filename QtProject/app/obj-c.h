@@ -1,7 +1,21 @@
 #ifndef OBJCHEADER_H
 #define OBJCHEADER_H
 
+#include <memory>
 #include <string>
+#include <QString>
+
+class MacDirectoryAccess
+{
+  public:
+    MacDirectoryAccess();
+    ~MacDirectoryAccess();
+    QString retainDirectory(const QString& directory);
+
+  private:
+    struct Impl;
+    std::unique_ptr<Impl> _impl;
+};
 
 #define OBJ_C_SUCCESS_STRING "VidSimiliSuccess" // Arbitrary success string that must be checked by caller
 #define OBJ_C_FAILURE_STRING "VidSimiliFailure" // Arbitrary failure string that must be checked by caller

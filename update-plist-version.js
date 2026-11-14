@@ -1,43 +1,48 @@
 const fs = require('fs');
-const readline = require('readline');
 
-var appversion = require('./package.json').version;
+const appVersion = require('./package.json').version;
+const plistPath = './QtProject/release-build/macos/Info.plist';
+const plist = fs.readFileSync(plistPath, 'utf8');
 
-var outputString = '';
-var foundCFBundleVersion = false;
-var foundCFBundleShortVersionString = false;
-
-function getPosition(string, subString, index) {
-  return string.split(subString, index).join(subString).length;
+function versionEntry(key) {
+  const pattern = new RegExp(`(<key>${key}</key>\\s*<string>)([^<]*)(</string>)`);
+  if (!pattern.test(plist))
+    throw new Error(`Missing ${key} string in ${plistPath}`);
+  return pattern;
 }
 
-require('fs').readFileSync('./QtProject/release-build/macos/Info.plist', 'utf-8').split(/\r?\n/).forEach(function(line){
-    if(foundCFBundleVersion == true){
-        var beforeString = line.slice(0, getPosition(line, '>', 1) + 1);
-        var afterString = line.slice(getPosition(line, '<', 2));
-        line = beforeString + appversion + afterString;
-        foundCFBundleVersion = false;
-    }
-    if(foundCFBundleShortVersionString == true){
-        var beforeString = line.slice(0, getPosition(line, '>', 1) + 1);
-        var afterString =line.slice(getPosition(line, '<', 2));
-// Before : through short version needed to be short, but in fact no !! It's just a possibility offered by Apple, but it can be identical ! However, this short version must be unique between releases on the apple store, so if want to publish "patch" releases, must use longer version.
-//        line = beforeString + appversion.substring(0, appversion.lastIndexOf('.')) + afterString;
-        line = beforeString + appversion + afterString;
-        foundCFBundleShortVersionString = false;
-    }
-    if(line.includes('CFBundleVersion')){
-        foundCFBundleVersion = true;
-    }
-    if(line.includes('CFBundleShortVersionString')){
-        foundCFBundleShortVersionString = true;
-    }
+const buildEntry = versionEntry('CFBundleVersion');
+const publicVersionEntry = versionEntry('CFBundleShortVersionString');
+const buildFormat = /^[1-9][0-9]{3}\.(?:0[1-9]|[1-4][0-9]|5[0-3])\.[1-9][0-9]?$/;
+const previousBuildNumber = plist.match(buildEntry)[2];
+if (!buildFormat.test(previousBuildNumber))
+  throw new Error('CFBundleVersion must use YYYY.WW.N (ISO week 01-53, build 1-99)');
 
-    outputString += line + "\n";
-    })
+// ISO weeks belong to the year containing their Thursday. Use UTC so builds
+// agree across machines, including around New Year.
+const date = new Date();
+date.setUTCHours(0, 0, 0, 0);
+date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+const year = date.getUTCFullYear();
+const week = Math.ceil((date - Date.UTC(year, 0, 1) + 86400000) / 604800000);
 
-outputString = outputString.substring(0, outputString.length -1); //remove last new line
-fs.writeFile('./QtProject/release-build/macos/Info.plist', outputString, 'utf-8', function (err) {
-    if (err) return console.log(err);
-    console.log('Wrote updated Plist file');
-});
+// The public version follows package.json; macOS builds use YYYY.WW.N.
+// Increment within the same week, otherwise start at 1. An explicit value
+// permits reproducing a build without incrementing it.
+let buildNumber = process.env.MACOS_BUILD_NUMBER;
+if (buildNumber === undefined) {
+  const [previousYear, previousWeek, previousBuild] = previousBuildNumber.split('.').map(Number);
+  // Apple requires increasing macOS build versions across public releases.
+  if (previousYear > year || (previousYear === year && previousWeek > week))
+    throw new Error('The previous macOS build is dated in the future; check the clock or set MACOS_BUILD_NUMBER');
+  const build = previousYear === year && previousWeek === week ? previousBuild + 1 : 1;
+  buildNumber = `${year}.${String(week).padStart(2, '0')}.${build}`;
+}
+if (!buildFormat.test(buildNumber))
+  throw new Error('MACOS_BUILD_NUMBER must use YYYY.WW.N (ISO week 01-53, build 1-99)');
+
+const output = plist
+  .replace(buildEntry, (_, before, previous, after) => before + buildNumber + after)
+  .replace(publicVersionEntry, (_, before, previous, after) => before + appVersion + after);
+fs.writeFileSync(plistPath, output, 'utf8');
+console.log(`macOS version ${appVersion}, build ${buildNumber}`);
