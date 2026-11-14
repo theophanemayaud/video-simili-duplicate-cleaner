@@ -19,6 +19,10 @@
 #include "video.h"
 #include "videodiscovery.h"
 
+#ifdef Q_OS_MACOS
+#include "obj-c.h"
+#endif
+
 namespace Ui
 {
 class MainWindow;
