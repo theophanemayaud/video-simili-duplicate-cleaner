@@ -6,7 +6,8 @@ Run this check in the signed release app with its sandbox entitlements and local
 2. Use `CutEnds`, pHash at 100%, and disable rotated-copy detection. Scan with `Use cache: No`.
 3. Preserve any existing cache and select a fresh cache location. Scan with `Yes`, then `Only`. Each scan must match the valid-video and matching-video expectations in [`tst_whole_app_scan.cpp`](../external/whole_app_scan/tst_whole_app_scan.cpp).
 4. Open a comparison, navigate to another pair, and zoom a preview to exercise captures requested after the scan.
-5. Restart the app and repeat the scan without selecting the folder again, checking that the persisted folder permission works.
+5. Quit and restart the app. Verify that the selected folders are restored, then repeat the scan without opening the folder picker or receiving another access request.
+6. Select another authorized folder and quit before scanning. Restart and verify that the new selection is restored. Clear the selection, quit, and check that it remains empty after restart.
 
 Keep each selected directory's native security-scoped URL authorized until the main window closes. Qt's file engine can release its own access between operations; FFmpeg opens and seeks files through native I/O independently of Qt. Verify that repeated scans and comparison previews reuse the session's directory grant.
 

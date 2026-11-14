@@ -263,10 +263,7 @@ class Prefs
 
     QStringList scanLocations() const
     {
-        // TODO temporarily disabled as it doesn't work on macOS because of sandbox
-        // Need to implement bookmark system to store access rights before we can use this again
-        // return QSettings(APP_NAME, APP_NAME).value("scan_locations").toStringList();}
-        return QStringList();
+        return QSettings(APP_NAME, APP_NAME).value("scan_locations").toStringList();
     }
     void scanLocations(const QStringList folders) { QSettings(APP_NAME, APP_NAME).setValue("scan_locations", folders); }
 

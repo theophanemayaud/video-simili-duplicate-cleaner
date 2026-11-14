@@ -79,10 +79,7 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     if (this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
     ui->detectRotatedCopiesCheckbox->setChecked(this->_prefs.detectRotatedCopies());
-    foreach (QString folder, this->_prefs.scanLocations()) {
-        if (!folder.isEmpty())
-            this->ui->directoryBox->insert(QStringLiteral("%1;").arg(QDir::toNativeSeparators(folder)));
-    }
+    ui->directoryBox->setText(QDir::toNativeSeparators(_prefs.scanLocations().join(QStringLiteral(";"))));
 
     on_selectThumbnails_activated(this->_prefs.thumbnailsMode());
 
@@ -190,8 +187,8 @@ void MainWindow::on_browseApplePhotos_clicked()
 void MainWindow::on_directoryBox_textChanged(const QString& arg1)
 {
     this->shouldScan = true; // reset to true, as we are changing directories
-    if (arg1.trimmed().isEmpty())
-        this->_prefs.scanLocations(QStringList());
+    // Qt persists the native picker grants separately; these settings only store the selection.
+    this->_prefs.scanLocations(arg1.split(QStringLiteral(";"), Qt::SkipEmptyParts));
 }
 
 void MainWindow::on_findDuplicates_clicked()
@@ -254,7 +251,6 @@ void MainWindow::on_findDuplicates_clicked()
             }
         }
 #endif
-        this->_prefs.scanLocations(directories);
         Message::Get()->add(QStringLiteral("Re scanning: %1").arg(directories.join(", ")));
         if (this->_prefs.useCacheOption() != Prefs::CACHE_ONLY) {
             startVideoDiscovery(directories);

@@ -3,9 +3,12 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QProcess>
+#include <QProcessEnvironment>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScopeGuard>
+#include <QSettings>
 #include <QStatusBar>
 #include <QTemporaryDir>
 #include <QTextEdit>
@@ -38,6 +41,7 @@ class TestMainWindow : public QObject
     void test_loadVideoExtensionFilters();
     void test_emptyFolderScanLeavesNoSearchingMessage();
     void test_comparisonCanCloseAndScanAgain();
+    void test_selectedFoldersPersistAcrossProcesses();
 
   private:
     std::unique_ptr<QTemporaryDir> _scanRoot;
@@ -286,6 +290,77 @@ void TestMainWindow::test_comparisonCanCloseAndScanAgain()
     }
     QCOMPARE(acceptedRescans, 1);
     window.close();
+}
+
+void TestMainWindow::test_selectedFoldersPersistAcrossProcesses()
+{
+    const QString rootVariable = QStringLiteral("VIDEO_SIMILI_FOLDER_RESTORE_TEST_ROOT");
+    const QString phaseVariable = QStringLiteral("VIDEO_SIMILI_FOLDER_RESTORE_TEST_PHASE");
+    const auto environment = QProcessEnvironment::systemEnvironment();
+    const QString phase = environment.value(phaseVariable);
+
+    if (phase.isEmpty()) {
+        const QString preferencesRoot = _scanRoot->filePath(QStringLiteral("preferences"));
+        QVERIFY(QDir().mkpath(preferencesRoot));
+        // APP_NAME is the test application's separate settings domain. Preserve it around the child runs.
+        QSettings settings(APP_NAME, APP_NAME);
+        QVariantMap previousSettings;
+        for (const QString& key : settings.allKeys())
+            previousSettings.insert(key, settings.value(key));
+        const auto restoreSettings = qScopeGuard([&] {
+            settings.clear();
+            for (auto it = previousSettings.cbegin(); it != previousSettings.cend(); ++it)
+                settings.setValue(it.key(), it.value());
+            settings.sync();
+        });
+        settings.clear();
+        settings.sync();
+        // Separate processes exercise settings on disk, including closing before any scan.
+        for (const QString& childPhase : {QStringLiteral("select"), QStringLiteral("restore-and-clear"),
+                                         QStringLiteral("restore-empty")}) {
+            auto childEnvironment = environment;
+            childEnvironment.insert(rootVariable, preferencesRoot);
+            childEnvironment.insert(phaseVariable, childPhase);
+            QProcess child;
+            child.setProcessEnvironment(childEnvironment);
+            child.start(QCoreApplication::applicationFilePath(),
+                        {QStringLiteral("test_selectedFoldersPersistAcrossProcesses")});
+            QVERIFY2(child.waitForStarted(), qPrintable(child.errorString()));
+            QVERIFY2(child.waitForFinished(30000), qPrintable(child.errorString()));
+            const QByteArray output = child.readAllStandardOutput() + child.readAllStandardError();
+            QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, output.constData());
+        }
+        return;
+    }
+
+    const QDir root(environment.value(rootVariable));
+    Prefs().cacheFilePathName(root.filePath(QStringLiteral("cache.db")));
+
+    const QStringList selectedFolders = {QDir::toNativeSeparators(root.filePath(QStringLiteral("first folder"))),
+                                         QDir::toNativeSeparators(root.filePath(QStringLiteral("second folder")))};
+    MainWindow window;
+    window.show();
+    auto* directoryBox = window.findChild<QLineEdit*>(QStringLiteral("directoryBox"));
+    QVERIFY(directoryBox);
+
+    if (phase == QStringLiteral("select")) {
+        QVERIFY(directoryBox->text().isEmpty());
+        directoryBox->setText(QDir::toNativeSeparators(selectedFolders.join(QStringLiteral(";"))));
+        QCOMPARE(Prefs().scanLocations(), selectedFolders);
+    }
+    else if (phase == QStringLiteral("restore-and-clear")) {
+        QCOMPARE(directoryBox->text(), QDir::toNativeSeparators(selectedFolders.join(QStringLiteral(";"))));
+        QCOMPARE(Prefs().scanLocations(), selectedFolders);
+        directoryBox->clear();
+        QVERIFY(Prefs().scanLocations().isEmpty());
+    }
+    else {
+        QCOMPARE(phase, QStringLiteral("restore-empty"));
+        QVERIFY(directoryBox->text().isEmpty());
+        QVERIFY(Prefs().scanLocations().isEmpty());
+    }
+    window.close();
+    QSettings(APP_NAME, APP_NAME).sync();
 }
 
 QTEST_MAIN(TestMainWindow)

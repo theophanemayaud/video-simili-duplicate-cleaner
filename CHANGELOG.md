@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file. See [commit
 ### Bug Fixes
 
 * **macos:** keep selected folders accessible throughout scans and comparison previews under App Sandbox.
+* **settings:** remember selected scan folders across application restarts, including selections made before starting a scan.
 
 ## [1.15.1](https://github.com/theophanemayaud/video-simili-duplicate-cleaner/compare/v1.15.0...v1.15.1) (2026-10-08)
 
