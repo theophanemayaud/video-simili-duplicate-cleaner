@@ -79,7 +79,9 @@ MainWindow::MainWindow() : ui(new Ui::MainWindow)
     if (this->_prefs.isVerbose())
         ui->verboseCheckbox->setCheckState(Qt::Checked);
     ui->detectRotatedCopiesCheckbox->setChecked(this->_prefs.detectRotatedCopies());
-    ui->directoryBox->setText(QDir::toNativeSeparators(_prefs.scanLocations().join(QStringLiteral(";"))));
+    QStringList selectedFolders = _prefs.scanLocations();
+    selectedFolders.removeAll(QString());
+    ui->directoryBox->setText(QDir::toNativeSeparators(selectedFolders.join(QStringLiteral(";"))));
 
     on_selectThumbnails_activated(this->_prefs.thumbnailsMode());
 
